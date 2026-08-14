@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -26,12 +26,20 @@ import {
   FlaskConical,
   Loader2,
   LogOut,
+  Plus,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
 
 type StrainDoc = Doc<"strains">;
+type StrainType = "indica" | "sativa" | "hybrid";
+
+type SelectedStrain = {
+  name: string;
+  inKnowledgeBase: boolean;
+  type?: StrainType;
+};
 
 const CONDITIONS = [
   "Chronic pain",
@@ -73,7 +81,7 @@ const QUICK_PICKS: { label: string; condition: string; strains: string[] }[] = [
 
 const RESEARCH_STEPS = [
   "Loading strain profiles…",
-  "Cross-referencing Leafly, Weedmaps & Reddit…",
+  "Searching Leafly, Weedmaps & Reddit for every strain…",
   "Synthesizing the comparison with MiniMax AI…",
 ];
 
@@ -85,7 +93,7 @@ export default function Dashboard() {
 
   type CompareResult = Awaited<ReturnType<typeof runComparison>>;
 
-  const [selectedIds, setSelectedIds] = useState<Id<"strains">[]>([]);
+  const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const [condition, setCondition] = useState<string[]>([]);
   const [seedTotal, setSeedTotal] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -122,10 +130,23 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, [isRunning]);
 
-  const selectedStrains = useMemo(
+  // Case-insensitive lookup of curated strains by name.
+  const strainsByName = useMemo(() => {
+    const map = new Map<string, StrainDoc>();
+    for (const s of strains ?? []) map.set(s.name.toLowerCase(), s);
+    return map;
+  }, [strains]);
+
+  const selectedStrains: SelectedStrain[] = useMemo(
     () =>
-      (strains ?? []).filter((s) => selectedIds.includes(s._id)) as StrainDoc[],
-    [strains, selectedIds],
+      selectedNames.map((name) => {
+        const doc = strainsByName.get(name.toLowerCase());
+        if (doc) {
+          return { name: doc.name, inKnowledgeBase: true, type: doc.type };
+        }
+        return { name, inKnowledgeBase: false };
+      }),
+    [selectedNames, strainsByName],
   );
 
   const searchResults = useMemo(() => {
@@ -154,12 +175,36 @@ export default function Dashboard() {
       .slice(0, 8);
   }, [strains, query, condition]);
 
-  const toggleStrain = (id: Id<"strains">) => {
-    setSelectedIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
+  // A strain name the user typed that is NOT in the curated knowledge base —
+  // offer it as an "add" row so the AI researches it from public sources.
+  const customQuery = useMemo(() => {
+    const q = query.trim();
+    if (q === "") return null;
+    const lower = q.toLowerCase();
+    if (strainsByName.has(lower)) return null;
+    if (selectedNames.some((n) => n.toLowerCase() === lower)) return null;
+    return q;
+  }, [query, strainsByName, selectedNames]);
+
+  const toggleStrainName = (name: string) => {
+    setSelectedNames((prev) => {
+      const lower = name.toLowerCase();
+      if (prev.some((n) => n.toLowerCase() === lower)) {
+        return prev.filter((n) => n.toLowerCase() !== lower);
+      }
       if (prev.length >= 3) return prev;
-      return [...prev, id];
+      return [...prev, name];
     });
+  };
+
+  const addCustomStrain = (name: string) => {
+    setSelectedNames((prev) => {
+      const lower = name.toLowerCase();
+      if (prev.some((n) => n.toLowerCase() === lower)) return prev;
+      if (prev.length >= 3) return prev;
+      return [...prev, name];
+    });
+    setQuery("");
   };
 
   const toggleCondition = (c: string) => {
@@ -169,15 +214,15 @@ export default function Dashboard() {
   };
 
   const handleCompare = async (
-    ids: Id<"strains">[] = selectedIds,
+    names: string[] = selectedNames,
     focus: string[] = condition,
   ) => {
-    if (ids.length < 2 || isRunning) return;
+    if (names.length < 2 || isRunning) return;
     setIsRunning(true);
     setError(null);
     try {
       const comparison = await runComparison({
-        strainIds: ids,
+        strainNames: names,
         condition: focus.length > 0 ? focus : undefined,
       });
       setResult(comparison);
@@ -199,26 +244,21 @@ export default function Dashboard() {
   };
 
   const applyQuickPick = async (pick: (typeof QUICK_PICKS)[number]) => {
-    if (!strains) return;
-    const ids = strains
-      .filter((s) => pick.strains.includes(s.name))
-      .map((s) => s._id);
-    if (ids.length < 2) return;
-    setSelectedIds(ids);
+    setSelectedNames(pick.strains);
     setCondition([pick.condition]);
     setResult(null);
     setQuery("");
-    await handleCompare(ids, [pick.condition]);
+    await handleCompare(pick.strains, [pick.condition]);
   };
 
   const resetComparison = () => {
     setResult(null);
     setError(null);
-    setSelectedIds([]);
+    setSelectedNames([]);
     setCondition([]);
   };
 
-  const atCap = selectedIds.length >= 3;
+  const atCap = selectedNames.length >= 3;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -269,7 +309,8 @@ export default function Dashboard() {
                 </CardTitle>
                 <CardDescription>
                   Pick 2–3 strains and, optionally, the conditions you&apos;re
-                  treating (choose several).
+                  treating (choose several). Searching any strain name works —
+                  even ones not in our database.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -283,7 +324,7 @@ export default function Dashboard() {
                     <Input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search strains, effects, conditions…"
+                      placeholder="Search any strain, effect, condition…"
                       className="pl-9"
                     />
                   </div>
@@ -292,15 +333,21 @@ export default function Dashboard() {
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {selectedStrains.map((s) => (
                         <span
-                          key={s._id}
+                          key={s.name}
                           className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 py-1 pl-3 pr-1.5 text-xs font-medium text-primary"
                         >
                           {s.name}
+                          {!s.inKnowledgeBase && (
+                            <span className="flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold">
+                              <Sparkles className="size-2.5" />
+                              AI
+                            </span>
+                          )}
                           <button
                             type="button"
                             aria-label={`Remove ${s.name}`}
                             className="rounded-full p-0.5 transition-colors hover:bg-primary/15"
-                            onClick={() => toggleStrain(s._id)}
+                            onClick={() => toggleStrainName(s.name)}
                           >
                             <X className="size-3" />
                           </button>
@@ -309,25 +356,55 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  {condition.length > 0 && query.trim() === "" && searchResults.length === 0 ? (
+                  {customQuery && (
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        disabled={atCap}
+                        onClick={() => addCustomStrain(customQuery)}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3.5 py-2.5 text-left transition-colors hover:border-primary/70 hover:bg-primary/10",
+                          atCap && "cursor-not-allowed opacity-40",
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            Use “{customQuery}”
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            Not in our database — the AI will research it on
+                            Leafly, Weedmaps &amp; Reddit
+                          </p>
+                        </div>
+                        <Plus className="size-4 shrink-0 text-primary" />
+                      </button>
+                    </div>
+                  )}
+
+                  {condition.length > 0 &&
+                  query.trim() === "" &&
+                  searchResults.length === 0 ? (
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">
                       No strains in the knowledge base are commonly used for{" "}
                       <span className="font-medium text-foreground">
                         {condition.join(", ")}
                       </span>
-                      . Try fewer conditions.
+                      . Try fewer conditions, or type any strain name above —
+                      the AI will research it for you.
                     </p>
                   ) : searchResults.length > 0 ? (
                     <div className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-border/70 bg-background">
                       {searchResults.map((s) => {
-                        const isSelected = selectedIds.includes(s._id);
+                        const isSelected = selectedNames.some(
+                          (n) => n.toLowerCase() === s.name.toLowerCase(),
+                        );
                         const disabled = atCap && !isSelected;
                         return (
                           <button
                             key={s._id}
                             type="button"
                             disabled={disabled}
-                            onClick={() => toggleStrain(s._id)}
+                            onClick={() => toggleStrainName(s.name)}
                             className={cn(
                               "flex w-full items-center justify-between gap-3 border-b border-border/50 px-3.5 py-2.5 text-left transition-colors last:border-b-0",
                               isSelected
@@ -363,7 +440,8 @@ export default function Dashboard() {
                     </div>
                   ) : query.trim() !== "" ? (
                     <p className="mt-2 text-xs text-muted-foreground">
-                      No strains match “{query}”.
+                      No curated strains match “{query}” — add it above and the
+                      AI will research it.
                     </p>
                   ) : condition.length > 0 ? (
                     <p className="mt-2 text-xs text-muted-foreground">
@@ -371,7 +449,8 @@ export default function Dashboard() {
                       <span className="font-medium text-foreground">
                         {condition.join(", ")}
                       </span>
-                      . Pick two or three to compare.
+                      . Pick two or three to compare — or type any strain name
+                      to add it anyway.
                     </p>
                   ) : null}
                 </div>
@@ -406,7 +485,7 @@ export default function Dashboard() {
                     type="button"
                     className="w-full cursor-pointer rounded-full"
                     size="lg"
-                    disabled={selectedIds.length < 2 || isRunning}
+                    disabled={selectedNames.length < 2 || isRunning}
                     onClick={() => void handleCompare()}
                   >
                     {isRunning ? (
@@ -421,7 +500,7 @@ export default function Dashboard() {
                       </>
                     )}
                   </Button>
-                  {selectedIds.length < 2 && (
+                  {selectedNames.length < 2 && (
                     <p className="text-center text-xs text-muted-foreground">
                       Select at least two strains to compare.
                     </p>
@@ -450,7 +529,8 @@ export default function Dashboard() {
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Usually takes 5–15 seconds. We&apos;re reading across Leafly,
-                  Weedmaps, Reddit, Google and dispensary menus.
+                  Weedmaps, Reddit, Google and dispensary menus — for strains
+                  outside our database too.
                 </p>
               </div>
             ) : result ? (
@@ -500,22 +580,19 @@ export default function Dashboard() {
                     const norm = (v: string) => v.trim().toLowerCase();
                     let badge: "best" | "runnerUp" | null = null;
                     if (best && norm(s.name) === norm(best)) badge = "best";
-                    else if (
-                      runnerUp &&
-                      norm(s.name) === norm(runnerUp)
-                    )
+                    else if (runnerUp && norm(s.name) === norm(runnerUp))
                       badge = "runnerUp";
                     return (
-                      <StrainDetailCard key={s._id} strain={s} badge={badge} />
+                      <StrainDetailCard key={s.name} strain={s} badge={badge} />
                     );
                   })}
                 </div>
 
                 <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
                   <Sparkles className="size-3.5 shrink-0 text-primary" />
-                  AI comparison generated with MiniMax-M2.5-highspeed from aggregated
-                  public sources. Not medical advice — consult your healthcare
-                  provider.
+                  AI comparison generated with MiniMax-M2.5-highspeed from
+                  aggregated public sources. Not medical advice — consult your
+                  healthcare provider.
                 </p>
               </div>
             ) : (
@@ -529,8 +606,9 @@ export default function Dashboard() {
                     Pick two or three strains to begin
                   </h1>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                    Choose strains on the left (search by name, effect or
-                    condition), or jump in with a ready-made comparison below.
+                    Search any strain by name, effect or condition. Not in our
+                    database? The AI will research it across Leafly, Weedmaps,
+                    Reddit and Google.
                   </p>
                 </div>
 

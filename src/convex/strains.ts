@@ -36,12 +36,17 @@ export const listStrains = query({
 });
 
 /**
- * Fetch a single strain by id. Used from actions (which cannot read the
- * database directly) via ctx.runQuery.
+ * Fetch strains matching any of the given names (case-insensitive).
+ * Used from the compare action so users can search ANY strain name —
+ * strains that match the curated knowledge base get full profiles,
+ * anything else is researched by the AI instead.
  */
-export const getStrainById = query({
-  args: { id: v.id("strains") },
-  handler: async (ctx, { id }) => {
-    return await ctx.db.get(id);
+export const getStrainsByNames = query({
+  args: { names: v.array(v.string()) },
+  handler: async (ctx, { names }) => {
+    if (names.length === 0) return [];
+    const wanted = new Set(names.map((n) => n.trim().toLowerCase()));
+    const all = await ctx.db.query("strains").collect();
+    return all.filter((s) => wanted.has(s.name.toLowerCase()));
   },
 });

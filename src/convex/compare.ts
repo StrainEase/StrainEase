@@ -3,8 +3,30 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
-import { Doc } from "./_generated/dataModel";
 import { ConvexError, v } from "convex/values";
+
+export type StrainType = "indica" | "sativa" | "hybrid";
+
+/**
+ * A strain profile for a comparison. Strains found in the curated knowledge
+ * base carry full profile data; anything else is marked inKnowledgeBase:
+ * false and the AI researches it from public sources (Leafly, Weedmaps,
+ * Reddit, Google, dispensary menus).
+ */
+export type StrainProfile = {
+  name: string;
+  inKnowledgeBase: boolean;
+  type?: StrainType;
+  thcRange?: string;
+  cbdRange?: string;
+  lineage?: string;
+  terpenes?: { name: string; profile: string }[];
+  medicalUses?: string[];
+  effects?: { name: string; intensity: number }[];
+  sideEffects?: string[];
+  description?: string;
+  communityNotes?: { source: string; text: string }[];
+};
 
 export type StrainAnalysis = {
   headline: string;
@@ -20,7 +42,7 @@ export type StrainAnalysis = {
 };
 
 export type StrainComparison = {
-  strains: Doc<"strains">[];
+  strains: StrainProfile[];
   analysis: StrainAnalysis;
 };
 
@@ -32,7 +54,8 @@ type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 const SYSTEM_PROMPT = `You are StrainWise, a research assistant built for medical cannabis patients. Patients come to you to choose between strains for symptom relief, so you speak directly to them — not to budtenders or enthusiasts.
 
 Rules:
-- Base every claim only on the strain data provided. Never invent numbers, terpenes, effects, or uses.
+- Base every claim on the strain data provided. Never invent numbers, terpenes, effects, or uses.
+- Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the summary.
 - Write for the patient: precise, calm, practical, and low-jargon. Lead with symptom relief and day-to-day usability. If you use a technical term, define it in one short phrase.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
 - If one or more condition focuses are given, evaluate each strain's suitability for those conditions and name the single best fit for the patient.
@@ -49,29 +72,39 @@ JSON shape (all fields required):
 }`;
 
 function buildPrompt(
-  strains: Doc<"strains">[],
+  strains: StrainProfile[],
   conditions: string[] | undefined,
 ): string {
-  const payload = strains.map((s) => ({
-    name: s.name,
-    type: s.type,
-    thcRange: s.thcRange,
-    cbdRange: s.cbdRange,
-    lineage: s.lineage,
-    terpenes: s.terpenes,
-    medicalUses: s.medicalUses,
-    effects: s.effects,
-    sideEffects: s.sideEffects,
-    description: s.description,
-    communityNotes: s.communityNotes,
-  }));
+  const payload = strains.map((s) =>
+    s.inKnowledgeBase
+      ? {
+          name: s.name,
+          type: s.type,
+          thcRange: s.thcRange,
+          cbdRange: s.cbdRange,
+          lineage: s.lineage,
+          terpenes: s.terpenes,
+          medicalUses: s.medicalUses,
+          effects: s.effects,
+          sideEffects: s.sideEffects,
+          description: s.description,
+          communityNotes: s.communityNotes,
+        }
+      : { name: s.name, noCuratedProfile: true },
+  );
 
   return [
     "Compare the following cannabis strains for a patient deciding which one to try.",
-    `Condition focus: ${conditions && conditions.length > 0 ? conditions.join(", ") : "none — give a general comparison focused on patient symptom relief"}`,
+    `Condition focus: ${
+      conditions && conditions.length > 0
+        ? conditions.join(", ")
+        : "none — give a general comparison focused on patient symptom relief"
+    }`,
     "",
-    "Strain data (aggregated from Leafly, Weedmaps, Reddit, and dispensary menus):",
+    "Strain data:",
     JSON.stringify(payload, null, 2),
+    "",
+    'Strains marked "noCuratedProfile": true are NOT in our curated knowledge base. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the summary when a detail is a commonly-reported figure rather than a verified lab result.',
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
@@ -207,8 +240,9 @@ function normalize(parsed: unknown): StrainAnalysis {
   };
 }
 
-export const compareStrains = action({    args: {
-    strainIds: v.array(v.id("strains")),
+export const compareStrains = action({
+  args: {
+    strainNames: v.array(v.string()),
     condition: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args): Promise<StrainComparison> => {
@@ -219,21 +253,43 @@ export const compareStrains = action({    args: {
       );
     }
 
-    if (args.strainIds.length < 2 || args.strainIds.length > 3) {
+    const names = [
+      ...new Set(
+        args.strainNames.map((n) => n.trim()).filter((n) => n !== ""),
+      ),
+    ];
+    if (names.length < 2 || names.length > 3) {
       throw new ConvexError("Select 2–3 strains to compare.");
     }
 
-    const strains = (
-      await Promise.all(
-        args.strainIds.map((id) =>
-          ctx.runQuery(api.strains.getStrainById, { id }),
-        ),
-      )
-    ).filter((s): s is Doc<"strains"> => s !== null);
+    // Match requested names against the curated knowledge base
+    // (case-insensitively). Anything that doesn't match is handed to the AI
+    // to research from public sources instead.
+    const found = await ctx.runQuery(api.strains.getStrainsByNames, {
+      names,
+    });
+    const byName = new Map(found.map((s) => [s.name.toLowerCase(), s]));
 
-    if (strains.length !== args.strainIds.length) {
-      throw new ConvexError("One or more strains could not be found.");
-    }
+    const strains: StrainProfile[] = names.map((name) => {
+      const doc = byName.get(name.toLowerCase());
+      if (!doc) {
+        return { name, inKnowledgeBase: false };
+      }
+      return {
+        name: doc.name,
+        inKnowledgeBase: true,
+        type: doc.type,
+        thcRange: doc.thcRange,
+        cbdRange: doc.cbdRange,
+        lineage: doc.lineage,
+        terpenes: doc.terpenes,
+        medicalUses: doc.medicalUses,
+        effects: doc.effects,
+        sideEffects: doc.sideEffects,
+        description: doc.description,
+        communityNotes: doc.communityNotes,
+      };
+    });
 
     const content = await callMiniMax([
       { role: "system", content: SYSTEM_PROMPT },
