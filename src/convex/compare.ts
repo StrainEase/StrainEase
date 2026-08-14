@@ -35,7 +35,7 @@ Rules:
 - Base every claim only on the strain data provided. Never invent numbers, terpenes, effects, or uses.
 - Write for the patient: precise, calm, practical, and low-jargon. Lead with symptom relief and day-to-day usability. If you use a technical term, define it in one short phrase.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
-- If a condition focus is given, evaluate each strain's suitability for that specific condition and name the best fit for the patient.
+- If one or more condition focuses are given, evaluate each strain's suitability for those conditions and name the single best fit for the patient.
 - Respond with ONLY a single JSON object. No markdown, no text outside the JSON.
 
 JSON shape (all fields required):
@@ -50,7 +50,7 @@ JSON shape (all fields required):
 
 function buildPrompt(
   strains: Doc<"strains">[],
-  condition: string | undefined,
+  conditions: string[] | undefined,
 ): string {
   const payload = strains.map((s) => ({
     name: s.name,
@@ -68,7 +68,7 @@ function buildPrompt(
 
   return [
     "Compare the following cannabis strains for a patient deciding which one to try.",
-    `Condition focus: ${condition ?? "none — give a general comparison focused on patient symptom relief"}`,
+    `Condition focus: ${conditions && conditions.length > 0 ? conditions.join(", ") : "none — give a general comparison focused on patient symptom relief"}`,
     "",
     "Strain data (aggregated from Leafly, Weedmaps, Reddit, and dispensary menus):",
     JSON.stringify(payload, null, 2),
@@ -207,10 +207,9 @@ function normalize(parsed: unknown): StrainAnalysis {
   };
 }
 
-export const compareStrains = action({
-  args: {
+export const compareStrains = action({    args: {
     strainIds: v.array(v.id("strains")),
-    condition: v.optional(v.string()),
+    condition: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args): Promise<StrainComparison> => {
     const userId = await getAuthUserId(ctx);

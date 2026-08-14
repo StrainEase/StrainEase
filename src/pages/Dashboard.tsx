@@ -86,7 +86,8 @@ export default function Dashboard() {
   type CompareResult = Awaited<ReturnType<typeof runComparison>>;
 
   const [selectedIds, setSelectedIds] = useState<Id<"strains">[]>([]);
-  const [condition, setCondition] = useState<string | null>(null);
+  const [condition, setCondition] = useState<string[]>([]);
+  const [seedTotal, setSeedTotal] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<CompareResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -94,12 +95,19 @@ export default function Dashboard() {
   const [stepIndex, setStepIndex] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Lazily seed the knowledge base the first time the workspace loads.
+  // Seed the knowledge base on first load, then top up any strains added to
+  // the dataset since the last visit. The mutation only inserts missing
+  // names, so re-running it is safe.
   useEffect(() => {
-    if (strains !== undefined && strains.length === 0) {
+    if (strains === undefined) return;
+    if (strains.length === 0) {
+      void seedStrains().then((r) => setSeedTotal(r.total));
+      return;
+    }
+    if (seedTotal !== null && strains.length < seedTotal) {
       void seedStrains();
     }
-  }, [strains, seedStrains]);
+  }, [strains, seedTotal, seedStrains]);
 
   // Cycle through research status messages while a comparison runs.
   useEffect(() => {
@@ -122,9 +130,15 @@ export default function Dashboard() {
 
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
+    if (q === "" && condition.length === 0) return [];
     return (strains ?? [])
+      .filter(
+        (s) =>
+          condition.length === 0 ||
+          condition.some((c) => s.medicalUses.includes(c)),
+      )
       .filter((s) => {
+        if (q === "") return true;
         const haystack = [
           s.name,
           s.type,
@@ -138,7 +152,7 @@ export default function Dashboard() {
         return haystack.includes(q);
       })
       .slice(0, 8);
-  }, [strains, query]);
+  }, [strains, query, condition]);
 
   const toggleStrain = (id: Id<"strains">) => {
     setSelectedIds((prev) => {
@@ -149,12 +163,14 @@ export default function Dashboard() {
   };
 
   const toggleCondition = (c: string) => {
-    setCondition((prev) => (prev === c ? null : c));
+    setCondition((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
+    );
   };
 
   const handleCompare = async (
     ids: Id<"strains">[] = selectedIds,
-    focus: string | null = condition,
+    focus: string[] = condition,
   ) => {
     if (ids.length < 2 || isRunning) return;
     setIsRunning(true);
@@ -162,7 +178,7 @@ export default function Dashboard() {
     try {
       const comparison = await runComparison({
         strainIds: ids,
-        condition: focus ?? undefined,
+        condition: focus.length > 0 ? focus : undefined,
       });
       setResult(comparison);
       requestAnimationFrame(() => {
@@ -189,17 +205,17 @@ export default function Dashboard() {
       .map((s) => s._id);
     if (ids.length < 2) return;
     setSelectedIds(ids);
-    setCondition(pick.condition);
+    setCondition([pick.condition]);
     setResult(null);
     setQuery("");
-    await handleCompare(ids, pick.condition);
+    await handleCompare(ids, [pick.condition]);
   };
 
   const resetComparison = () => {
     setResult(null);
     setError(null);
     setSelectedIds([]);
-    setCondition(null);
+    setCondition([]);
   };
 
   const atCap = selectedIds.length >= 3;
@@ -252,8 +268,8 @@ export default function Dashboard() {
                   New comparison
                 </CardTitle>
                 <CardDescription>
-                  Pick 2–3 strains and, optionally, the condition you&apos;re
-                  treating.
+                  Pick 2–3 strains and, optionally, the conditions you&apos;re
+                  treating (choose several).
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -293,7 +309,15 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  {searchResults.length > 0 ? (
+                  {condition.length > 0 && query.trim() === "" && searchResults.length === 0 ? (
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      No strains in the knowledge base are commonly used for{" "}
+                      <span className="font-medium text-foreground">
+                        {condition.join(", ")}
+                      </span>
+                      . Try fewer conditions.
+                    </p>
+                  ) : searchResults.length > 0 ? (
                     <div className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-border/70 bg-background">
                       {searchResults.map((s) => {
                         const isSelected = selectedIds.includes(s._id);
@@ -337,19 +361,25 @@ export default function Dashboard() {
                         );
                       })}
                     </div>
-                  ) : (
-                    query.trim() !== "" && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        No strains match “{query}”.
-                      </p>
-                    )
-                  )}
+                  ) : query.trim() !== "" ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      No strains match “{query}”.
+                    </p>
+                  ) : condition.length > 0 ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Showing strains commonly used for{" "}
+                      <span className="font-medium text-foreground">
+                        {condition.join(", ")}
+                      </span>
+                      . Pick two or three to compare.
+                    </p>
+                  ) : null}
                 </div>
 
                 {/* Condition focus */}
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    2 · Condition focus (optional)
+                    2 · Condition focus (optional — pick several)
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {CONDITIONS.map((c) => (
@@ -359,7 +389,7 @@ export default function Dashboard() {
                         onClick={() => toggleCondition(c)}
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                          condition === c
+                          condition.includes(c)
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
                         )}
@@ -435,7 +465,10 @@ export default function Dashboard() {
                       {result.analysis.forCondition && (
                         <span className="text-muted-foreground">
                           {" "}
-                          · for {condition ?? "your condition"}
+                          · for{" "}
+                          {condition.length > 0
+                            ? condition.join(", ")
+                            : "your condition"}
                         </span>
                       )}
                     </h1>

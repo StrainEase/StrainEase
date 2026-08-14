@@ -20,7 +20,7 @@ export const seedStrains = mutation({
         inserted += 1;
       }
     }
-    return inserted;
+    return { inserted, total: SEED_STRAINS.length };
   },
 });
 
