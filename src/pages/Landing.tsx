@@ -262,7 +262,7 @@ export default function Landing() {
               icon: Brain,
               step: "03",
               title: "Get an AI comparison",
-              body: "GPT-4o-mini synthesizes the aggregated data into a medical-focused verdict, differences, and cautions.",
+              body: "MiniMax AI synthesizes the aggregated data into a patient-focused verdict, differences, and cautions.",
             },
           ].map((s, i) => (
             <motion.div

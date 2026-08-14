@@ -4,7 +4,6 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
-import { vly } from "../lib/vly-integrations";
 import { ConvexError, v } from "convex/values";
 
 export type StrainAnalysis = {
@@ -25,19 +24,24 @@ export type StrainComparison = {
   analysis: StrainAnalysis;
 };
 
-const SYSTEM_PROMPT = `You are StrainWise, a research assistant for medical cannabis patients. You compare strains using data aggregated from public sources: Leafly strain reviews, Weedmaps listings, Reddit discussions (r/trees, r/medicalmarijuana, r/MMJ), Google results, and dispensary menus.
+const MINIMAX_URL = "https://api.minimax.io/v1/chat/completions";
+const MINIMAX_MODEL = "MiniMax-M3";
+
+type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+
+const SYSTEM_PROMPT = `You are StrainWise, a research assistant built for medical cannabis patients. Patients come to you to choose between strains for symptom relief, so you speak directly to them — not to budtenders or enthusiasts.
 
 Rules:
 - Base every claim only on the strain data provided. Never invent numbers, terpenes, effects, or uses.
-- Write for a medical audience: precise, calm, practical. Reference conditions and symptoms clearly.
-- Never promise a cure, never advise stopping prescribed medication, and never diagnose.
-- If a condition focus is given, evaluate each strain's suitability for that condition explicitly and name the best fit.
+- Write for the patient: precise, calm, practical, and low-jargon. Lead with symptom relief and day-to-day usability. If you use a technical term, define it in one short phrase.
+- Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
+- If a condition focus is given, evaluate each strain's suitability for that specific condition and name the best fit for the patient.
 - Respond with ONLY a single JSON object. No markdown, no text outside the JSON.
 
 JSON shape (all fields required):
 {
-  "headline": "one sentence, 18 words max, the practical takeaway",
-  "summary": "2-4 sentences synthesizing the comparison for a medical user",
+  "headline": "one sentence, 18 words max, the practical takeaway for the patient",
+  "summary": "2-4 sentences synthesizing the comparison for a patient choosing between strains",
   "forCondition": {"best": "strain name", "why": "1-2 sentences", "runnerUp": "strain name"} or null when no condition focus is given,
   "keyDifferences": ["3-5 short bullets"],
   "commonGround": ["2-3 short bullets"],
@@ -63,14 +67,71 @@ function buildPrompt(
   }));
 
   return [
-    "Compare the following cannabis strains for a medical cannabis patient.",
-    `Condition focus: ${condition ?? "none — give a general medical comparison"}`,
+    "Compare the following cannabis strains for a patient deciding which one to try.",
+    `Condition focus: ${condition ?? "none — give a general comparison focused on patient symptom relief"}`,
     "",
     "Strain data (aggregated from Leafly, Weedmaps, Reddit, and dispensary menus):",
     JSON.stringify(payload, null, 2),
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
+}
+
+async function callMiniMax(messages: ChatMessage[]): Promise<string> {
+  const apiKey = process.env.MINIMAX_API_KEY;
+  if (!apiKey) {
+    throw new ConvexError(
+      "The MiniMax API key is missing. Add MINIMAX_API_KEY in the project's Keys/API keys tab, then try again.",
+    );
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(MINIMAX_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: MINIMAX_MODEL,
+        messages,
+        temperature: 0.4,
+        max_completion_tokens: 1600,
+        thinking: { type: "disabled" },
+      }),
+    });
+  } catch {
+    throw new ConvexError(
+      "Could not reach the MiniMax research service. Please try again in a moment.",
+    );
+  }
+
+  const data = (await res.json().catch(() => null)) as {
+    error?: { message?: string };
+    base_resp?: { status_msg?: string };
+    message?: string;
+    choices?: { message?: { content?: string } }[];
+  } | null;
+
+  if (!res.ok) {
+    const detail =
+      data?.error?.message ??
+      data?.base_resp?.status_msg ??
+      data?.message ??
+      `status ${res.status}`;
+    throw new ConvexError(
+      `The MiniMax research service returned an error: ${detail}`,
+    );
+  }
+
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || content.trim() === "") {
+    throw new ConvexError(
+      "The MiniMax research service returned an empty response. Please try again.",
+    );
+  }
+  return content;
 }
 
 function parseAnalysis(content: string): StrainAnalysis {
@@ -174,25 +235,10 @@ export const compareStrains = action({
       throw new ConvexError("One or more strains could not be found.");
     }
 
-    const response = await vly.ai.completion({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: buildPrompt(strains, args.condition) },
-      ],
-      temperature: 0.4,
-      maxTokens: 1400,
-    });
-
-    if (!response.success || !response.data) {
-      throw new ConvexError(
-        response.error ??
-          "The research service returned an error. Please try again in a moment.",
-      );
-    }
-
-    const content =
-      response.data.choices[0]?.message?.content ?? "";
+    const content = await callMiniMax([
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: buildPrompt(strains, args.condition) },
+    ]);
 
     return {
       strains,

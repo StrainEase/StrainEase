@@ -74,7 +74,7 @@ const QUICK_PICKS: { label: string; condition: string; strains: string[] }[] = [
 const RESEARCH_STEPS = [
   "Loading strain profiles…",
   "Cross-referencing Leafly, Weedmaps & Reddit…",
-  "Synthesizing the comparison with GPT-4o-mini…",
+  "Synthesizing the comparison with MiniMax AI…",
 ];
 
 export default function Dashboard() {
@@ -480,7 +480,7 @@ export default function Dashboard() {
 
                 <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
                   <Sparkles className="size-3.5 shrink-0 text-primary" />
-                  AI comparison generated with GPT-4o-mini from aggregated
+                  AI comparison generated with MiniMax-M3 from aggregated
                   public sources. Not medical advice — consult your healthcare
                   provider.
                 </p>
