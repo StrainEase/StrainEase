@@ -1,4 +1,4 @@
-import type { StrainProfile } from "@/convex/compare";
+import type { StrainProfile } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import {

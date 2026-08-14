@@ -4,29 +4,9 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { ConvexError, v } from "convex/values";
+import type { StrainProfile } from "../lib/strain-profile";
 
-export type StrainType = "indica" | "sativa" | "hybrid";
-
-/**
- * A strain profile for a comparison. Strains found in the curated knowledge
- * base carry full profile data; anything else is marked inKnowledgeBase:
- * false and the AI researches it from public sources (Leafly, Weedmaps,
- * Reddit, Google, dispensary menus).
- */
-export type StrainProfile = {
-  name: string;
-  inKnowledgeBase: boolean;
-  type?: StrainType;
-  thcRange?: string;
-  cbdRange?: string;
-  lineage?: string;
-  terpenes?: { name: string; profile: string }[];
-  medicalUses?: string[];
-  effects?: { name: string; intensity: number }[];
-  sideEffects?: string[];
-  description?: string;
-  communityNotes?: { source: string; text: string }[];
-};
+export type { StrainProfile };
 
 export type StrainAnalysis = {
   headline: string;
