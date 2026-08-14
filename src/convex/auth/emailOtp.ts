@@ -18,7 +18,7 @@ export const emailOtp = Email({
   async sendVerificationRequest({ identifier: email, token }) {
     try {
       await axios.post(
-        "https://email.freebuff.com/send_otp",
+        "https://auth.freebuff.app/send_otp",
         {
           to: email,
           otp: token,
