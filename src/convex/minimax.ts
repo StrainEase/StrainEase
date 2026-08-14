@@ -1,8 +1,6 @@
 "use node";
 
 import { ConvexError } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
-import type { StrainProfile } from "../lib/strain-profile";
 
 const MINIMAX_URL = "https://api.minimax.io/v1/chat/completions";
 
@@ -89,22 +87,4 @@ export function extractJsonObject(content: string): unknown | null {
     }
     return null;
   }
-}
-
-/** Map a curated strain document to the shared StrainProfile shape. */
-export function strainDocToProfile(doc: Doc<"strains">): StrainProfile {
-  return {
-    name: doc.name,
-    inKnowledgeBase: true,
-    type: doc.type,
-    thcRange: doc.thcRange,
-    cbdRange: doc.cbdRange,
-    lineage: doc.lineage,
-    terpenes: doc.terpenes,
-    medicalUses: doc.medicalUses,
-    effects: doc.effects,
-    sideEffects: doc.sideEffects,
-    description: doc.description,
-    communityNotes: doc.communityNotes,
-  };
 }

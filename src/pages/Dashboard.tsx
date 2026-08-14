@@ -1,7 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import logo from "@/assets/logo.svg";
@@ -19,10 +18,14 @@ import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { StrainFinder } from "@/components/finder/StrainFinder";
+import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
+import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
+import type { StrainProfile } from "@/lib/strain-profile";
 import {
   ArrowRight,
+  Bookmark,
   Check,
   FlaskConical,
   GitCompareArrows,
@@ -34,15 +37,6 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-
-type StrainDoc = Doc<"strains">;
-type StrainType = "indica" | "sativa" | "hybrid";
-
-type SelectedStrain = {
-  name: string;
-  inKnowledgeBase: boolean;
-  type?: StrainType;
-};
 
 const QUICK_PICKS: { label: string; condition: string; strains: string[] }[] = [
   {
@@ -68,43 +62,51 @@ const QUICK_PICKS: { label: string; condition: string; strains: string[] }[] = [
 ];
 
 const RESEARCH_STEPS = [
-  "Loading strain profiles…",
+  "Pulling strain profiles from Leafly…",
   "Searching Leafly, Weedmaps & Reddit for every strain…",
   "Synthesizing the comparison with MiniMax AI…",
 ];
 
+type SearchOutcome =
+  | { type: "found"; profile: StrainProfile }
+  | { type: "missing"; name: string }
+  | null;
+
 export default function Dashboard() {
   const { user, signOut } = useAuth();
-  const strains = useQuery(api.strains.listStrains);
-  const seedStrains = useMutation(api.strains.seedStrains);
   const runComparison = useAction(api.compare.compareStrains);
+  const searchStrainAction = useAction(api.leafly.searchStrain);
+  const popularAction = useAction(api.leafly.popularStrains);
 
   type CompareResult = Awaited<ReturnType<typeof runComparison>>;
 
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const [condition, setCondition] = useState<string[]>([]);
-  const [seedTotal, setSeedTotal] = useState<number | null>(null);
   const [query, setQuery] = useState("");
+  const [popular, setPopular] = useState<StrainProfile[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchOutcome, setSearchOutcome] = useState<SearchOutcome>(null);
   const [result, setResult] = useState<CompareResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [mode, setMode] = useState<"find" | "compare">("find");
+  const [mode, setMode] = useState<"find" | "compare" | "saved">("find");
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Seed the knowledge base on first load, then top up any strains added to
-  // the dataset since the last visit. The mutation only inserts missing
-  // names, so re-running it is safe.
+  // Load Leafly's popular strains once for quick-pick suggestions.
   useEffect(() => {
-    if (strains === undefined) return;
-    if (strains.length === 0) {
-      void seedStrains().then((r) => setSeedTotal(r.total));
-      return;
-    }
-    if (seedTotal !== null && strains.length < seedTotal) {
-      void seedStrains();
-    }
-  }, [strains, seedTotal, seedStrains]);
+    let cancelled = false;
+    void popularAction()
+      .then((list) => {
+        if (!cancelled) setPopular(list);
+      })
+      .catch(() => {
+        // Leafly unreachable — suggestions simply stay empty.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [popularAction]);
 
   // Cycle through research status messages while a comparison runs.
   useEffect(() => {
@@ -125,62 +127,6 @@ export default function Dashboard() {
     resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result]);
 
-  // Case-insensitive lookup of curated strains by name.
-  const strainsByName = useMemo(() => {
-    const map = new Map<string, StrainDoc>();
-    for (const s of strains ?? []) map.set(s.name.toLowerCase(), s);
-    return map;
-  }, [strains]);
-
-  const selectedStrains: SelectedStrain[] = useMemo(
-    () =>
-      selectedNames.map((name) => {
-        const doc = strainsByName.get(name.toLowerCase());
-        if (doc) {
-          return { name: doc.name, inKnowledgeBase: true, type: doc.type };
-        }
-        return { name, inKnowledgeBase: false };
-      }),
-    [selectedNames, strainsByName],
-  );
-
-  const searchResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q === "" && condition.length === 0) return [];
-    return (strains ?? [])
-      .filter(
-        (s) =>
-          condition.length === 0 ||
-          condition.some((c) => s.medicalUses.includes(c)),
-      )
-      .filter((s) => {
-        if (q === "") return true;
-        const haystack = [
-          s.name,
-          s.type,
-          s.lineage,
-          ...s.medicalUses,
-          ...s.effects.map((e) => e.name),
-          ...s.terpenes.map((t) => t.name),
-        ]
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(q);
-      })
-      .slice(0, 8);
-  }, [strains, query, condition]);
-
-  // A strain name the user typed that is NOT in the curated knowledge base —
-  // offer it as an "add" row so the AI researches it from public sources.
-  const customQuery = useMemo(() => {
-    const q = query.trim();
-    if (q === "") return null;
-    const lower = q.toLowerCase();
-    if (strainsByName.has(lower)) return null;
-    if (selectedNames.some((n) => n.toLowerCase() === lower)) return null;
-    return q;
-  }, [query, strainsByName, selectedNames]);
-
   const toggleStrainName = (name: string) => {
     setSelectedNames((prev) => {
       const lower = name.toLowerCase();
@@ -193,19 +139,32 @@ export default function Dashboard() {
   };
 
   const addCustomStrain = (name: string) => {
-    setSelectedNames((prev) => {
-      const lower = name.toLowerCase();
-      if (prev.some((n) => n.toLowerCase() === lower)) return prev;
-      if (prev.length >= 3) return prev;
-      return [...prev, name];
-    });
+    toggleStrainName(name);
     setQuery("");
+    setSearchOutcome(null);
   };
 
   const toggleCondition = (c: string) => {
     setCondition((prev) =>
       prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
     );
+  };
+
+  const runSearch = async (name: string) => {
+    const q = name.trim();
+    if (q === "" || isSearching) return;
+    setIsSearching(true);
+    setSearchOutcome(null);
+    try {
+      const profile = await searchStrainAction({ name: q });
+      setSearchOutcome(
+        profile ? { type: "found", profile } : { type: "missing", name: q },
+      );
+    } catch {
+      setSearchOutcome({ type: "missing", name: q });
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleCompare = async (
@@ -216,10 +175,14 @@ export default function Dashboard() {
     setIsRunning(true);
     setError(null);
     try {
-      const comparison = await runComparison({
+      const args = {
         strainNames: names,
         condition: focus.length > 0 ? focus : undefined,
-      });
+      };
+      const comparison = await cachedRun(
+        cacheKey("compare", args),
+        () => runComparison(args),
+      );
       setResult(comparison);
     } catch (err) {
       setError(
@@ -237,6 +200,7 @@ export default function Dashboard() {
     setCondition([pick.condition]);
     setResult(null);
     setQuery("");
+    setSearchOutcome(null);
     await handleCompare(pick.strains, [pick.condition]);
   };
 
@@ -245,6 +209,8 @@ export default function Dashboard() {
     setError(null);
     setSelectedNames([]);
     setCondition([]);
+    setQuery("");
+    setSearchOutcome(null);
   };
 
   const startCompareFromFinder = (names: string[], focus: string[]) => {
@@ -253,10 +219,20 @@ export default function Dashboard() {
     setCondition(focus);
     setResult(null);
     setQuery("");
+    setSearchOutcome(null);
     void handleCompare(names, focus);
   };
 
   const atCap = selectedNames.length >= 3;
+
+  // Instant name matches within the popular list as the user types.
+  const instantMatches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (q === "") return [];
+    return popular
+      .filter((p) => p.name.toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [query, popular]);
 
   return (
     <main className="min-h-screen overflow-x-clip bg-background text-foreground">
@@ -325,12 +301,30 @@ export default function Dashboard() {
               <GitCompareArrows className="size-4" />
               Compare strains
             </button>
+            <button
+              type="button"
+              onClick={() => setMode("saved")}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                mode === "saved"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Bookmark className="size-4" />
+              Saved strains
+            </button>
           </div>
         </div>
 
         {/* ── Strain finder (main focus) ────────────────────── */}
         <div className={cn(mode !== "find" && "hidden")}>
           <StrainFinder onCompare={startCompareFromFinder} />
+        </div>
+
+        {/* ── Saved strains ────────────────────────────────── */}
+        <div className={cn(mode !== "saved" && "hidden")}>
+          <SavedStrainsPanel />
         </div>
 
         {/* ── Compare workspace (secondary) ─────────────────── */}
@@ -349,9 +343,8 @@ export default function Dashboard() {
                   New comparison
                 </CardTitle>
                 <CardDescription>
-                  Pick 2–3 strains and, optionally, the conditions you&apos;re
-                  treating (choose several). Searching any strain name works —
-                  even ones not in our database.
+                  Pick 2–3 strains. Search pulls live data from Leafly — no
+                  database to maintain. Type any strain name and press Enter.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -364,31 +357,37 @@ export default function Dashboard() {
                     <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search any strain, effect, condition…"
+                      onChange={(e) => {
+                        setQuery(e.target.value);
+                        setSearchOutcome(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void runSearch(query);
+                        }
+                      }}
+                      placeholder="Search Leafly — e.g. Blue Dream…"
                       className="pl-9"
                     />
+                    {isSearching && (
+                      <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                    )}
                   </div>
 
-                  {selectedStrains.length > 0 && (
+                  {selectedNames.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {selectedStrains.map((s) => (
+                      {selectedNames.map((name) => (
                         <span
-                          key={s.name}
+                          key={name}
                           className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 py-1 pl-3 pr-1.5 text-xs font-medium text-primary"
                         >
-                          {s.name}
-                          {!s.inKnowledgeBase && (
-                            <span className="flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold">
-                              <Sparkles className="size-2.5" />
-                              AI
-                            </span>
-                          )}
+                          {name}
                           <button
                             type="button"
-                            aria-label={`Remove ${s.name}`}
-                            className="rounded-full p-0.5 transition-colors hover:bg-primary/15"
-                            onClick={() => toggleStrainName(s.name)}
+                            aria-label={`Remove ${name}`}
+                            className="cursor-pointer rounded-full p-0.5 transition-colors hover:bg-primary/15"
+                            onClick={() => toggleStrainName(name)}
                           >
                             <X className="size-3" />
                           </button>
@@ -397,12 +396,39 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  {customQuery && (
+                  {/* Search outcome (Enter search) */}
+                  {searchOutcome?.type === "found" && (
+                    <StrainRow
+                      name={searchOutcome.profile.name}
+                      subtitle={[
+                        searchOutcome.profile.thcRange
+                          ? `THC ${searchOutcome.profile.thcRange}`
+                          : null,
+                        searchOutcome.profile.effects
+                          ?.slice(0, 2)
+                          .map((e) => e.name)
+                          .join(" · "),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                      type={searchOutcome.profile.type}
+                      isSelected={selectedNames.some(
+                        (n) =>
+                          n.toLowerCase() ===
+                          searchOutcome.profile.name.toLowerCase(),
+                      )}
+                      disabled={atCap}
+                      onClick={() =>
+                        toggleStrainName(searchOutcome.profile.name)
+                      }
+                    />
+                  )}
+                  {searchOutcome?.type === "missing" && (
                     <div className="mt-2">
                       <button
                         type="button"
                         disabled={atCap}
-                        onClick={() => addCustomStrain(customQuery)}
+                        onClick={() => addCustomStrain(searchOutcome.name)}
                         className={cn(
                           "flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3.5 py-2.5 text-left transition-colors hover:border-primary/70 hover:bg-primary/10",
                           atCap && "cursor-not-allowed opacity-40",
@@ -410,11 +436,11 @@ export default function Dashboard() {
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">
-                            Use “{customQuery}”
+                            Use “{searchOutcome.name}”
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
-                            Not in our database — the AI will research it on
-                            Leafly, Weedmaps &amp; Reddit
+                            Not found on Leafly — the AI will research it during
+                            the comparison
                           </p>
                         </div>
                         <Plus className="size-4 shrink-0 text-primary" />
@@ -422,78 +448,67 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  {condition.length > 0 &&
-                  query.trim() === "" &&
-                  searchResults.length === 0 ? (
-                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                      No strains in the knowledge base are commonly used for{" "}
-                      <span className="font-medium text-foreground">
-                        {condition.join(", ")}
-                      </span>
-                      . Try fewer conditions, or type any strain name above —
-                      the AI will research it for you.
-                    </p>
-                  ) : searchResults.length > 0 ? (
-                    <div className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-border/70 bg-background">
-                      {searchResults.map((s) => {
-                        const isSelected = selectedNames.some(
-                          (n) => n.toLowerCase() === s.name.toLowerCase(),
-                        );
-                        const disabled = atCap && !isSelected;
-                        return (
-                          <button
-                            key={s._id}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => toggleStrainName(s.name)}
-                            className={cn(
-                              "flex w-full items-center justify-between gap-3 border-b border-border/50 px-3.5 py-2.5 text-left transition-colors last:border-b-0",
-                              isSelected
-                                ? "bg-primary/5"
-                                : "hover:bg-accent/60",
-                              disabled && "cursor-not-allowed opacity-40",
-                            )}
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">
-                                {s.name}
-                              </p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {s.medicalUses.slice(0, 3).join(" · ")}
-                              </p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              <Badge
-                                className={cn(
-                                  typeBadgeClass(s.type),
-                                  "capitalize",
-                                )}
-                              >
-                                {TYPE_LABEL[s.type]}
-                              </Badge>
-                              {isSelected && (
-                                <Check className="size-4 text-primary" />
+                  {/* Instant matches + popular suggestions */}
+                  {query.trim() === "" ? (
+                    popular.length > 0 && (
+                      <div className="mt-3">
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Popular on Leafly right now
+                        </p>
+                        <div className="max-h-72 space-y-1 overflow-y-auto rounded-xl border border-border/70 bg-background p-1">
+                          {popular.slice(0, 10).map((p) => (
+                            <StrainRow
+                              key={p.name}
+                              name={p.name}
+                              subtitle={[
+                                p.thcRange ? `THC ${p.thcRange}` : null,
+                                p.communityNotes?.[0]?.text,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                              type={p.type}
+                              isSelected={selectedNames.some(
+                                (n) => n.toLowerCase() === p.name.toLowerCase(),
                               )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : query.trim() !== "" ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      No curated strains match “{query}” — add it above and the
-                      AI will research it.
-                    </p>
-                  ) : condition.length > 0 ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Showing strains commonly used for{" "}
-                      <span className="font-medium text-foreground">
-                        {condition.join(", ")}
-                      </span>
-                      . Pick two or three to compare — or type any strain name
-                      to add it anyway.
-                    </p>
-                  ) : null}
+                              disabled={atCap}
+                              onClick={() => toggleStrainName(p.name)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    <>
+                      {instantMatches.length > 0 && (
+                        <div className="mt-2">
+                          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Matches in popular strains
+                          </p>
+                          <div className="space-y-1">
+                            {instantMatches.map((p) => (
+                              <StrainRow
+                                key={p.name}
+                                name={p.name}
+                                subtitle={p.thcRange ? `THC ${p.thcRange}` : ""}
+                                type={p.type}
+                                isSelected={selectedNames.some(
+                                  (n) =>
+                                    n.toLowerCase() === p.name.toLowerCase(),
+                                )}
+                                disabled={atCap}
+                                onClick={() => toggleStrainName(p.name)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {!isSearching && !searchOutcome && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Press Enter to search Leafly for “{query}”.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Condition focus */}
@@ -569,9 +584,9 @@ export default function Dashboard() {
                   {RESEARCH_STEPS[stepIndex]}
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Usually takes 5–15 seconds. We&apos;re reading across Leafly,
-                  Weedmaps, Reddit, Google and dispensary menus — for strains
-                  outside our database too.
+                  Profiles come straight from Leafly — usually 5–15 seconds.
+                  We&apos;re also reading Reddit, Google and dispensary menus for
+                  strains outside Leafly.
                 </p>
               </div>
             ) : result ? (
@@ -631,9 +646,9 @@ export default function Dashboard() {
 
                 <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
                   <Sparkles className="size-3.5 shrink-0 text-primary" />
-                  AI comparison generated with MiniMax-M2.5-highspeed from
-                  aggregated public sources. Not medical advice — consult your
-                  healthcare provider.
+                  Comparison generated with MiniMax-M2.5-highspeed from live
+                  Leafly data. Not medical advice — consult your healthcare
+                  provider.
                 </p>
               </div>
             ) : (
@@ -647,9 +662,9 @@ export default function Dashboard() {
                     Pick two or three strains to begin
                   </h1>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                    Search any strain by name, effect or condition. Not in our
-                    database? The AI will research it across Leafly, Weedmaps,
-                    Reddit and Google.
+                    Search any strain by name — profiles are pulled live from
+                    Leafly. Save your favorites and keep private notes, or
+                    share them with other patients.
                   </p>
                 </div>
 
@@ -687,3 +702,52 @@ export default function Dashboard() {
     </main>
   );
 }
+
+function StrainRow({
+  name,
+  subtitle,
+  type,
+  isSelected,
+  disabled,
+  onClick,
+}: {
+  name: string;
+  subtitle?: string;
+  type?: string;
+  isSelected: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left transition-colors",
+        isSelected ? "bg-primary/5" : "hover:bg-accent/60",
+        disabled && !isSelected && "cursor-not-allowed opacity-40",
+      )}
+    >
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium">{name}</p>
+        {subtitle && (
+          <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {type && (
+          <Badge className={cn(typeBadgeClass(type), "capitalize")}>
+            {TYPE_LABEL[type] ?? type}
+          </Badge>
+        )}
+        {isSelected ? (
+          <Check className="size-4 text-primary" />
+        ) : (
+          <Plus className="size-4 text-muted-foreground" />
+        )}
+      </div>
+    </button>
+  );
+}
+

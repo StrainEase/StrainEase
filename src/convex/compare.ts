@@ -1,17 +1,10 @@
 "use node";
 
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { ConvexError, v } from "convex/values";
 import type { StrainProfile } from "../lib/strain-profile";
-import {
-  callMiniMax,
-  extractJsonObject,
-  strainDocToProfile,
-} from "./minimax";
-
-export type { StrainProfile };
+import { callMiniMax, extractJsonObject } from "./minimax";
 
 export type StrainAnalysis = {
   headline: string;
@@ -35,7 +28,7 @@ const SYSTEM_PROMPT = `You are StrainWise, a research assistant built for medica
 
 Rules:
 - Base every claim on the strain data provided. Never invent numbers, terpenes, effects, or uses.
-- Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the summary.
+- Some strains arrive WITHOUT a Leafly profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the summary.
 - Write for the patient: precise, calm, practical, and low-jargon. Lead with symptom relief and day-to-day usability. If you use a technical term, define it in one short phrase.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
 - If one or more condition focuses are given, evaluate each strain's suitability for those conditions and name the single best fit for the patient.
@@ -81,10 +74,10 @@ function buildPrompt(
         : "none — give a general comparison focused on patient symptom relief"
     }`,
     "",
-    "Strain data:",
+    "Strain data (live from Leafly):",
     JSON.stringify(payload, null, 2),
     "",
-    'Strains marked "noCuratedProfile": true are NOT in our curated knowledge base. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the summary when a detail is a commonly-reported figure rather than a verified lab result.',
+    'Strains marked "noCuratedProfile": true were not found on Leafly. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the summary when a detail is a commonly-reported figure rather than a verified lab result.',
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
@@ -157,13 +150,6 @@ export const compareStrains = action({
     condition: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args): Promise<StrainComparison> => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new ConvexError(
-        "You must be signed in to run a comparison. Please sign in and try again.",
-      );
-    }
-
     const names = [
       ...new Set(
         args.strainNames.map((n) => n.trim()).filter((n) => n !== ""),
@@ -173,19 +159,14 @@ export const compareStrains = action({
       throw new ConvexError("Select 2–3 strains to compare.");
     }
 
-    // Match requested names against the curated knowledge base
-    // (case-insensitively). Anything that doesn't match is handed to the AI
-    // to research from public sources instead.
-    const found = await ctx.runQuery(api.strains.getStrainsByNames, {
+    // Pull live profiles from Leafly. Names Leafly doesn't have are marked
+    // inKnowledgeBase: false and the AI researches them in the same call —
+    // no extra AI call needed.
+    const strains = await ctx.runAction(api.leafly.getStrainProfiles, {
       names,
     });
-    const byName = new Map(found.map((s) => [s.name.toLowerCase(), s]));
 
-    const strains: StrainProfile[] = names.map((name) => {
-      const doc = byName.get(name.toLowerCase());
-      return doc ? strainDocToProfile(doc) : { name, inKnowledgeBase: false };
-    });
-
+    // One AI call per comparison: the synthesis only.
     const content = await callMiniMax([
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: buildPrompt(strains, args.condition) },

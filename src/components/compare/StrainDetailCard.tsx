@@ -1,6 +1,13 @@
 import type { StrainProfile } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
+import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
+import {
+  listenToPublicNotes,
+  slugify,
+  type PublicNote,
+} from "@/lib/saved-strains";
+import { db } from "@/lib/firebase";
 import {
   Activity,
   Award,
@@ -13,6 +20,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 function IntensityBar({ value }: { value: number }) {
   return (
@@ -37,6 +45,16 @@ export function StrainDetailCard({
   strain: StrainProfile;
   badge?: "best" | "runnerUp" | null;
 }) {
+  const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
+
+  useEffect(() => {
+    if (!db) {
+      setPatientNotes([]);
+      return;
+    }
+    return listenToPublicNotes(slugify(strain.name), setPatientNotes);
+  }, [strain.name]);
+
   const subtitle = [
     strain.type ? TYPE_LABEL[strain.type] ?? strain.type : null,
     strain.thcRange ? `THC ${strain.thcRange}` : null,
@@ -90,11 +108,14 @@ export function StrainDetailCard({
               <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
             )}
           </div>
-          {strain.type && (
-            <Badge className={typeBadgeClass(strain.type)}>
-              {TYPE_LABEL[strain.type] ?? strain.type}
-            </Badge>
-          )}
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <SaveStrainButton profile={strain} />
+            {strain.type && (
+              <Badge className={typeBadgeClass(strain.type)}>
+                {TYPE_LABEL[strain.type] ?? strain.type}
+              </Badge>
+            )}
+          </div>
         </div>
 
         {!strain.inKnowledgeBase && (
@@ -197,6 +218,31 @@ export function StrainDetailCard({
           <p className="text-sm leading-6 text-muted-foreground">
             {strain.sideEffects.join(" · ")}
           </p>
+        </div>
+      )}
+
+      {/* Patient community notes (public notes saved by other users) */}
+      {patientNotes.length > 0 && (
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <MessageCircle className="size-3.5 text-primary" />
+            Patient community notes
+          </div>
+          <div className="space-y-2.5">
+            {patientNotes.map((note) => (
+              <blockquote
+                key={note.id}
+                className="rounded-xl bg-background px-4 py-3"
+              >
+                <p className="text-xs leading-5 text-muted-foreground">
+                  {note.note}
+                </p>
+                <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                  {note.authorName}
+                </p>
+              </blockquote>
+            ))}
+          </div>
         </div>
       )}
 

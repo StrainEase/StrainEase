@@ -1,6 +1,8 @@
 import { api } from "@/convex/_generated/api";
 import { useAction } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { cacheKey, cachedRun } from "@/lib/ai-cache";
+import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +39,7 @@ const POTENCY_OPTIONS: { value: Potency; label: string; hint: string }[] = [
 const QUICK_AILMENTS = ["Insomnia", "Chronic pain", "Anxiety", "Migraine"];
 
 const RESEARCH_STEPS = [
-  "Reviewing the curated strain library…",
+  "Pulling Leafly's popular strains…",
   "Cross-checking Leafly, Weedmaps & Reddit reports…",
   "Ranking the best strains with MiniMax AI…",
 ];
@@ -112,10 +114,14 @@ export function StrainFinder({
     setError(null);
     setSearched(targets);
     try {
-      const res = await runRecommend({
+      const args = {
         conditions: targets,
         potency: pref === "" ? undefined : pref,
-      });
+      };
+      const res = await cachedRun(
+        cacheKey("recommend", args),
+        () => runRecommend(args),
+      );
       setResult(res);
     } catch (err) {
       setError(
@@ -310,8 +316,8 @@ export function StrainFinder({
               {RESEARCH_STEPS[stepIndex]}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Reading 40+ curated strain profiles and patient reports across
-              Leafly, Weedmaps, Reddit and Google — usually 5–15 seconds.
+              Ranking Leafly's popular strains against your symptoms — usually
+              5–15 seconds.
             </p>
           </div>
         ) : result ? (
@@ -368,16 +374,26 @@ export function StrainFinder({
                           {r.strainName}
                         </h3>
                       </div>
-                      {profile?.type && (
-                        <Badge
-                          className={cn(
-                            typeBadgeClass(profile.type),
-                            "capitalize",
-                          )}
-                        >
-                          {TYPE_LABEL[profile.type]}
-                        </Badge>
-                      )}
+                      <div className="flex shrink-0 items-center gap-2">
+                        <SaveStrainButton
+                          profile={
+                            profile ?? {
+                              name: r.strainName,
+                              inKnowledgeBase: false,
+                            }
+                          }
+                        />
+                        {profile?.type && (
+                          <Badge
+                            className={cn(
+                              typeBadgeClass(profile.type),
+                              "capitalize",
+                            )}
+                          >
+                            {TYPE_LABEL[profile.type]}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-muted-foreground">
                       {r.reason}
@@ -460,8 +476,8 @@ export function StrainFinder({
               </h1>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                 Pick what you&apos;re treating on the left — or jump in with a
-                common starting point below. The AI researches the strains
-                patients report work best.
+                common starting point below. The AI ranks Leafly&apos;s strains by
+                what patients report works best.
               </p>
             </div>
 

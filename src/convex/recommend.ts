@@ -1,6 +1,5 @@
 "use node";
 
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { ConvexError, v } from "convex/values";
@@ -9,12 +8,12 @@ import type {
   RecommendationResult,
   StrainRecommendation,
 } from "../lib/recommendations";
-import { callMiniMax, extractJsonObject, strainDocToProfile } from "./minimax";
+import { callMiniMax, extractJsonObject } from "./minimax";
 
 const SYSTEM_PROMPT = `You are StrainWise, a strain-finding assistant built for medical cannabis patients. A patient tells you which symptoms or conditions they are treating, and you recommend the strains most commonly reported to help with those symptoms.
 
 Rules:
-- Base recommendations on the curated strain data provided when available. You may also recommend well-known strains that are NOT in the list, based on your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, and dispensary menus — but only recommend strains you are confident really exist and are commonly reported for the symptoms.
+- Base recommendations on the Leafly strain data provided. You may also recommend well-known strains that are NOT in the list, based on your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, and dispensary menus — but only recommend strains you are confident really exist and are commonly reported for the symptoms.
 - Recommend 3-5 distinct strains, ordered from best overall fit to least.
 - Every recommendation needs a concrete reason tied to the patient's symptoms, a note on who it suits best (e.g. daytime vs evening use, anxiety-sensitive patients), and one practical caution.
 - Respect the potency preference if one is given.
@@ -62,7 +61,7 @@ function buildPrompt(
       ? `Potency preference: ${POTENCY_LABELS[potency]}.`
       : "Potency preference: none — pick whatever potency fits the symptoms best.",
     "",
-    "Curated strain knowledge base (aggregated from Leafly, Weedmaps, Reddit, Google, and dispensary menus):",
+    "Strain data (live from Leafly's popular strains):",
     JSON.stringify(payload, null, 2),
     "",
     "You may also suggest strains not in this list from your general knowledge, as long as you are confident they are real and commonly reported for these symptoms.",
@@ -104,13 +103,6 @@ export const recommendStrainsForConditions = action({
     ),
   },
   handler: async (ctx, args): Promise<RecommendationResult> => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new ConvexError(
-        "You must be signed in to get strain recommendations. Please sign in and try again.",
-      );
-    }
-
     const conditions = [
       ...new Set(args.conditions.map((c) => c.trim()).filter((c) => c !== "")),
     ];
@@ -120,17 +112,16 @@ export const recommendStrainsForConditions = action({
       );
     }
 
-    // The AI ranks against the full curated knowledge base, and may add
-    // well-known strains from general knowledge when the list doesn't cover
-    // the symptom.
-    const docs = await ctx.runQuery(api.strains.listStrains, {});
-    const profiles: StrainProfile[] = docs.map(strainDocToProfile);
+    // Real data to rank against: Leafly's popular strains (one fetch, no AI).
+    // The AI is allowed to add well-known strains from its own knowledge.
+    const popular = await ctx.runAction(api.leafly.popularStrains, {});
 
+    // One AI call per search: the ranking only.
     const content = await callMiniMax([
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: buildPrompt(profiles, conditions, args.potency),
+        content: buildPrompt(popular, conditions, args.potency),
       },
     ]);
 
@@ -143,14 +134,12 @@ export const recommendStrainsForConditions = action({
       );
     }
 
-    // Match recommended names against the curated knowledge base so the UI
-    // can show full profiles; anything else is marked for AI research.
+    // Fetch full Leafly profiles for the recommended names so the UI can
+    // render real data. Names Leafly doesn't have are marked for AI research
+    // (researched in the same synthesis call — no extra AI call).
     const names = [...new Set(recommendations.map((r) => r.strainName))];
-    const found = await ctx.runQuery(api.strains.getStrainsByNames, { names });
-    const byName = new Map(found.map((s) => [s.name.toLowerCase(), s]));
-    const strains: StrainProfile[] = names.map((name) => {
-      const doc = byName.get(name.toLowerCase());
-      return doc ? strainDocToProfile(doc) : { name, inKnowledgeBase: false };
+    const strains = await ctx.runAction(api.leafly.getStrainProfiles, {
+      names,
     });
 
     return {

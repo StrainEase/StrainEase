@@ -34,41 +34,9 @@ const schema = defineSchema(
 
     // add other tables here
 
-    // Curated strain knowledge base, aggregated from public sources
-    // (Leafly, Weedmaps, Reddit discussions, Google results, dispensary menus).
-    strains: defineTable({
-      name: v.string(),
-      slug: v.string(),
-      type: v.union(
-        v.literal("indica"),
-        v.literal("sativa"),
-        v.literal("hybrid"),
-      ),
-      thcRange: v.string(),
-      cbdRange: v.string(),
-      terpenes: v.array(
-        v.object({
-          name: v.string(),
-          profile: v.string(),
-        }),
-      ),
-      medicalUses: v.array(v.string()),
-      effects: v.array(
-        v.object({
-          name: v.string(),
-          intensity: v.number(), // 1-5
-        }),
-      ),
-      sideEffects: v.array(v.string()),
-      lineage: v.string(),
-      description: v.string(),
-      communityNotes: v.array(
-        v.object({
-          source: v.string(),
-          text: v.string(),
-        }),
-      ),
-    }).index("by_name", ["name"]),
+    // Strain data is fetched live from Leafly (see src/convex/leafly.ts) —
+    // no strain tables to manage. User data (saved strains, notes) lives in
+    // Firebase Firestore, keyed by Firebase auth UID.
   },
   {
     schemaValidation: false,

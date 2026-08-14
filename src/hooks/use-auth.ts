@@ -1,20 +1,43 @@
-import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, signOut as fbSignOut } from "firebase/auth";
+import { auth, isFirebaseConfigured } from "@/lib/firebase";
+
+export type AuthUser = {
+  uid: string;
+  email: string | null;
+  name: string;
+};
 
 export function useAuth() {
-  const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth();
-  const user = useQuery(api.users.currentUser);
-  const { signIn, signOut } = useAuthActions();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Derive isLoading directly from the dependencies instead of managing separate state
-  const isLoading = isAuthLoading || user === undefined;
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      setIsLoading(false);
+      return;
+    }
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        setUser({
+          uid: u.uid,
+          email: u.email,
+          name: u.displayName || (u.email ? u.email.split("@")[0] : "Patient"),
+        });
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   return {
     isLoading,
-    isAuthenticated,
+    isAuthenticated: user !== null,
     user,
-    signIn,
-    signOut,
+    signOut: async () => {
+      if (auth) await fbSignOut(auth);
+    },
   };
 }

@@ -1,4 +1,7 @@
 import { motion } from "framer-motion";
+import { useAction } from "convex/react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "@/convex/_generated/api";
 import {
   Activity,
   ArrowRight,
@@ -44,7 +47,17 @@ const SOURCES = [
   { name: "Dispensary menus", icon: Store },
 ];
 
-const FEATURED_STRAINS = [
+type FeaturedStrain = {
+  name: string;
+  type: string;
+  thc: string;
+  uses: string[];
+  terpenes: string;
+  description?: string;
+  leaflyNote?: string;
+};
+
+const FALLBACK_STRAINS: FeaturedStrain[] = [
   {
     name: "Blue Dream",
     type: "hybrid",
@@ -89,6 +102,31 @@ const FEATURED_STRAINS = [
   },
 ];
 
+// Live popular strains pulled from Leafly's public site on every visit. If
+// the fetch fails (Leafly is down or changed its markup), we fall back to the
+// static list above so the section never looks broken.
+function toFeatured(profile: {
+  name: string;
+  type?: string;
+  thcRange?: string;
+  effects?: { name: string }[];
+  terpenes?: { name: string }[];
+  description?: string;
+  communityNotes?: { source: string; text: string }[];
+}): FeaturedStrain {
+  return {
+    name: profile.name,
+    type: profile.type ?? "hybrid",
+    thc: profile.thcRange ?? "",
+    uses: (profile.effects ?? []).slice(0, 3).map((e) => e.name),
+    terpenes: (profile.terpenes ?? [])
+      .map((t) => t.name)
+      .join(" · "),
+    description: profile.description,
+    leaflyNote: profile.communityNotes?.[0]?.text,
+  };
+}
+
 const TYPE_STYLES: Record<string, string> = {
   indica: "bg-amber-500/10 text-amber-700",
   sativa: "bg-sky-500/10 text-sky-700",
@@ -108,6 +146,31 @@ function fadeUp(delay: number) {
 }
 
 export default function Landing() {
+  const popularAction = useAction(api.leafly.popularStrains);
+  const [live, setLive] = useState<FeaturedStrain[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void popularAction()
+      .then((list) => {
+        if (!cancelled && Array.isArray(list) && list.length > 0) {
+          setLive(list.map(toFeatured));
+        }
+      })
+      .catch(() => {
+        // Leafly unreachable — keep the static fallback list.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [popularAction]);
+
+  // Live Leafly data when available, the static fallback otherwise.
+  const featured = useMemo(
+    () => live ?? FALLBACK_STRAINS,
+    [live],
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* ── Nav ─────────────────────────────────────────────── */}
@@ -295,19 +358,20 @@ export default function Landing() {
           <motion.div {...fadeUp(0)} className="mb-12 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                The knowledge base
+                Live from Leafly
               </p>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
-                Strains patients actually compare
+                Popular strains right now
               </h2>
             </div>
             <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-              Every profile aggregates commonly reported effects, terpenes and
-              medical uses from public sources — ready to compare.
+              These are the strains patients are looking at most on Leafly
+              today — pulled live, no database to maintain. Compare any of them
+              in the app.
             </p>
           </motion.div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURED_STRAINS.map((strain, i) => (
+            {featured.map((strain, i) => (
               <motion.div
                 key={strain.name}
                 {...fadeUp((i % 3) * 0.08)}
@@ -319,9 +383,11 @@ export default function Landing() {
                     {strain.type}
                   </Badge>
                 </div>
-                <p className="mt-1 text-xs font-medium text-muted-foreground">
-                  THC {strain.thc}
-                </p>
+                {strain.thc && (
+                  <p className="mt-1 text-xs font-medium text-muted-foreground">
+                    THC {strain.thc}
+                  </p>
+                )}
                 <div className="mt-4 flex flex-wrap gap-1.5">
                   {strain.uses.map((u) => (
                     <span
@@ -332,10 +398,23 @@ export default function Landing() {
                     </span>
                   ))}
                 </div>
-                <p className="mt-4 border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">
-                  <span className="font-medium text-foreground">Terpenes</span>{" "}
-                  — {strain.terpenes}
-                </p>
+                {strain.description && (
+                  <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                    {strain.description}
+                  </p>
+                )}
+                {strain.terpenes && (
+                  <p className="mt-4 border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">
+                    <span className="font-medium text-foreground">Terpenes</span>{" "}
+                    — {strain.terpenes}
+                  </p>
+                )}
+                {strain.leaflyNote && (
+                  <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-primary">
+                    <Leaf className="size-3.5" />
+                    Leafly · {strain.leaflyNote}
+                  </p>
+                )}
               </motion.div>
             ))}
           </div>
