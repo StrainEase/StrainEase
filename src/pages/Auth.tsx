@@ -130,9 +130,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                       onClick={() => navigate("/")}
                     />
                   </div>
-                <CardTitle className="text-xl">Get Started</CardTitle>
+                <CardTitle className="text-xl">Welcome to StrainWise</CardTitle>
                 <CardDescription>
-                  Enter your email to log in or sign up
+                  Sign in to compare cannabis strains for your medical needs
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleEmailSubmit}>
@@ -278,7 +278,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           )}
 
           <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-muted border-t rounded-b-lg">
-            Secured by{" "}
+            For medical use only · Not medical advice · Secured by{" "}
             <a
               href="https://freebuff.com"
               target="_blank"
