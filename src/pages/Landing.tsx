@@ -163,18 +163,19 @@ export default function Landing() {
               Built for medical cannabis patients
             </Badge>
             <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              Compare cannabis strains{" "}
+              Find cannabis strains{" "}
               <span className="text-primary">for the relief you need</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-              StrainWise aggregates strain research from Leafly, Weedmaps,
-              Reddit, Google and dispensary menus — then uses AI to compare
-              how each strain may support your symptoms, side by side.
+              Tell StrainWise what you&apos;re treating — it researches Leafly,
+              Weedmaps, Reddit, Google and dispensary menus, then uses AI to
+              rank the strains patients report work best for your symptoms.
+              Compare the top picks side by side in seconds.
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="lg" className="w-full cursor-pointer rounded-full px-8 sm:w-auto">
                 <Link to="/auth">
-                  Compare strains
+                  Find strains for me
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -227,8 +228,9 @@ export default function Landing() {
               ))}
             </div>
             <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-              Pick a condition when you compare and StrainWise tells you which
-              strain fits best — and which one to keep as a backup.
+              Pick your symptoms and StrainWise researches the strains patients
+              report work best for them — then ranks the top matches so you
+              can compare the finalists side by side.
             </p>
           </motion.div>
         </div>
@@ -241,7 +243,7 @@ export default function Landing() {
             How it works
           </p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Three steps to a clear comparison
+            Three steps to the strains you need
           </h2>
         </motion.div>
         <div className="grid gap-6 md:grid-cols-3">
@@ -249,20 +251,20 @@ export default function Landing() {
             {
               icon: Search,
               step: "01",
-              title: "Choose 2–3 strains",
-              body: "Search the curated knowledge base of the strains patients actually talk about — or start from a quick-pick pair.",
+              title: "Tell us your symptoms",
+              body: "Pick from common conditions or type any symptom — sciatica, fibromyalgia, anything that's on your mind.",
             },
             {
               icon: Pill,
               step: "02",
-              title: "Focus on your condition",
-              body: "Tell us what you're treating: chronic pain, insomnia, anxiety, nausea — anything on your list.",
+              title: "Get the best-fit strains",
+              body: "MiniMax AI ranks the strains patients report work best for your symptoms — with reasons, best-for notes, and cautions.",
             },
             {
               icon: Brain,
               step: "03",
-              title: "Get an AI comparison",
-              body: "MiniMax AI synthesizes the aggregated data into a patient-focused verdict, differences, and cautions.",
+              title: "Compare your top picks",
+              body: "Turn the finalists into a side-by-side medical comparison: differences, common ground, and what to watch out for.",
             },
           ].map((s, i) => (
             <motion.div
@@ -337,7 +339,7 @@ export default function Landing() {
             <Button asChild variant="outline" className="cursor-pointer rounded-full px-7">
               <Link to="/auth">
                 <Sparkles className="size-4 text-primary" />
-                Compare them all
+                Find your match
               </Link>
             </Button>
           </motion.div>
@@ -404,30 +406,30 @@ export default function Landing() {
             <div className="rounded-3xl border border-border/70 bg-card p-8 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <Activity className="size-3.5 text-primary" />
-                Sample comparison
+                Sample search — insomnia
               </div>
               <h3 className="mt-4 text-xl font-semibold tracking-tight">
-                Blue Dream vs. Sour Diesel
+                Best strains for insomnia
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Focus: chronic pain with low mood
+                What patients commonly report across our sources
               </p>
               <div className="mt-6 space-y-5">
                 {[
                   {
-                    label: "Best fit",
-                    value: "Blue Dream — full-body relief that stays clear-headed",
+                    label: "#1 Granddaddy Purple",
+                    value: "Deep grape-scented body calm that helps ease into sleep",
+                    icon: Moon,
+                  },
+                  {
+                    label: "#2 Northern Lights",
+                    value: "Smooth, heavy relaxation — a dependable sleep aid",
                     icon: Sparkles,
                   },
                   {
-                    label: "Key difference",
-                    value: "Sour Diesel is more energizing; Blue Dream leans calming",
+                    label: "#3 9 Pound Hammer",
+                    value: "Strong sedation for nights when nothing else works",
                     icon: Zap,
-                  },
-                  {
-                    label: "Watch out",
-                    value: "Sour Diesel can spike anxiety in sensitive patients",
-                    icon: Moon,
                   },
                 ].map((row) => (
                   <div
@@ -476,8 +478,8 @@ export default function Landing() {
             Find the strain that fits your symptoms
           </h2>
           <p className="relative mx-auto mt-4 max-w-xl text-sm leading-6 text-primary-foreground/80 sm:text-base">
-            Pick two strains, choose your condition, and get a clear medical
-            comparison in seconds.
+            Tell us what you&apos;re treating — get the strains patients report
+            work best, then compare your top picks in seconds.
           </p>
           <div className="relative mt-8 flex justify-center">
             <Button
@@ -487,7 +489,7 @@ export default function Landing() {
               className="cursor-pointer rounded-full px-8"
             >
               <Link to="/auth">
-                Start comparing — it&apos;s free
+                Find my strains — it&apos;s free
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -509,7 +511,7 @@ export default function Landing() {
             <span className="text-sm font-semibold tracking-tight">StrainWise</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Compare cannabis strains for medical relief. 21+ only · Know your local laws.
+            Find and compare cannabis strains for medical relief. 21+ only · Know your local laws.
           </p>
           <div className="flex items-center gap-5 text-xs text-muted-foreground">
             <a href="#how-it-works" className="transition-colors hover:text-foreground">

@@ -18,12 +18,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
-import { typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
+import { StrainFinder } from "@/components/finder/StrainFinder";
+import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
   Check,
   FlaskConical,
+  GitCompareArrows,
+  HeartPulse,
   Loader2,
   LogOut,
   Plus,
@@ -40,21 +43,6 @@ type SelectedStrain = {
   inKnowledgeBase: boolean;
   type?: StrainType;
 };
-
-const CONDITIONS = [
-  "Chronic pain",
-  "Anxiety",
-  "Insomnia",
-  "Depression",
-  "Nausea & appetite",
-  "Inflammation",
-  "Migraine",
-  "Muscle spasm",
-  "PTSD",
-  "Fatigue",
-  "Arthritis",
-  "Stress",
-];
 
 const QUICK_PICKS: { label: string; condition: string; strains: string[] }[] = [
   {
@@ -101,6 +89,7 @@ export default function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
+  const [mode, setMode] = useState<"find" | "compare">("find");
   const resultsRef = useRef<HTMLDivElement>(null);
 
   // Seed the knowledge base on first load, then top up any strains added to
@@ -258,6 +247,15 @@ export default function Dashboard() {
     setCondition([]);
   };
 
+  const startCompareFromFinder = (names: string[], focus: string[]) => {
+    setMode("compare");
+    setSelectedNames(names);
+    setCondition(focus);
+    setResult(null);
+    setQuery("");
+    void handleCompare(names, focus);
+  };
+
   const atCap = selectedNames.length >= 3;
 
   return (
@@ -298,7 +296,50 @@ export default function Dashboard() {
       </header>
 
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
-        <div className="grid items-start gap-8 lg:grid-cols-[340px_1fr]">
+        {/* ── Mode tabs ─────────────────────────────────────── */}
+        <div className="mb-8 flex justify-center">
+          <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setMode("find")}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                mode === "find"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <HeartPulse className="size-4" />
+              Find for ailments
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("compare")}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                mode === "compare"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <GitCompareArrows className="size-4" />
+              Compare strains
+            </button>
+          </div>
+        </div>
+
+        {/* ── Strain finder (main focus) ────────────────────── */}
+        <div className={cn(mode !== "find" && "hidden")}>
+          <StrainFinder onCompare={startCompareFromFinder} />
+        </div>
+
+        {/* ── Compare workspace (secondary) ─────────────────── */}
+        <div
+          className={cn(
+            "grid items-start gap-8 lg:grid-cols-[340px_1fr]",
+            mode !== "compare" && "hidden",
+          )}
+        >
           {/* ── Config panel ───────────────────────────────── */}
           <aside className="lg:sticky lg:top-24">
             <Card className="border-border/70 shadow-sm">

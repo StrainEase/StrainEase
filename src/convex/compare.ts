@@ -5,6 +5,11 @@ import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { ConvexError, v } from "convex/values";
 import type { StrainProfile } from "../lib/strain-profile";
+import {
+  callMiniMax,
+  extractJsonObject,
+  strainDocToProfile,
+} from "./minimax";
 
 export type { StrainProfile };
 
@@ -25,11 +30,6 @@ export type StrainComparison = {
   strains: StrainProfile[];
   analysis: StrainAnalysis;
 };
-
-const MINIMAX_URL = "https://api.minimax.io/v1/chat/completions";
-const MINIMAX_MODEL = "MiniMax-M2.5-highspeed";
-
-type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 const SYSTEM_PROMPT = `You are StrainWise, a research assistant built for medical cannabis patients. Patients come to you to choose between strains for symptom relief, so you speak directly to them — not to budtenders or enthusiasts.
 
@@ -90,96 +90,6 @@ function buildPrompt(
   ].join("\n");
 }
 
-async function callMiniMax(messages: ChatMessage[]): Promise<string> {
-  const apiKey = process.env.MINIMAX_API_KEY;
-  if (!apiKey) {
-    throw new ConvexError(
-      "The MiniMax API key is missing. Add MINIMAX_API_KEY in the project's Keys/API keys tab, then try again.",
-    );
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(MINIMAX_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MINIMAX_MODEL,
-        messages,
-        temperature: 0.4,
-        max_completion_tokens: 1600,
-        // M2.x models always think; the JSON is extracted in parseAnalysis,
-        // which tolerates <think> tags around the response.
-      }),
-    });
-  } catch {
-    throw new ConvexError(
-      "Could not reach the MiniMax research service. Please try again in a moment.",
-    );
-  }
-
-  const data = (await res.json().catch(() => null)) as {
-    error?: { message?: string };
-    base_resp?: { status_msg?: string };
-    message?: string;
-    choices?: { message?: { content?: string } }[];
-  } | null;
-
-  if (!res.ok) {
-    const detail =
-      data?.error?.message ??
-      data?.base_resp?.status_msg ??
-      data?.message ??
-      `status ${res.status}`;
-    throw new ConvexError(
-      `The MiniMax research service returned an error: ${detail}`,
-    );
-  }
-
-  const content = data?.choices?.[0]?.message?.content;
-  if (typeof content !== "string" || content.trim() === "") {
-    throw new ConvexError(
-      "The MiniMax research service returned an empty response. Please try again.",
-    );
-  }
-  return content;
-}
-
-function parseAnalysis(content: string): StrainAnalysis {
-  const fallback: StrainAnalysis = {
-    headline: "Comparison complete",
-    summary: content.trim(),
-    forCondition: null,
-    keyDifferences: [],
-    commonGround: [],
-    cautions: [],
-  };
-
-  if (!content) {
-    return fallback;
-  }
-
-  try {
-    const parsed = JSON.parse(content);
-    return normalize(parsed);
-  } catch {
-    // Tolerate markdown fences or stray text around the JSON.
-    const start = content.indexOf("{");
-    const end = content.lastIndexOf("}");
-    if (start !== -1 && end > start) {
-      try {
-        return normalize(JSON.parse(content.slice(start, end + 1)));
-      } catch {
-        return fallback;
-      }
-    }
-    return fallback;
-  }
-}
-
 function normalize(parsed: unknown): StrainAnalysis {
   const p = (parsed ?? {}) as Record<string, unknown>;
   const asStrings = (value: unknown): string[] =>
@@ -220,6 +130,27 @@ function normalize(parsed: unknown): StrainAnalysis {
   };
 }
 
+function parseAnalysis(content: string): StrainAnalysis {
+  const fallback: StrainAnalysis = {
+    headline: "Comparison complete",
+    summary: content.trim(),
+    forCondition: null,
+    keyDifferences: [],
+    commonGround: [],
+    cautions: [],
+  };
+
+  if (!content) {
+    return fallback;
+  }
+
+  const parsed = extractJsonObject(content);
+  if (parsed === null) {
+    return fallback;
+  }
+  return normalize(parsed);
+}
+
 export const compareStrains = action({
   args: {
     strainNames: v.array(v.string()),
@@ -252,23 +183,7 @@ export const compareStrains = action({
 
     const strains: StrainProfile[] = names.map((name) => {
       const doc = byName.get(name.toLowerCase());
-      if (!doc) {
-        return { name, inKnowledgeBase: false };
-      }
-      return {
-        name: doc.name,
-        inKnowledgeBase: true,
-        type: doc.type,
-        thcRange: doc.thcRange,
-        cbdRange: doc.cbdRange,
-        lineage: doc.lineage,
-        terpenes: doc.terpenes,
-        medicalUses: doc.medicalUses,
-        effects: doc.effects,
-        sideEffects: doc.sideEffects,
-        description: doc.description,
-        communityNotes: doc.communityNotes,
-      };
+      return doc ? strainDocToProfile(doc) : { name, inKnowledgeBase: false };
     });
 
     const content = await callMiniMax([

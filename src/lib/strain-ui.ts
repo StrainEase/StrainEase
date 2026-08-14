@@ -4,6 +4,21 @@ export const TYPE_LABEL: Record<string, string> = {
   hybrid: "Hybrid",
 };
 
+export const CONDITIONS = [
+  "Chronic pain",
+  "Anxiety",
+  "Insomnia",
+  "Depression",
+  "Nausea & appetite",
+  "Inflammation",
+  "Migraine",
+  "Muscle spasm",
+  "PTSD",
+  "Fatigue",
+  "Arthritis",
+  "Stress",
+];
+
 export function typeBadgeClass(type: string): string {
   switch (type) {
     case "indica":
