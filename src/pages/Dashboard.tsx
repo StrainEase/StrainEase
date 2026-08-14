@@ -480,7 +480,7 @@ export default function Dashboard() {
 
                 <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
                   <Sparkles className="size-3.5 shrink-0 text-primary" />
-                  AI comparison generated with MiniMax-M3 from aggregated
+                  AI comparison generated with MiniMax-M2.5-highspeed from aggregated
                   public sources. Not medical advice — consult your healthcare
                   provider.
                 </p>

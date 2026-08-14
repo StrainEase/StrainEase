@@ -25,7 +25,7 @@ export type StrainComparison = {
 };
 
 const MINIMAX_URL = "https://api.minimax.io/v1/chat/completions";
-const MINIMAX_MODEL = "MiniMax-M3";
+const MINIMAX_MODEL = "MiniMax-M2.5-highspeed";
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -98,7 +98,8 @@ async function callMiniMax(messages: ChatMessage[]): Promise<string> {
         messages,
         temperature: 0.4,
         max_completion_tokens: 1600,
-        thinking: { type: "disabled" },
+        // M2.x models always think; the JSON is extracted in parseAnalysis,
+        // which tolerates <think> tags around the response.
       }),
     });
   } catch {
