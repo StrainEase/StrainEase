@@ -50,7 +50,7 @@ export function StrainDetailCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-5 rounded-2xl border bg-card p-6 shadow-sm",
+        "flex min-w-0 flex-col gap-5 rounded-2xl border bg-card p-6 shadow-sm",
         badge === "best"
           ? "border-primary/50 ring-1 ring-primary/20"
           : "border-border/70",

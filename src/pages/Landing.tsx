@@ -95,12 +95,15 @@ const TYPE_STYLES: Record<string, string> = {
   hybrid: "bg-emerald-500/10 text-emerald-700",
 };
 
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 function fadeUp(delay: number) {
   return {
-    initial: { opacity: 0, y: 18 },
+    initial: { opacity: 0, y: 16 },
     whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, margin: "-80px" },
-    transition: { duration: 0.55, delay, ease: "easeOut" as const },
+    viewport: { once: true, amount: 0.2 },
+    transition: { duration: 0.6, delay, ease: EASE },
+    style: { willChange: "transform, opacity" },
   };
 }
 
@@ -152,7 +155,8 @@ export default function Landing() {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            transition={{ duration: 0.6, ease: EASE }}
+            style={{ willChange: "transform, opacity" }}
             className="mx-auto max-w-3xl text-center"
           >
             <Badge

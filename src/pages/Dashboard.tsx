@@ -119,6 +119,12 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, [isRunning]);
 
+  // Scroll the results into view once a comparison finishes rendering.
+  useEffect(() => {
+    if (!result) return;
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result]);
+
   // Case-insensitive lookup of curated strains by name.
   const strainsByName = useMemo(() => {
     const map = new Map<string, StrainDoc>();
@@ -215,12 +221,6 @@ export default function Dashboard() {
         condition: focus.length > 0 ? focus : undefined,
       });
       setResult(comparison);
-      requestAnimationFrame(() => {
-        resultsRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
     } catch (err) {
       setError(
         err instanceof Error
@@ -259,7 +259,7 @@ export default function Dashboard() {
   const atCap = selectedNames.length >= 3;
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen overflow-x-clip bg-background text-foreground">
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
@@ -341,7 +341,7 @@ export default function Dashboard() {
           )}
         >
           {/* ── Config panel ───────────────────────────────── */}
-          <aside className="lg:sticky lg:top-24">
+          <aside className="min-w-0 lg:sticky lg:top-24">
             <Card className="border-border/70 shadow-sm">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -559,7 +559,7 @@ export default function Dashboard() {
           </aside>
 
           {/* ── Results ─────────────────────────────────────── */}
-          <section ref={resultsRef} className="scroll-mt-24">
+          <section ref={resultsRef} className="min-w-0 scroll-mt-24">
             {isRunning ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card px-8 py-20 text-center shadow-sm">
                 <div className="relative">

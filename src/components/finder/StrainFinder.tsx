@@ -73,6 +73,12 @@ export function StrainFinder({
     return () => clearInterval(timer);
   }, [isRunning]);
 
+  // Scroll the results into view once a search finishes rendering.
+  useEffect(() => {
+    if (!result) return;
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result]);
+
   const toggleAilment = (name: string) => {
     setAilments((prev) =>
       prev.some((a) => a.toLowerCase() === name.toLowerCase())
@@ -111,12 +117,6 @@ export function StrainFinder({
         potency: pref === "" ? undefined : pref,
       });
       setResult(res);
-      requestAnimationFrame(() => {
-        resultsRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
     } catch (err) {
       setError(
         err instanceof Error
@@ -148,7 +148,7 @@ export function StrainFinder({
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[340px_1fr]">
       {/* ── Config panel ───────────────────────────────── */}
-      <aside className="lg:sticky lg:top-24">
+      <aside className="min-w-0 lg:sticky lg:top-24">
         <Card className="border-border/70 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -302,7 +302,7 @@ export function StrainFinder({
       </aside>
 
       {/* ── Results ─────────────────────────────────────── */}
-      <section ref={resultsRef} className="scroll-mt-24">
+      <section ref={resultsRef} className="min-w-0 scroll-mt-24">
         {isRunning ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card px-8 py-20 text-center shadow-sm">
             <Loader2 className="size-9 animate-spin text-primary" />
