@@ -13,11 +13,9 @@ import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import logo from "@/assets/logo.svg";
 import {
   createUserWithEmailAndPassword,
-  GoogleAuthProvider,
   signInWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
 } from "firebase/auth";
+import { signInWithGoogle } from "@/lib/google-auth";
 import { ArrowRight, Loader2, Lock, Mail } from "lucide-react";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -34,19 +32,6 @@ function resolveRedirectAfterAuth(
     return returnTo;
   }
   return fallback;
-}
-
-function googleErrorMessage(err: unknown): string {
-  const code = (err as { code?: string })?.code ?? "";
-  if (code === "auth/unauthorized-domain") {
-    return "Google sign-in is blocked for this domain. Add it in the Firebase console → Authentication → Settings → Authorized domains, then try again.";
-  }
-  if (code === "auth/operation-not-allowed") {
-    return "Google sign-in isn't enabled yet. Turn it on in the Firebase console → Authentication → Sign-in method → Google.";
-  }
-  return err instanceof Error
-    ? `Google sign-in failed: ${err.message}`
-    : "Google sign-in failed. Please try again.";
 }
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
@@ -104,38 +89,32 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     if (!auth) return;
     setGoogleLoading(true);
     setError(null);
-    const provider = new GoogleAuthProvider();
     try {
-      // Popup is the primary path: the auth state lives on this origin, so
-      // it survives cross-site bounces. This avoids the redirect-handler's
-      // "missing initial state" failure mode that occurs when browser storage
-      // is partitioned (Safari ITP, some Chromium configurations).
-      await signInWithPopup(auth, provider);
+      // GIS direct flow: bypasses Firebase's hidden iframe, which Safari
+      // breaks in two different ways (storage partitioning on redirect,
+      // IndexedDB-closing on popup). GIS renders Google's UI directly and
+      // returns an ID token we exchange with Firebase via
+      // signInWithCredential.
+      await signInWithGoogle();
       // The auth-state effect above handles navigation.
     } catch (err) {
-      const code = (err as { code?: string })?.code ?? "";
-      // If popups are blocked or the browser refuses to open one (Safari
-      // strict-mode, some embedded webviews), fall back to a full redirect.
-      // The redirect failure mode is recoverable: control never returns here
-      // on the success path, and a failure surfaces with a clearer error
-      // than the popup-blocked one.
-      if (
-        code === "auth/popup-blocked" ||
-        code === "auth/popup-closed-by-user"
-      ) {
-        try {
-          await signInWithRedirect(auth, provider);
-          return;
-        } catch (redirectErr) {
-          setGoogleLoading(false);
-          setError(googleErrorMessage(redirectErr));
-          return;
-        }
-      }
       setGoogleLoading(false);
       setError(googleErrorMessage(err));
     }
   };
+
+  function googleErrorMessage(err: unknown): string {
+    const code = (err as { code?: string })?.code ?? "";
+    if (code === "auth/unauthorized-domain") {
+      return "Google sign-in is blocked for this domain. Add it in the Firebase console → Authentication → Settings → Authorized domains, then try again.";
+    }
+    if (code === "auth/operation-not-allowed") {
+      return "Google sign-in isn't enabled yet. Turn it on in the Firebase console → Authentication → Sign-in method → Google.";
+    }
+    return err instanceof Error
+      ? `Google sign-in failed: ${err.message}`
+      : "Google sign-in failed. Please try again.";
+  }
 
   if (!isFirebaseConfigured) {
     return (

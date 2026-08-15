@@ -18,6 +18,12 @@ export const isFirebaseConfigured = Boolean(
   config.apiKey && config.projectId && config.authDomain,
 );
 
+// Google OAuth Web Client ID — used by Google Identity Services (GIS) to run
+// the Google sign-in flow directly without Firebase's hidden iframe. Set this
+// in the Firebase console → Authentication → Sign-in method → Google → Web
+// SDK configuration → "Web client ID", then expose it as VITE_GOOGLE_CLIENT_ID.
+export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
