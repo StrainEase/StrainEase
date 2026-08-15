@@ -24,6 +24,7 @@ import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
+import { pullQuotesFromStrains } from "@/lib/quotes";
 import {
   compactPrefs,
   type ResearchPrefs,
@@ -654,7 +655,10 @@ export default function Dashboard() {
                   </Button>
                 </div>
 
-                <AnalysisPanel analysis={result.analysis} />
+                <AnalysisPanel
+                  analysis={result.analysis}
+                  quotes={pullQuotesFromStrains(result.strains, condition)}
+                />
 
                 <div
                   className={cn(
@@ -673,7 +677,12 @@ export default function Dashboard() {
                     else if (runnerUp && norm(s.name) === norm(runnerUp))
                       badge = "runnerUp";
                     return (
-                      <StrainDetailCard key={s.name} strain={s} badge={badge} />
+                      <StrainDetailCard
+                        key={s.name}
+                        strain={s}
+                        badge={badge}
+                        conditions={condition}
+                      />
                     );
                   })}
                 </div>

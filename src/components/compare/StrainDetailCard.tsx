@@ -1,3 +1,7 @@
+import {
+  quoteConfidence,
+  quotesForAilment,
+} from "@/lib/quotes";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
@@ -42,9 +46,11 @@ function IntensityBar({ value }: { value: number }) {
 export function StrainDetailCard({
   strain,
   badge,
+  conditions = [],
 }: {
   strain: StrainProfile;
   badge?: "best" | "runnerUp" | null;
+  conditions?: string[];
 }) {
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
 
@@ -55,6 +61,12 @@ export function StrainDetailCard({
     }
     return listenToPublicNotes(slugify(strain.name), setPatientNotes);
   }, [strain.name]);
+
+  const displayNotes = quotesForAilment(strain.communityNotes, conditions);
+  const extras = (strain.communityNotes ?? []).filter(
+    (n) => !displayNotes.includes(n),
+  );
+  const confidence = quoteConfidence(strain.communityNotes, conditions);
 
   const subtitle = [
     strain.type ? TYPE_LABEL[strain.type] ?? strain.type : null,
@@ -253,15 +265,20 @@ export function StrainDetailCard({
       )}
 
       {/* Community notes */}
-      {strain.communityNotes && strain.communityNotes.length > 0 && (
+      {(displayNotes.length > 0 || extras.length > 0 || confidence) && (
         <div className="mt-auto space-y-3 border-t border-border/60 pt-4">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <MessageCircle className="size-3.5 text-primary" />
-            What patients & Reddit say
+            {conditions.length > 0
+              ? `Patients on ${conditions[0]}`
+              : "What patients & Reddit say"}
           </div>
-          {strain.communityNotes.map((note, i) => (
+          {confidence && (
+            <p className="text-xs leading-5 text-muted-foreground">{confidence}</p>
+          )}
+          {displayNotes.map((note, i) => (
             <blockquote
-              key={i}
+              key={`q-${i}`}
               className="relative rounded-xl bg-background px-4 py-3"
             >
               <Quote className="absolute right-3 top-3 size-3.5 text-border" />
@@ -269,6 +286,19 @@ export function StrainDetailCard({
                 {note.text}
               </p>
               <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                {note.source}
+              </p>
+            </blockquote>
+          ))}
+          {extras.slice(0, 2).map((note, i) => (
+            <blockquote
+              key={`e-${i}`}
+              className="relative rounded-xl bg-background px-4 py-3"
+            >
+              <p className="pr-5 text-xs leading-5 text-muted-foreground">
+                {note.text}
+              </p>
+              <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {note.source}
               </p>
             </blockquote>
