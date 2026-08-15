@@ -111,6 +111,26 @@ final class FindModel {
         compareNames.removeAll { $0.caseInsensitiveCompare(name) == .orderedSame }
     }
 
+    /// Toggle a strain in the compare selection — used by the recommendation
+    /// card's "Add to compare" button so a research session doesn't auto-run
+    /// a comparison.
+    func toggleCompare(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if compareNames.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            removeFromCompare(trimmed)
+        } else if compareNames.count < 3 {
+            compareNames.append(trimmed)
+        }
+    }
+
+    func isInCompare(_ name: String) -> Bool {
+        compareNames.contains { $0.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
+    /// True when adding a new strain would exceed the 3-strain cap.
+    var compareAtCap: Bool { compareNames.count >= 3 }
+
     func compareSelected(reliefSummary: String? = nil) async {
         guard canCompare else { return }
         isComparing = true

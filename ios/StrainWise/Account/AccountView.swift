@@ -13,6 +13,7 @@ struct AccountView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         header
                         SavedAilmentsCard(onFind: onFindAilments)
+                        SavedMedicationsCard()
                         NavigationLink {
                             ReliefHistoryView()
                         } label: {
@@ -102,5 +103,6 @@ struct AccountView: View {
         .environment(AuthSession.previewSignedIn)
         .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
         .environment(SavedAilmentsStore.preview(["Anxiety"]))
+        .environment(SavedMedicationsStore.preview(["Lexapro", "Ibuprofen"]))
         .environment(ReliefLogStore.preview([.sampleSleep]))
 }

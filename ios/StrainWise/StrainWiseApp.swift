@@ -6,6 +6,7 @@ struct StrainWiseApp: App {
     @State private var session = AuthSession()
     @State private var saved = SavedStrainsStore()
     @State private var ailments = SavedAilmentsStore()
+    @State private var medications = SavedMedicationsStore()
     @State private var relief = ReliefLogStore()
     @State private var recents = RecentlyViewedStore()
 
@@ -19,6 +20,7 @@ struct StrainWiseApp: App {
                 .environment(session)
                 .environment(saved)
                 .environment(ailments)
+                .environment(medications)
                 .environment(relief)
                 .environment(recents)
                 .tint(Palette.primary)
@@ -28,10 +30,12 @@ struct StrainWiseApp: App {
                     if let uid {
                         saved.listen(uid: uid)
                         ailments.listen(uid: uid)
+                        medications.listen(uid: uid)
                         relief.listen(uid: uid)
                     } else {
                         saved.reset()
                         ailments.reset()
+                        medications.reset()
                         relief.reset()
                     }
                 }
