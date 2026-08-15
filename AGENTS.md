@@ -18,6 +18,7 @@ conventions. This file is for machines.
   (`--force` is required once to set the Artifact Registry cleanup
   policy; subsequent deploys don't need it). Frontend deploys through
   Cloudflare Pages (`.github/workflows/cloudflare-pages.yml`).
+- Don't write innovative code, write reliable code.
 
 ## Architecture map
 
@@ -55,10 +56,12 @@ See `README.md` for the full list. The bits AI agents most often miss:
 
 - The hook is `useAuth` in `src/hooks/use-auth.ts` (uses
   `onAuthStateChanged` from `firebase/auth`).
-- Sign-in UI lives in `src/pages/Auth.tsx` — email/password and Google
-  via Google Identity Services (GIS) directly, not Firebase's
-  `signInWithPopup`/`signInWithRedirect`. Don't add new providers without
-  updating Firebase console too.
+- Sign-in UI lives in `src/pages/Auth.tsx` — email/password, Google via
+  Google Identity Services (GIS) directly (not Firebase popup/redirect),
+  and Apple via `OAuthProvider('apple.com')` + `signInWithPopup` in
+  `src/lib/apple-auth.ts`. Don't add new providers without updating
+  Firebase console too. Apple on the web also needs a Services ID, Team
+  ID, Key ID, and `.p8` key in the Apple provider settings.
 - Google sign-in needs `VITE_GOOGLE_CLIENT_ID` — the Web client ID from
   Firebase console → Authentication → Sign-in method → Google → Web SDK
   configuration. The implementation in `src/lib/google-auth.ts` uses
