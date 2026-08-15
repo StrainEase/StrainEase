@@ -7,6 +7,7 @@ import {
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 export type StrainAnalysis = {
   headline: string;
@@ -29,7 +30,7 @@ function BulletList({
 }: {
   title: string;
   items: string[];
-  icon: React.ReactNode;
+  icon: ReactNode;
   tone?: "default" | "warn";
 }) {
   if (items.length === 0) return null;
@@ -64,7 +65,7 @@ export function AnalysisPanel({ analysis }: { analysis: StrainAnalysis }) {
   const { headline, summary, forCondition } = analysis;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
       {/* Verdict header */}
       <div className="border-b border-border/60 bg-gradient-to-br from-primary/8 to-transparent px-6 py-6 sm:px-8">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-primary">

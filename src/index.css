@@ -41,8 +41,10 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Iowan Old Style", "Palatino Linotype",
+    Palatino, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 /* CHANGE VALUES FOR THEME — StrainWise “Modern” theme: quiet neutrals with a
@@ -120,11 +122,69 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 6.5rem;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
   button:not([disabled]),
   [role="button"]:not([disabled]) {
     cursor: pointer;
+  }
+}
+
+/* Pointer-driven 3D tilt — registered so they can transition. */
+@property --tilt-x {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+@property --tilt-y {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+@layer components {
+  .landing-grain::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .tilt-card {
+    --tilt-x: 0deg;
+    --tilt-y: 0deg;
+    transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+    transform-style: preserve-3d;
+    transition:
+      --tilt-x 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+      --tilt-y 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .nav-burger-line {
+    display: block;
+    height: 1.5px;
+    width: 16px;
+    border-radius: 9999px;
+    background: currentColor;
+    transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .tilt-card {
+    transform: none !important;
+    transition: none !important;
   }
 }

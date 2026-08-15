@@ -8,7 +8,6 @@ import {
   setNotePublic,
   slugify,
   type PublicNote,
-  type SavedNote,
   type SavedStrain,
 } from "@/lib/saved-strains";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
@@ -65,7 +64,7 @@ export function SavedStrainsPanel() {
 
   if (!isFirebaseConfigured) {
     return (
-      <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center shadow-sm">
+      <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center">
         <Bookmark className="mx-auto size-8 text-muted-foreground" />
         <h2 className="mt-4 text-lg font-semibold tracking-tight">
           Saving needs Firebase
@@ -89,7 +88,7 @@ export function SavedStrainsPanel() {
 
   if (saved.length === 0) {
     return (
-      <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center shadow-sm">
+      <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center">
         <Bookmark className="mx-auto size-8 text-primary" />
         <h2 className="mt-4 text-lg font-semibold tracking-tight">
           No saved strains yet
@@ -136,7 +135,7 @@ export function SavedStrainsPanel() {
         return (
           <div
             key={strain.slug}
-            className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm"
+            className="overflow-hidden rounded-2xl border border-border/70 bg-card"
           >
             <div className="flex items-center justify-between gap-3 px-5 py-4">
               <button
