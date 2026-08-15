@@ -5,7 +5,7 @@ import {
   searchStrain as searchStrainCall,
 } from "@/lib/strain-api";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +22,16 @@ import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
+import { HistoryPanel } from "@/components/saved/HistoryPanel";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
+import {
+  loadResearch,
+  rememberCloud,
+  rememberLocal,
+} from "@/lib/research-history";
 import {
   compactPrefs,
   type ResearchPrefs,
@@ -37,6 +43,7 @@ import {
   ArrowRight,
   Bookmark,
   Check,
+  Clock,
   FlaskConical,
   GitCompareArrows,
   HeartPulse,
@@ -85,6 +92,7 @@ type SearchOutcome =
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const { summary: reliefSummary } = useReliefSummary();
+  const { rid } = useParams();
   const [searchParams] = useSearchParams();
 
   type CompareResult = Awaited<ReturnType<typeof compareStrainsCall>>;
@@ -100,14 +108,34 @@ export default function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [mode, setMode] = useState<"find" | "compare" | "saved">(
+  const [mode, setMode] = useState<"find" | "compare" | "saved" | "history">(
     searchParams.get("mode") === "compare"
       ? "compare"
       : searchParams.get("mode") === "saved"
         ? "saved"
-        : "find",
+        : searchParams.get("mode") === "history"
+          ? "history"
+          : "find",
   );
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Restore a shared result from a /find/:rid or /compare/:rid link.
+  useEffect(() => {
+    if (!rid) return;
+    let cancelled = false;
+    void loadResearch(rid).then((stored) => {
+      if (cancelled || !stored) return;
+      if (stored.kind === "compare") {
+        setMode("compare");
+        setResult(stored.result as CompareResult);
+      } else {
+        setMode("find");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [rid]);
 
   useEffect(() => {
     const raw = searchParams.get("strains");
@@ -212,6 +240,16 @@ export default function Dashboard() {
         () => compareStrainsCall(args),
       );
       setResult(comparison);
+      if (comparison.resultId) {
+        const entry = {
+          id: comparison.resultId,
+          kind: "compare" as const,
+          title: `${names.join(" vs. ")}${focus.length ? ` · ${focus.join(", ")}` : ""}`,
+          createdAt: Date.now(),
+        };
+        rememberLocal(entry);
+        if (user) void rememberCloud(user.uid, entry);
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -346,17 +384,38 @@ export default function Dashboard() {
               Saved
               <span className="hidden sm:inline">strains</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setMode("history")}
+              className={cn(
+                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
+                mode === "history"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Clock className="size-4" />
+              History
+            </button>
           </div>
         </div>
 
         {/* ── Strain finder (main focus) ────────────────────── */}
         <div className={cn(mode !== "find" && "hidden")}>
-          <StrainFinder onCompare={startCompareFromFinder} />
+          <StrainFinder
+            onCompare={startCompareFromFinder}
+            restoreId={mode === "find" ? rid : undefined}
+          />
         </div>
 
         {/* ── Saved strains ────────────────────────────────── */}
         <div className={cn(mode !== "saved" && "hidden")}>
           <SavedStrainsPanel />
+        </div>
+
+        {/* ── History (reopen shareable results) ────────────── */}
+        <div className={cn(mode !== "history" && "hidden")}>
+          <HistoryPanel />
         </div>
 
         {/* ── Compare workspace (secondary) ─────────────────── */}
