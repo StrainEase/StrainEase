@@ -56,7 +56,14 @@ See `README.md` for the full list. The bits AI agents most often miss:
 - The hook is `useAuth` in `src/hooks/use-auth.ts` (uses
   `onAuthStateChanged` from `firebase/auth`).
 - Sign-in UI lives in `src/pages/Auth.tsx` — email/password and Google
-  popup. Don't add new providers without updating Firebase console too.
+  via Google Identity Services (GIS) directly, not Firebase's
+  `signInWithPopup`/`signInWithRedirect`. Don't add new providers without
+  updating Firebase console too.
+- Google sign-in needs `VITE_GOOGLE_CLIENT_ID` — the Web client ID from
+  Firebase console → Authentication → Sign-in method → Google → Web SDK
+  configuration. The implementation in `src/lib/google-auth.ts` uses
+  `accounts.google.com/gsi/client` to get an ID token, then exchanges it
+  via `signInWithCredential(auth, GoogleAuthProvider.credential(idToken))`.
 - Auth state is shared via the hook, not a context provider — there is no
   `AuthProvider` and you should not add one.
 - If Firebase isn't configured (no env vars), `useAuth` returns
