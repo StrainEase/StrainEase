@@ -62,3 +62,10 @@ jobs:
           # Uses the committed wrangler.jsonc (worker name + dist assets +
           # SPA fallback) — same config the Cloudflare dashboard builds use.
           command: deploy
+        env:
+          # wrangler-action@v3 sometimes forgets to export the API token into
+          # the child process env once Wrangler 4 is installed (issue #246).
+          # Re-export it so `wrangler deploy` can authenticate without the
+          # `--api-token` flag.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
