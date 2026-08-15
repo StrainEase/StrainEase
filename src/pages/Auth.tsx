@@ -13,9 +13,10 @@ import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import logo from "@/assets/logo.svg";
 import {
   createUserWithEmailAndPassword,
+  getRedirectResult,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
 } from "firebase/auth";
 import { ArrowRight, Loader2, Lock, Mail } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
@@ -56,6 +57,37 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     }
   }, [authLoading, isAuthenticated, navigate, redirect]);
 
+  // After signInWithRedirect, the user lands back here and we need to harvest
+  // the auth result once. Sign-in failures here (e.g. unauthorized domain,
+  // operation-not-allowed) surface as a thrown error — success is silent and
+  // onAuthStateChanged handles the rest.
+  useEffect(() => {
+    if (!auth || authLoading || isAuthenticated) return;
+    let cancelled = false;
+    getRedirectResult(auth).catch((err) => {
+      if (cancelled) return;
+      const code = (err as { code?: string })?.code ?? "";
+      if (code === "auth/unauthorized-domain") {
+        setError(
+          "Google sign-in is blocked for this domain. Add it in the Firebase console → Authentication → Settings → Authorized domains, then try again.",
+        );
+      } else if (code === "auth/operation-not-allowed") {
+        setError(
+          "Google sign-in isn't enabled yet. Turn it on in the Firebase console → Authentication → Sign-in method → Google.",
+        );
+      } else {
+        setError(
+          err instanceof Error
+            ? `Google sign-in failed: ${err.message}`
+            : "Google sign-in failed. Please try again.",
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [auth, authLoading, isAuthenticated]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!auth) return;
@@ -90,26 +122,23 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
-      // The auth-state effect above handles navigation.
+      // Redirect-based sign-in: more reliable than popup, especially on Safari
+      // where the popup flow can fail with IndexedDB "Database is closing"
+      // errors during the cross-origin OAuth handshake. The page navigates
+      // away to Google and back; the redirect result is harvested on mount.
+      await signInWithRedirect(auth, new GoogleAuthProvider());
     } catch (err) {
+      // Most redirect failures throw synchronously *before* the navigation
+      // (e.g. unauthorized-domain, operation-not-allowed). Anything that
+      // happens after the redirect is caught in the getRedirectResult effect.
       const code = (err as { code?: string })?.code ?? "";
-      if (
-        code === "auth/popup-closed-by-user" ||
-        code === "auth/cancelled-popup-request"
-      ) {
-        // User closed the popup — not an error, just reset the button.
-      } else if (code === "auth/unauthorized-domain") {
+      if (code === "auth/unauthorized-domain") {
         setError(
           "Google sign-in is blocked for this domain. Add it in the Firebase console → Authentication → Settings → Authorized domains, then try again.",
         );
       } else if (code === "auth/operation-not-allowed") {
         setError(
           "Google sign-in isn't enabled yet. Turn it on in the Firebase console → Authentication → Sign-in method → Google.",
-        );
-      } else if (code === "auth/popup-blocked") {
-        setError(
-          "The Google popup was blocked by your browser. Allow popups for this site and try again.",
         );
       } else {
         setError(
