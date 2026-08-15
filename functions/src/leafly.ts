@@ -192,13 +192,154 @@ function mergeReviewNotes(...lists: CommunityNote[][]): CommunityNote[] {
   return out;
 }
 
-function reviewNotesFrom(reviews: unknown): CommunityNote[] {
-  const out: CommunityNote[] = [];
+/**
+ * Patient-language keywords that signal a review is talking about medical
+ * or symptom-relief use, rather than recreational effects. Matched as
+ * whole words against lowercased text. The list is deliberately broad:
+ * patients describe relief in many ways, and missing a real medical
+ * review is worse than over-matching a recreational one.
+ */
+const MEDICAL_KEYWORDS: readonly string[] = [
+  // Common ailments / symptoms
+  "pain",
+  "anxiety",
+  "anxious",
+  "panic",
+  "depression",
+  "depressed",
+  "insomnia",
+  "sleep",
+  "slept",
+  "sleeping",
+  "nausea",
+  "nauseous",
+  "migraine",
+  "headache",
+  "headaches",
+  "cramps",
+  "cramp",
+  "spasm",
+  "spasms",
+  "inflammation",
+  "arthritis",
+  "ptsd",
+  "trauma",
+  "adhd",
+  "focus",
+  "fatigue",
+  "stressed",
+  "stress",
+  "tension",
+  "restless",
+  // Relief language
+  "relief",
+  "relieve",
+  "relieved",
+  "eases",
+  "ease",
+  "eased",
+  "helps",
+  "helped",
+  "helping",
+  "treat",
+  "treats",
+  "treating",
+  "manage",
+  "manages",
+  "managing",
+  "control",
+  "controls",
+  "calms",
+  "calm",
+  "soothes",
+  "soothe",
+  // Medical framing
+  "medical",
+  "medicine",
+  "medicinal",
+  "patient",
+  "patients",
+  "doctor",
+  "physician",
+  "clinic",
+  "prescription",
+  "diagnosis",
+  "diagnosed",
+  "chronic",
+  "acute",
+  "dose",
+  "dosage",
+  "mg",
+  "thc",
+  "cbd",
+  "terpene",
+  "terpenes",
+];
+
+/**
+ * Score a single review for medical relevance. Count keyword hits in
+ * the lowercased text and bias toward longer reviews (which carry more
+ * usable signal). Exposed for tests.
+ */
+export function medicalScore(text: string): number {
+  if (!text) return 0;
+  const lower = text.toLowerCase();
+  let hits = 0;
+  for (const kw of MEDICAL_KEYWORDS) {
+    if (!kw) continue;
+    const re = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "g");
+    const matches = lower.match(re);
+    if (matches) hits += matches.length;
+  }
+  // Slight preference for reviews in the 80–400 char sweet spot. Anything
+  // shorter than the 40-char floor is filtered out before this runs.
+  const len = text.length;
+  const lenBoost = len >= 80 && len <= 400 ? 0.5 : 0;
+  return hits + lenBoost;
+}
+
+/** Sort reviews by medical score desc, then by review rating desc, then by length desc. */
+function rankByMedical(reviews: RawRecord[]): RawRecord[] {
+  return reviews
+    .map((r) => {
+      const text = typeof r.text === "string" ? r.text : "";
+      const rating =
+        typeof r.rating === "number"
+          ? r.rating
+          : typeof r.averageRating === "number"
+            ? r.averageRating
+            : 0;
+      return { r, score: medicalScore(text), rating, length: text.length };
+    })
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.rating !== a.rating) return b.rating - a.rating;
+      return b.length - a.length;
+    })
+    .map(({ r }) => r);
+}
+
+/**
+ * Convert Leafly review rows into CommunityNote strings for the UI.
+ * Reviews are ranked by medical relevance first (so symptom / relief
+ * language surfaces), then by rating, then by length. If no review
+ * scores positively on medical terms, fall back to the same ranking
+ * without the medical preference — patients still get the best of what
+ * was written.
+ */
+export function reviewNotesFrom(reviews: unknown): CommunityNote[] {
+  const cleaned: RawRecord[] = [];
   for (const raw of reviewsListFrom(reviews)) {
     if (!raw || typeof raw !== "object") continue;
     const r = raw as RawRecord;
     const text = reviewTextFrom(r);
     if (text.length < 40) continue;
+    cleaned.push(r);
+  }
+  const ranked = rankByMedical(cleaned);
+  const out: CommunityNote[] = [];
+  for (const r of ranked) {
+    const text = typeof r.text === "string" ? r.text.trim() : "";
     const username =
       typeof r.username === "string" && r.username.trim()
         ? r.username.trim()
