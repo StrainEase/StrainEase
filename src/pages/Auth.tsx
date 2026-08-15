@@ -14,11 +14,10 @@ import logo from "@/assets/logo.svg";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
-import { ArrowRight, Loader2, Lock, Mail, UserX } from "lucide-react";
+import { ArrowRight, Loader2, Lock, Mail } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
@@ -81,22 +80,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             : err instanceof Error
               ? err.message
               : "Something went wrong. Please try again.",
-      );
-      setIsLoading(false);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    if (!auth) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      await signInAnonymously(auth);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? `Guest sign-in failed: ${err.message}`
-          : "Guest sign-in failed. Please try again.",
       );
       setIsLoading(false);
     }
@@ -326,29 +309,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 </Button>
               </CardContent>
             </form>
-
-            <div className="px-6 pb-5">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or
-                  </span>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4 w-full cursor-pointer"
-                onClick={handleGuestLogin}
-                disabled={isLoading}
-              >
-                <UserX className="mr-2 h-4 w-4" />
-                Continue as guest
-              </Button>
-            </div>
 
             <div className="rounded-b-lg border-t bg-muted px-6 py-4 text-center text-xs text-muted-foreground">
               For medical use only · Not medical advice · Secured by{" "}

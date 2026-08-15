@@ -1,0 +1,61 @@
+# Deploys the StrainWise backend (Firebase Cloud Functions + Firestore rules)
+# to Firebase whenever functions-related code lands on `main`, or on demand
+# via the Actions tab.
+#
+# Required GitHub secrets:
+#   FIREBASE_SERVICE_ACCOUNT_KEY — JSON key for a Firebase deploy service
+#     account (Project owner, or: Cloud Functions Admin + Service Account
+#     User + Secret Manager Secret Accessor). Generate it in Firebase console
+#     → Project settings → Service accounts → Generate new private key.
+#   FIREBASE_PROJECT_ID — your Firebase project id.
+#
+# One-time setup (run once locally so the secret exists before deploy):
+#   firebase login
+#   firebase use YOUR-FIREBASE-PROJECT-ID   # also update .firebaserc
+#   firebase functions:secrets:set MINIMAX_API_KEY
+
+name: Deploy Firebase Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/**'
+      - 'firebase.json'
+      - '.github/workflows/firebase-functions-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-functions-deploy-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install & Build Functions
+        working-directory: functions
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to Firebase
+        # Pin a release tag - never @master (supply-chain + reproducibility).
+        uses: w9jds/firebase-action@v15.23.0
+        with:
+          # firestore:rules keeps the save/notes security rules in sync too.
+          args: deploy --only functions,firestore:rules --project "${{ secrets.FIREBASE_PROJECT_ID }}" --force
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
