@@ -192,6 +192,38 @@ function toFeatured(profile: {
 
 const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1];
 
+/**
+ * Pick a time-of-day CTA line for the bottom hero. Morning greets, midday
+ * is practical, evening invites a session, and the late slot leans into
+ * sleep-friendly wording. Returns both the headline tail ("tonight") and
+ * the supporting sentence so the section reads as a single thought.
+ */
+function timeOfDayCopy(date: Date = new Date()) {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 11) {
+    return {
+      tail: "this morning",
+      sub: "Start your day with a strain patients report keeps them level — focus, mood, or a soft body lift.",
+    };
+  }
+  if (hour >= 11 && hour < 17) {
+    return {
+      tail: "this afternoon",
+      sub: "Midday calls for something steady — strain picks that won't tip you over by 3pm.",
+    };
+  }
+  if (hour >= 17 && hour < 22) {
+    return {
+      tail: "tonight",
+      sub: "Wind down with strains patients lean on for evenings — relaxation, mood, or sleep prep.",
+    };
+  }
+  return {
+    tail: "right now",
+    sub: "It's late — find a gentle strain to ease into sleep or quiet a racing mind.",
+  };
+}
+
 function fadeUp(delay: number) {
   return {
     initial: { opacity: 0, y: 28 },
@@ -410,6 +442,7 @@ export default function Landing() {
 
   const appHref = "/dashboard";
   const appLabel = isAuthenticated ? "Dashboard" : "Find strains";
+  const todCopy = timeOfDayCopy();
   const featured =
     live ??
     FALLBACK_STRAINS.map((strain) => {
@@ -737,12 +770,11 @@ export default function Landing() {
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_80%_at_50%_0%,oklch(1_0_0/0.14),transparent_65%)]"
           />
           <h2 className="relative text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Find the strain that fits{" "}
-            <em className="font-display font-normal italic">your symptoms</em>
+            Find a strain that fits{" "}
+            <em className="font-display font-normal italic">{todCopy.tail}</em>
           </h2>
           <p className="relative mx-auto mt-5 max-w-xl text-sm leading-6 text-primary-foreground/80 sm:text-base">
-            Tell us what you&apos;re treating — get the strains patients report
-            work best, then compare your top picks in seconds.
+            {todCopy.sub}
           </p>
           <div className="relative mt-10 flex justify-center">
             <Button
