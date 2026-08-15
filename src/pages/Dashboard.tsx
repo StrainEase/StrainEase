@@ -18,12 +18,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { StrainDirectory } from "@/components/directory/StrainDirectory";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
@@ -42,13 +45,13 @@ import type { StrainProfile } from "@/lib/strain-profile";
 import {
   ArrowRight,
   Bookmark,
+  BookOpen,
   Check,
   Clock,
   FlaskConical,
   GitCompareArrows,
   HeartPulse,
   Loader2,
-  LogOut,
   Plus,
   Search,
   Sparkles,
@@ -90,7 +93,7 @@ type SearchOutcome =
   | null;
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { summary: reliefSummary } = useReliefSummary();
   const { rid } = useParams();
   const [searchParams] = useSearchParams();
@@ -108,14 +111,19 @@ export default function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [mode, setMode] = useState<"find" | "compare" | "saved" | "history">(
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mode, setMode] = useState<
+    "find" | "directory" | "compare" | "saved" | "history"
+  >(
     searchParams.get("mode") === "compare"
       ? "compare"
       : searchParams.get("mode") === "saved"
         ? "saved"
         : searchParams.get("mode") === "history"
           ? "history"
-          : "find",
+          : searchParams.get("mode") === "directory"
+            ? "directory"
+            : "find",
   );
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -306,7 +314,7 @@ export default function Dashboard() {
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5">
             <img
               src={logo}
               alt="StrainWise logo"
@@ -317,24 +325,8 @@ export default function Dashboard() {
             <span className="text-base font-semibold tracking-tight">
               StrainWise
             </span>
-          </Link>
-          <div className="flex items-center gap-4">
-            {user?.name && (
-              <span className="hidden text-sm text-muted-foreground sm:block">
-                {user.name}
-              </span>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="cursor-pointer gap-2"
-              onClick={() => void signOut()}
-            >
-              <LogOut className="size-4" />
-              Sign out
-            </Button>
           </div>
+          <ProfileMenu onOpenSettings={() => setSettingsOpen(true)} />
         </div>
       </header>
 
@@ -355,6 +347,20 @@ export default function Dashboard() {
               <HeartPulse className="size-4" />
               <span className="sm:hidden">Find</span>
               <span className="hidden sm:inline">Find for ailments</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("directory")}
+              className={cn(
+                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
+                mode === "directory"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <BookOpen className="size-4" />
+              <span className="sm:hidden">Browse</span>
+              <span className="hidden sm:inline">Strain directory</span>
             </button>
             <button
               type="button"
@@ -406,6 +412,11 @@ export default function Dashboard() {
             onCompare={startCompareFromFinder}
             restoreId={mode === "find" ? rid : undefined}
           />
+        </div>
+
+        {/* ── Strain directory ───────────────────────────── */}
+        <div className={cn(mode !== "directory" && "hidden")}>
+          <StrainDirectory />
         </div>
 
         {/* ── Saved strains ────────────────────────────────── */}
@@ -815,6 +826,11 @@ export default function Dashboard() {
           </section>
         </div>
       </div>
+
+      <AccountSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
     </main>
   );
 }
