@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
-import { useAction } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
-import { api } from "@/convex/_generated/api";
+import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
 import {
   Activity,
   ArrowRight,
@@ -146,24 +145,23 @@ function fadeUp(delay: number) {
 }
 
 export default function Landing() {
-  const popularAction = useAction(api.leafly.popularStrains);
   const [live, setLive] = useState<FeaturedStrain[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void popularAction()
+    void popularStrainsCall()
       .then((list) => {
         if (!cancelled && Array.isArray(list) && list.length > 0) {
           setLive(list.map(toFeatured));
         }
       })
       .catch(() => {
-        // Leafly unreachable — keep the static fallback list.
+        // Leafly or Firebase unreachable — keep the static fallback list.
       });
     return () => {
       cancelled = true;
     };
-  }, [popularAction]);
+  }, []);
 
   // Live Leafly data when available, the static fallback otherwise.
   const featured = useMemo(

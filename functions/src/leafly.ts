@@ -1,40 +1,30 @@
-"use node";
-
-import { action } from "./_generated/server";
-import { ConvexError, v } from "convex/values";
-import type { StrainProfile, StrainType } from "../lib/strain-profile";
-
 // Leafly has no public API for strain data, so we read the data their public
 // site embeds in its pages (Next.js __NEXT_DATA__ JSON). This is a read-only
 // scrape of public pages — no keys needed, but the HTML structure can change,
 // so the parsers below are defensive and return empty/partial data rather
 // than throwing when a field is missing.
+import type { StrainProfile, StrainType } from "./types";
+
 const BASE = "https://www.leafly.com";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
 // Per-instance in-memory cache so repeat lookups (popular list, same strain)
-// don't re-hit Leafly. Resets when the function instance is recycled, which
-// is fine — it only skips redundant fetches.
+// don't re-hit Leafly. Resets when the instance is recycled, which is fine.
 const htmlCache = new Map<string, { at: number; html: string }>();
 
-async function fetchLeaflyHtml(path: string): Promise<string> {
+type RawRecord = Record<string, any>;
+
+export async function fetchLeaflyHtml(path: string): Promise<string> {
   const hit = htmlCache.get(path);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.html;
 
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}${path}`, {
-      headers: { "User-Agent": UA, Accept: "text/html" },
-    });
-  } catch {
-    throw new ConvexError(
-      "Could not reach Leafly right now. Please try again in a moment.",
-    );
-  }
+  const res = await fetch(`${BASE}${path}`, {
+    headers: { "User-Agent": UA, Accept: "text/html" },
+  });
   if (!res.ok) {
-    throw new ConvexError(`Leafly returned status ${res.status}.`);
+    throw new Error(`Leafly returned status ${res.status}`);
   }
   const html = await res.text();
   htmlCache.set(path, { at: Date.now(), html });
@@ -42,7 +32,7 @@ async function fetchLeaflyHtml(path: string): Promise<string> {
 }
 
 /** Extract the __NEXT_DATA__ JSON blob embedded in Leafly pages. */
-function extractNextData(html: string): Record<string, unknown> | null {
+export function extractNextData(html: string): Record<string, unknown> | null {
   const m = html.match(
     /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/,
   );
@@ -53,8 +43,6 @@ function extractNextData(html: string): Record<string, unknown> | null {
     return null;
   }
 }
-
-type RawRecord = Record<string, any>;
 
 function typeFrom(category?: string): StrainType | undefined {
   const c = (category ?? "").toLowerCase();
@@ -186,7 +174,7 @@ function detailToProfile(raw: RawRecord): StrainProfile {
   };
 }
 
-function slugify(name: string): string {
+export function slugify(name: string): string {
   return name
     .trim()
     .toLowerCase()
@@ -194,7 +182,18 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-async function fetchProfile(name: string): Promise<StrainProfile | null> {
+export async function fetchPopular(): Promise<StrainProfile[]> {
+  const html = await fetchLeaflyHtml("/strains");
+  const data = extractNextData(html);
+  const list = (data as RawRecord)?.props?.pageProps?.data?.strains;
+  if (!Array.isArray(list)) return [];
+  return list
+    .map(popularToProfile)
+    .filter((p) => p.name !== "")
+    .slice(0, 12);
+}
+
+export async function fetchProfile(name: string): Promise<StrainProfile | null> {
   const slug = slugify(name);
   if (!slug) return null;
   try {
@@ -211,50 +210,13 @@ async function fetchProfile(name: string): Promise<StrainProfile | null> {
   }
 }
 
-/**
- * Popular strains on Leafly right now (their homepage directory list).
- * Pure data fetch — no AI call.
- */
-export const popularStrains = action({
-  args: {},
-  handler: async (): Promise<StrainProfile[]> => {
-    const html = await fetchLeaflyHtml("/strains");
-    const data = extractNextData(html);
-    const list = (data as RawRecord)?.props?.pageProps?.data?.strains;
-    if (!Array.isArray(list)) return [];
-    return list
-      .map(popularToProfile)
-      .filter((p) => p.name !== "")
-      .slice(0, 12);
-  },
-});
-
-/**
- * Look up a single strain by name on Leafly. Returns null when the name
- * doesn't resolve to a Leafly strain page. Pure data fetch — no AI call.
- */
-export const searchStrain = action({
-  args: { name: v.string() },
-  handler: async (_ctx, { name }): Promise<StrainProfile | null> => {
-    return await fetchProfile(name);
-  },
-});
-
-/**
- * Fetch full Leafly profiles for a batch of strain names (parallel). Names
- * that don't resolve come back as { name, inKnowledgeBase: false } so the
- * caller can have the AI research them in the same synthesis call.
- */
-export const getStrainProfiles = action({
-  args: { names: v.array(v.string()) },
-  handler: async (_ctx, { names }): Promise<StrainProfile[]> => {
-    const unique = [
-      ...new Set(names.map((n) => n.trim()).filter((n) => n !== "")),
-    ];
-    const results = await Promise.all(unique.map(fetchProfile));
-    return unique.map(
-      (name, i): StrainProfile =>
-        results[i] ?? { name, inKnowledgeBase: false },
-    );
-  },
-});
+export async function fetchProfiles(names: string[]): Promise<StrainProfile[]> {
+  const unique = [
+    ...new Set(names.map((n) => n.trim()).filter((n) => n !== "")),
+  ];
+  const results = await Promise.all(unique.map(fetchProfile));
+  return unique.map(
+    (name, i): StrainProfile =>
+      results[i] ?? { name, inKnowledgeBase: false },
+  );
+}

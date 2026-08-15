@@ -1,6 +1,9 @@
 import { useAuth } from "@/hooks/use-auth";
-import { api } from "@/convex/_generated/api";
-import { useAction } from "convex/react";
+import {
+  compareStrains as compareStrainsCall,
+  popularStrains as popularStrainsCall,
+  searchStrain as searchStrainCall,
+} from "@/lib/strain-api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import logo from "@/assets/logo.svg";
@@ -74,11 +77,8 @@ type SearchOutcome =
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
-  const runComparison = useAction(api.compare.compareStrains);
-  const searchStrainAction = useAction(api.leafly.searchStrain);
-  const popularAction = useAction(api.leafly.popularStrains);
 
-  type CompareResult = Awaited<ReturnType<typeof runComparison>>;
+  type CompareResult = Awaited<ReturnType<typeof compareStrainsCall>>;
 
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const [condition, setCondition] = useState<string[]>([]);
@@ -96,7 +96,7 @@ export default function Dashboard() {
   // Load Leafly's popular strains once for quick-pick suggestions.
   useEffect(() => {
     let cancelled = false;
-    void popularAction()
+    void popularStrainsCall()
       .then((list) => {
         if (!cancelled) setPopular(list);
       })
@@ -106,7 +106,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [popularAction]);
+  }, []);
 
   // Cycle through research status messages while a comparison runs.
   useEffect(() => {
@@ -156,7 +156,7 @@ export default function Dashboard() {
     setIsSearching(true);
     setSearchOutcome(null);
     try {
-      const profile = await searchStrainAction({ name: q });
+      const profile = await searchStrainCall(q);
       setSearchOutcome(
         profile ? { type: "found", profile } : { type: "missing", name: q },
       );
@@ -181,7 +181,7 @@ export default function Dashboard() {
       };
       const comparison = await cachedRun(
         cacheKey("compare", args),
-        () => runComparison(args),
+        () => compareStrainsCall(args),
       );
       setResult(comparison);
     } catch (err) {

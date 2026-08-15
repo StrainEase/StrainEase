@@ -1,21 +1,21 @@
-"use node";
-
-import { ConvexError } from "convex/values";
-
-const MINIMAX_URL = "https://api.minimax.io/v1/chat/completions";
+import { HttpsError } from "firebase-functions/v2/https";
 
 export const MINIMAX_MODEL = "MiniMax-M2.5-highspeed";
+const MINIMAX_URL = "https://api.minimax.io/v1/chat/completions";
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
 };
 
-export async function callMiniMax(messages: ChatMessage[]): Promise<string> {
-  const apiKey = process.env.MINIMAX_API_KEY;
+export async function callMiniMax(
+  apiKey: string,
+  messages: ChatMessage[],
+): Promise<string> {
   if (!apiKey) {
-    throw new ConvexError(
-      "The MiniMax API key is missing. Add MINIMAX_API_KEY in the project's Keys/API keys tab, then try again.",
+    throw new HttpsError(
+      "failed-precondition",
+      "The MiniMax API key is missing. Run `firebase functions:secrets:set MINIMAX_API_KEY` and redeploy.",
     );
   }
 
@@ -36,7 +36,8 @@ export async function callMiniMax(messages: ChatMessage[]): Promise<string> {
       }),
     });
   } catch {
-    throw new ConvexError(
+    throw new HttpsError(
+      "unavailable",
       "Could not reach the MiniMax research service. Please try again in a moment.",
     );
   }
@@ -54,14 +55,16 @@ export async function callMiniMax(messages: ChatMessage[]): Promise<string> {
       data?.base_resp?.status_msg ??
       data?.message ??
       `status ${res.status}`;
-    throw new ConvexError(
+    throw new HttpsError(
+      "internal",
       `The MiniMax research service returned an error: ${detail}`,
     );
   }
 
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") {
-    throw new ConvexError(
+    throw new HttpsError(
+      "internal",
       "The MiniMax research service returned an empty response. Please try again.",
     );
   }

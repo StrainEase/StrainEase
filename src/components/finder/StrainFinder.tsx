@@ -1,5 +1,4 @@
-import { api } from "@/convex/_generated/api";
-import { useAction } from "convex/react";
+import { recommendStrains as recommendStrainsCall } from "@/lib/strain-api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
@@ -49,8 +48,7 @@ export function StrainFinder({
 }: {
   onCompare: (names: string[], focus: string[]) => void;
 }) {
-  const runRecommend = useAction(api.recommend.recommendStrainsForConditions);
-  type RecommendResult = Awaited<ReturnType<typeof runRecommend>>;
+  type RecommendResult = Awaited<ReturnType<typeof recommendStrainsCall>>;
 
   const [ailments, setAilments] = useState<string[]>([]);
   const [searched, setSearched] = useState<string[]>([]);
@@ -120,7 +118,7 @@ export function StrainFinder({
       };
       const res = await cachedRun(
         cacheKey("recommend", args),
-        () => runRecommend(args),
+        () => recommendStrainsCall(args),
       );
       setResult(res);
     } catch (err) {

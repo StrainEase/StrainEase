@@ -10,11 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
-import type * as compare from "../compare.js";
 import type * as http from "../http.js";
-import type * as leafly from "../leafly.js";
-import type * as minimax from "../minimax.js";
-import type * as recommend from "../recommend.js";
 import type * as users from "../users.js";
 
 import type {
@@ -26,11 +22,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "auth/emailOtp": typeof auth_emailOtp;
-  compare: typeof compare;
   http: typeof http;
-  leafly: typeof leafly;
-  minimax: typeof minimax;
-  recommend: typeof recommend;
   users: typeof users;
 }>;
 
