@@ -41,6 +41,13 @@ export type PublicNote = {
   createdAt: number;
 };
 
+/** Firestore publicNotes create requires note.size() < 2000. */
+export const PUBLIC_NOTE_MAX = 1999;
+
+export function clipPublicNote(text: string): string {
+  return text.trim().slice(0, PUBLIC_NOTE_MAX);
+}
+
 export function slugify(name: string): string {
   return name
     .trim()
@@ -134,7 +141,7 @@ export async function addNote(
   authorName: string,
   strainName: string,
 ): Promise<SavedNote> {
-  const trimmed = text.trim();
+  const trimmed = clipPublicNote(text);
   if (trimmed === "") throw new Error("Note can't be empty.");
 
   const note: SavedNote = {
@@ -206,7 +213,7 @@ async function publishNote(
   const ref = await addDoc(publicNotesColl(), {
     strainKey: slugify(strainName),
     strainName,
-    note: note.text,
+    note: clipPublicNote(note.text),
     authorName: authorName || "A patient",
     uid,
     createdAt: Date.now(),
