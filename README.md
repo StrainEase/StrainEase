@@ -47,7 +47,7 @@ You must follow these conventions when using authentication.
 
 ## Auth is already set up.
 
-All Firebase Auth wiring is already in place. Email/password and Google sign-in are enabled in `src/pages/Auth.tsx`.
+All Firebase Auth wiring is already in place. Email/password, Google, and Sign in with Apple are enabled in `src/pages/Auth.tsx`. Apple on the web uses Firebase's `OAuthProvider('apple.com')` popup — enable the Apple provider in the Firebase console and add a Services ID, Team ID, Key ID, and the `.p8` key (the iOS app only needs the provider flipped on).
 
 ## Using Firebase Auth on the frontend
 

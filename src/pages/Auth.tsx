@@ -15,6 +15,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
+import { signInWithApple } from "@/lib/apple-auth";
 import { signInWithGoogle } from "@/lib/google-auth";
 import { ArrowRight, Loader2, Lock, Mail } from "lucide-react";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
@@ -26,7 +27,7 @@ interface AuthProps {
 
 function resolveRedirectAfterAuth(
   returnTo: string | null,
-  fallback = "/dashboard",
+  fallback = "/",
 ) {
   if (returnTo?.startsWith("/") && !returnTo.startsWith("//")) {
     return returnTo;
@@ -48,6 +49,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,6 +86,37 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       setIsLoading(false);
     }
   };
+
+  const handleAppleLogin = async () => {
+    if (!auth) return;
+    setAppleLoading(true);
+    setError(null);
+    try {
+      await signInWithApple();
+    } catch (err) {
+      setAppleLoading(false);
+      setError(appleErrorMessage(err));
+    }
+  };
+
+  function appleErrorMessage(err: unknown): string {
+    const code = (err as { code?: string })?.code ?? "";
+    if (code === "auth/unauthorized-domain") {
+      return "Apple sign-in is blocked for this domain. Add it in the Firebase console → Authentication → Settings → Authorized domains, then try again.";
+    }
+    if (code === "auth/operation-not-allowed") {
+      return "Apple sign-in isn't enabled for the web yet. In Firebase console → Authentication → Sign-in method → Apple, add a Services ID, Team ID, Key ID, and the .p8 key.";
+    }
+    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+      return "Apple sign-in was cancelled.";
+    }
+    if (code === "auth/popup-blocked") {
+      return "The Apple sign-in popup was blocked. Allow popups for this site and try again.";
+    }
+    return err instanceof Error
+      ? `Apple sign-in failed: ${err.message}`
+      : "Apple sign-in failed. Please try again.";
+  }
 
   const handleGoogleLogin = async () => {
     if (!auth) return;
@@ -198,13 +231,33 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               </CardDescription>
             </CardHeader>
 
-            <div className="px-6">
+            <div className="space-y-2 px-6">
+              <Button
+                type="button"
+                className="w-full cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                onClick={handleAppleLogin}
+                disabled={appleLoading || googleLoading}
+              >
+                {appleLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="mr-2 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                    fill="currentColor"
+                  >
+                    <path d="M16.365 1.43c0 1.14-.45 2.23-1.235 3.05-.87.92-2.31 1.64-3.5 1.53-.15-1.1.4-2.28 1.2-3.08.87-.87 2.4-1.5 3.535-1.5zM20.5 17.36c-.64 1.48-.95 2.14-1.78 3.45-1.16 1.82-2.8 4.09-4.83 4.11-1.8.02-2.27-1.18-4.72-1.16-2.46.01-2.97 1.19-4.78 1.17-2.03-.02-3.58-2.07-4.74-3.88-3.24-5.08-3.58-11.04-1.58-14.2 1.42-2.25 3.67-3.57 5.79-3.57 2.15 0 3.5 1.18 5.28 1.18 1.73 0 2.78-1.19 5.27-1.19 1.88 0 3.87 1.03 5.29 2.8-4.65 2.55-3.9 9.2.8 11.29z" />
+                  </svg>
+                )}
+                Continue with Apple
+              </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="w-full cursor-pointer"
                 onClick={handleGoogleLogin}
-                disabled={googleLoading}
+                disabled={googleLoading || appleLoading}
               >
                 {googleLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
