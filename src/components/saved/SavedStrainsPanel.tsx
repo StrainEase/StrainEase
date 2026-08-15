@@ -10,12 +10,14 @@ import {
   type PublicNote,
   type SavedStrain,
 } from "@/lib/saved-strains";
+import { listenToReliefLogs, type ReliefLog } from "@/lib/relief-log";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import {
   Bookmark,
   ChevronDown,
@@ -23,6 +25,7 @@ import {
   Loader2,
   Lock,
   MessageCircle,
+  Moon,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -45,6 +48,7 @@ export function SavedStrainsPanel() {
   const [publicNotes, setPublicNotes] = useState<Record<string, PublicNote[]>>(
     {},
   );
+  const [logs, setLogs] = useState<ReliefLog[]>([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -53,6 +57,14 @@ export function SavedStrainsPanel() {
       return;
     }
     return listenToSavedStrains(user.uid, setSaved);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!db || !user) {
+      setLogs([]);
+      return;
+    }
+    return listenToReliefLogs(user.uid, setLogs);
   }, [user?.uid]);
 
   useEffect(() => {
@@ -172,6 +184,7 @@ export function SavedStrainsPanel() {
                     {TYPE_LABEL[strain.type]}
                   </Badge>
                 )}
+                <ReliefLogButton strainName={strain.name} />
                 <Button
                   type="button"
                   variant="ghost"
@@ -314,6 +327,54 @@ export function SavedStrainsPanel() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Past relief logs */}
+                {(() => {
+                  const strainLogs = logs.filter(
+                    (l) =>
+                      l.strainName.trim().toLowerCase() ===
+                      strain.name.trim().toLowerCase(),
+                  );
+                  if (strainLogs.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <Moon className="size-3.5 text-primary" />
+                        Relief history
+                      </p>
+                      <ul className="space-y-2.5">
+                        {strainLogs.map((log) => (
+                          <li
+                            key={log.id}
+                            className="rounded-xl border border-border/60 bg-background px-4 py-3"
+                          >
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="font-medium capitalize">
+                                {log.fit.replace("-", " ")}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {log.relief}/5 relief
+                              </span>
+                            </div>
+                            {log.conditions.length > 0 && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                for {log.conditions.join(", ")}
+                              </p>
+                            )}
+                            {log.note && (
+                              <p className="mt-1.5 text-sm leading-6">
+                                {log.note}
+                              </p>
+                            )}
+                            <p className="mt-1.5 text-[11px] text-muted-foreground">
+                              {formatDate(log.createdAt)}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
 
                 {/* Community notes */}
                 {community.length > 0 && (

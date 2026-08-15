@@ -4,6 +4,7 @@ import {
 } from "@/lib/quotes";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
+import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import {
@@ -128,6 +129,10 @@ export function StrainDetailCard({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <SaveStrainButton profile={strain} />
+            <ReliefLogButton
+              strainName={strain.name}
+              conditions={conditions}
+            />
             {strain.type && (
               <Badge className={typeBadgeClass(strain.type)}>
                 {TYPE_LABEL[strain.type] ?? strain.type}

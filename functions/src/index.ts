@@ -9,6 +9,7 @@ import { defineSecret } from "firebase-functions/params";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { fetchPopular, fetchProfiles } from "./leafly";
 import { callMiniMax, extractJsonObject } from "./minimax";
+import { clientIp, guestRateLimit, persistResult } from "./results";
 import type {
   RecommendationResult,
   StrainAnalysis,
@@ -106,6 +107,7 @@ type ResearchPrefs = {
   medications?: string;
   ownedStrains?: string[];
   patientNote?: string;
+  reliefSummary?: string;
 };
 
 function parsePrefs(raw: unknown): ResearchPrefs | undefined {
@@ -141,13 +143,18 @@ function parsePrefs(raw: unknown): ResearchPrefs | undefined {
     typeof p.patientNote === "string" && p.patientNote.trim()
       ? p.patientNote.trim().slice(0, 400)
       : undefined;
+  const reliefSummary =
+    typeof p.reliefSummary === "string" && p.reliefSummary.trim()
+      ? p.reliefSummary.trim().slice(0, 800)
+      : undefined;
   if (
     !timeOfDay &&
     !consumeForm &&
     !thcSensitivity &&
     !medications &&
     ownedStrains.length === 0 &&
-    !patientNote
+    !patientNote &&
+    !reliefSummary
   ) {
     return undefined;
   }
@@ -158,6 +165,7 @@ function parsePrefs(raw: unknown): ResearchPrefs | undefined {
     medications,
     ownedStrains: ownedStrains.length > 0 ? ownedStrains : undefined,
     patientNote,
+    reliefSummary,
   };
 }
 
@@ -186,6 +194,11 @@ function prefsBlock(prefs: ResearchPrefs | undefined): string {
   if (prefs.patientNote) {
     lines.push(
       `- In their own words (treat as primary intent): "${prefs.patientNote}"`,
+    );
+  }
+  if (prefs.reliefSummary) {
+    lines.push(
+      `- What actually happened last time (weight this heavily): ${prefs.reliefSummary}`,
     );
   }
   return lines.join("\n");
@@ -345,12 +358,16 @@ function normalizeRecommendations(value: unknown): StrainRecommendation[] {
  */
 export const compareStrains = onCall(
   AI_OPTIONS,
-  async (request): Promise<StrainComparison> => {
+  async (request): Promise<StrainComparison & { resultId?: string }> => {
     if (!request.auth) {
-      throw new HttpsError(
-        "unauthenticated",
-        "You must be signed in to run a comparison. Please sign in and try again.",
-      );
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
 
     const data = (request.data ?? {}) as {
@@ -378,7 +395,20 @@ export const compareStrains = onCall(
       { role: "user", content: comparePrompt(strains, condition, prefs) },
     ]);
 
-    return { strains, analysis: parseAnalysis(content) };
+    const analysis = parseAnalysis(content);
+    const payload = { strains, analysis };
+    let resultId: string | undefined;
+    try {
+      resultId = await persistResult({
+        kind: "compare",
+        args: { strainNames: names, condition, prefs },
+        result: payload,
+        uid: request.auth?.uid ?? null,
+      });
+    } catch {
+      // Persistence is best-effort — the comparison still returns.
+    }
+    return { ...payload, resultId };
   },
 );
 
@@ -387,12 +417,16 @@ export const compareStrains = onCall(
  */
 export const recommendStrainsForConditions = onCall(
   AI_OPTIONS,
-  async (request): Promise<RecommendationResult> => {
+  async (request): Promise<RecommendationResult & { resultId?: string }> => {
     if (!request.auth) {
-      throw new HttpsError(
-        "unauthenticated",
-        "You must be signed in to get strain recommendations. Please sign in and try again.",
-      );
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
 
     const data = (request.data ?? {}) as {
@@ -444,7 +478,7 @@ export const recommendStrainsForConditions = onCall(
       MINIMAX_API_KEY.value(),
     );
 
-    return {
+    const payload = {
       headline:
         typeof p.headline === "string" && p.headline.trim()
           ? p.headline.trim()
@@ -456,5 +490,17 @@ export const recommendStrainsForConditions = onCall(
       recommendations,
       strains,
     };
+    let resultId: string | undefined;
+    try {
+      resultId = await persistResult({
+        kind: "find",
+        args: { conditions, potency, prefs },
+        result: payload,
+        uid: request.auth?.uid ?? null,
+      });
+    } catch {
+      // Persistence is best-effort — the recommendation still returns.
+    }
+    return { ...payload, resultId };
   },
 );

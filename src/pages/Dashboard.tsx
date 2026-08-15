@@ -25,6 +25,7 @@ import { StrainFinder } from "@/components/finder/StrainFinder";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { pullQuotesFromStrains } from "@/lib/quotes";
+import { useReliefSummary } from "@/hooks/use-relief-summary";
 import {
   compactPrefs,
   type ResearchPrefs,
@@ -83,6 +84,7 @@ type SearchOutcome =
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
+  const { summary: reliefSummary } = useReliefSummary();
   const [searchParams] = useSearchParams();
 
   type CompareResult = Awaited<ReturnType<typeof compareStrainsCall>>;
@@ -203,7 +205,7 @@ export default function Dashboard() {
       const args = {
         strainNames: names,
         condition: focus.length > 0 ? focus : undefined,
-        prefs: compactPrefs(prefs),
+        prefs: compactPrefs({ ...prefs, reliefSummary }),
       };
       const comparison = await cachedRun(
         cacheKey("compare", args),

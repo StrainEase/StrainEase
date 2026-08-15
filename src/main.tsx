@@ -70,6 +70,8 @@ createRoot(document.getElementById("root")!).render(
                 </RequireAuth>
               }
             />
+            <Route path="/find/:rid" element={<Dashboard />} />
+            <Route path="/compare/:rid" element={<Dashboard />} />
             <Route path="/strain/:slug" element={<StrainPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
