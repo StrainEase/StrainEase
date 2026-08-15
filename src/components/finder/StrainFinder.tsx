@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { slugify } from "@/lib/saved-strains";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import {
@@ -25,6 +26,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { Link } from "react-router";
 
 type Potency = "" | "mild" | "balanced" | "strong";
 
@@ -369,7 +371,12 @@ export function StrainFinder({
                           {i + 1}
                         </span>
                         <h3 className="text-base font-semibold tracking-tight">
-                          {r.strainName}
+                          <Link
+                            to={`/strain/${slugify(r.strainName)}`}
+                            className="hover:text-primary"
+                          >
+                            {r.strainName}
+                          </Link>
                         </h3>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">

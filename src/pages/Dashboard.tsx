@@ -5,7 +5,7 @@ import {
   searchStrain as searchStrainCall,
 } from "@/lib/strain-api";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,7 @@ type SearchOutcome =
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
+  const [searchParams] = useSearchParams();
 
   type CompareResult = Awaited<ReturnType<typeof compareStrainsCall>>;
 
@@ -90,8 +91,25 @@ export default function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [mode, setMode] = useState<"find" | "compare" | "saved">("find");
+  const [mode, setMode] = useState<"find" | "compare" | "saved">(
+    searchParams.get("mode") === "compare"
+      ? "compare"
+      : searchParams.get("mode") === "saved"
+        ? "saved"
+        : "find",
+  );
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const raw = searchParams.get("strains");
+    if (!raw) return;
+    const names = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s !== "")
+      .slice(0, 3);
+    if (names.length > 0) setSelectedNames(names);
+  }, [searchParams]);
 
   // Load Leafly's popular strains once for quick-pick suggestions.
   useEffect(() => {

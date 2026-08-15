@@ -13,6 +13,7 @@ import "./types/global.d.ts";
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const StrainPage = lazy(() => import("./pages/Strain.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 function RouteLoading() {
@@ -69,6 +70,7 @@ createRoot(document.getElementById("root")!).render(
                 </RequireAuth>
               }
             />
+            <Route path="/strain/:slug" element={<StrainPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
