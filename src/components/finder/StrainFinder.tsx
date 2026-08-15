@@ -14,6 +14,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
+import {
+  compactPrefs,
+  type ResearchPrefs,
+} from "@/lib/research-prefs";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import {
@@ -54,6 +59,7 @@ export function StrainFinder({
   const [searched, setSearched] = useState<string[]>([]);
   const [customAilment, setCustomAilment] = useState("");
   const [potency, setPotency] = useState<Potency>("");
+  const [prefs, setPrefs] = useState<ResearchPrefs>({});
   const [result, setResult] = useState<RecommendResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +121,7 @@ export function StrainFinder({
       const args = {
         conditions: targets,
         potency: pref === "" ? undefined : pref,
+        prefs: compactPrefs(prefs),
       };
       const res = await cachedRun(
         cacheKey("recommend", args),
@@ -138,6 +145,7 @@ export function StrainFinder({
     setAilments([]);
     setSearched([]);
     setPotency("");
+    setPrefs({});
   };
 
   const profilesByName = useMemo(() => {
@@ -267,6 +275,8 @@ export function StrainFinder({
               )}
             </div>
 
+            <PatientPrefsFields prefs={prefs} onChange={setPrefs} startAt={3} />
+
             {/* Run */}
             <div className="space-y-2 pt-1">
               <Button
@@ -327,10 +337,12 @@ export function StrainFinder({
                 </p>
                 <h1 className="mt-1 text-2xl font-semibold tracking-tight">
                   Best strains for {searched.join(", ")}
-                  {potency !== "" && (
+                  {(potency !== "" || prefs.timeOfDay) && (
                     <span className="text-muted-foreground">
-                      {" "}
-                      · {potency} potency
+                      {potency !== "" ? ` · ${potency} potency` : ""}
+                      {prefs.timeOfDay && prefs.timeOfDay !== "anytime"
+                        ? ` · ${prefs.timeOfDay}`
+                        : ""}
                     </span>
                   )}
                 </h1>
