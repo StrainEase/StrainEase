@@ -28,3 +28,6 @@ functions/lib
 
 # Wrangler (Cloudflare)
 .wrangler/
+
+# Git worktrees (created by orchestration tooling)
+.worktrees/

@@ -8,26 +8,34 @@ This project uses the following tech stack:
 - Tailwind v4 (for styling)
 - Shadcn UI (for UI components library)
 - Lucide Icons (for icons)
-- Convex (for backend & database)
-- Convex Auth (for authentication)
+- Firebase Auth (for authentication)
+- Cloud Firestore (for saved strains, notes, user data)
+- Firebase Cloud Functions v2 (for MiniMax AI calls + Leafly scrape)
 - Framer Motion (for animations)
 - Three js (for 3d models)
 
-All relevant files live in the 'src' directory.
+All relevant files live in the 'src' directory. Firebase Functions live in `functions/src/`.
 
-Use bun for the package manager.
+Use bun for the app, npm for `functions/`.
 
 ## Setup
 
-This project is set up already and running on a cloud environment, as well as a convex development in the sandbox.
+This project is set up already and running on a cloud environment.
 
 ## Environment Variables
 
-The project is set up with project specific CONVEX_DEPLOYMENT and VITE_CONVEX_URL environment variables on the client side.
+The frontend needs Firebase config at build time (Vite). Set these in your `.env` (or in Cloudflare Pages environment variables for deploys):
 
-The convex server has a separate set of environment variables that are accessible by the convex backend.
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+```
 
-Currently, these variables include auth-specific keys: JWKS, JWT_PRIVATE_KEY, and SITE_URL.
+The backend uses Firebase Secrets for sensitive values. The only one in use today is `MINIMAX_API_KEY`, set with `firebase functions:secrets:set MINIMAX_API_KEY`.
 
 
 # Using Authentication (Important!)
@@ -36,46 +44,40 @@ You must follow these conventions when using authentication.
 
 ## Auth is already set up.
 
-All convex authentication functions are already set up. The auth currently uses email OTP and anonymous users, but can support more.
+All Firebase Auth wiring is already in place. Email/password and Google sign-in are enabled in `src/pages/Auth.tsx`.
 
-The email OTP configuration is defined in `src/convex/auth/emailOtp.ts`. DO NOT MODIFY THIS FILE.
+## Using Firebase Auth on the frontend
 
-Also, DO NOT MODIFY THESE AUTH FILES: `src/convex/auth.config.ts` and `src/convex/auth.ts`.
-
-## Using Convex Auth on the backend
-
-On the `src/convex/users.ts` file, you can use the `getCurrentUser` function to get the current user's data.
-
-## Using Convex Auth on the frontend
-
-The `/auth` page is already set up to use auth. Navigate to `/auth` for all log in / sign up sequences.
+The `/auth` page is already set up. Navigate to `/auth` for all sign-in / sign-up flows.
 
 You MUST use this hook to get user data. Never do this yourself without the hook:
+
 ```typescript
 import { useAuth } from "@/hooks/use-auth";
 
-const { isLoading, isAuthenticated, user, signIn, signOut } = useAuth();
+const { isLoading, isAuthenticated, user, signOut } = useAuth();
 ```
+
+The hook is backed by `onAuthStateChanged(auth, ...)` and returns:
+
+- `user`: `{ uid, email, name } | null`
+- `isAuthenticated`: `user !== null`
+- `signOut`: a wrapper around `firebase/auth`'s `signOut`.
 
 ## Protected Routes
 
-When protecting a page, use the auth hooks to check for authentication and redirect to /auth.
+When protecting a page, use the auth hook and wrap with `<RequireAuth>` from `src/components/RequireAuth.tsx`. It redirects unauthenticated users to `/auth`.
 
 ## Auth Page
 
-The auth page is defined in `src/pages/Auth.tsx`. Redirect authenticated pages and sign in / sign up to /auth.
+The auth page is defined in `src/pages/Auth.tsx`. Redirect authenticated pages and sign-in / sign-up flows to `/auth`.
 
-## Authorization
+## Authorization on the backend
 
-You can perform authorization checks on the frontend and backend.
+Backend authorization lives in two places:
 
-On the frontend, you can use the `useAuth` hook to get the current user's data and authentication state.
-
-You should also be protecting queries, mutations, and actions at the base level, checking for authorization securely.
-
-## Adding a redirect after auth
-
-In `src/main.tsx`, you must add a redirect after auth URL to redirect to the correct dashboard/profile/page that should be created after authentication.
+- **Cloud Functions:** check `request.auth` at the top of every auth-gated callable and throw `HttpsError("unauthenticated", ...)` when missing. See `compareStrains` and `recommendStrainsForConditions` in `functions/src/index.ts` for the pattern.
+- **Firestore:** security rules in `firestore.rules`. Saved strains are scoped to the requesting user's UID.
 
 # Frontend Conventions
 
@@ -201,57 +203,61 @@ Always ensure your larger dialogs have a scroll in its content to ensure that it
 
 Ideally, instead of using a new page, use a Dialog instead. 
 
-# Using the Convex backend
+# Using the Firebase backend
 
-You will be implementing the convex backend. Follow your knowledge of convex and the documentation to implement the backend.
+The backend is Firebase-only: Auth + Firestore + Cloud Functions v2. There is no other backend.
 
-## The Convex Schema
+## Cloud Functions
 
-You must correctly follow the convex schema implementation.
+Source lives in `functions/src/`. Four callables are exported:
 
-The schema is defined in `src/convex/schema.ts`.
+- `popularStrains()` — public, no auth, returns Leafly's popular list.
+- `searchStrain({ name })` — public, no auth, returns one Leafly profile.
+- `compareStrains({ strainNames, condition })` — auth required, calls MiniMax for synthesis.
+- `recommendStrainsForConditions({ conditions, potency })` — auth required, calls MiniMax for synthesis.
 
-Do not include the `_id` and `_creationTime` fields in your queries (it is included by default for each table).
-Do not index `_creationTime` as it is indexed for you. Never have duplicate indexes.
+To add a new callable:
 
+1. Add the export in `functions/src/index.ts`. Use `onCall` (not
+   `onRequest`) for client-driven calls, and gate with `request.auth` if
+   it requires sign-in.
+2. Add a typed wrapper in `src/lib/strain-api.ts`. Re-use the existing
+   `callFn` helper — don't import `firebase/functions` in a component.
+3. Build + deploy:
 
-## Convex Actions: Using CRUD operations
+   ```bash
+   cd functions && npm install && npm run build && cd ..
+   firebase deploy --only functions,firestore:rules --force
+   ```
 
-When running anything that involves external connections, you must use a convex action with "use node" at the top of the file.
+### Secrets
 
-You cannot have queries or mutations in the same file as a "use node" action file. Thus, you must use pre-built queries and mutations in other files.
+Sensitive values (e.g. `MINIMAX_API_KEY`) are Firebase Secrets, not env vars. Set with `firebase functions:secrets:set MINIMAX_API_KEY`, then redeploy.
 
-You can also use the pre-installed internal crud functions for the database:
+### Functions source layout
 
-```ts
-// in convex/users.ts
-import { crud } from "convex-helpers/server/crud";
-import schema from "./schema.ts";
-
-export const { create, read, update, destroy } = crud(schema, "users");
-
-// in some file, in an action:
-const user = await ctx.runQuery(internal.users.read, { id: userId });
-
-await ctx.runMutation(internal.users.update, {
-  id: userId,
-  patch: {
-    status: "inactive",
-  },
-});
+```
+functions/
+  src/
+    index.ts         # callable function exports (the entry point)
+    leafly.ts        # public Leafly scrape, no auth
+    minimax.ts       # MiniMax client + JSON extraction helpers
+    types.ts         # shared response types
+  lib/               # compiled output, gitignored, DO NOT edit
+  package.json       # main: "lib/index.js", engines.node: "20"
+  tsconfig.json
 ```
 
+## Firestore
 
-## Common Convex Mistakes To Avoid
+- Rules live in `firestore.rules`. Ship them with `firebase deploy --only functions,firestore:rules`.
+- Current data shape: `users/{uid}` and `users/{uid}/savedStrains/{strainId}`.
+- Client reads/writes use the `db` export from `src/lib/firebase.ts`.
 
-When using convex, make sure:
-- Document IDs are referenced as `_id` field, not `id`.
-- Document ID types are referenced as `Id<"TableName">`, not `string`.
-- Document object types are referenced as `Doc<"TableName">`.
-- Keep schemaValidation to false in the schema file.
-- You must correctly type your code so that it passes the type checker.
-- You must handle null / undefined cases of your convex queries for both frontend and backend, or else it will throw an error that your data could be null or undefined.
-- Always use the `@/folder` path, with `@/convex/folder/file.ts` syntax for importing convex files.
-- This includes importing generated files like `@/convex/_generated/server`, `@/convex/_generated/api`
-- Remember to import functions like useQuery, useMutation, useAction, etc. from `convex/react`
-- NEVER have return type validators.
+## Common Firebase Mistakes To Avoid
+
+- **Build functions before deploying.** Skipping `npm run build` in `functions/` gives you `functions/lib/index.js does not exist, can't deploy Cloud Functions`.
+- Don't import `firebase/functions` directly in components — use the typed wrappers in `src/lib/strain-api.ts`.
+- Don't add new env vars without updating both `README.md` and the Cloudflare Pages deploy workflow.
+- Cloud Functions code uses Node 20. If you bump the runtime, bump `engines.node` in `functions/package.json` and the `Setup Node.js` step in `.github/workflows/firebase-functions-deploy.yml`.
+- Firestore rules are the security source of truth. Don't bypass them with admin SDKs in the client.
