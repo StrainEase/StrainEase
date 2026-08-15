@@ -1,7 +1,7 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./firebase";
 import type { ResearchPrefs } from "./research-prefs";
-import type { StrainProfile } from "./strain-profile";
+import type { RedditSource, StrainProfile } from "./strain-profile";
 
 // Response shapes returned by the Firebase Functions backend (functions/src).
 export type StrainAnalysis = {
@@ -15,6 +15,7 @@ export type StrainAnalysis = {
   keyDifferences: string[];
   commonGround: string[];
   cautions: string[];
+  redditSources?: RedditSource[];
 };
 
 export type StrainComparison = {
@@ -35,6 +36,7 @@ export type RecommendationResult = {
   summary: string;
   recommendations: StrainRecommendation[];
   strains: StrainProfile[];
+  redditSources?: RedditSource[];
   resultId?: string;
 };
 

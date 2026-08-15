@@ -9,9 +9,11 @@ import { defineSecret } from "firebase-functions/params";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { fetchPopular, fetchProfiles } from "./leafly";
 import { callMiniMax, extractJsonObject } from "./minimax";
+import { redditSeedForPrompt } from "./reddit-seed";
 import { clientIp, guestRateLimit, persistResult } from "./results";
 import type {
   RecommendationResult,
+  RedditSource,
   StrainAnalysis,
   StrainComparison,
   StrainProfile,
@@ -51,6 +53,7 @@ Rules:
 - Base every claim on the strain data provided. Never invent numbers, terpenes, effects, or uses.
 - Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the summary.
 - communityNotes may include Leafly reviews, Weedmaps tags, and real Reddit comments about the patient's ailments. Use them. Do not invent additional first-person quotes.
+- Always surface Reddit community threads for every strain in the comparison. You will be given a vetted list of real Reddit threads (verified out-of-band) at the bottom of the user message — pick from that list exclusively. Do not invent URLs; only return threads whose "url" you can copy verbatim from the list. Reuse the same "url", "subreddit", and "title" exactly as provided; you may rewrite "snippet" in your own words and set "score" to null. Include 1–3 threads per strain in the top-level "redditSources" array, deduplicated across strains. Prefer threads that match the patient's condition focus when one is given.
 - Write for the patient: precise, calm, practical, and low-jargon. Lead with symptom relief and day-to-day usability. If you use a technical term, define it in one short phrase.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
 - If one or more condition focuses are given, evaluate each strain's suitability for those conditions and name the single best fit for the patient.
@@ -64,8 +67,18 @@ JSON shape (all fields required):
   "forCondition": {"best": "strain name", "why": "1-2 sentences", "runnerUp": "strain name"} or null when no condition focus is given,
   "keyDifferences": ["3-5 short bullets"],
   "commonGround": ["2-3 short bullets"],
-  "cautions": ["2-4 short, practical cautions, including consulting a physician and starting with a low dose"]
-}`;
+  "cautions": ["2-4 short, practical cautions, including consulting a physician and starting with a low dose"],
+  "redditSources": [
+    {"url": "https://old.reddit.com/r/<sub>/comments/<id>/<slug>/", "subreddit": "<sub>", "title": "thread title", "snippet": "1-sentence vibe of the thread (optional)", "score": 0}
+  ]
+}
+
+Reddit sourcing rules:
+- Pick threads ONLY from the vetted list provided in the user message. Never invent a redditSources URL.
+- Copy "url", "subreddit", and "title" verbatim from the list.
+- 1–3 threads per strain, deduped across strains.
+- Prefer threads whose "snippet" matches the patient's condition focus when one is given.
+- If the list has no relevant threads, return an empty array for "redditSources" rather than fabricating any.`;
 
 const RECOMMEND_SYSTEM_PROMPT = `You are StrainWise, a strain-finding assistant built for medical cannabis patients. A patient tells you which symptoms or conditions they are treating, and you recommend the strains most commonly reported to help with those symptoms.
 
@@ -85,8 +98,18 @@ JSON shape (all fields required):
   "summary": "2-4 sentences",
   "recommendations": [
     {"strainName": "...", "reason": "1-2 sentences tied to the symptoms", "bestFor": "short phrase on who it suits", "caution": "one short practical caution"}
+  ],
+  "redditSources": [
+    {"url": "https://old.reddit.com/r/<sub>/comments/<id>/<slug>/", "subreddit": "<sub>", "title": "thread title", "snippet": "1-sentence vibe of the thread (optional)", "score": 0}
   ]
-}`;
+}
+
+Reddit sourcing rules:
+- Pick threads ONLY from the vetted list provided in the user message. Never invent a redditSources URL.
+- Copy "url", "subreddit", and "title" verbatim from the list.
+- 1–3 threads per recommendation, deduped.
+- Prefer threads whose "snippet" matches the patient's symptom focus.
+- If the list has no relevant threads, return an empty array for "redditSources" rather than fabricating any.`;
 
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
@@ -240,6 +263,9 @@ function comparePrompt(
     "",
     'Strains marked "noCuratedProfile": true were not found on Leafly or Weedmaps. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the summary when a detail is a commonly-reported figure rather than a verified lab result.',
     "",
+    "Vetted Reddit threads (pick from this list only — copy url / subreddit / title verbatim):",
+    JSON.stringify(redditSeedForPrompt(), null, 2),
+    "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
 }
@@ -276,8 +302,48 @@ function recommendPrompt(
     "",
     "You may also suggest strains not in this list from your general knowledge, as long as you are confident they are real and commonly reported for these symptoms.",
     "",
+    "Vetted Reddit threads (pick from this list only — copy url / subreddit / title verbatim):",
+    JSON.stringify(redditSeedForPrompt(), null, 2),
+    "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
+}
+
+function normalizeRedditSources(value: unknown): RedditSource[] {
+  if (!Array.isArray(value)) return [];
+  // Only accept URLs in the vetted old.reddit.com form. Anything else is
+  // dropped silently — we never want to surface a hallucinated Reddit link.
+  const allowedUrl = /^https:\/\/old\.reddit\.com\/r\/[^/]+\/comments\/[a-z0-9]{4,}\//i;
+  const seen = new Set<string>();
+  const out: RedditSource[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const r = item as Record<string, unknown>;
+    const url = typeof r.url === "string" ? r.url.trim() : "";
+    const subreddit = typeof r.subreddit === "string" ? r.subreddit.trim() : "";
+    const title = typeof r.title === "string" ? r.title.trim() : "";
+    if (!url || !subreddit || !title) continue;
+    // Strip reddit.com / www.reddit.com → old.reddit.com so links open cleanly.
+    const normalizedUrl = url
+      .replace(/^https?:\/\/(www\.)?reddit\.com/, "https://old.reddit.com")
+      .replace(/^https?:\/\/np\.reddit\.com/, "https://old.reddit.com");
+    if (!allowedUrl.test(normalizedUrl)) continue;
+    const key = normalizedUrl.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      url: normalizedUrl,
+      subreddit,
+      title,
+      snippet: typeof r.snippet === "string" ? r.snippet.trim() : undefined,
+      score:
+        typeof r.score === "number" && Number.isFinite(r.score)
+          ? r.score
+          : undefined,
+    });
+    if (out.length >= 8) break;
+  }
+  return out;
 }
 
 function parseAnalysis(content: string): StrainAnalysis {
@@ -303,6 +369,7 @@ function parseAnalysis(content: string): StrainAnalysis {
     | null
     | undefined;
 
+  const redditSources = normalizeRedditSources(p.redditSources);
   return {
     headline:
       typeof p.headline === "string" && p.headline.trim()
@@ -328,6 +395,7 @@ function parseAnalysis(content: string): StrainAnalysis {
     keyDifferences: asStrings(p.keyDifferences),
     commonGround: asStrings(p.commonGround),
     cautions: asStrings(p.cautions),
+    redditSources: redditSources.length > 0 ? redditSources : undefined,
   };
 }
 
@@ -478,7 +546,7 @@ export const recommendStrainsForConditions = onCall(
       MINIMAX_API_KEY.value(),
     );
 
-    const payload = {
+    const payload: import("./types").RecommendationResult = {
       headline:
         typeof p.headline === "string" && p.headline.trim()
           ? p.headline.trim()
@@ -490,6 +558,10 @@ export const recommendStrainsForConditions = onCall(
       recommendations,
       strains,
     };
+    const redditSources = normalizeRedditSources(p.redditSources);
+    if (redditSources.length > 0) {
+      payload.redditSources = redditSources;
+    }
     let resultId: string | undefined;
     try {
       resultId = await persistResult({

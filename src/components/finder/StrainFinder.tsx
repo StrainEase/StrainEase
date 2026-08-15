@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { RedditThreads } from "@/components/compare/RedditThreads";
 import { slugify } from "@/lib/saved-strains";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import {
@@ -550,6 +551,12 @@ export function StrainFinder({
               aggregated public sources. Not medical advice — consult your
               healthcare provider.
             </p>
+
+            <RedditThreads
+              sources={result.redditSources ?? []}
+              title="Reddit threads for these symptoms"
+              description="Real public threads, surfaced by the model from a curated list of moderated medical and cannabis communities."
+            />
           </div>
         ) : (
           /* ── Empty state ─────────────────────────────── */

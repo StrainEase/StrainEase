@@ -31,7 +31,7 @@ export async function callMiniMax(
         model: MINIMAX_MODEL,
         messages,
         temperature: 0.4,
-        max_completion_tokens: 1600,
+        max_completion_tokens: 2200,
         // M2.x models always think; extractJsonObject tolerates <think> tags.
       }),
     });
