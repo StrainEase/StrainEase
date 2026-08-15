@@ -6,8 +6,10 @@
 //   caller's ID token, and we reject calls without `request.auth`.
 import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import { getStorage } from "firebase-admin/storage";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { fetchPopular, fetchProfiles } from "./leafly";
+import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callMiniMax, extractJsonObject } from "./minimax";
 import { redditSeedForPrompt } from "./reddit-seed";
 import { clientIp, guestRateLimit, persistResult } from "./results";
@@ -585,5 +587,48 @@ export const recommendStrainsForConditions = onCall(
       // Persistence is best-effort — the recommendation still returns.
     }
     return { ...payload, resultId };
+  },
+);
+
+/* ── Image proxy (public, no auth) ────────────────────────────────────── */
+
+/**
+ * Cache + serve a strain image. The function fetches the upstream
+ * bytes once via cachedFetchImage (in-memory then Storage), then
+ * returns a signed URL pointing at the cached object so the browser
+ * can fetch it directly with normal HTTP caching. Repeat calls within
+ * the 7-day TTL hit the Storage copy without re-touching Leafly.
+ */
+export const cachedStrainImage = onCall(
+  { timeoutSeconds: 30, memory: "256MiB" },
+  async (request): Promise<{
+    url: string;
+    contentType: string;
+    bytes: number;
+    source: "memory" | "storage" | "network";
+  }> => {
+    const url =
+      typeof request.data?.url === "string" ? request.data.url : "";
+    if (!/^https?:\/\//i.test(url)) {
+      throw new HttpsError("invalid-argument", "url must be an absolute http(s) URL.");
+    }
+    const cached = await cachedFetchImage(url);
+    const key = imageCacheKey(url);
+    // Generate a long-lived signed URL for the Storage copy so the
+    // browser caches the image across visits without a callable round-trip.
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const [signedUrl] = await getStorage()
+      .bucket()
+      .file(`strain-images/${key}`)
+      .getSignedUrl({
+        action: "read",
+        expires: expiresAt,
+      });
+    return {
+      url: signedUrl,
+      contentType: cached.contentType,
+      bytes: cached.bytes.length,
+      source: cached.source,
+    };
   },
 );
