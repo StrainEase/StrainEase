@@ -131,9 +131,16 @@ export default function Strain() {
                   <Moon className="size-3.5 text-primary" />
                 </span>
               </div>
-              <div className="relative h-2 rounded-full bg-secondary">
+              <div
+                className="relative h-2 rounded-full bg-gradient-to-r from-sky-300 via-sky-500 to-indigo-900 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]"
+                role="meter"
+                aria-valuenow={score}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Day-to-night rating"
+              >
                 <span
-                  className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary bg-background"
+                  className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-indigo-900 shadow ring-1 ring-black/10"
                   style={{ left: `${score}%` }}
                 />
               </div>
