@@ -76,14 +76,15 @@ export async function callMiniMax(
  * markdown fences, and stray text around the JSON.
  */
 export function extractJsonObject(content: string): unknown | null {
+  const stripped = content.replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, "").trim();
   try {
-    return JSON.parse(content);
+    return JSON.parse(stripped);
   } catch {
-    const start = content.indexOf("{");
-    const end = content.lastIndexOf("}");
+    const start = stripped.indexOf("{");
+    const end = stripped.lastIndexOf("}");
     if (start !== -1 && end > start) {
       try {
-        return JSON.parse(content.slice(start, end + 1));
+        return JSON.parse(stripped.slice(start, end + 1));
       } catch {
         return null;
       }
