@@ -33,6 +33,7 @@ import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
+  Check,
   GitCompareArrows,
   HeartPulse,
   Loader2,
@@ -62,9 +63,25 @@ const RESEARCH_STEPS = [
 
 export function StrainFinder({
   onCompare,
+  onAddToCompare,
+  inCompareSelection,
+  compareAtCap,
+  defaultMedications,
   restoreId,
 }: {
   onCompare: (names: string[], focus: string[]) => void;
+  /**
+   * Toggle a strain in the parent's compare selection. Wired to the
+   * recommendation card's "Add to compare" button so a research session
+   * doesn't auto-run a comparison.
+   */
+  onAddToCompare?: (name: string) => void;
+  /** True when the named strain is already in the compare selection. */
+  inCompareSelection?: (name: string) => boolean;
+  /** True when the compare selection is full (e.g. 3-strain cap). */
+  compareAtCap?: boolean;
+  /** Pre-fill the medications field with the user's saved list. */
+  defaultMedications?: string[];
   restoreId?: string;
 }) {
   type RecommendResult = Awaited<ReturnType<typeof recommendStrainsCall>>;
@@ -76,6 +93,18 @@ export function StrainFinder({
   const [customAilment, setCustomAilment] = useState("");
   const [potency, setPotency] = useState<Potency>("");
   const [prefs, setPrefs] = useState<ResearchPrefs>({});
+  const seededMedsRef = useRef(false);
+
+  // Seed prefs.medications from the user's saved profile list on first mount.
+  // Only happens once; later edits to the field win.
+  useEffect(() => {
+    if (seededMedsRef.current) return;
+    if (!defaultMedications || defaultMedications.length === 0) return;
+    setPrefs((p) =>
+      p.medications && p.medications !== "" ? p : { ...p, medications: defaultMedications.join(", ") },
+    );
+    seededMedsRef.current = true;
+  }, [defaultMedications]);
   const [result, setResult] = useState<RecommendResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -439,6 +468,8 @@ export function StrainFinder({
             <div className="space-y-3">
               {result.recommendations.map((r, i) => {
                 const profile = profilesByName.get(r.strainName.toLowerCase());
+                const added = inCompareSelection?.(r.strainName) ?? false;
+                const disabled = !added && (compareAtCap ?? false);
                 return (
                   <div
                     key={`${r.strainName}-${i}`}
@@ -479,6 +510,46 @@ export function StrainFinder({
                         )}
                       </div>
                     </div>
+                    {onAddToCompare && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={added ? "secondary" : "outline"}
+                          className={cn(
+                            "cursor-pointer rounded-full",
+                            added &&
+                              "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15",
+                            disabled && "cursor-not-allowed opacity-50",
+                          )}
+                          disabled={disabled}
+                          onClick={() => onAddToCompare(r.strainName)}
+                          title={
+                            added
+                              ? "Remove from compare selection"
+                              : compareAtCap
+                                ? "Compare is full (3 strains)"
+                                : "Add to your compare selection"
+                          }
+                        >
+                          {added ? (
+                            <>
+                              <Check className="size-3.5" />
+                              Added to compare
+                            </>
+                          ) : (
+                            <>
+                              <GitCompareArrows className="size-3.5" />
+                              Add to compare
+                            </>
+                          )}
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Researching only? Pick strains here, run the
+                          comparison when you&apos;re ready.
+                        </span>
+                      </div>
+                    )}
                     <p className="mt-3 text-sm leading-6 text-muted-foreground">
                       {r.reason}
                     </p>

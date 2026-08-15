@@ -1,11 +1,13 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useMedications } from "@/hooks/use-medications";
+import { AccountMenu } from "@/components/account/AccountMenu";
 import {
   compareStrains as compareStrainsCall,
   popularStrains as popularStrainsCall,
   searchStrain as searchStrainCall,
 } from "@/lib/strain-api";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +20,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { StrainDirectory } from "@/components/directory/StrainDirectory";
@@ -27,7 +28,6 @@ import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
-import { ProfileMenu } from "@/components/ProfileMenu";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
@@ -95,8 +95,8 @@ type SearchOutcome =
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { summary: reliefSummary } = useReliefSummary();
+  const { names: savedMedications } = useMedications();
   const { rid } = useParams();
   const [searchParams] = useSearchParams();
 
@@ -113,7 +113,6 @@ export default function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [mode, setMode] = useState<
     "find" | "directory" | "compare" | "saved" | "history"
   >(
@@ -328,7 +327,7 @@ export default function Dashboard() {
               StrainWise
             </span>
           </div>
-          <ProfileMenu onOpenSettings={() => setSettingsOpen(true)} />
+          <AccountMenu />
         </div>
       </header>
 
@@ -412,6 +411,14 @@ export default function Dashboard() {
         <div className={cn(mode !== "find" && "hidden")}>
           <StrainFinder
             onCompare={startCompareFromFinder}
+            onAddToCompare={(name) => toggleStrainName(name)}
+            inCompareSelection={(name) =>
+              selectedNames.some(
+                (n) => n.toLowerCase() === name.toLowerCase(),
+              )
+            }
+            compareAtCap={atCap}
+            defaultMedications={savedMedications}
             restoreId={mode === "find" ? rid : undefined}
           />
         </div>
@@ -837,11 +844,6 @@ export default function Dashboard() {
           </section>
         </div>
       </div>
-
-      <AccountSettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-      />
     </main>
   );
 }
