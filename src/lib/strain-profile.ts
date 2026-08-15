@@ -6,6 +6,26 @@
 // Reddit quotes for the patient's ailments.
 export type StrainType = "indica" | "sativa" | "hybrid";
 
+// Source note origin. Lets the UI distinguish Leafly/Weedmaps/RD threads
+// without re-parsing the human-readable `source` string.
+export type CommunityNoteKind = "leafly" | "weedmaps" | "reddit" | "other";
+
+export type CommunityNote = {
+  source: string;
+  text: string;
+  kind?: CommunityNoteKind;
+};
+
+// Reddit thread surfaced by the LLM from training knowledge. URLs are
+// pinned to old.reddit.com so the link opens without the heavy client.
+export type RedditSource = {
+  url: string;
+  subreddit: string;
+  title: string;
+  snippet?: string;
+  score?: number;
+};
+
 export type StrainProfile = {
   name: string;
   inKnowledgeBase: boolean;
@@ -18,5 +38,6 @@ export type StrainProfile = {
   effects?: { name: string; intensity: number }[];
   sideEffects?: string[];
   description?: string;
-  communityNotes?: { source: string; text: string }[];
+  communityNotes?: CommunityNote[];
+  redditSources?: RedditSource[];
 };

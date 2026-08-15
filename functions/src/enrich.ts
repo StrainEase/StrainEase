@@ -4,7 +4,12 @@
 import { fetchLeaflyReviews, fetchProfile } from "./leafly";
 import { callMiniMax, extractJsonObject } from "./minimax";
 import { fetchRedditQuotesFor } from "./reddit";
-import type { CommunityNote, StrainProfile, StrainType } from "./types";
+import type {
+  CommunityNote,
+  CommunityNoteKind,
+  StrainProfile,
+  StrainType,
+} from "./types";
 import { fetchWeedmapsProfile } from "./weedmaps";
 
 const AILMENT_ALIASES: Record<string, string[]> = {
@@ -35,6 +40,21 @@ function mentionsAilment(text: string, conditions: string[]): boolean {
   );
 }
 
+/** Derive a `kind` from the human-readable `source` string. */
+function kindFromSource(source: string): CommunityNoteKind {
+  const s = source.toLowerCase();
+  if (s.includes("leafly")) return "leafly";
+  if (s.includes("weedmaps")) return "weedmaps";
+  if (s.includes("reddit")) return "reddit";
+  return "other";
+}
+
+function reTag(notes: CommunityNote[]): CommunityNote[] {
+  return notes.map((n) =>
+    n.kind ? n : { ...n, kind: kindFromSource(n.source) },
+  );
+}
+
 function uniqueNotes(notes: CommunityNote[]): CommunityNote[] {
   const seen = new Set<string>();
   const out: CommunityNote[] = [];
@@ -54,10 +74,17 @@ function preferAilmentNotes(
   if (conditions.length === 0 || notes.length === 0) return notes;
   const matched = notes.filter((n) => mentionsAilment(n.text, conditions));
   const rest = notes.filter((n) => !mentionsAilment(n.text, conditions));
-  // Keep the rating summary first, then ailment-matching quotes, then extras.
-  const rating = rest.filter((n) => n.source === "Leafly community");
-  const other = rest.filter((n) => n.source !== "Leafly community");
-  return [...rating, ...matched, ...other].slice(0, 8);
+  // Bucket non-matching notes so Reddit quotes never get lost below the 8-item
+  // cap when ailment-matching notes dominate.
+  const rating = rest.filter((n) => (n.kind ?? kindFromSource(n.source)) === "leafly");
+  const reddit = rest.filter((n) => (n.kind ?? kindFromSource(n.source)) === "reddit");
+  const other = rest.filter(
+    (n) => {
+      const k = n.kind ?? kindFromSource(n.source);
+      return k !== "leafly" && k !== "reddit";
+    },
+  );
+  return [...rating, ...reddit, ...matched, ...other].slice(0, 8);
 }
 
 function unionStrings(a?: string[], b?: string[]): string[] | undefined {
@@ -100,10 +127,12 @@ export function mergeProfiles(
         : secondary?.effects,
     sideEffects: unionStrings(primary.sideEffects, secondary?.sideEffects),
     description: primary.description ?? secondary?.description,
-    communityNotes: uniqueNotes([
-      ...(primary.communityNotes ?? []),
-      ...(secondary?.communityNotes ?? []),
-    ]),
+    communityNotes: reTag(
+      uniqueNotes([
+        ...(primary.communityNotes ?? []),
+        ...(secondary?.communityNotes ?? []),
+      ]),
+    ),
   };
 }
 
@@ -282,10 +311,12 @@ function applyResearch(
         : researched.effects,
     sideEffects: unionStrings(base.sideEffects, researched.sideEffects),
     description: base.description ?? researched.description,
-    communityNotes: uniqueNotes([
-      ...(base.communityNotes ?? []),
-      ...(researched.communityNotes ?? []),
-    ]),
+    communityNotes: reTag(
+      uniqueNotes([
+        ...(base.communityNotes ?? []),
+        ...(researched.communityNotes ?? []),
+      ]),
+    ),
   };
 }
 
@@ -341,7 +372,7 @@ export async function enrichProfiles(
     return {
       ...profile,
       communityNotes: preferAilmentNotes(
-        uniqueNotes([...(profile.communityNotes ?? []), ...reddit]),
+        reTag(uniqueNotes([...(profile.communityNotes ?? []), ...reddit])),
         conditions,
       ),
     };

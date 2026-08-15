@@ -1,9 +1,13 @@
 import type { QuoteNote } from "@/lib/quotes";
+import type { RedditSource } from "@/lib/strain-profile";
+import { RedditThreads } from "@/components/compare/RedditThreads";
 import {
   Award,
   Brain,
   CheckCircle2,
+  ExternalLink,
   GitCompareArrows,
+  MessageCircle,
   Quote,
   ShieldAlert,
   Sparkles,
@@ -22,6 +26,7 @@ export type StrainAnalysis = {
   keyDifferences: string[];
   commonGround: string[];
   cautions: string[];
+  redditSources?: RedditSource[];
 };
 
 function BulletList({
@@ -59,6 +64,19 @@ function BulletList({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function RedditThreadsBlock({ sources }: { sources: RedditSource[] }) {
+  if (sources.length === 0) return null;
+  return (
+    <div className="border-t border-border/60 px-6 py-6 sm:px-8">
+      <RedditThreads
+        sources={sources}
+        title="Reddit threads for these strains"
+        description="Pointed to from public discussion — surfaced from a curated list, not live-scraped."
+      />
     </div>
   );
 }
@@ -161,6 +179,8 @@ export function AnalysisPanel({
           </div>
         </div>
       </div>
+
+      <RedditThreadsBlock sources={analysis.redditSources ?? []} />
     </div>
   );
 }
