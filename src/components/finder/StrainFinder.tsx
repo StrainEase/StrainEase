@@ -8,6 +8,7 @@ import {
 } from "@/lib/research-history";
 import { useAuth } from "@/hooks/use-auth";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
+import { pullQuotesFromStrains } from "@/lib/quotes";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { slugify } from "@/lib/saved-strains";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import {
   compactPrefs,
@@ -38,6 +40,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { Link } from "react-router";
 
 type Potency = "" | "mild" | "balanced" | "strong";
 
@@ -192,6 +195,11 @@ export function StrainFinder({
 
   const topNames =
     result?.recommendations.slice(0, 3).map((r) => r.strainName) ?? [];
+
+  const verdictQuotes = useMemo(
+    () => pullQuotesFromStrains(result?.strains ?? [], searched),
+    [result, searched],
+  );
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[340px_1fr]">
@@ -408,6 +416,23 @@ export function StrainFinder({
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
                 {result.summary}
               </p>
+              {verdictQuotes.length > 0 && (
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {verdictQuotes.map(
+                    ({ strain, note }) => (
+                      <blockquote
+                        key={`${strain}-${note.source}`}
+                        className="rounded-xl bg-background px-4 py-3"
+                      >
+                        <p className="text-sm leading-6">“{note.text}”</p>
+                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                          {strain} · {note.source}
+                        </p>
+                      </blockquote>
+                    ),
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -424,7 +449,12 @@ export function StrainFinder({
                           {i + 1}
                         </span>
                         <h3 className="text-base font-semibold tracking-tight">
-                          {r.strainName}
+                          <Link
+                            to={`/strain/${slugify(r.strainName)}`}
+                            className="hover:text-primary"
+                          >
+                            {r.strainName}
+                          </Link>
                         </h3>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">

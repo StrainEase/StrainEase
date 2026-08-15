@@ -5,7 +5,7 @@ import {
   searchStrain as searchStrainCall,
 } from "@/lib/strain-api";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -22,14 +22,9 @@ import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
-import { HistoryPanel } from "@/components/saved/HistoryPanel";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
-import {
-  loadResearch,
-  rememberCloud,
-  rememberLocal,
-} from "@/lib/research-history";
+import { pullQuotesFromStrains } from "@/lib/quotes";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
 import {
   compactPrefs,
@@ -42,7 +37,6 @@ import {
   ArrowRight,
   Bookmark,
   Check,
-  Clock,
   FlaskConical,
   GitCompareArrows,
   HeartPulse,
@@ -89,10 +83,9 @@ type SearchOutcome =
   | null;
 
 export default function Dashboard() {
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { summary: reliefSummary } = useReliefSummary();
-  const { rid } = useParams();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   type CompareResult = Awaited<ReturnType<typeof compareStrainsCall>>;
 
@@ -107,27 +100,25 @@ export default function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [mode, setMode] = useState<"find" | "compare" | "saved" | "history">(
-    location.pathname.startsWith("/compare") ? "compare" : "find",
+  const [mode, setMode] = useState<"find" | "compare" | "saved">(
+    searchParams.get("mode") === "compare"
+      ? "compare"
+      : searchParams.get("mode") === "saved"
+        ? "saved"
+        : "find",
   );
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!rid) return;
-    let cancelled = false;
-    void loadResearch(rid).then((stored) => {
-      if (cancelled || !stored) return;
-      if (stored.kind === "compare") {
-        setMode("compare");
-        setResult(stored.result as CompareResult);
-      } else {
-        setMode("find");
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [rid]);
+    const raw = searchParams.get("strains");
+    if (!raw) return;
+    const names = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s !== "")
+      .slice(0, 3);
+    if (names.length > 0) setSelectedNames(names);
+  }, [searchParams]);
 
   // Load Leafly's popular strains once for quick-pick suggestions.
   useEffect(() => {
@@ -221,16 +212,6 @@ export default function Dashboard() {
         () => compareStrainsCall(args),
       );
       setResult(comparison);
-      if (comparison.resultId) {
-        const entry = {
-          id: comparison.resultId,
-          kind: "compare" as const,
-          title: `${names.join(" vs. ")}${focus.length ? ` · ${focus.join(", ")}` : ""}`,
-          createdAt: Date.now(),
-        };
-        rememberLocal(entry);
-        if (user) void rememberCloud(user.uid, entry);
-      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -300,29 +281,21 @@ export default function Dashboard() {
             </span>
           </Link>
           <div className="flex items-center gap-4">
-            {isAuthenticated ? (
-              <>
-                {user?.name && (
-                  <span className="hidden text-sm text-muted-foreground sm:block">
-                    {user.name}
-                  </span>
-                )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer gap-2"
-                  onClick={() => void signOut()}
-                >
-                  <LogOut className="size-4" />
-                  Sign out
-                </Button>
-              </>
-            ) : (
-              <Button asChild size="sm" className="cursor-pointer rounded-full">
-                <Link to="/auth?returnTo=/dashboard">Sign in to save</Link>
-              </Button>
+            {user?.name && (
+              <span className="hidden text-sm text-muted-foreground sm:block">
+                {user.name}
+              </span>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="cursor-pointer gap-2"
+              onClick={() => void signOut()}
+            >
+              <LogOut className="size-4" />
+              Sign out
+            </Button>
           </div>
         </div>
       </header>
@@ -373,64 +346,17 @@ export default function Dashboard() {
               Saved
               <span className="hidden sm:inline">strains</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setMode("history")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "history"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Clock className="size-4" />
-              History
-            </button>
           </div>
         </div>
 
         {/* ── Strain finder (main focus) ────────────────────── */}
-        {!isAuthenticated && (
-          <p className="mb-6 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-            You can research without an account.{" "}
-            <Link to="/auth?returnTo=/dashboard" className="font-medium text-primary">
-              Sign in
-            </Link>{" "}
-            to save strains and keep a private relief log.
-          </p>
-        )}
-
         <div className={cn(mode !== "find" && "hidden")}>
-          <StrainFinder
-            onCompare={startCompareFromFinder}
-            restoreId={
-              location.pathname.startsWith("/find/") ? rid : undefined
-            }
-          />
+          <StrainFinder onCompare={startCompareFromFinder} />
         </div>
 
         {/* ── Saved strains ────────────────────────────────── */}
         <div className={cn(mode !== "saved" && "hidden")}>
-          {isAuthenticated ? (
-            <SavedStrainsPanel />
-          ) : (
-            <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center">
-              <Bookmark className="mx-auto size-8 text-primary" />
-              <h2 className="mt-4 text-lg font-semibold tracking-tight">
-                Sign in to save strains
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                Research is free. Saving favorites and notes needs an account.
-              </p>
-              <Button asChild className="mt-6 cursor-pointer rounded-full">
-                <Link to="/auth?returnTo=/dashboard">Sign in</Link>
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <div className={cn(mode !== "history" && "hidden")}>
-          <HistoryPanel />
+          <SavedStrainsPanel />
         </div>
 
         {/* ── Compare workspace (secondary) ─────────────────── */}
@@ -731,7 +657,10 @@ export default function Dashboard() {
                   </Button>
                 </div>
 
-                <AnalysisPanel analysis={result.analysis} />
+                <AnalysisPanel
+                  analysis={result.analysis}
+                  quotes={pullQuotesFromStrains(result.strains, condition)}
+                />
 
                 <div
                   className={cn(
