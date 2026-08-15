@@ -31,11 +31,12 @@ interface TokenClient {
 }
 
 interface TokenClientResponse {
-  access_token: string;
-  expires_in: number;
-  scope: string;
-  token_type: string;
-  id_token?: string;
+  access_token?: string;
+  expires_in?: number;
+  scope?: string;
+  token_type?: string;
+  error?: string;
+  error_description?: string;
 }
 
 interface TokenClientError {
@@ -89,7 +90,7 @@ function loadGisScript(): Promise<void> {
 
 /**
  * Sign in with Google using Google Identity Services directly, then exchange
- * the resulting ID token for a Firebase credential.
+ * the resulting access token for a Firebase credential.
  *
  * Why this exists: Firebase's built-in `signInWithPopup` and
  * `signInWithRedirect` both rely on a hidden cross-origin iframe on
@@ -98,8 +99,11 @@ function loadGisScript(): Promise<void> {
  * `signInWithRedirect` to lose its sessionStorage state and
  * `signInWithPopup` to hit "Database is closing/hidden" IndexedDB errors.
  *
- * GIS renders Google's UI directly without an iframe, and Firebase accepts
- * the resulting ID token via `signInWithCredential`, sidestepping both bugs.
+ * GIS `initTokenClient` (the token model) opens Google's account picker
+ * without that iframe and returns an OAuth access token. Firebase accepts
+ * the access token via `GoogleAuthProvider.credential(null, accessToken)`.
+ * The token client never returns an ID token — that only comes from the
+ * separate Sign In With Google (`google.accounts.id`) API.
  *
  * Requires `VITE_GOOGLE_CLIENT_ID` to be set. Get the value from the
  * Firebase console → Authentication → Sign-in method → Google → Web SDK
@@ -116,20 +120,22 @@ export async function signInWithGoogle(): Promise<UserCredential> {
   }
   await loadGisScript();
 
-  const idToken = await new Promise<string>((resolve, reject) => {
+  const accessToken = await new Promise<string>((resolve, reject) => {
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: googleClientId,
       scope: GIS_SCOPE,
       callback: (response) => {
-        if (response.id_token) {
-          resolve(response.id_token);
-        } else {
+        if (response.error) {
           reject(
-            new Error(
-              "Google did not return an ID token. Make sure 'openid' is included in the OAuth scope.",
-            ),
+            new Error(response.error_description ?? response.error),
           );
+          return;
         }
+        if (response.access_token) {
+          resolve(response.access_token);
+          return;
+        }
+        reject(new Error("Google did not return an access token."));
       },
       error_callback: (err) => {
         // GIS rejects via callback rather than throwing — surface a useful
@@ -146,6 +152,6 @@ export async function signInWithGoogle(): Promise<UserCredential> {
     client.requestAccessToken({ prompt: "" });
   });
 
-  const credential = GoogleAuthProvider.credential(idToken);
+  const credential = GoogleAuthProvider.credential(null, accessToken);
   return signInWithCredential(auth, credential);
 }
