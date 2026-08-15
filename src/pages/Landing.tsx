@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { usePointerTilt } from "@/hooks/use-pointer-tilt";
 import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
+import { slugify } from "@/lib/saved-strains";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -590,7 +591,7 @@ export default function Landing() {
                 key={strain.name}
                 strain={strain}
                 delay={(i % 3) * 0.08}
-                href={appHref}
+                href={`/strain/${slugify(strain.name)}`}
               />
             ))}
           </div>

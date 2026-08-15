@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 function IntensityBar({ value }: { value: number }) {
   return (
@@ -92,7 +93,12 @@ export function StrainDetailCard({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-lg font-semibold tracking-tight">
-                {strain.name}
+                <Link
+                  to={`/strain/${slugify(strain.name)}`}
+                  className="hover:text-primary"
+                >
+                  {strain.name}
+                </Link>
               </h3>
               {!strain.inKnowledgeBase && (
                 <Badge
