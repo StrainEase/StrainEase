@@ -119,13 +119,9 @@ export async function isStrainSaved(uid: string, slug: string): Promise<boolean>
 }
 
 async function readNotes(uid: string, slug: string): Promise<SavedNote[]> {
-  try {
-    const snap = await getDoc(doc(savedColl(uid), slug));
-    const data = snap.data() as { notes?: SavedNote[] } | undefined;
-    return Array.isArray(data?.notes) ? data.notes : [];
-  } catch {
-    return [];
-  }
+  const snap = await getDoc(doc(savedColl(uid), slug));
+  const data = snap.data() as { notes?: SavedNote[] } | undefined;
+  return Array.isArray(data?.notes) ? data.notes : [];
 }
 
 async function writeNotes(uid: string, slug: string, notes: SavedNote[]) {
