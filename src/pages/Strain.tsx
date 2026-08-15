@@ -1,4 +1,5 @@
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { TriedNotes } from "@/components/saved/TriedNotes";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { listenToSavedStrains } from "@/lib/saved-strains";
@@ -125,6 +126,7 @@ export default function Strain() {
             className="space-y-8"
           >
             <StrainDetailCard strain={profile} />
+            {isAuthenticated && <TriedNotes profile={profile} />}
 
             <div className="rounded-2xl border border-border/70 bg-card p-6">
               <div className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">

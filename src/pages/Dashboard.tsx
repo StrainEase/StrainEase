@@ -24,6 +24,7 @@ import { StrainImage } from "@/components/strain/StrainImage";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
+import { SavedAilmentsCard } from "@/components/saved/SavedAilmentsCard";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { pullQuotesFromStrains } from "@/lib/quotes";
@@ -425,7 +426,10 @@ export default function Dashboard() {
 
         {/* ── Saved strains ────────────────────────────────── */}
         <div className={cn(mode !== "saved" && "hidden")}>
-          <SavedStrainsPanel />
+          <div className="space-y-6">
+            <SavedAilmentsCard />
+            <SavedStrainsPanel />
+          </div>
         </div>
 
         {/* ── History (reopen shareable results) ────────────── */}
