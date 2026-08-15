@@ -13,9 +13,9 @@ import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import logo from "@/assets/logo.svg";
 import {
   createUserWithEmailAndPassword,
-  getRedirectResult,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signInWithRedirect,
 } from "firebase/auth";
 import { ArrowRight, Loader2, Lock, Mail } from "lucide-react";
@@ -34,6 +34,19 @@ function resolveRedirectAfterAuth(
     return returnTo;
   }
   return fallback;
+}
+
+function googleErrorMessage(err: unknown): string {
+  const code = (err as { code?: string })?.code ?? "";
+  if (code === "auth/unauthorized-domain") {
+    return "Google sign-in is blocked for this domain. Add it in the Firebase console → Authentication → Settings → Authorized domains, then try again.";
+  }
+  if (code === "auth/operation-not-allowed") {
+    return "Google sign-in isn't enabled yet. Turn it on in the Firebase console → Authentication → Sign-in method → Google.";
+  }
+  return err instanceof Error
+    ? `Google sign-in failed: ${err.message}`
+    : "Google sign-in failed. Please try again.";
 }
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
@@ -57,55 +70,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       navigate(redirect, { replace: true });
     }
   }, [authLoading, isAuthenticated, navigate, redirect]);
-
-  // After signInWithRedirect, the user lands back here and we need to harvest
-  // the auth result once. Sign-in failures here (e.g. unauthorized domain,
-  // operation-not-allowed) surface as a thrown error.
-  //
-  // Important: when the redirect-back URL matches the current origin+path
-  // (the common case — user was on `/auth?returnTo=/dashboard` and comes
-  // back to the same URL), the Auth component does NOT unmount. That means
-  // `googleLoading` set in handleGoogleLogin survives across the redirect and
-  // we MUST reset it here whether the redirect succeeded or failed.
-  useEffect(() => {
-    if (!auth || authLoading || isAuthenticated) return;
-    let cancelled = false;
-    getRedirectResult(auth)
-      .then((result) => {
-        if (cancelled) return;
-        // Reset whether the result yielded a user or not — we only know for
-        // sure here that the redirect flow has resolved.
-        setGoogleLoading(false);
-        if (result?.user) {
-          // Success — onAuthStateChanged will fire next, but navigate now so
-          // the user isn't stranded if the effect ordering ever changes.
-          navigate(redirect, { replace: true });
-        }
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setGoogleLoading(false);
-        const code = (err as { code?: string })?.code ?? "";
-        if (code === "auth/unauthorized-domain") {
-          setError(
-            "Google sign-in is blocked for this domain. Add it in the Firebase console → Authentication → Settings → Authorized domains, then try again.",
-          );
-        } else if (code === "auth/operation-not-allowed") {
-          setError(
-            "Google sign-in isn't enabled yet. Turn it on in the Firebase console → Authentication → Sign-in method → Google.",
-          );
-        } else {
-          setError(
-            err instanceof Error
-              ? `Google sign-in failed: ${err.message}`
-              : "Google sign-in failed. Please try again.",
-          );
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [auth, authLoading, isAuthenticated, navigate, redirect]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -140,37 +104,36 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     if (!auth) return;
     setGoogleLoading(true);
     setError(null);
+    const provider = new GoogleAuthProvider();
     try {
-      // Redirect-based sign-in: more reliable than popup, especially on Safari
-      // where the popup flow can fail with IndexedDB "Database is closing"
-      // errors during the cross-origin OAuth handshake. The page navigates
-      // away to Google and back; the redirect result is harvested on mount.
-      await signInWithRedirect(auth, new GoogleAuthProvider());
-      // signInWithRedirect will navigate away — control never returns here
-      // on the success path. If we reach this line, the redirect was a no-op
-      // and we need to release the loading state so the user can retry.
-      setGoogleLoading(false);
+      // Popup is the primary path: the auth state lives on this origin, so
+      // it survives cross-site bounces. This avoids the redirect-handler's
+      // "missing initial state" failure mode that occurs when browser storage
+      // is partitioned (Safari ITP, some Chromium configurations).
+      await signInWithPopup(auth, provider);
+      // The auth-state effect above handles navigation.
     } catch (err) {
-      // Most redirect failures throw synchronously *before* the navigation
-      // (e.g. unauthorized-domain, operation-not-allowed). Anything that
-      // happens after the redirect is caught in the getRedirectResult effect.
       const code = (err as { code?: string })?.code ?? "";
-      if (code === "auth/unauthorized-domain") {
-        setError(
-          "Google sign-in is blocked for this domain. Add it in the Firebase console → Authentication → Settings → Authorized domains, then try again.",
-        );
-      } else if (code === "auth/operation-not-allowed") {
-        setError(
-          "Google sign-in isn't enabled yet. Turn it on in the Firebase console → Authentication → Sign-in method → Google.",
-        );
-      } else {
-        setError(
-          err instanceof Error
-            ? `Google sign-in failed: ${err.message}`
-            : "Google sign-in failed. Please try again.",
-        );
+      // If popups are blocked or the browser refuses to open one (Safari
+      // strict-mode, some embedded webviews), fall back to a full redirect.
+      // The redirect failure mode is recoverable: control never returns here
+      // on the success path, and a failure surfaces with a clearer error
+      // than the popup-blocked one.
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/popup-closed-by-user"
+      ) {
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectErr) {
+          setGoogleLoading(false);
+          setError(googleErrorMessage(redirectErr));
+          return;
+        }
       }
       setGoogleLoading(false);
+      setError(googleErrorMessage(err));
     }
   };
 
