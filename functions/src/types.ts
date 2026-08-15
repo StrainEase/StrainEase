@@ -4,6 +4,11 @@
 
 export type StrainType = "indica" | "sativa" | "hybrid";
 
+export type CommunityNote = {
+  source: string;
+  text: string;
+};
+
 export type StrainProfile = {
   name: string;
   inKnowledgeBase: boolean;
@@ -16,7 +21,7 @@ export type StrainProfile = {
   effects?: { name: string; intensity: number }[];
   sideEffects?: string[];
   description?: string;
-  communityNotes?: { source: string; text: string }[];
+  communityNotes?: CommunityNote[];
 };
 
 export type StrainAnalysis = {

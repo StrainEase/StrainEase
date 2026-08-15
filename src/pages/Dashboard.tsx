@@ -65,8 +65,8 @@ const QUICK_PICKS: { label: string; condition: string; strains: string[] }[] = [
 ];
 
 const RESEARCH_STEPS = [
-  "Pulling strain profiles from Leafly…",
-  "Searching Leafly, Weedmaps & Reddit for every strain…",
+  "Pulling full profiles from Leafly & Weedmaps…",
+  "Collecting Reddit quotes for your ailments…",
   "Synthesizing the comparison with MiniMax AI…",
 ];
 
@@ -274,45 +274,48 @@ export default function Dashboard() {
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
         {/* ── Mode tabs ─────────────────────────────────────── */}
         <div className="mb-8 flex justify-center">
-          <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card p-1 shadow-sm">
+          <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-border/70 bg-card p-1">
             <button
               type="button"
               onClick={() => setMode("find")}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
                 mode === "find"
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
               <HeartPulse className="size-4" />
-              Find for ailments
+              <span className="sm:hidden">Find</span>
+              <span className="hidden sm:inline">Find for ailments</span>
             </button>
             <button
               type="button"
               onClick={() => setMode("compare")}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
                 mode === "compare"
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
               <GitCompareArrows className="size-4" />
-              Compare strains
+              Compare
+              <span className="hidden sm:inline">strains</span>
             </button>
             <button
               type="button"
               onClick={() => setMode("saved")}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
                 mode === "saved"
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Bookmark className="size-4" />
-              Saved strains
+              Saved
+              <span className="hidden sm:inline">strains</span>
             </button>
           </div>
         </div>
@@ -336,7 +339,7 @@ export default function Dashboard() {
         >
           {/* ── Config panel ───────────────────────────────── */}
           <aside className="min-w-0 lg:sticky lg:top-24">
-            <Card className="border-border/70 shadow-sm">
+            <Card className="border-border/70">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FlaskConical className="size-4 text-primary" />
@@ -576,7 +579,7 @@ export default function Dashboard() {
           {/* ── Results ─────────────────────────────────────── */}
           <section ref={resultsRef} className="min-w-0 scroll-mt-24">
             {isRunning ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card px-8 py-20 text-center shadow-sm">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card px-8 py-20 text-center">
                 <div className="relative">
                   <Loader2 className="size-9 animate-spin text-primary" />
                 </div>
@@ -584,9 +587,8 @@ export default function Dashboard() {
                   {RESEARCH_STEPS[stepIndex]}
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Profiles come straight from Leafly — usually 5–15 seconds.
-                  We&apos;re also reading Reddit, Google and dispensary menus for
-                  strains outside Leafly.
+                  Full profiles from Leafly and Weedmaps, plus Reddit quotes
+                  when patients mention your symptoms — usually 8–20 seconds.
                 </p>
               </div>
             ) : result ? (
@@ -654,7 +656,7 @@ export default function Dashboard() {
             ) : (
               /* ── Empty state ─────────────────────────────── */
               <div className="space-y-8">
-                <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center shadow-sm">
+                <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center">
                   <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                     <FlaskConical className="size-7" />
                   </div>
@@ -679,7 +681,7 @@ export default function Dashboard() {
                         type="button"
                         disabled={isRunning}
                         onClick={() => void applyQuickPick(pick)}
-                        className="group flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-5 py-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md disabled:opacity-50"
+                        className="group flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-5 py-4 text-left transition-[border-color,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-primary/40 disabled:opacity-50"
                       >
                         <div>
                           <p className="text-sm font-semibold tracking-tight">

@@ -3,7 +3,7 @@
 // scrape of public pages — no keys needed, but the HTML structure can change,
 // so the parsers below are defensive and return empty/partial data rather
 // than throwing when a field is missing.
-import type { StrainProfile, StrainType } from "./types";
+import type { CommunityNote, StrainProfile, StrainType } from "./types";
 
 const BASE = "https://www.leafly.com";
 const UA =
@@ -107,7 +107,42 @@ function cbdRangeFrom(raw: RawRecord): string | undefined {
   return undefined;
 }
 
-function communityNoteFrom(raw: RawRecord): { source: string; text: string }[] {
+function clipReview(text: string, max = 280): string {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= max) return cleaned;
+  const cut = cleaned.slice(0, max);
+  const lastStop = Math.max(
+    cut.lastIndexOf(". "),
+    cut.lastIndexOf("! "),
+    cut.lastIndexOf("? "),
+  );
+  if (lastStop > 80) return cut.slice(0, lastStop + 1).trim();
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+}
+
+function reviewNotesFrom(reviews: unknown): CommunityNote[] {
+  if (!Array.isArray(reviews)) return [];
+  const out: CommunityNote[] = [];
+  for (const raw of reviews) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as RawRecord;
+    const text = typeof r.text === "string" ? r.text.trim() : "";
+    if (text.length < 40) continue;
+    const username =
+      typeof r.username === "string" && r.username.trim()
+        ? r.username.trim()
+        : "a Leafly reviewer";
+    out.push({
+      source: `Leafly review · ${username}`,
+      text: clipReview(text),
+    });
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
+function communityNoteFrom(raw: RawRecord): CommunityNote[] {
   const rating =
     typeof raw.averageRating === "number"
       ? raw.averageRating.toFixed(1)
@@ -144,7 +179,7 @@ function popularToProfile(raw: RawRecord): StrainProfile {
 }
 
 /** Full profile from a strain detail page. */
-function detailToProfile(raw: RawRecord): StrainProfile {
+function detailToProfile(raw: RawRecord, reviews?: unknown): StrainProfile {
   const lineage = Array.isArray(raw.parents)
     ? raw.parents
         .map((p: RawRecord) => (p && typeof p.name === "string" ? p.name : ""))
@@ -170,7 +205,10 @@ function detailToProfile(raw: RawRecord): StrainProfile {
         : typeof raw.description === "string"
           ? raw.description
           : undefined,
-    communityNotes: communityNoteFrom(raw),
+    communityNotes: [
+      ...communityNoteFrom(raw),
+      ...reviewNotesFrom(reviews),
+    ],
   };
 }
 
@@ -203,10 +241,27 @@ export async function fetchProfile(name: string): Promise<StrainProfile | null> 
       | RawRecord
       | undefined;
     if (!raw || typeof raw.name !== "string" || raw.name === "") return null;
-    return detailToProfile(raw);
+    const reviews = (data as RawRecord)?.props?.pageProps?.reviews;
+    return detailToProfile(raw, reviews);
   } catch {
     // 404 or a parse failure → not a strain page on Leafly.
     return null;
+  }
+}
+
+/** Extra Leafly written reviews (used when we have a condition to match). */
+export async function fetchLeaflyReviews(
+  name: string,
+): Promise<CommunityNote[]> {
+  const slug = slugify(name);
+  if (!slug) return [];
+  try {
+    const html = await fetchLeaflyHtml(`/strains/${slug}/reviews`);
+    const data = extractNextData(html);
+    const reviews = (data as RawRecord)?.props?.pageProps?.reviews;
+    return reviewNotesFrom(reviews);
+  } catch {
+    return [];
   }
 }
 

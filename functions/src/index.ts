@@ -6,7 +6,8 @@
 //   caller's ID token, and we reject calls without `request.auth`.
 import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
-import { fetchPopular, fetchProfile, fetchProfiles } from "./leafly";
+import { enrichProfiles, lookupProfile } from "./enrich";
+import { fetchPopular, fetchProfiles } from "./leafly";
 import { callMiniMax, extractJsonObject } from "./minimax";
 import type {
   RecommendationResult,
@@ -31,13 +32,13 @@ export const popularStrains = onCall(async (): Promise<StrainProfile[]> => {
   return await fetchPopular();
 });
 
-/** Look up one strain by name on Leafly. Null when it doesn't resolve. */
+/** Look up one strain by name on Leafly, then Weedmaps. Null when neither resolves. */
 export const searchStrain = onCall(
   async (request): Promise<StrainProfile | null> => {
     const name =
       typeof request.data?.name === "string" ? request.data.name : "";
     if (name.trim() === "") return null;
-    return await fetchProfile(name);
+    return await lookupProfile(name);
   },
 );
 
@@ -47,7 +48,8 @@ const COMPARE_SYSTEM_PROMPT = `You are StrainWise, a research assistant built fo
 
 Rules:
 - Base every claim on the strain data provided. Never invent numbers, terpenes, effects, or uses.
-- Some strains arrive WITHOUT a Leafly profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the summary.
+- Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the summary.
+- communityNotes may include Leafly reviews, Weedmaps tags, and real Reddit comments about the patient's ailments. Use them. Do not invent additional first-person quotes.
 - Write for the patient: precise, calm, practical, and low-jargon. Lead with symptom relief and day-to-day usability. If you use a technical term, define it in one short phrase.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
 - If one or more condition focuses are given, evaluate each strain's suitability for those conditions and name the single best fit for the patient.
@@ -66,7 +68,7 @@ JSON shape (all fields required):
 const RECOMMEND_SYSTEM_PROMPT = `You are StrainWise, a strain-finding assistant built for medical cannabis patients. A patient tells you which symptoms or conditions they are treating, and you recommend the strains most commonly reported to help with those symptoms.
 
 Rules:
-- Base recommendations on the Leafly strain data provided. You may also recommend well-known strains that are NOT in the list, based on your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, and dispensary menus — but only recommend strains you are confident really exist and are commonly reported for the symptoms.
+- Base recommendations on the strain data provided (Leafly detail pages plus Weedmaps when available). You may also recommend well-known strains that are NOT in the list, based on your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, and dispensary menus — but only recommend strains you are confident really exist and are commonly reported for the symptoms.
 - Recommend 3-5 distinct strains, ordered from best overall fit to least.
 - Every recommendation needs a concrete reason tied to the patient's symptoms, a note on who it suits best (e.g. daytime vs evening use, anxiety-sensitive patients), and one practical caution.
 - Respect the potency preference if one is given.
@@ -124,10 +126,10 @@ function comparePrompt(
         : "none — give a general comparison focused on patient symptom relief"
     }`,
     "",
-    "Strain data (live from Leafly):",
+    "Strain data (Leafly + Weedmaps, with Reddit quotes when found):",
     JSON.stringify(payload, null, 2),
     "",
-    'Strains marked "noCuratedProfile": true were not found on Leafly. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the summary when a detail is a commonly-reported figure rather than a verified lab result.',
+    'Strains marked "noCuratedProfile": true were not found on Leafly or Weedmaps. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the summary when a detail is a commonly-reported figure rather than a verified lab result.',
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
@@ -149,6 +151,7 @@ function recommendPrompt(
     effects: s.effects,
     sideEffects: s.sideEffects,
     description: s.description,
+    communityNotes: s.communityNotes,
   }));
   return [
     "Recommend the best cannabis strains for a patient treating these symptoms:",
@@ -157,7 +160,7 @@ function recommendPrompt(
       ? `Potency preference: ${POTENCY_LABELS[potency]}.`
       : "Potency preference: none — pick whatever potency fits the symptoms best.",
     "",
-    "Strain data (live from Leafly's popular strains):",
+    "Strain data (full Leafly profiles — type, potency, medical uses, effects, reviews):",
     JSON.stringify(payload, null, 2),
     "",
     "You may also suggest strains not in this list from your general knowledge, as long as you are confident they are real and commonly reported for these symptoms.",
@@ -262,9 +265,13 @@ export const compareStrains = onCall(
     }
     const condition = asStringArray(data.condition);
 
-    // Live profiles from Leafly; unknown names get researched by the AI in
-    // the same synthesis call (no extra AI call).
-    const strains = await fetchProfiles(names);
+    // Full profiles: Leafly + Weedmaps, Reddit quotes for the ailments,
+    // and MiniMax fill-in when a name is missing from both catalogs.
+    const strains = await enrichProfiles(
+      names,
+      condition,
+      MINIMAX_API_KEY.value(),
+    );
 
     const content = await callMiniMax(MINIMAX_API_KEY.value(), [
       { role: "system", content: COMPARE_SYSTEM_PROMPT },
@@ -305,15 +312,16 @@ export const recommendStrainsForConditions = onCall(
         ? potencyRaw
         : undefined;
 
-    // Rank against Leafly's real popular strains (one fetch, no AI), with
-    // room for the AI to add well-known strains from general knowledge.
+    // Rank against full Leafly detail profiles (not the popular-list
+    // summaries) so medical uses, CBD, lineage and side effects are present.
     const popular = await fetchPopular();
+    const detailed = await fetchProfiles(popular.map((p) => p.name));
 
     const content = await callMiniMax(MINIMAX_API_KEY.value(), [
       { role: "system", content: RECOMMEND_SYSTEM_PROMPT },
       {
         role: "user",
-        content: recommendPrompt(popular, conditions, potency),
+        content: recommendPrompt(detailed, conditions, potency),
       },
     ]);
 
@@ -328,7 +336,11 @@ export const recommendStrainsForConditions = onCall(
     }
 
     const names = [...new Set(recommendations.map((r) => r.strainName))];
-    const strains = await fetchProfiles(names);
+    const strains = await enrichProfiles(
+      names,
+      conditions,
+      MINIMAX_API_KEY.value(),
+    );
 
     return {
       headline:

@@ -68,7 +68,7 @@ export function StrainDetailCard({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col gap-5 rounded-2xl border bg-card p-6 shadow-sm",
+        "flex min-w-0 flex-col gap-5 rounded-2xl border bg-card p-6",
         badge === "best"
           ? "border-primary/50 ring-1 ring-primary/20"
           : "border-border/70",
@@ -122,9 +122,9 @@ export function StrainDetailCard({
           <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
             <Search className="mt-0.5 size-4 shrink-0 text-primary" />
             <p className="text-xs leading-5 text-muted-foreground">
-              Not in StrainWise&apos;s curated database — this profile is
-              researched by the AI from public sources like Leafly, Weedmaps,
-              Reddit, Google, and dispensary menus.
+              Not listed on Leafly or Weedmaps — this profile is researched
+              by the AI from public sources. Reddit quotes appear below when
+              patients mention your symptoms.
             </p>
           </div>
         )}
@@ -251,7 +251,7 @@ export function StrainDetailCard({
         <div className="mt-auto space-y-3 border-t border-border/60 pt-4">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <MessageCircle className="size-3.5 text-primary" />
-            What patients & sources say
+            What patients & Reddit say
           </div>
           {strain.communityNotes.map((note, i) => (
             <blockquote
