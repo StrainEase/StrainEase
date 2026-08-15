@@ -85,3 +85,23 @@ export function recommendStrains(args: {
     args,
   );
 }
+
+/** Result for a cached strain image request. */
+export type CachedStrainImage = {
+  url: string;
+  contentType: string;
+  bytes: number;
+  source: "memory" | "storage" | "network";
+};
+
+/**
+ * Cache a strain image and return a signed URL the browser can fetch
+ * directly. Repeated calls for the same URL hit the Storage copy
+ * instead of re-downloading from Leafly, so images load much faster
+ * after the first request.
+ */
+export function cachedStrainImage(url: string): Promise<CachedStrainImage> {
+  return call<{ url: string }, CachedStrainImage>("cachedStrainImage", {
+    url,
+  });
+}
