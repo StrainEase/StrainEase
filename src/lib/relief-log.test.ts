@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  clipReliefStrainName,
-  RELIEF_STRAIN_NAME_MAX,
-  reliefLogCreateData,
-} from "./relief-log";
+import { clipReliefStrainName, RELIEF_STRAIN_NAME_MAX, reliefLogCreateData } from "./relief-log";
 
 describe("reliefLogCreateData", () => {
   test("clips strainName to the Firestore rule max (size < 80)", () => {

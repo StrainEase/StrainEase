@@ -96,13 +96,16 @@ export function listenToSavedStrains(
 }
 
 /** Fields written on save. Notes are omitted so a re-save cannot wipe them. */
-export function savedStrainFields(profile: StrainProfile) {
+export function savedStrainFields(
+  profile: StrainProfile,
+  savedAt = Date.now(),
+) {
   return {
     name: profile.name,
     type: profile.type ?? null,
     thcRange: profile.thcRange ?? null,
     imageUrl: profile.imageUrl ?? null,
-    savedAt: Date.now(),
+    savedAt,
   };
 }
 
