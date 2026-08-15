@@ -31,3 +31,11 @@ functions/lib
 
 # Git worktrees (created by orchestration tooling)
 .worktrees/
+
+# Xcode
+ios/DerivedData/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/*.xcworkspace/xcuserdata/
+
+ios/StrainWise/GoogleService-Info.plist
