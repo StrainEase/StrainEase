@@ -161,21 +161,27 @@ async function fetchBySlug(slug: string): Promise<StrainProfile | null> {
   return toProfile(attrs as RawRecord);
 }
 
-async function fetchBySearch(name: string): Promise<StrainProfile | null> {
-  const json = await getJson(
-    `${BASE}?search=${encodeURIComponent(name)}&page[size]=10`,
-  );
-  const list = json?.data;
+/** Exact name match only — never the first search hit. */
+export function pickWeedmapsSlug(
+  list: unknown,
+  name: string,
+): string | null {
   if (!Array.isArray(list)) return null;
   const wanted = name.trim().toLowerCase();
   const match = list.find((item: RawRecord) => {
     const n = item?.attributes?.name;
     return typeof n === "string" && n.toLowerCase() === wanted;
   });
-  const slug =
-    (match?.attributes?.slug as string | undefined) ??
-    (list[0]?.attributes?.slug as string | undefined);
-  if (!slug || typeof slug !== "string") return null;
+  const slug = match?.attributes?.slug;
+  return typeof slug === "string" && slug !== "" ? slug : null;
+}
+
+async function fetchBySearch(name: string): Promise<StrainProfile | null> {
+  const json = await getJson(
+    `${BASE}?search=${encodeURIComponent(name)}&page[size]=10`,
+  );
+  const slug = pickWeedmapsSlug(json?.data, name);
+  if (!slug) return null;
   return fetchBySlug(slug);
 }
 

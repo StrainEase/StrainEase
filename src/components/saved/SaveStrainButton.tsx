@@ -20,24 +20,32 @@ export function SaveStrainButton({
 }) {
   const { user, isAuthenticated } = useAuth();
   const [saved, setSaved] = useState(false);
+  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const refresh = async () => {
     if (!db || !user) {
       setSaved(false);
+      setReady(true);
       return;
     }
-    const isSaved = await isStrainSaved(user.uid, slugify(profile.name));
-    setSaved(isSaved);
+    try {
+      setSaved(await isStrainSaved(user.uid, slugify(profile.name)));
+    } catch {
+      // Keep the last known state — a failed read must not look unsaved.
+    } finally {
+      setReady(true);
+    }
   };
 
   useEffect(() => {
+    setReady(false);
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid, profile.name]);
 
   const toggle = async () => {
-    if (!db || !user || busy) return;
+    if (!db || !user || busy || !ready) return;
     setBusy(true);
     try {
       if (saved) {
@@ -58,7 +66,7 @@ export function SaveStrainButton({
       type="button"
       onClick={() => void toggle()}
       title={saved ? "Remove from saved strains" : "Save this strain"}
-      disabled={busy}
+      disabled={busy || !ready}
       className={cn(
         "flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
         saved

@@ -110,7 +110,7 @@ export function mergeProfiles(
   const primary = leafly ?? weedmaps!;
   const secondary = leafly ? weedmaps : null;
   return {
-    name: primary.name || name,
+    name,
     inKnowledgeBase: true,
     type: primary.type ?? secondary?.type,
     thcRange: primary.thcRange ?? secondary?.thcRange,
@@ -367,8 +367,8 @@ export async function enrichProfiles(
     }
   }
 
-  return merged.map((profile) => {
-    const reddit = redditMap.get(profile.name.toLowerCase()) ?? [];
+  return merged.map((profile, i) => {
+    const reddit = redditNotesFor(redditMap, unique[i], profile.name);
     return {
       ...profile,
       communityNotes: preferAilmentNotes(
@@ -377,6 +377,19 @@ export async function enrichProfiles(
       ),
     };
   });
+}
+
+/** Quotes are fetched under the query name; catalogs may rename the profile. */
+export function redditNotesFor(
+  redditMap: Map<string, { source: string; text: string }[]>,
+  queryName: string,
+  profileName: string,
+) {
+  return (
+    redditMap.get(queryName.toLowerCase()) ??
+    redditMap.get(profileName.toLowerCase()) ??
+    []
+  );
 }
 
 /** Single-name lookup for search: Leafly + Weedmaps, no AI, no Reddit. */

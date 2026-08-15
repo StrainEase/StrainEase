@@ -29,6 +29,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
 function formatDate(ts: number): string {
@@ -129,6 +130,8 @@ export function SavedStrainsPanel() {
       );
       setDraft((prev) => ({ ...prev, [strain.slug]: "" }));
       setDraftPublic(false);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not save the note.");
     } finally {
       setBusy(false);
     }

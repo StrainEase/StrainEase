@@ -32,10 +32,31 @@ functions/lib
 # Git worktrees (created by orchestration tooling)
 .worktrees/
 
-# Xcode
-ios/DerivedData/
-ios/*.xcodeproj/xcuserdata/
-ios/*.xcodeproj/project.xcworkspace/xcuserdata/
-ios/*.xcworkspace/xcuserdata/
+# Local env (Vite reads .env; secrets stay off git)
+.env
+.env.*
+!.env.example
 
+# Xcode / iOS
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+timeline.xctimeline
+playground.xcworkspace
+.build/
+.swiftpm/
+Pods/
+Carthage/Build/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# iOS-specific (StrainWise companion)
 ios/StrainWise/GoogleService-Info.plist

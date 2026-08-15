@@ -19,19 +19,36 @@ export type ReliefLog = {
   createdAt: number;
 };
 
+/** Firestore create rule is strainName.size() < 80. */
+export const RELIEF_STRAIN_NAME_MAX = 79;
+
+export function clipReliefStrainName(name: string): string {
+  return name.slice(0, RELIEF_STRAIN_NAME_MAX);
+}
+
+export function reliefLogCreateData(
+  input: Omit<ReliefLog, "id" | "createdAt">,
+  createdAt = Date.now(),
+) {
+  return {
+    strainName: clipReliefStrainName(input.strainName),
+    conditions: input.conditions.slice(0, 6),
+    fit: input.fit,
+    relief: Math.max(1, Math.min(5, Math.round(input.relief))),
+    note: input.note?.slice(0, 400) ?? "",
+    createdAt,
+  };
+}
+
 export async function addReliefLog(
   uid: string,
   input: Omit<ReliefLog, "id" | "createdAt">,
 ): Promise<void> {
   if (!db) throw new Error("Firebase isn't configured.");
-  await addDoc(collection(db, "users", uid, "reliefLogs"), {
-    strainName: input.strainName.slice(0, 80),
-    conditions: input.conditions.slice(0, 6),
-    fit: input.fit,
-    relief: Math.max(1, Math.min(5, Math.round(input.relief))),
-    note: input.note?.slice(0, 400) ?? "",
-    createdAt: Date.now(),
-  });
+  await addDoc(
+    collection(db, "users", uid, "reliefLogs"),
+    reliefLogCreateData(input),
+  );
 }
 
 export function listenToReliefLogs(

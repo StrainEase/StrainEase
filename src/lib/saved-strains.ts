@@ -41,6 +41,13 @@ export type PublicNote = {
   createdAt: number;
 };
 
+/** Firestore publicNotes create requires note.size() < 2000. */
+export const PUBLIC_NOTE_MAX = 1999;
+
+export function clipPublicNote(text: string): string {
+  return text.trim().slice(0, PUBLIC_NOTE_MAX);
+}
+
 export function slugify(name: string): string {
   return name
     .trim()
@@ -85,17 +92,27 @@ export function listenToSavedStrains(
   );
 }
 
+/** Fields written on save. Notes are omitted so a re-save cannot wipe them. */
+export function savedStrainFields(
+  profile: StrainProfile,
+  savedAt = Date.now(),
+) {
+  return {
+    name: profile.name,
+    type: profile.type ?? null,
+    thcRange: profile.thcRange ?? null,
+    savedAt,
+  };
+}
+
 export async function saveStrain(
   uid: string,
   profile: StrainProfile,
 ): Promise<void> {
   const slug = slugify(profile.name);
-  await setDoc(doc(savedColl(uid), slug), {
-    name: profile.name,
-    type: profile.type ?? null,
-    thcRange: profile.thcRange ?? null,
-    savedAt: Date.now(),
-    notes: [],
+  if (!slug) throw new Error("That name can't be saved.");
+  await setDoc(doc(savedColl(uid), slug), savedStrainFields(profile), {
+    merge: true,
   });
 }
 
@@ -104,22 +121,14 @@ export async function removeSavedStrain(uid: string, slug: string) {
 }
 
 export async function isStrainSaved(uid: string, slug: string): Promise<boolean> {
-  try {
-    const snap = await getDoc(doc(savedColl(uid), slug));
-    return snap.exists();
-  } catch {
-    return false;
-  }
+  const snap = await getDoc(doc(savedColl(uid), slug));
+  return snap.exists();
 }
 
 async function readNotes(uid: string, slug: string): Promise<SavedNote[]> {
-  try {
-    const snap = await getDoc(doc(savedColl(uid), slug));
-    const data = snap.data() as { notes?: SavedNote[] } | undefined;
-    return Array.isArray(data?.notes) ? data.notes : [];
-  } catch {
-    return [];
-  }
+  const snap = await getDoc(doc(savedColl(uid), slug));
+  const data = snap.data() as { notes?: SavedNote[] } | undefined;
+  return Array.isArray(data?.notes) ? data.notes : [];
 }
 
 async function writeNotes(uid: string, slug: string, notes: SavedNote[]) {
@@ -134,7 +143,7 @@ export async function addNote(
   authorName: string,
   strainName: string,
 ): Promise<SavedNote> {
-  const trimmed = text.trim();
+  const trimmed = clipPublicNote(text);
   if (trimmed === "") throw new Error("Note can't be empty.");
 
   const note: SavedNote = {
@@ -206,7 +215,7 @@ async function publishNote(
   const ref = await addDoc(publicNotesColl(), {
     strainKey: slugify(strainName),
     strainName,
-    note: note.text,
+    note: clipPublicNote(note.text),
     authorName: authorName || "A patient",
     uid,
     createdAt: Date.now(),
