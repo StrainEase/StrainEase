@@ -2,7 +2,8 @@ import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
-import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
+import { listenToSavedStrains } from "@/lib/saved-strains";
+import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import { searchStrain } from "@/lib/strain-api";
 import {
   dayNightLabel,
@@ -51,6 +52,11 @@ export default function Strain() {
       cancelled = true;
     };
   }, [slug]);
+
+  useEffect(() => {
+    if (!isAuthenticated || status !== "ready" || !profile) return;
+    recordRecentlyViewed(profile);
+  }, [isAuthenticated, status, profile]);
 
   useEffect(() => {
     if (!user) {

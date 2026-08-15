@@ -107,6 +107,43 @@ function cbdRangeFrom(raw: RawRecord): string | undefined {
   return undefined;
 }
 
+function isPlaceholderImage(url: string): boolean {
+  return /\/strains\/flowers\/default\.(png|svg|jpe?g|webp)/i.test(url);
+}
+
+function firstHttpsImage(...candidates: unknown[]): string | undefined {
+  for (const candidate of candidates) {
+    if (
+      typeof candidate === "string" &&
+      /^https:\/\//i.test(candidate) &&
+      !isPlaceholderImage(candidate)
+    ) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+function highlightedPhoto(raw: RawRecord): string | undefined {
+  if (!Array.isArray(raw.highlightedPhotos)) return undefined;
+  for (const item of raw.highlightedPhotos) {
+    if (item && typeof item === "object") {
+      const url = (item as RawRecord).imageUrl;
+      if (typeof url === "string" && /^https:\/\//i.test(url)) return url;
+    }
+  }
+  return undefined;
+}
+
+/** Prefer Leafly's nug shot; fall back to a review photo. */
+function imageFrom(raw: RawRecord): string | undefined {
+  return firstHttpsImage(
+    raw.nugImage,
+    raw.stockNugImage,
+    highlightedPhoto(raw),
+  );
+}
+
 function clipReview(text: string, max = 280): string {
   const cleaned = text.replace(/\s+/g, " ").trim();
   if (cleaned.length <= max) return cleaned;
@@ -121,13 +158,46 @@ function clipReview(text: string, max = 280): string {
   return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).trim()}…`;
 }
 
-function reviewNotesFrom(reviews: unknown): CommunityNote[] {
-  if (!Array.isArray(reviews)) return [];
+function reviewsListFrom(reviews: unknown): unknown[] {
+  if (Array.isArray(reviews)) return reviews;
+  if (reviews && typeof reviews === "object") {
+    const rec = reviews as RawRecord;
+    for (const key of ["reviews", "items", "data", "results"]) {
+      if (Array.isArray(rec[key])) return rec[key] as unknown[];
+    }
+  }
+  return [];
+}
+
+function reviewTextFrom(raw: RawRecord): string {
+  for (const key of ["text", "body", "content", "comment"]) {
+    const value = raw[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function mergeReviewNotes(...lists: CommunityNote[][]): CommunityNote[] {
+  const seen = new Set<string>();
   const out: CommunityNote[] = [];
-  for (const raw of reviews) {
+  for (const list of lists) {
+    for (const note of list) {
+      const key = `${note.source}|${note.text.slice(0, 80)}`.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(note);
+      if (out.length >= 8) return out;
+    }
+  }
+  return out;
+}
+
+function reviewNotesFrom(reviews: unknown): CommunityNote[] {
+  const out: CommunityNote[] = [];
+  for (const raw of reviewsListFrom(reviews)) {
     if (!raw || typeof raw !== "object") continue;
     const r = raw as RawRecord;
-    const text = typeof r.text === "string" ? r.text.trim() : "";
+    const text = reviewTextFrom(r);
     if (text.length < 40) continue;
     const username =
       typeof r.username === "string" && r.username.trim()
@@ -137,28 +207,33 @@ function reviewNotesFrom(reviews: unknown): CommunityNote[] {
       source: `Leafly review · ${username}`,
       text: clipReview(text),
     });
-    if (out.length >= 6) break;
+    if (out.length >= 8) break;
   }
   return out;
 }
 
-function communityNoteFrom(raw: RawRecord): CommunityNote[] {
-  const rating =
+function ratingFrom(raw: RawRecord): {
+  leaflyRating?: number;
+  leaflyReviewCount?: number;
+} {
+  const stars =
     typeof raw.averageRating === "number"
-      ? raw.averageRating.toFixed(1)
+      ? raw.averageRating
       : typeof raw.rating === "number"
-        ? raw.rating.toFixed(1)
-        : null;
-  const reviews =
-    typeof raw.reviewCount === "number" ? raw.reviewCount : null;
-  if (rating === null && reviews === null) return [];
-  const text = [
-    rating !== null ? `${rating}★` : null,
-    reviews !== null ? `${reviews.toLocaleString("en-US")} reviews` : null,
-  ]
-    .filter(Boolean)
-    .join(" from ");
-  return [{ source: "Leafly community", text }];
+        ? raw.rating
+        : undefined;
+  const count =
+    typeof raw.reviewCount === "number" ? raw.reviewCount : undefined;
+  return {
+    leaflyRating:
+      typeof stars === "number" && Number.isFinite(stars)
+        ? Math.round(stars * 10) / 10
+        : undefined,
+    leaflyReviewCount:
+      typeof count === "number" && Number.isFinite(count)
+        ? Math.round(count)
+        : undefined,
+  };
 }
 
 /** Profile from the popular-strains directory list (lighter data). */
@@ -174,12 +249,13 @@ function popularToProfile(raw: RawRecord): StrainProfile {
       typeof raw.shortDescriptionPlain === "string"
         ? raw.shortDescriptionPlain
         : undefined,
-    communityNotes: communityNoteFrom(raw),
+    imageUrl: imageFrom(raw),
+    ...ratingFrom(raw),
   };
 }
 
-/** Full profile from a strain detail page. */
-function detailToProfile(raw: RawRecord, reviews?: unknown): StrainProfile {
+/** Full profile from a strain detail page. Written reviews are attached by the caller. */
+function detailToProfile(raw: RawRecord): StrainProfile {
   const lineage = Array.isArray(raw.parents)
     ? raw.parents
         .map((p: RawRecord) => (p && typeof p.name === "string" ? p.name : ""))
@@ -205,10 +281,8 @@ function detailToProfile(raw: RawRecord, reviews?: unknown): StrainProfile {
         : typeof raw.description === "string"
           ? raw.description
           : undefined,
-    communityNotes: [
-      ...communityNoteFrom(raw),
-      ...reviewNotesFrom(reviews),
-    ],
+    imageUrl: imageFrom(raw),
+    ...ratingFrom(raw),
   };
 }
 
@@ -231,18 +305,32 @@ export async function fetchPopular(): Promise<StrainProfile[]> {
     .slice(0, 12);
 }
 
-export async function fetchProfile(name: string): Promise<StrainProfile | null> {
+export async function fetchProfile(
+  name: string,
+  opts: { extraReviews?: boolean } = {},
+): Promise<StrainProfile | null> {
   const slug = slugify(name);
   if (!slug) return null;
   try {
-    const html = await fetchLeaflyHtml(`/strains/${slug}`);
+    const extraPromise = opts.extraReviews
+      ? fetchLeaflyReviews(name)
+      : Promise.resolve([] as CommunityNote[]);
+    const [html, extra] = await Promise.all([
+      fetchLeaflyHtml(`/strains/${slug}`),
+      extraPromise,
+    ]);
     const data = extractNextData(html);
     const raw = (data as RawRecord)?.props?.pageProps?.strain as
       | RawRecord
       | undefined;
     if (!raw || typeof raw.name !== "string" || raw.name === "") return null;
-    const reviews = (data as RawRecord)?.props?.pageProps?.reviews;
-    return detailToProfile(raw, reviews);
+    const pageReviews = reviewNotesFrom(
+      (data as RawRecord)?.props?.pageProps?.reviews,
+    );
+    return {
+      ...detailToProfile(raw),
+      communityNotes: mergeReviewNotes(pageReviews, extra),
+    };
   } catch {
     // 404 or a parse failure → not a strain page on Leafly.
     return null;
@@ -269,7 +357,7 @@ export async function fetchProfiles(names: string[]): Promise<StrainProfile[]> {
   const unique = [
     ...new Set(names.map((n) => n.trim()).filter((n) => n !== "")),
   ];
-  const results = await Promise.all(unique.map(fetchProfile));
+  const results = await Promise.all(unique.map((name) => fetchProfile(name)));
   return unique.map(
     (name, i): StrainProfile =>
       results[i] ?? { name, inKnowledgeBase: false },

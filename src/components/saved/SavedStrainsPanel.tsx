@@ -12,6 +12,7 @@ import {
 } from "@/lib/saved-strains";
 import { listenToReliefLogs, type ReliefLog } from "@/lib/relief-log";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { StrainImage } from "@/components/strain/StrainImage";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -158,6 +159,12 @@ export function SavedStrainsPanel() {
                 onClick={() => setOpen(expanded ? null : strain.slug)}
                 className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
               >
+                <StrainImage
+                  src={strain.imageUrl}
+                  alt=""
+                  className="size-11 shrink-0 rounded-lg border border-border/70"
+                  iconClassName="size-4"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-base font-semibold tracking-tight">
                     {strain.name}

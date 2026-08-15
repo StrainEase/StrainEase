@@ -134,7 +134,31 @@ function toProfile(raw: RawRecord): StrainProfile | null {
         : undefined,
     description: desc ? firstSentences(desc) : undefined,
     communityNotes: communityFrom(raw, uses),
+    imageUrl: imageFrom(raw),
   };
+}
+
+function imageFrom(raw: RawRecord): string | undefined {
+  const avatar = raw.avatar_image;
+  const image = raw.image;
+  const candidates = [
+    typeof avatar === "object" && avatar
+      ? (avatar as RawRecord).original_url ?? (avatar as RawRecord).url
+      : undefined,
+    typeof image === "object" && image
+      ? (image as RawRecord).url ?? (image as RawRecord).original_url
+      : undefined,
+    raw.image_url,
+    raw.photo_url,
+    raw.featured_image,
+    raw.avatar_url,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && /^https:\/\//i.test(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
 }
 
 async function getJson(url: string): Promise<RawRecord | null> {

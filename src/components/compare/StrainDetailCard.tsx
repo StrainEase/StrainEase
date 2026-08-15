@@ -1,4 +1,5 @@
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
+import { StrainImage } from "@/components/strain/StrainImage";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
@@ -72,7 +73,8 @@ export function StrainDetailCard({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col gap-5 rounded-2xl border bg-card p-6",
+        "flex min-w-0 flex-col gap-5 rounded-2xl border p-6",
+        strain.imageUrl ? "bg-white" : "bg-card",
         badge === "best"
           ? "border-primary/50 ring-1 ring-primary/20"
           : "border-border/70",
@@ -80,6 +82,13 @@ export function StrainDetailCard({
     >
       {/* Header */}
       <div>
+        {strain.imageUrl && (
+          <StrainImage
+            src={strain.imageUrl}
+            alt={`${strain.name} flower`}
+            className="mb-4 h-72 w-full rounded-xl border border-border/70"
+          />
+        )}
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -263,6 +272,8 @@ export function StrainDetailCard({
         notes={strain.communityNotes}
         strainName={strain.name}
         conditions={conditions}
+        leaflyRating={strain.leaflyRating}
+        leaflyReviewCount={strain.leaflyReviewCount}
       />
     </div>
   );
