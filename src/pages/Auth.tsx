@@ -93,7 +93,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       // GIS direct flow: bypasses Firebase's hidden iframe, which Safari
       // breaks in two different ways (storage partitioning on redirect,
       // IndexedDB-closing on popup). GIS renders Google's UI directly and
-      // returns an ID token we exchange with Firebase via
+      // returns an access token we exchange with Firebase via
       // signInWithCredential.
       await signInWithGoogle();
       // The auth-state effect above handles navigation.
