@@ -593,11 +593,23 @@ export default function Dashboard() {
                           </div>
                         </div>
                       )}
-                      {!isSearching && !searchOutcome && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Press Enter to search Leafly for “{query}”.
-                        </p>
-                      )}
+                      {!isSearching &&
+                        !searchOutcome &&
+                        instantMatches.length === 0 && (
+                          <button
+                            type="button"
+                            onClick={() => void runSearch(query)}
+                            className="mt-2 flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3.5 py-2.5 text-left transition-colors hover:border-primary/70 hover:bg-primary/10"
+                          >
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <Search className="size-4 shrink-0 text-primary" />
+                              <p className="truncate text-sm font-medium">
+                                Search for “{query}”…
+                              </p>
+                            </div>
+                            <ArrowRight className="size-4 shrink-0 text-primary" />
+                          </button>
+                        )}
                     </>
                   )}
                 </div>
