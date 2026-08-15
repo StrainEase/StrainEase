@@ -1,27 +1,89 @@
 import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
-import type { StrainProfile } from "@/lib/strain-profile";
+import type { StrainProfile, StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
-import { GitCompareArrows, Loader2, Search, Sparkles } from "lucide-react";
+import { GitCompareArrows, Loader2, Search, Sparkles, X } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
+type TypeFilter = "all" | StrainType;
+type ThcBand = "any" | "mild" | "balanced" | "strong";
+
 /**
- * Browse the popular strains directory. Filters arrive in a follow-up
- * PR; for now this is a search box + a clean grid of strain cards so
- * the tab has something real behind it.
+ * Parse the THC range strings Leafly emits (e.g. "17-24%", "~20%",
+ * "<1%") and return the numeric midpoint, or null if we can't make
+ * sense of it. Used to bucket strains into the same Mild / Balanced
+ * / Strong ranges as the Finder's potency preference.
+ */
+function thcMidpoint(range: string | undefined): number | null {
+  if (!range) return null;
+  const cleaned = range.replace(/[%~\s<>]/g, "").trim();
+  if (!cleaned) return null;
+  // "<1" → 0.5
+  if (range.includes("<")) {
+    const n = Number(cleaned.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) ? Math.max(0, n - 0.5) : null;
+  }
+  // "17-24" → 20.5
+  const dash = cleaned.split("-");
+  if (dash.length === 2) {
+    const a = Number(dash[0]);
+    const b = Number(dash[1]);
+    if (Number.isFinite(a) && Number.isFinite(b)) return (a + b) / 2;
+  }
+  const single = Number(cleaned);
+  if (Number.isFinite(single)) return single;
+  return null;
+}
+
+const THC_BANDS: { value: ThcBand; label: string; range: string; test: (m: number) => boolean }[] = [
+  { value: "any", label: "Any THC", range: "no preference", test: () => true },
+  { value: "mild", label: "Mild", range: "under ~15%", test: (m) => m < 15 },
+  { value: "balanced", label: "Balanced", range: "~15–22%", test: (m) => m >= 15 && m < 22 },
+  { value: "strong", label: "Strong", range: "above ~22%", test: (m) => m >= 22 },
+];
+
+/**
+ * Curated effect buckets. Each one maps to a set of Leafly effect
+ * names so we can answer "does this strain feel Relaxing?" without
+ * hard-coding a single keyword. We keep this small (six buckets) so
+ * the filter strip stays scannable.
+ */
+const EFFECT_BUCKETS: { id: string; label: string; match: string[] }[] = [
+  { id: "relaxed", label: "Relaxing", match: ["relaxed", "calm", "calming", "soothing"] },
+  { id: "sleepy", label: "Sleepy", match: ["sleepy", "sedated", "drowsy"] },
+  { id: "happy", label: "Happy", match: ["happy", "euphoric", "uplifted", "giggly"] },
+  { id: "focused", label: "Focused", match: ["focused", "creative", "aroused"] },
+  { id: "energetic", label: "Energetic", match: ["energetic", "tingly", "talkative"] },
+  { id: "hungry", label: "Hungry", match: ["hungry", "appetite"] },
+];
+
+function strainMatchesBucket(
+  strain: StrainProfile,
+  bucket: (typeof EFFECT_BUCKETS)[number],
+): boolean {
+  const effects = strain.effects ?? [];
+  const lower = new Set(effects.map((e) => e.name.toLowerCase()));
+  return bucket.match.some((kw) => lower.has(kw));
+}
+
+/**
+ * Browse the popular strains directory. Filters: type, THC band, and
+ * effect buckets. The richer data (medicalUses, lineage, sideEffects)
+ * lives on full profiles and is intentionally not filterable here —
+ * the popular list is a discovery surface, not a clinical search.
  */
 export function StrainDirectory() {
   const [popular, setPopular] = useState<StrainProfile[] | null>(null);
   const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "indica" | "sativa" | "hybrid">(
-    "all",
-  );
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [thcBand, setThcBand] = useState<ThcBand>("any");
+  const [effectFilter, setEffectFilter] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,12 +102,41 @@ export function StrainDirectory() {
   const filtered = useMemo(() => {
     if (!popular) return [];
     const q = query.trim().toLowerCase();
+    const thc = THC_BANDS.find((b) => b.value === thcBand) ?? THC_BANDS[0];
+    const buckets = EFFECT_BUCKETS.filter((b) => effectFilter.includes(b.id));
     return popular.filter((p) => {
       if (typeFilter !== "all" && p.type !== typeFilter) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
+      const mid = thcMidpoint(p.thcRange);
+      if (thcBand !== "any") {
+        if (mid === null) return false;
+        if (!thc.test(mid)) return false;
+      }
+      if (buckets.length > 0) {
+        if (!buckets.every((b) => strainMatchesBucket(p, b))) return false;
+      }
       return true;
     });
-  }, [popular, query, typeFilter]);
+  }, [popular, query, typeFilter, thcBand, effectFilter]);
+
+  const filtersActive =
+    typeFilter !== "all" ||
+    thcBand !== "any" ||
+    effectFilter.length > 0 ||
+    query.trim() !== "";
+
+  const resetFilters = () => {
+    setQuery("");
+    setTypeFilter("all");
+    setThcBand("any");
+    setEffectFilter([]);
+  };
+
+  const toggleEffect = (id: string) => {
+    setEffectFilter((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
 
   if (popular === null) {
     return (
@@ -65,37 +156,101 @@ export function StrainDirectory() {
           Browse popular strains
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Live from Leafly. Click a strain to see the full profile, or
-          jump straight into a side-by-side comparison.
+          Live from Leafly. Filter by type, THC, or the effects you're
+          after, then jump into a side-by-side comparison.
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by name…"
-            className="pl-9"
-          />
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {(["all", "indica", "sativa", "hybrid"] as const).map((opt) => (
-            <button
-              key={opt}
+      <div className="space-y-4">
+        {/* Row 1: search + type + reset */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter by name…"
+              className="pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {(["all", "indica", "sativa", "hybrid"] as const).map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setTypeFilter(opt)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  typeFilter === opt
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+              >
+                {opt === "all" ? "All types" : TYPE_LABEL[opt]}
+              </button>
+            ))}
+          </div>
+          {filtersActive && (
+            <Button
               type="button"
-              onClick={() => setTypeFilter(opt)}
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="cursor-pointer self-start text-muted-foreground hover:text-foreground sm:ml-auto"
+            >
+              <X className="size-3.5" />
+              Reset filters
+            </Button>
+          )}
+        </div>
+
+        {/* Row 2: THC band */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            THC
+          </span>
+          {THC_BANDS.map((band) => (
+            <button
+              key={band.value}
+              type="button"
+              onClick={() => setThcBand(band.value)}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                typeFilter === opt
+                thcBand === band.value
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
+              title={band.range}
             >
-              {opt === "all" ? "All types" : TYPE_LABEL[opt]}
+              {band.label}
             </button>
           ))}
+        </div>
+
+        {/* Row 3: effect buckets */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Feels like
+          </span>
+          {EFFECT_BUCKETS.map((bucket) => {
+            const active = effectFilter.includes(bucket.id);
+            return (
+              <button
+                key={bucket.id}
+                type="button"
+                onClick={() => toggleEffect(bucket.id)}
+                aria-pressed={active}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+              >
+                {bucket.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -108,8 +263,19 @@ export function StrainDirectory() {
           <p className="mt-1 max-w-sm text-xs text-muted-foreground">
             {popular.length === 0
               ? "We couldn't reach Leafly's directory right now. Try again in a minute."
-              : "Try a different name or type."}
+              : "Try widening the type or THC filter, or removing an effect."}
           </p>
+          {filtersActive && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={resetFilters}
+              className="mt-4 cursor-pointer rounded-full"
+            >
+              Reset filters
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -137,6 +303,18 @@ export function StrainDirectory() {
                 <p className="mt-1 font-mono text-[11px] tracking-wide text-muted-foreground">
                   THC {p.thcRange}
                 </p>
+              )}
+              {p.effects && p.effects.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {p.effects.slice(0, 3).map((e) => (
+                    <span
+                      key={e.name}
+                      className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground"
+                    >
+                      {e.name}
+                    </span>
+                  ))}
+                </div>
               )}
               {p.description && (
                 <p className="mt-3 line-clamp-3 text-xs leading-5 text-muted-foreground">
@@ -170,9 +348,10 @@ export function StrainDirectory() {
         </div>
       )}
 
-      {popular.length > 0 && filtered.length < popular.length && (
+      {popular.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          Showing {filtered.length} of {popular.length} strains.
+          Showing {filtered.length} of {popular.length} strains
+          {filtersActive ? " with current filters" : ""}.
         </p>
       )}
     </div>
