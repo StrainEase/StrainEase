@@ -1,4 +1,5 @@
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,7 +15,7 @@ import type { StrainProfile } from "@/lib/strain-profile";
 import logo from "@/assets/logo.svg";
 import { ArrowLeft, GitCompareArrows, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 export default function Strain() {
@@ -72,6 +73,11 @@ export default function Strain() {
   const others = savedNames.filter(
     (n) => n.toLowerCase() !== (profile?.name ?? "").toLowerCase(),
   );
+  const isSaved = useMemo(() => {
+    if (!profile) return false;
+    const target = profile.name.trim().toLowerCase();
+    return savedNames.some((n) => n.trim().toLowerCase() === target);
+  }, [profile, savedNames]);
 
   return (
     <main className="min-h-[100dvh] bg-background text-foreground">
@@ -206,6 +212,14 @@ export default function Strain() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {isAuthenticated && profile && (
+              <SavedStrainNotes
+                slug={slugify(profile.name)}
+                strainName={profile.name}
+                isSaved={isSaved}
+              />
             )}
           </motion.div>
         )}
