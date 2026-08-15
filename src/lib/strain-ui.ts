@@ -22,10 +22,10 @@ export const CONDITIONS = [
 export function typeBadgeClass(type: string): string {
   switch (type) {
     case "indica":
-      return "bg-amber-500/10 text-amber-700";
+      return "bg-amber-500/10 text-amber-700 dark:text-amber-400";
     case "sativa":
-      return "bg-sky-500/10 text-sky-700";
+      return "bg-sky-500/10 text-sky-700 dark:text-sky-400";
     default:
-      return "bg-emerald-500/10 text-emerald-700";
+      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
   }
 }

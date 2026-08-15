@@ -19,8 +19,8 @@ import {
   signInWithRedirect,
 } from "firebase/auth";
 import { ArrowRight, Loader2, Lock, Mail } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 interface AuthProps {
   redirectAfterAuth?: string;
@@ -88,7 +88,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     };
   }, [auth, authLoading, isAuthenticated]);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!auth) return;
     setIsLoading(true);
@@ -153,19 +153,20 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   if (!isFirebaseConfigured) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-[100dvh] flex-col">
         <div className="flex flex-1 items-center justify-center px-6">
-          <Card className="w-full max-w-md border shadow-md">
+          <Card className="w-full max-w-md border">
             <CardHeader className="text-center">
               <div className="flex justify-center">
-                <img
-                  src={logo}
-                  alt="StrainWise logo"
-                  width={64}
-                  height={64}
-                  className="mb-4 mt-4 cursor-pointer rounded-lg"
-                  onClick={() => navigate("/")}
-                />
+                <Link to="/">
+                  <img
+                    src={logo}
+                    alt="StrainWise logo"
+                    width={64}
+                    height={64}
+                    className="mb-4 mt-4 rounded-lg"
+                  />
+                </Link>
               </div>
               <CardTitle className="text-xl">Almost there</CardTitle>
               <CardDescription>
@@ -205,22 +206,27 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex flex-1 items-center justify-center">
-        <div className="flex h-full flex-col items-center justify-center">
-          <Card className="min-w-[350px] border pb-0 shadow-md">
+    <div className="relative flex min-h-[100dvh] flex-col">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(50%_40%_at_50%_0%,oklch(0.86_0.07_158/0.35),transparent_70%)]"
+      />
+      <div className="flex flex-1 items-center justify-center px-6 py-12">
+        <div className="flex h-full w-full max-w-md flex-col items-center justify-center">
+          <Card className="w-full border pb-0">
             <CardHeader className="text-center">
               <div className="flex justify-center">
-                <img
-                  src={logo}
-                  alt="StrainWise logo"
-                  width={64}
-                  height={64}
-                  className="mb-4 mt-4 cursor-pointer rounded-lg"
-                  onClick={() => navigate("/")}
-                />
+                <Link to="/">
+                  <img
+                    src={logo}
+                    alt="StrainWise logo"
+                    width={64}
+                    height={64}
+                    className="mb-4 mt-4 rounded-lg"
+                  />
+                </Link>
               </div>
-              <CardTitle className="text-xl">Welcome to StrainWise</CardTitle>
+              <CardTitle className="text-xl tracking-tight">Welcome to StrainWise</CardTitle>
               <CardDescription>
                 Sign in to compare strains, save your favorites, and keep
                 private notes
@@ -282,7 +288,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   }}
                   className={`flex-1 cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     mode === m
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -359,7 +365,13 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
 export default function AuthPage(props: AuthProps) {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[100dvh] items-center justify-center">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
       <Auth {...props} />
     </Suspense>
   );
