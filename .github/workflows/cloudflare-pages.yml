@@ -15,9 +15,8 @@
 #     inlined into the bundle at build time, so they must be available here.
 #   (Optional: VITE_FIREBASE_STORAGE_BUCKET, VITE_FIREBASE_MESSAGING_SENDER_ID)
 #
-# Required GitHub variable (Settings → Secrets and variables → Actions → Variables):
-#   CLOUDFLARE_PROJECT_NAME — the Cloudflare Pages project name (create the
-#     project first in Cloudflare → Workers & Pages → Create → Pages).
+# The Cloudflare worker name and static-asset config live in wrangler.jsonc at
+# the repo root (create the project once in Cloudflare → Workers & Pages).
 
 name: Deploy to Cloudflare Pages
 
@@ -56,4 +55,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }} --branch=main
+          # Uses the committed wrangler.jsonc (worker name + dist assets +
+          # SPA fallback) — same config the Cloudflare dashboard builds use.
+          command: deploy

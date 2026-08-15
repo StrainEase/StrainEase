@@ -25,3 +25,6 @@ dist-ssr
 
 # Firebase Functions build output
 functions/lib
+
+# Wrangler (Cloudflare)
+.wrangler/
