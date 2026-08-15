@@ -204,12 +204,14 @@ function StrainCard({
 }) {
   const tiltRef = usePointerTilt<HTMLAnchorElement>(8);
 
+  const hasFooter = Boolean(strain.terpenes) || Boolean(strain.leaflyNote);
+
   return (
-    <motion.div {...fadeUp(delay)}>
+    <motion.div {...fadeUp(delay)} className="h-full">
       <Link
         ref={tiltRef}
         to={href}
-        className="tilt-card group block rounded-2xl border border-border/70 bg-card p-6 transition-[border-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-primary/40"
+        className="tilt-card group flex h-full flex-col rounded-2xl border border-border/70 bg-card p-6 transition-[border-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-primary/40"
       >
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold tracking-tight">{strain.name}</h3>
@@ -237,17 +239,21 @@ function StrainCard({
             {strain.description}
           </p>
         )}
-        {strain.terpenes && (
-          <p className="mt-4 border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">
-            <span className="font-medium text-foreground">Terpenes</span> —{" "}
-            {strain.terpenes}
-          </p>
-        )}
-        {strain.leaflyNote && (
-          <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-primary">
-            <Leaf className="size-3.5" />
-            Leafly · {strain.leaflyNote}
-          </p>
+        {hasFooter && (
+          <div className="mt-auto pt-4">
+            {strain.terpenes && (
+              <p className="border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">
+                <span className="font-medium text-foreground">Terpenes</span> —{" "}
+                {strain.terpenes}
+              </p>
+            )}
+            {strain.leaflyNote && (
+              <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-primary">
+                <Leaf className="size-3.5" />
+                Leafly · {strain.leaflyNote}
+              </p>
+            )}
+          </div>
         )}
       </Link>
     </motion.div>
