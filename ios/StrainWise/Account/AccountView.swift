@@ -13,6 +13,27 @@ struct AccountView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         header
                         SavedAilmentsCard(onFind: onFindAilments)
+                        NavigationLink {
+                            ReliefHistoryView()
+                        } label: {
+                            SWCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Relief history")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Palette.foreground)
+                                        Text("How strains actually went for you")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Palette.mutedForeground)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Palette.mutedForeground)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
                         SWCard {
                             VStack(alignment: .leading, spacing: 10) {
                                 labeled("Email", session.user?.email ?? "Not on file")
@@ -81,4 +102,5 @@ struct AccountView: View {
         .environment(AuthSession.previewSignedIn)
         .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
         .environment(SavedAilmentsStore.preview(["Anxiety"]))
+        .environment(ReliefLogStore.preview([.sampleSleep]))
 }

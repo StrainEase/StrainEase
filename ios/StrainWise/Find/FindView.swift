@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FindView: View {
     @Environment(SavedAilmentsStore.self) private var savedAilments
+    @Environment(ReliefLogStore.self) private var relief
     @State private var model: FindModel
     @State private var path: [StrainProfile] = []
     @FocusState private var searchFocused: Bool
@@ -18,6 +19,14 @@ struct FindView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
                         hero
+                        if let hint = relief.tonightHint {
+                            SWCard {
+                                Text(hint)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Palette.foreground)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                         conditions
                         potency
                         prefs
@@ -325,7 +334,7 @@ struct FindView: View {
                 systemImage: "arrow.left.arrow.right",
                 isBusy: model.isComparing
             ) {
-                Task { await model.compareSelected() }
+                Task { await model.compareSelected(reliefSummary: relief.summary.isEmpty ? nil : relief.summary) }
             }
             .disabled(!model.canCompare)
             .opacity(model.canCompare || model.isComparing ? 1 : 0.55)
@@ -421,7 +430,7 @@ struct FindView: View {
             systemImage: "sparkles",
             isBusy: model.isRunning
         ) {
-            Task { await model.find() }
+            Task { await model.find(reliefSummary: relief.summary.isEmpty ? nil : relief.summary) }
         }
         .disabled(!model.canFind)
         .opacity(model.canFind || model.isRunning ? 1 : 0.55)
@@ -558,6 +567,7 @@ struct FindView: View {
         .environment(SavedStrainsStore.preview())
         .environment(SavedAilmentsStore.preview())
         .environment(RecentlyViewedStore.preview())
+        .environment(ReliefLogStore.preview([.sampleSleep]))
 }
 
 #Preview("Results · Dark") {
@@ -566,5 +576,6 @@ struct FindView: View {
         .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
         .environment(SavedAilmentsStore.preview(["Insomnia"]))
         .environment(RecentlyViewedStore.preview())
+        .environment(ReliefLogStore.preview())
         .preferredColorScheme(.dark)
 }

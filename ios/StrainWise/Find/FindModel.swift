@@ -59,7 +59,7 @@ final class FindModel {
         customAilment = ""
     }
 
-    func find() async {
+    func find(reliefSummary: String? = nil) async {
         guard canFind else { return }
         isRunning = true
         errorMessage = nil
@@ -73,7 +73,8 @@ final class FindModel {
             result = try await api.recommend(
                 conditions: ailments,
                 potency: potency,
-                prefs: prefs
+                prefs: prefs,
+                reliefSummary: reliefSummary
             )
         } catch {
             errorMessage = error.localizedDescription
@@ -110,7 +111,7 @@ final class FindModel {
         compareNames.removeAll { $0.caseInsensitiveCompare(name) == .orderedSame }
     }
 
-    func compareSelected() async {
+    func compareSelected(reliefSummary: String? = nil) async {
         guard canCompare else { return }
         isComparing = true
         errorMessage = nil
@@ -119,7 +120,8 @@ final class FindModel {
             comparison = try await api.compare(
                 strainNames: compareNames,
                 conditions: ailments,
-                prefs: prefs
+                prefs: prefs,
+                reliefSummary: reliefSummary
             )
         } catch {
             errorMessage = error.localizedDescription
