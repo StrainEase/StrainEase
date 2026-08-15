@@ -1,0 +1,416 @@
+import SwiftUI
+
+struct FindView: View {
+    @State private var model: FindModel
+    @State private var path: [StrainProfile] = []
+    @FocusState private var searchFocused: Bool
+
+    init(model: FindModel) {
+        _model = State(initialValue: model)
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            ZStack {
+                MeshBackground()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 28) {
+                        hero
+                        conditions
+                        potency
+                        prefs
+                        findButton
+                        if let error = model.errorMessage {
+                            errorBanner(error)
+                        }
+                        if model.isRunning {
+                            running
+                        }
+                        if let result = model.result {
+                            results(result)
+                                .id(result.headline)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 24)
+                }
+                .scrollDismissesKeyboard(.interactively)
+            }
+            .navigationTitle("Search")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 8) {
+                        Image("AppLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 26, height: 26)
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        Text("StrainWise")
+                            .font(.system(.headline, design: .serif))
+                            .foregroundStyle(Palette.foreground)
+                    }
+                    .accessibilityHidden(true)
+                }
+            }
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                searchBar
+            }
+            .overlay(alignment: .top) {
+                if let lookupError = model.lookupError {
+                    Text(lookupError)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Palette.destructive)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Palette.card, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
+                        .padding(.top, 8)
+                }
+            }
+            .navigationDestination(for: StrainProfile.self) { profile in
+                StrainDetailView(profile: profile)
+            }
+        }
+        .tint(Palette.primary)
+        .animation(.snappy(duration: 0.35), value: model.isRunning)
+        .animation(.snappy(duration: 0.4), value: model.result?.headline)
+    }
+
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Eyebrow(text: "Patient research")
+            Text("What are we treating?")
+                .font(.system(.largeTitle, design: .serif).weight(.regular))
+                .foregroundStyle(Palette.foreground)
+            Text("Pick symptoms, set the night you need, and we’ll rank strains patients actually report.")
+                .font(.system(size: 16))
+                .foregroundStyle(Palette.mutedForeground)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var conditions: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionLabel("Symptoms", index: 1)
+            FlowLayout(spacing: 8) {
+                ForEach(Conditions.catalog, id: \.self) { name in
+                    SWChip(title: name, isOn: model.isSelected(name)) {
+                        model.toggleAilment(name)
+                    }
+                }
+            }
+            HStack(spacing: 8) {
+                TextField("Or type any symptom", text: $model.customAilment)
+                    .textInputAutocapitalization(.sentences)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .background(Palette.card, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
+                    .onSubmit { model.addCustomAilment() }
+                Button {
+                    model.addCustomAilment()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Palette.primaryForeground)
+                        .frame(width: 40, height: 40)
+                        .background(Palette.primary, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add symptom")
+            }
+            if !model.ailments.filter({ name in !Conditions.catalog.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) }).isEmpty {
+                FlowLayout(spacing: 8) {
+                    ForEach(model.ailments.filter { name in
+                        !Conditions.catalog.contains { $0.caseInsensitiveCompare(name) == .orderedSame }
+                    }, id: \.self) { name in
+                        SWChip(title: name, isOn: true) {
+                            model.toggleAilment(name)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var potency: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionLabel("Potency", index: 2)
+            FlowLayout(spacing: 8) {
+                ForEach(Potency.allCases) { option in
+                    SWChip(title: option.label, isOn: model.potency == option) {
+                        model.potency = option
+                    }
+                }
+            }
+            Text(model.potency.hint)
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.mutedForeground)
+        }
+    }
+
+    private var prefs: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("When will you use it?", index: 3)
+                FlowLayout(spacing: 8) {
+                    ForEach(TimeOfDay.allCases) { option in
+                        SWChip(title: option.label, isOn: model.prefs.timeOfDay == option) {
+                            model.prefs.timeOfDay = option
+                        }
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("Form", index: 4)
+                FlowLayout(spacing: 8) {
+                    ForEach(ConsumeForm.allCases) { option in
+                        SWChip(title: option.label, isOn: model.prefs.consumeForm == option) {
+                            model.prefs.consumeForm = option
+                        }
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("THC sensitivity", index: 5)
+                FlowLayout(spacing: 8) {
+                    ForEach(ThcSensitivity.allCases) { option in
+                        SWChip(title: option.label, isOn: model.prefs.thcSensitivity == option) {
+                            model.prefs.thcSensitivity = option
+                        }
+                    }
+                }
+                if let hint = model.prefs.thcSensitivity.hint {
+                    Text(hint)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.mutedForeground)
+                }
+            }
+            SWField(
+                title: "In your words (optional)",
+                placeholder: "I need to sleep but I have to be up at 7…",
+                text: $model.prefs.patientNote
+            )
+            SWField(
+                title: "Already have",
+                placeholder: "Blue Dream, Gelato",
+                text: $model.prefs.ownedStrainsText
+            )
+            VStack(alignment: .leading, spacing: 6) {
+                SWField(
+                    title: "Other meds",
+                    placeholder: "Medication we should be careful around",
+                    text: $model.prefs.medications
+                )
+                Text("We never tell you to stop a prescription — only to check with your clinician.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.mutedForeground)
+            }
+        }
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.mutedForeground)
+                    .accessibilityHidden(true)
+                TextField("Look up a strain", text: $model.lookupQuery)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                    .focused($searchFocused)
+                    .onSubmit { Task { await lookup() } }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(Palette.card, in: Capsule())
+            .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
+
+            Button {
+                Task { await lookup() }
+            } label: {
+                Group {
+                    if model.isLookingUp {
+                        ProgressView()
+                            .tint(Palette.primaryForeground)
+                    } else {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                }
+                .foregroundStyle(Palette.primaryForeground)
+                .frame(width: 44, height: 44)
+                .background(Palette.primary, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!model.canLookup)
+            .opacity(model.canLookup || model.isLookingUp ? 1 : 0.45)
+            .accessibilityLabel("Search")
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(Palette.background.opacity(0.94))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Palette.border)
+                .frame(height: 1)
+        }
+    }
+
+    private var findButton: some View {
+        SWPrimaryButton(
+            title: model.canFind || model.isRunning ? "Find strains" : "Pick a symptom first",
+            systemImage: "sparkles",
+            isBusy: model.isRunning
+        ) {
+            Task { await model.find() }
+        }
+        .disabled(!model.canFind)
+        .opacity(model.canFind || model.isRunning ? 1 : 0.55)
+        .sensoryFeedback(.impact(weight: .medium), trigger: model.isRunning)
+    }
+
+    private var running: some View {
+        SWCard {
+            HStack(alignment: .top, spacing: 12) {
+                ProgressView()
+                    .tint(Palette.primary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Researching")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Palette.foreground)
+                    Text(model.step.rawValue)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.mutedForeground)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private func results(_ result: RecommendationResult) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("For \(model.searched.joined(separator: ", "))")
+                Text(result.headline)
+                    .font(.system(.title, design: .serif))
+                    .foregroundStyle(Palette.foreground)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(result.summary)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Palette.mutedForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ForEach(Array(result.recommendations.enumerated()), id: \.element.id) { index, rec in
+                let profile = result.profile(named: rec.strainName)
+                    ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
+                Button {
+                    path.append(profile)
+                } label: {
+                    recommendationCard(rec, rank: index + 1, profile: profile)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button("Start over", action: model.reset)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Palette.mutedForeground)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+        }
+    }
+
+    private func recommendationCard(_ rec: StrainRecommendation, rank: Int, profile: StrainProfile) -> some View {
+        SWCard(emphasized: rank == 1) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(String(format: "%02d", rank))
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Palette.primary)
+                    Text(rec.strainName)
+                        .font(.system(.title3, design: .serif))
+                        .foregroundStyle(Palette.foreground)
+                    Spacer(minLength: 8)
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.mutedForeground)
+                        .frame(width: 28, height: 28)
+                        .background(Palette.muted, in: Circle())
+                }
+                if let type = profile.type {
+                    TypeBadge(type: type)
+                }
+                Text(rec.reason)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.foreground.opacity(0.88))
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    labeled("Best for", rec.bestFor)
+                    labeled("Caution", rec.caution)
+                }
+            }
+        }
+    }
+
+    private func labeled(_ title: String, _ body: String) -> some View {
+        Group {
+            if !body.isEmpty {
+                Text("\(title)  ")
+                    .foregroundStyle(Palette.mutedForeground)
+                    .font(.system(size: 13, weight: .semibold))
+                + Text(body)
+                    .foregroundStyle(Palette.mutedForeground)
+                    .font(.system(size: 13))
+            }
+        }
+    }
+
+    private func errorBanner(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Palette.destructive)
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundStyle(Palette.foreground)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.destructive.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Palette.destructive.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private func lookup() async {
+        guard model.canLookup else { return }
+        if let profile = await model.lookup() {
+            searchFocused = false
+            path.append(profile)
+        }
+    }
+}
+
+#Preview("Empty") {
+    FindView(model: .previewEmpty)
+        .environment(\.strainAPI, PreviewStrainAPI())
+        .environment(SavedStrainsStore.preview())
+        .environment(RecentlyViewedStore.preview())
+}
+
+#Preview("Results · Dark") {
+    FindView(model: .previewFilled)
+        .environment(\.strainAPI, PreviewStrainAPI())
+        .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
+        .environment(RecentlyViewedStore.preview())
+        .preferredColorScheme(.dark)
+}

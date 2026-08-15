@@ -1,0 +1,141 @@
+import SwiftUI
+
+struct StrainPoster: View {
+    let profile: StrainProfile
+    var compact = false
+    var photoHeight: CGFloat? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 6 : 8) {
+            StrainPhoto(
+                urlString: profile.imageUrl,
+                type: profile.type,
+                height: photoHeight ?? (compact ? 108 : 132),
+                cornerRadius: 16
+            )
+            TypeBadge(type: profile.type)
+            Text(profile.name)
+                .font(.system(size: compact ? 13 : 15, weight: .semibold, design: .serif))
+                .foregroundStyle(Palette.foreground)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: compact ? 32 : 38, alignment: .top)
+            if let thc = profile.thcRange, !thc.isEmpty {
+                Text("THC \(thc)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.mutedForeground)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(profile.name)
+        .accessibilityHint(profile.subtitle)
+    }
+}
+
+struct StrainPhoto: View {
+    let urlString: String?
+    var type: StrainType?
+    var height: CGFloat = 88
+    var cornerRadius: CGFloat = 16
+
+    private var hasPhoto: Bool { urlString?.isEmpty == false }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(hasPhoto ? Color.white : TypeStyle.color(for: type).opacity(0.14))
+            if let urlString, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .padding(height > 160 ? 8 : 4)
+                    case .failure:
+                        leaf
+                    case .empty:
+                        leaf.opacity(0.45)
+                    @unknown default:
+                        leaf
+                    }
+                }
+            } else {
+                leaf
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Palette.border, lineWidth: 1)
+        )
+        .accessibilityHidden(true)
+    }
+
+    private var leaf: some View {
+        Image(systemName: "leaf.fill")
+            .font(.system(size: height > 120 ? 32 : 24, weight: .semibold))
+            .foregroundStyle(TypeStyle.color(for: type).opacity(0.7))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct StrainRail: View {
+    let title: String
+    let strains: [StrainProfile]
+    var emptyText: String?
+    var onSeeMore: () -> Void
+    var onSelect: (StrainProfile) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            StrainSectionHeader(title: title, onSeeMore: strains.isEmpty ? nil : onSeeMore)
+            if strains.isEmpty {
+                Text(emptyText ?? "Nothing here yet.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.mutedForeground)
+                    .padding(.vertical, 8)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(strains) { profile in
+                            Button {
+                                onSelect(profile)
+                            } label: {
+                                StrainPoster(profile: profile)
+                                    .frame(width: 148, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .padding(.horizontal, -20)
+            }
+        }
+    }
+}
+
+struct StrainSectionHeader: View {
+    let title: String
+    var onSeeMore: (() -> Void)?
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.system(.title3, design: .serif))
+                .foregroundStyle(Palette.foreground)
+            Spacer(minLength: 8)
+            if let onSeeMore {
+                Button("See more", action: onSeeMore)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.primary)
+                    .accessibilityHint("Opens the full \(title) list")
+            }
+        }
+    }
+}
