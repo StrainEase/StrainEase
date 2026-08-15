@@ -40,4 +40,10 @@ export type StrainProfile = {
   description?: string;
   communityNotes?: CommunityNote[];
   redditSources?: RedditSource[];
+  /** HTTPS photo from Leafly (`nugImage`) or Weedmaps when available. */
+  imageUrl?: string;
+  /** Leafly aggregate rating (0–5). Not a patient quote. */
+  leaflyRating?: number;
+  /** Leafly published review count for the star rating. */
+  leaflyReviewCount?: number;
 };

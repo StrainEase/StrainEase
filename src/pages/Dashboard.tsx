@@ -5,7 +5,7 @@ import {
   searchStrain as searchStrainCall,
 } from "@/lib/strain-api";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { StrainImage } from "@/components/strain/StrainImage";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
@@ -91,6 +92,7 @@ type SearchOutcome =
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const { summary: reliefSummary } = useReliefSummary();
   const { rid } = useParams();
   const [searchParams] = useSearchParams();
@@ -318,6 +320,17 @@ export default function Dashboard() {
               StrainWise
             </span>
           </Link>
+          <nav className="hidden items-center gap-1 sm:flex">
+            <Link
+              to="/"
+              className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              Home
+            </Link>
+            <span className="rounded-full bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground">
+              Find
+            </span>
+          </nav>
           <div className="flex items-center gap-4">
             {user?.name && (
               <span className="hidden text-sm text-muted-foreground sm:block">
@@ -329,7 +342,9 @@ export default function Dashboard() {
               variant="outline"
               size="sm"
               className="cursor-pointer gap-2"
-              onClick={() => void signOut()}
+              onClick={() => {
+                void signOut().then(() => navigate("/"));
+              }}
             >
               <LogOut className="size-4" />
               Sign out
@@ -491,6 +506,7 @@ export default function Dashboard() {
                   {searchOutcome?.type === "found" && (
                     <StrainRow
                       name={searchOutcome.profile.name}
+                      imageUrl={searchOutcome.profile.imageUrl}
                       subtitle={[
                         searchOutcome.profile.thcRange
                           ? `THC ${searchOutcome.profile.thcRange}`
@@ -551,9 +567,16 @@ export default function Dashboard() {
                             <StrainRow
                               key={p.name}
                               name={p.name}
+                              imageUrl={p.imageUrl}
                               subtitle={[
                                 p.thcRange ? `THC ${p.thcRange}` : null,
-                                p.communityNotes?.[0]?.text,
+                                typeof p.leaflyRating === "number"
+                                  ? `${p.leaflyRating.toFixed(1)}★${
+                                      typeof p.leaflyReviewCount === "number"
+                                        ? ` · ${p.leaflyReviewCount.toLocaleString("en-US")} reviews`
+                                        : ""
+                                    }`
+                                  : null,
                               ]
                                 .filter(Boolean)
                                 .join(" · ")}
@@ -580,6 +603,7 @@ export default function Dashboard() {
                               <StrainRow
                                 key={p.name}
                                 name={p.name}
+                                imageUrl={p.imageUrl}
                                 subtitle={p.thcRange ? `THC ${p.thcRange}` : ""}
                                 type={p.type}
                                 isSelected={selectedNames.some(
@@ -821,6 +845,7 @@ export default function Dashboard() {
 
 function StrainRow({
   name,
+  imageUrl,
   subtitle,
   type,
   isSelected,
@@ -828,6 +853,7 @@ function StrainRow({
   onClick,
 }: {
   name: string;
+  imageUrl?: string;
   subtitle?: string;
   type?: string;
   isSelected: boolean;
@@ -845,7 +871,13 @@ function StrainRow({
         disabled && !isSelected && "cursor-not-allowed opacity-40",
       )}
     >
-      <div className="min-w-0">
+      <StrainImage
+        src={imageUrl}
+        alt=""
+        className="size-10 shrink-0 rounded-lg border border-border/70"
+        iconClassName="size-4"
+      />
+      <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{name}</p>
         {subtitle && (
           <p className="truncate text-xs text-muted-foreground">{subtitle}</p>

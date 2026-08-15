@@ -3,6 +3,8 @@ export type QuoteNote = { source: string; text: string };
 const AILMENT_ALIASES: Record<string, string[]> = {
   insomnia: ["insomnia", "sleep", "asleep", "sleeping"],
   anxiety: ["anxiety", "anxious", "panic"],
+  ocd: ["ocd", "anxiety", "anxious", "obsessive"],
+  adhd: ["adhd", "add", "add/adhd"],
   "chronic pain": ["chronic pain", "pain", "ache"],
   depression: ["depression", "depressed", "mood"],
   "nausea & appetite": ["nausea", "appetite", "nauseous"],
@@ -201,7 +203,7 @@ const MILD_CAVEATS: { phrase: string; label: string }[] = [
 const THEMES: { label: string; aliases: string[] }[] = [
   { label: "sleep", aliases: ["sleep", "insomnia", "asleep", "sleepless"] },
   { label: "pain", aliases: ["pain", "ache", "aching"] },
-  { label: "anxiety", aliases: ["anxiety", "anxious", "panic", "worry"] },
+  { label: "anxiety", aliases: ["anxiety", "anxious", "panic", "worry", "ocd"] },
   { label: "stress", aliases: ["stress", "stressed"] },
   { label: "mood", aliases: ["depression", "depressed", "mood"] },
   { label: "appetite", aliases: ["appetite", "hungry", "nausea"] },
@@ -231,7 +233,17 @@ function countHits(text: string, phrases: string[]): number {
 
 export function parseLeaflyRating(
   notes: QuoteNote[],
+  explicit?: { leaflyRating?: number; leaflyReviewCount?: number },
 ): { stars: number; reviewCount: number | null } | null {
+  if (typeof explicit?.leaflyRating === "number") {
+    return {
+      stars: explicit.leaflyRating,
+      reviewCount:
+        typeof explicit.leaflyReviewCount === "number"
+          ? explicit.leaflyReviewCount
+          : null,
+    };
+  }
   for (const note of notes) {
     if (note.source.toLowerCase() !== "leafly community") continue;
     const stars = note.text.match(/(\d+(?:\.\d+)?)★/);
@@ -243,6 +255,17 @@ export function parseLeaflyRating(
     };
   }
   return null;
+}
+
+export function formatLeaflyRatingLine(
+  rating: { stars: number; reviewCount: number | null } | null,
+): string | null {
+  if (!rating) return null;
+  const count =
+    rating.reviewCount !== null
+      ? ` · ${rating.reviewCount.toLocaleString("en-US")} reviews`
+      : "";
+  return `${rating.stars.toFixed(1)}★${count}`;
 }
 
 function weedmapsUses(notes: QuoteNote[]): string[] {
@@ -326,7 +349,7 @@ function emptySummary(
     channel === "reddit"
       ? conditions.length > 0
         ? `No Reddit comments mention ${name} together with ${joinList(conditions.map((c) => c.toLowerCase()))} yet.`
-        : `No Reddit comments were collected for ${name}. They show up when you compare strains for a symptom.`
+        : `No Reddit comments were collected for ${name} yet.`
       : `No Leafly or Weedmaps comments are in this profile for ${name} yet.`;
   return {
     tone: "insufficient",
@@ -344,13 +367,17 @@ export function summarizeChannel(
   channel: NoteChannel,
   strainName: string,
   conditions: string[] = [],
+  explicitRating?: { leaflyRating?: number; leaflyReviewCount?: number },
 ): ChannelSummary {
-  if (notes.length === 0) return emptySummary(channel, strainName, conditions);
+  const rating =
+    channel === "cannabis" ? parseLeaflyRating(notes, explicitRating) : null;
+  if (notes.length === 0 && !rating) {
+    return emptySummary(channel, strainName, conditions);
+  }
 
   const reviews = individualReviews(notes);
   const texts = reviews.map((n) => n.text.toLowerCase());
   const blob = texts.join(" ");
-  const rating = channel === "cannabis" ? parseLeaflyRating(notes) : null;
   const uses = channel === "cannabis" ? weedmapsUses(notes) : [];
   const positive = countHits(blob, POSITIVE_PHRASES);
   const negative = countHits(blob, NEGATIVE_PHRASES);
