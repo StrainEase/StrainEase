@@ -20,9 +20,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
+import {
+  compactPrefs,
+  type ResearchPrefs,
+} from "@/lib/research-prefs";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
@@ -83,6 +88,7 @@ export default function Dashboard() {
 
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const [condition, setCondition] = useState<string[]>([]);
+  const [prefs, setPrefs] = useState<ResearchPrefs>({});
   const [query, setQuery] = useState("");
   const [popular, setPopular] = useState<StrainProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -196,6 +202,7 @@ export default function Dashboard() {
       const args = {
         strainNames: names,
         condition: focus.length > 0 ? focus : undefined,
+        prefs: compactPrefs(prefs),
       };
       const comparison = await cachedRun(
         cacheKey("compare", args),
@@ -227,6 +234,7 @@ export default function Dashboard() {
     setError(null);
     setSelectedNames([]);
     setCondition([]);
+    setPrefs({});
     setQuery("");
     setSearchOutcome(null);
   };
@@ -555,6 +563,12 @@ export default function Dashboard() {
                     ))}
                   </div>
                 </div>
+
+                <PatientPrefsFields
+                  prefs={prefs}
+                  onChange={setPrefs}
+                  startAt={3}
+                />
 
                 {/* Run */}
                 <div className="space-y-2 pt-1">

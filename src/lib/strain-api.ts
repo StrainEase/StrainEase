@@ -1,5 +1,6 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./firebase";
+import type { ResearchPrefs } from "./research-prefs";
 import type { StrainProfile } from "./strain-profile";
 
 // Response shapes returned by the Firebase Functions backend (functions/src).
@@ -64,6 +65,7 @@ export function searchStrain(name: string): Promise<StrainProfile | null> {
 export function compareStrains(args: {
   strainNames: string[];
   condition?: string[];
+  prefs?: ResearchPrefs;
 }): Promise<StrainComparison> {
   return call<typeof args, StrainComparison>("compareStrains", args);
 }
@@ -72,6 +74,7 @@ export function compareStrains(args: {
 export function recommendStrains(args: {
   conditions: string[];
   potency?: "mild" | "balanced" | "strong";
+  prefs?: ResearchPrefs;
 }): Promise<RecommendationResult> {
   return call<typeof args, RecommendationResult>(
     "recommendStrainsForConditions",

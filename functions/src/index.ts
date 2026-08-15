@@ -53,6 +53,7 @@ Rules:
 - Write for the patient: precise, calm, practical, and low-jargon. Lead with symptom relief and day-to-day usability. If you use a technical term, define it in one short phrase.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
 - If one or more condition focuses are given, evaluate each strain's suitability for those conditions and name the single best fit for the patient.
+- Honor the patient's context when provided: time of day, form, THC sensitivity, medications (caution only — never tell them to stop a prescription), strains they already have, and anything they wrote in their own words.
 - Respond with ONLY a single JSON object. No markdown, no text outside the JSON.
 
 JSON shape (all fields required):
@@ -72,6 +73,7 @@ Rules:
 - Recommend 3-5 distinct strains, ordered from best overall fit to least.
 - Every recommendation needs a concrete reason tied to the patient's symptoms, a note on who it suits best (e.g. daytime vs evening use, anxiety-sensitive patients), and one practical caution.
 - Respect the potency preference if one is given.
+- Honor the patient's context when provided: time of day, form, THC sensitivity, medications (caution only — never tell them to stop a prescription), strains they already have, and anything they wrote in their own words. Treat their own sentence as the primary intent.
 - Write for the patient: precise, calm, practical, and low-jargon. If you use a technical term, define it in one short phrase.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
 - Respond with ONLY a single JSON object. No markdown, no text outside the JSON.
@@ -97,9 +99,102 @@ const POTENCY_LABELS: Record<string, string> = {
   strong: "strong (THC above roughly 22%)",
 };
 
+type ResearchPrefs = {
+  timeOfDay?: string;
+  consumeForm?: string;
+  thcSensitivity?: string;
+  medications?: string;
+  ownedStrains?: string[];
+  patientNote?: string;
+};
+
+function parsePrefs(raw: unknown): ResearchPrefs | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const p = raw as Record<string, unknown>;
+  const timeOfDay =
+    p.timeOfDay === "morning" ||
+    p.timeOfDay === "afternoon" ||
+    p.timeOfDay === "night"
+      ? p.timeOfDay
+      : undefined;
+  const consumeForm =
+    p.consumeForm === "flower" ||
+    p.consumeForm === "cart" ||
+    p.consumeForm === "edible" ||
+    p.consumeForm === "tincture"
+      ? p.consumeForm
+      : undefined;
+  const thcSensitivity =
+    p.thcSensitivity === "anxious-high-thc" ||
+    p.thcSensitivity === "experienced"
+      ? p.thcSensitivity
+      : undefined;
+  const medications =
+    typeof p.medications === "string" && p.medications.trim()
+      ? p.medications.trim().slice(0, 240)
+      : undefined;
+  const ownedStrains = asStringArray(p.ownedStrains)
+    .map((s) => s.trim())
+    .filter((s) => s !== "")
+    .slice(0, 8);
+  const patientNote =
+    typeof p.patientNote === "string" && p.patientNote.trim()
+      ? p.patientNote.trim().slice(0, 400)
+      : undefined;
+  if (
+    !timeOfDay &&
+    !consumeForm &&
+    !thcSensitivity &&
+    !medications &&
+    ownedStrains.length === 0 &&
+    !patientNote
+  ) {
+    return undefined;
+  }
+  return {
+    timeOfDay,
+    consumeForm,
+    thcSensitivity,
+    medications,
+    ownedStrains: ownedStrains.length > 0 ? ownedStrains : undefined,
+    patientNote,
+  };
+}
+
+function prefsBlock(prefs: ResearchPrefs | undefined): string {
+  if (!prefs) return "";
+  const lines = ["Patient context:"];
+  if (prefs.timeOfDay) lines.push(`- Time of use: ${prefs.timeOfDay}`);
+  if (prefs.consumeForm) lines.push(`- Form they will use: ${prefs.consumeForm}`);
+  if (prefs.thcSensitivity === "anxious-high-thc") {
+    lines.push(
+      "- THC-sensitive: high-THC sativas often worsen their anxiety. Prefer gentler, more balanced options.",
+    );
+  } else if (prefs.thcSensitivity === "experienced") {
+    lines.push("- Experienced with stronger flower; potency can run higher.");
+  }
+  if (prefs.medications) {
+    lines.push(
+      `- They take: ${prefs.medications}. Do not advise stopping medication. Include a caution to check interactions with their clinician.`,
+    );
+  }
+  if (prefs.ownedStrains && prefs.ownedStrains.length > 0) {
+    lines.push(
+      `- They already have: ${prefs.ownedStrains.join(", ")}. Weigh those as convenient options when they fit.`,
+    );
+  }
+  if (prefs.patientNote) {
+    lines.push(
+      `- In their own words (treat as primary intent): "${prefs.patientNote}"`,
+    );
+  }
+  return lines.join("\n");
+}
+
 function comparePrompt(
   strains: StrainProfile[],
   conditions: string[] | undefined,
+  prefs?: ResearchPrefs,
 ): string {
   const payload = strains.map((s) =>
     s.inKnowledgeBase
@@ -125,6 +220,7 @@ function comparePrompt(
         ? conditions.join(", ")
         : "none — give a general comparison focused on patient symptom relief"
     }`,
+    prefsBlock(prefs),
     "",
     "Strain data (Leafly + Weedmaps, with Reddit quotes when found):",
     JSON.stringify(payload, null, 2),
@@ -139,6 +235,7 @@ function recommendPrompt(
   strains: StrainProfile[],
   conditions: string[],
   potency: string | undefined,
+  prefs?: ResearchPrefs,
 ): string {
   const payload = strains.map((s) => ({
     name: s.name,
@@ -159,6 +256,7 @@ function recommendPrompt(
     potency
       ? `Potency preference: ${POTENCY_LABELS[potency]}.`
       : "Potency preference: none — pick whatever potency fits the symptoms best.",
+    prefsBlock(prefs),
     "",
     "Strain data (full Leafly profiles — type, potency, medical uses, effects, reviews):",
     JSON.stringify(payload, null, 2),
@@ -258,12 +356,14 @@ export const compareStrains = onCall(
     const data = (request.data ?? {}) as {
       strainNames?: unknown;
       condition?: unknown;
+      prefs?: unknown;
     };
     const names = asStringArray(data.strainNames);
     if (names.length < 2 || names.length > 3) {
       throw new HttpsError("invalid-argument", "Select 2–3 strains to compare.");
     }
     const condition = asStringArray(data.condition);
+    const prefs = parsePrefs(data.prefs);
 
     // Full profiles: Leafly + Weedmaps, Reddit quotes for the ailments,
     // and MiniMax fill-in when a name is missing from both catalogs.
@@ -275,7 +375,7 @@ export const compareStrains = onCall(
 
     const content = await callMiniMax(MINIMAX_API_KEY.value(), [
       { role: "system", content: COMPARE_SYSTEM_PROMPT },
-      { role: "user", content: comparePrompt(strains, condition) },
+      { role: "user", content: comparePrompt(strains, condition, prefs) },
     ]);
 
     return { strains, analysis: parseAnalysis(content) };
@@ -298,6 +398,7 @@ export const recommendStrainsForConditions = onCall(
     const data = (request.data ?? {}) as {
       conditions?: unknown;
       potency?: unknown;
+      prefs?: unknown;
     };
     const conditions = asStringArray(data.conditions);
     if (conditions.length === 0) {
@@ -311,6 +412,7 @@ export const recommendStrainsForConditions = onCall(
       potencyRaw === "mild" || potencyRaw === "balanced" || potencyRaw === "strong"
         ? potencyRaw
         : undefined;
+    const prefs = parsePrefs(data.prefs);
 
     // Rank against full Leafly detail profiles (not the popular-list
     // summaries) so medical uses, CBD, lineage and side effects are present.
@@ -321,7 +423,7 @@ export const recommendStrainsForConditions = onCall(
       { role: "system", content: RECOMMEND_SYSTEM_PROMPT },
       {
         role: "user",
-        content: recommendPrompt(detailed, conditions, potency),
+        content: recommendPrompt(detailed, conditions, potency, prefs),
       },
     ]);
 
