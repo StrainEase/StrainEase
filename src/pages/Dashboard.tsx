@@ -23,6 +23,7 @@ import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
+import { pullQuotesFromStrains } from "@/lib/quotes";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
@@ -622,7 +623,10 @@ export default function Dashboard() {
                   </Button>
                 </div>
 
-                <AnalysisPanel analysis={result.analysis} />
+                <AnalysisPanel
+                  analysis={result.analysis}
+                  quotes={pullQuotesFromStrains(result.strains, condition)}
+                />
 
                 <div
                   className={cn(
@@ -641,7 +645,12 @@ export default function Dashboard() {
                     else if (runnerUp && norm(s.name) === norm(runnerUp))
                       badge = "runnerUp";
                     return (
-                      <StrainDetailCard key={s.name} strain={s} badge={badge} />
+                      <StrainDetailCard
+                        key={s.name}
+                        strain={s}
+                        badge={badge}
+                        conditions={condition}
+                      />
                     );
                   })}
                 </div>

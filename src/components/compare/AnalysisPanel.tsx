@@ -1,8 +1,10 @@
+import type { QuoteNote } from "@/lib/quotes";
 import {
   Award,
   Brain,
   CheckCircle2,
   GitCompareArrows,
+  Quote,
   ShieldAlert,
   Sparkles,
   TriangleAlert,
@@ -61,7 +63,13 @@ function BulletList({
   );
 }
 
-export function AnalysisPanel({ analysis }: { analysis: StrainAnalysis }) {
+export function AnalysisPanel({
+  analysis,
+  quotes = [],
+}: {
+  analysis: StrainAnalysis;
+  quotes?: { strain: string; note: QuoteNote }[];
+}) {
   const { headline, summary, forCondition } = analysis;
 
   return (
@@ -78,6 +86,24 @@ export function AnalysisPanel({ analysis }: { analysis: StrainAnalysis }) {
         <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
           {summary}
         </p>
+        {quotes.length > 0 && (
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {quotes.map(({ strain, note }) => (
+              <blockquote
+                key={`${strain}-${note.source}`}
+                className="rounded-xl border border-primary/20 bg-background/70 px-4 py-3"
+              >
+                <Quote className="mb-2 size-3.5 text-primary/60" />
+                <p className="text-sm leading-6 text-foreground/90">
+                  “{note.text}”
+                </p>
+                <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                  {strain} · {note.source}
+                </p>
+              </blockquote>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-8 px-6 py-6 sm:px-8 lg:grid-cols-[1.15fr_1fr]">
