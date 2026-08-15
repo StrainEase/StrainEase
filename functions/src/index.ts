@@ -107,6 +107,7 @@ type ResearchPrefs = {
   medications?: string;
   ownedStrains?: string[];
   patientNote?: string;
+  reliefSummary?: string;
 };
 
 function parsePrefs(raw: unknown): ResearchPrefs | undefined {
@@ -142,13 +143,18 @@ function parsePrefs(raw: unknown): ResearchPrefs | undefined {
     typeof p.patientNote === "string" && p.patientNote.trim()
       ? p.patientNote.trim().slice(0, 400)
       : undefined;
+  const reliefSummary =
+    typeof p.reliefSummary === "string" && p.reliefSummary.trim()
+      ? p.reliefSummary.trim().slice(0, 800)
+      : undefined;
   if (
     !timeOfDay &&
     !consumeForm &&
     !thcSensitivity &&
     !medications &&
     ownedStrains.length === 0 &&
-    !patientNote
+    !patientNote &&
+    !reliefSummary
   ) {
     return undefined;
   }
@@ -159,6 +165,7 @@ function parsePrefs(raw: unknown): ResearchPrefs | undefined {
     medications,
     ownedStrains: ownedStrains.length > 0 ? ownedStrains : undefined,
     patientNote,
+    reliefSummary,
   };
 }
 
@@ -187,6 +194,11 @@ function prefsBlock(prefs: ResearchPrefs | undefined): string {
   if (prefs.patientNote) {
     lines.push(
       `- In their own words (treat as primary intent): "${prefs.patientNote}"`,
+    );
+  }
+  if (prefs.reliefSummary) {
+    lines.push(
+      `- What actually happened last time (weight this heavily): ${prefs.reliefSummary}`,
     );
   }
   return lines.join("\n");

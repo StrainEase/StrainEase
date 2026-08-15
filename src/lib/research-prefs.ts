@@ -13,6 +13,7 @@ export type ResearchPrefs = {
   medications?: string;
   ownedStrains?: string[];
   patientNote?: string;
+  reliefSummary?: string;
 };
 
 export const TIME_OPTIONS: { value: TimeOfDay; label: string }[] = [
@@ -74,5 +75,6 @@ export function compactPrefs(prefs: ResearchPrefs): ResearchPrefs {
     medications,
     ownedStrains: owned.length > 0 ? owned : undefined,
     patientNote,
+    reliefSummary: prefs.reliefSummary?.trim() || undefined,
   };
 }

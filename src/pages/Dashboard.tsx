@@ -30,6 +30,7 @@ import {
   rememberCloud,
   rememberLocal,
 } from "@/lib/research-history";
+import { useReliefSummary } from "@/hooks/use-relief-summary";
 import {
   compactPrefs,
   type ResearchPrefs,
@@ -89,6 +90,7 @@ type SearchOutcome =
 
 export default function Dashboard() {
   const { user, isAuthenticated, signOut } = useAuth();
+  const { summary: reliefSummary } = useReliefSummary();
   const { rid } = useParams();
   const location = useLocation();
 
@@ -212,7 +214,7 @@ export default function Dashboard() {
       const args = {
         strainNames: names,
         condition: focus.length > 0 ? focus : undefined,
-        prefs: compactPrefs(prefs),
+        prefs: compactPrefs({ ...prefs, reliefSummary }),
       };
       const comparison = await cachedRun(
         cacheKey("compare", args),
@@ -748,7 +750,12 @@ export default function Dashboard() {
                     else if (runnerUp && norm(s.name) === norm(runnerUp))
                       badge = "runnerUp";
                     return (
-                      <StrainDetailCard key={s.name} strain={s} badge={badge} />
+                      <StrainDetailCard
+                        key={s.name}
+                        strain={s}
+                        badge={badge}
+                        conditions={condition}
+                      />
                     );
                   })}
                 </div>

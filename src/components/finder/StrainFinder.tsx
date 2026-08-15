@@ -7,6 +7,7 @@ import {
   rememberLocal,
 } from "@/lib/research-history";
 import { useAuth } from "@/hooks/use-auth";
+import { useReliefSummary } from "@/hooks/use-relief-summary";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ import {
   GitCompareArrows,
   HeartPulse,
   Loader2,
+  Moon,
   Plus,
   Sparkles,
   X,
@@ -64,6 +66,7 @@ export function StrainFinder({
   type RecommendResult = Awaited<ReturnType<typeof recommendStrainsCall>>;
 
   const { user } = useAuth();
+  const { hint: reliefHint, summary: reliefSummary } = useReliefSummary();
   const [ailments, setAilments] = useState<string[]>([]);
   const [searched, setSearched] = useState<string[]>([]);
   const [customAilment, setCustomAilment] = useState("");
@@ -144,7 +147,7 @@ export function StrainFinder({
       const args = {
         conditions: targets,
         potency: pref === "" ? undefined : pref,
-        prefs: compactPrefs(prefs),
+        prefs: compactPrefs({ ...prefs, reliefSummary }),
       };
       const res = await cachedRun(
         cacheKey("recommend", args),
@@ -307,6 +310,13 @@ export function StrainFinder({
                 </p>
               )}
             </div>
+
+            {reliefHint && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+                <Moon className="mt-0.5 size-4 shrink-0 text-primary" />
+                <p className="text-xs leading-5 text-foreground">{reliefHint}</p>
+              </div>
+            )}
 
             <PatientPrefsFields prefs={prefs} onChange={setPrefs} startAt={3} />
 
@@ -495,7 +505,11 @@ export function StrainFinder({
                 )}
               >
                 {result.strains.map((s) => (
-                  <StrainDetailCard key={s.name} strain={s} />
+                  <StrainDetailCard
+                    key={s.name}
+                    strain={s}
+                    conditions={searched}
+                  />
                 ))}
               </div>
             )}
