@@ -1,5 +1,6 @@
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { Button } from "@/components/ui/button";
+import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
 import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
 import { searchStrain } from "@/lib/strain-api";
@@ -10,7 +11,7 @@ import {
 } from "@/lib/strain-meaning";
 import type { StrainProfile } from "@/lib/strain-profile";
 import logo from "@/assets/logo.svg";
-import { ArrowLeft, GitCompareArrows, Loader2, Moon, Sun } from "lucide-react";
+import { ArrowLeft, GitCompareArrows, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -106,9 +107,14 @@ export default function Strain() {
         </button>
 
         {status === "loading" && (
-          <div className="flex justify-center py-24">
-            <Loader2 className="size-8 animate-spin text-primary" />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+            className="rounded-2xl border border-border/70 bg-card p-6"
+          >
+            <SkeletonLines variant="strain-card" />
+          </motion.div>
         )}
 
         {status !== "loading" && profile && (
