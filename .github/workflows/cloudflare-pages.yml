@@ -55,6 +55,10 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Pin to Wrangler 4 — v3 can't deploy a Worker with only
+          # `[assets]` (no `main` entry-point) and fails with
+          # "Missing entry-point". Keep this in sync with wrangler.jsonc.
+          wranglerVersion: "4"
           # Uses the committed wrangler.jsonc (worker name + dist assets +
           # SPA fallback) — same config the Cloudflare dashboard builds use.
           command: deploy
