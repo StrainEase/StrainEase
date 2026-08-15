@@ -1,0 +1,59 @@
+# Deploys the StrainWise frontend to Cloudflare Pages whenever code lands on
+# `main`, or on demand via the Actions tab. The backend (Firebase Cloud
+# Functions) is deployed by the separate "Deploy to Firebase" workflow.
+#
+# Required GitHub secrets:
+#   CLOUDFLARE_API_TOKEN — API token with "Cloudflare Pages: Edit" permission.
+#     Create it in Cloudflare dashboard → My Profile → API Tokens → Create Token
+#     (use the "Edit Cloudflare Workers" template, then add Pages:Edit, or use
+#     the Pages preset if offered).
+#   CLOUDFLARE_ACCOUNT_ID — your Cloudflare account id (dashboard home page or
+#     the Workers/Pages dashboard sidebar).
+#   VITE_FIREBASE_API_KEY / VITE_FIREBASE_AUTH_DOMAIN /
+#   VITE_FIREBASE_PROJECT_ID / VITE_FIREBASE_APP_ID — the same Firebase web
+#     config values the app already uses locally (from the Keys tab). These are
+#     inlined into the bundle at build time, so they must be available here.
+#   (Optional: VITE_FIREBASE_STORAGE_BUCKET, VITE_FIREBASE_MESSAGING_SENDER_ID)
+#
+# Required GitHub variable (Settings → Secrets and variables → Actions → Variables):
+#   CLOUDFLARE_PROJECT_NAME — the Cloudflare Pages project name (create the
+#     project first in Cloudflare → Workers & Pages → Create → Pages).
+
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }} --branch=main
