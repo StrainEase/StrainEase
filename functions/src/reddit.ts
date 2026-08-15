@@ -8,7 +8,8 @@ const PULLPUSH = "https://api.pullpush.io/reddit/search/comment/";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const CACHE_TTL_MS = 15 * 60 * 1000;
-const TIMEOUT_MS = 7000;
+const EMPTY_CACHE_TTL_MS = 60 * 1000;
+const TIMEOUT_MS = 15000;
 
 const CANNABIS_SUBS = new Set([
   "trees",
@@ -33,6 +34,8 @@ const CANNABIS_SUBS = new Set([
 const AILMENT_ALIASES: Record<string, string[]> = {
   insomnia: ["insomnia", "can't sleep", "cant sleep", "sleeping", "asleep", "sleepless"],
   anxiety: ["anxiety", "anxious", "panic"],
+  ocd: ["ocd", "anxiety", "anxious", "obsessive"],
+  adhd: ["adhd", "add", "add/adhd"],
   "chronic pain": ["chronic pain", "pain", "ache", "aching"],
   depression: ["depression", "depressed", "mood"],
   "nausea & appetite": ["nausea", "appetite", "nauseous", "hungry", "eating"],
@@ -120,11 +123,12 @@ function pickQuotes(
 
   for (const c of comments) {
     const body = typeof c.body === "string" ? c.body : "";
-    if (body.length < 40) continue;
+    if (body.length < 32) continue;
     const lower = body.toLowerCase();
     if (lower === "[deleted]" || lower === "[removed]") continue;
-    if (!mentionsAll(body, strainWords)) continue;
-    if (!mentionsAny(body, ailmentTerms)) continue;
+    const name = strainName.trim().toLowerCase();
+    if (!lower.includes(name) && !mentionsAll(body, strainWords)) continue;
+    if (ailmentTerms.length > 0 && !mentionsAny(body, ailmentTerms)) continue;
 
     const sub =
       typeof c.subreddit === "string" ? c.subreddit.toLowerCase() : "";
@@ -139,8 +143,12 @@ function pickQuotes(
       conditions.find((cond) => mentionsAny(body, expandAilment(cond))) ??
       conditions[0];
     const source = sub
-      ? `Reddit · r/${c.subreddit} · ${matched}`
-      : `Reddit · ${matched}`;
+      ? matched
+        ? `Reddit · r/${c.subreddit} · ${matched}`
+        : `Reddit · r/${c.subreddit}`
+      : matched
+        ? `Reddit · ${matched}`
+        : "Reddit";
     scored.push({ score, note: { source, text: quote } });
   }
 
@@ -152,20 +160,27 @@ function pickQuotes(
 
 export async function fetchRedditQuotes(
   strainName: string,
-  conditions: string[],
+  conditions: string[] = [],
 ): Promise<CommunityNote[]> {
   const name = strainName.trim();
   const focus = conditions.map((c) => c.trim()).filter((c) => c !== "");
-  if (!name || focus.length === 0) return [];
+  if (!name) return [];
 
-  const cacheKey = `${name.toLowerCase()}|${focus.map((c) => c.toLowerCase()).join(",")}`;
+  const cacheKey = `${name.toLowerCase()}|${focus.length > 0 ? focus.map((c) => c.toLowerCase()).join(",") : "general"}`;
   const hit = cache.get(cacheKey);
-  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.notes;
+  if (hit) {
+    const ttl = hit.notes.length > 0 ? CACHE_TTL_MS : EMPTY_CACHE_TTL_MS;
+    if (Date.now() - hit.at < ttl) return hit.notes;
+  }
 
-  // One query per strain: quoted name plus the first two ailments. Extra
-  // requests burn PullPush's rate limit and often return unrelated hits.
-  const query = `"${name}" ${focus.slice(0, 2).join(" ")}`;
-  const comments = await searchComments(query);
+  // One query per strain: quoted name, plus the first two ailments when
+  // we have a symptom focus. Extra requests burn PullPush's rate limit.
+  const query =
+    focus.length > 0 ? `"${name}" ${focus.slice(0, 2).join(" ")}` : `"${name}"`;
+  let comments = await searchComments(query);
+  if (comments.length === 0) {
+    comments = await searchComments(`"${name}"`);
+  }
   const notes = pickQuotes(comments, name, focus);
 
   cache.set(cacheKey, { at: Date.now(), notes });

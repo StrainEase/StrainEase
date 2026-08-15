@@ -134,7 +134,31 @@ function toProfile(raw: RawRecord): StrainProfile | null {
         : undefined,
     description: desc ? firstSentences(desc) : undefined,
     communityNotes: communityFrom(raw, uses),
+    imageUrl: imageFrom(raw),
   };
+}
+
+function imageFrom(raw: RawRecord): string | undefined {
+  const avatar = raw.avatar_image;
+  const image = raw.image;
+  const candidates = [
+    typeof avatar === "object" && avatar
+      ? (avatar as RawRecord).original_url ?? (avatar as RawRecord).url
+      : undefined,
+    typeof image === "object" && image
+      ? (image as RawRecord).url ?? (image as RawRecord).original_url
+      : undefined,
+    raw.image_url,
+    raw.photo_url,
+    raw.featured_image,
+    raw.avatar_url,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && /^https:\/\//i.test(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
 }
 
 async function getJson(url: string): Promise<RawRecord | null> {
@@ -161,21 +185,27 @@ async function fetchBySlug(slug: string): Promise<StrainProfile | null> {
   return toProfile(attrs as RawRecord);
 }
 
-async function fetchBySearch(name: string): Promise<StrainProfile | null> {
-  const json = await getJson(
-    `${BASE}?search=${encodeURIComponent(name)}&page[size]=10`,
-  );
-  const list = json?.data;
+/** Exact name match only — never the first search hit. */
+export function pickWeedmapsSlug(
+  list: unknown,
+  name: string,
+): string | null {
   if (!Array.isArray(list)) return null;
   const wanted = name.trim().toLowerCase();
   const match = list.find((item: RawRecord) => {
     const n = item?.attributes?.name;
     return typeof n === "string" && n.toLowerCase() === wanted;
   });
-  const slug =
-    (match?.attributes?.slug as string | undefined) ??
-    (list[0]?.attributes?.slug as string | undefined);
-  if (!slug || typeof slug !== "string") return null;
+  const slug = match?.attributes?.slug;
+  return typeof slug === "string" && slug !== "" ? slug : null;
+}
+
+async function fetchBySearch(name: string): Promise<StrainProfile | null> {
+  const json = await getJson(
+    `${BASE}?search=${encodeURIComponent(name)}&page[size]=10`,
+  );
+  const slug = pickWeedmapsSlug(json?.data, name);
+  if (!slug) return null;
   return fetchBySlug(slug);
 }
 

@@ -1,9 +1,9 @@
 // Merge Leafly + Weedmaps into one StrainProfile, attach Reddit quotes
 // for the patient's ailments, and ask MiniMax to fill any fields still
 // missing — the same shape the old curated knowledge base carried.
-import { fetchLeaflyReviews, fetchProfile } from "./leafly";
+import { fetchProfile } from "./leafly";
 import { callMiniMax, extractJsonObject } from "./minimax";
-import { fetchRedditQuotesFor } from "./reddit";
+import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
 import type {
   CommunityNote,
   CommunityNoteKind,
@@ -15,6 +15,8 @@ import { fetchWeedmapsProfile } from "./weedmaps";
 const AILMENT_ALIASES: Record<string, string[]> = {
   insomnia: ["insomnia", "sleep", "asleep", "sleeping"],
   anxiety: ["anxiety", "anxious", "panic"],
+  ocd: ["ocd", "anxiety", "anxious", "obsessive"],
+  adhd: ["adhd", "add", "add/adhd"],
   "chronic pain": ["chronic pain", "pain", "ache"],
   depression: ["depression", "depressed", "mood"],
   "nausea & appetite": ["nausea", "appetite", "nauseous"],
@@ -74,8 +76,8 @@ function preferAilmentNotes(
   if (conditions.length === 0 || notes.length === 0) return notes;
   const matched = notes.filter((n) => mentionsAilment(n.text, conditions));
   const rest = notes.filter((n) => !mentionsAilment(n.text, conditions));
-  // Bucket non-matching notes so Reddit quotes never get lost below the 8-item
-  // cap when ailment-matching notes dominate.
+  // Bucket non-matching notes so Reddit quotes never get lost below the cap
+  // when ailment-matching notes dominate.
   const rating = rest.filter((n) => (n.kind ?? kindFromSource(n.source)) === "leafly");
   const reddit = rest.filter((n) => (n.kind ?? kindFromSource(n.source)) === "reddit");
   const other = rest.filter(
@@ -84,7 +86,7 @@ function preferAilmentNotes(
       return k !== "leafly" && k !== "reddit";
     },
   );
-  return [...rating, ...reddit, ...matched, ...other].slice(0, 8);
+  return [...rating, ...reddit, ...matched, ...other].slice(0, 12);
 }
 
 function unionStrings(a?: string[], b?: string[]): string[] | undefined {
@@ -110,7 +112,7 @@ export function mergeProfiles(
   const primary = leafly ?? weedmaps!;
   const secondary = leafly ? weedmaps : null;
   return {
-    name: primary.name || name,
+    name,
     inKnowledgeBase: true,
     type: primary.type ?? secondary?.type,
     thcRange: primary.thcRange ?? secondary?.thcRange,
@@ -133,6 +135,9 @@ export function mergeProfiles(
         ...(secondary?.communityNotes ?? []),
       ]),
     ),
+    imageUrl: primary.imageUrl ?? secondary?.imageUrl,
+    leaflyRating: leafly?.leaflyRating,
+    leaflyReviewCount: leafly?.leaflyReviewCount,
   };
 }
 
@@ -317,6 +322,9 @@ function applyResearch(
         ...(researched.communityNotes ?? []),
       ]),
     ),
+    imageUrl: base.imageUrl,
+    leaflyRating: base.leaflyRating,
+    leaflyReviewCount: base.leaflyReviewCount,
   };
 }
 
@@ -331,7 +339,7 @@ export async function enrichProfiles(
   if (unique.length === 0) return [];
 
   const [leaflyList, weedmapsList, redditMap] = await Promise.all([
-    Promise.all(unique.map(fetchProfile)),
+    Promise.all(unique.map((name) => fetchProfile(name, { extraReviews: true }))),
     Promise.all(unique.map(fetchWeedmapsProfile)),
     fetchRedditQuotesFor(unique, conditions),
   ]);
@@ -339,22 +347,6 @@ export async function enrichProfiles(
   let merged = unique.map((name, i) =>
     mergeProfiles(name, leaflyList[i], weedmapsList[i]),
   );
-
-  // Extra Leafly reviews when we have an ailment to match against.
-  if (conditions.length > 0) {
-    const extraReviews = await Promise.all(
-      unique.map((name, i) =>
-        leaflyList[i] ? fetchLeaflyReviews(name) : Promise.resolve([]),
-      ),
-    );
-    merged = merged.map((profile, i) => ({
-      ...profile,
-      communityNotes: uniqueNotes([
-        ...(profile.communityNotes ?? []),
-        ...extraReviews[i],
-      ]),
-    }));
-  }
 
   if (apiKey && merged.some(needsResearch)) {
     try {
@@ -367,8 +359,8 @@ export async function enrichProfiles(
     }
   }
 
-  return merged.map((profile) => {
-    const reddit = redditMap.get(profile.name.toLowerCase()) ?? [];
+  return merged.map((profile, i) => {
+    const reddit = redditNotesFor(redditMap, unique[i], profile.name);
     return {
       ...profile,
       communityNotes: preferAilmentNotes(
@@ -379,16 +371,36 @@ export async function enrichProfiles(
   });
 }
 
-/** Single-name lookup for search: Leafly + Weedmaps, no AI, no Reddit. */
+/** Quotes are fetched under the query name; catalogs may rename the profile. */
+export function redditNotesFor(
+  redditMap: Map<string, { source: string; text: string }[]>,
+  queryName: string,
+  profileName: string,
+) {
+  return (
+    redditMap.get(queryName.toLowerCase()) ??
+    redditMap.get(profileName.toLowerCase()) ??
+    []
+  );
+}
+
+/** Single-name lookup for search: Leafly + Weedmaps + Reddit, no AI. */
 export async function lookupProfile(
   name: string,
 ): Promise<StrainProfile | null> {
   const trimmed = name.trim();
   if (!trimmed) return null;
-  const [leafly, weedmaps] = await Promise.all([
-    fetchProfile(trimmed),
+  const [leafly, weedmaps, reddit] = await Promise.all([
+    fetchProfile(trimmed, { extraReviews: true }),
     fetchWeedmapsProfile(trimmed),
+    fetchRedditQuotes(trimmed),
   ]);
   if (!leafly && !weedmaps) return null;
-  return mergeProfiles(trimmed, leafly, weedmaps);
+  const merged = mergeProfiles(trimmed, leafly, weedmaps);
+  return {
+    ...merged,
+    communityNotes: reTag(
+      uniqueNotes([...(merged.communityNotes ?? []), ...reddit]),
+    ),
+  };
 }

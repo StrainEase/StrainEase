@@ -43,6 +43,12 @@ export type StrainProfile = {
   // Reddit threads surfaced by the LLM. Tagged separately from the note
   // stream so the UI can render them as outbound links.
   redditSources?: RedditSource[];
+  /** HTTPS photo from Leafly (`nugImage`) or Weedmaps when available. */
+  imageUrl?: string;
+  /** Leafly aggregate rating (0–5). Not a patient quote. */
+  leaflyRating?: number;
+  /** Leafly published review count for the star rating. */
+  leaflyReviewCount?: number;
 };
 
 export type StrainAnalysis = {

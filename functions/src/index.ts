@@ -35,8 +35,9 @@ export const popularStrains = onCall(async (): Promise<StrainProfile[]> => {
   return await fetchPopular();
 });
 
-/** Look up one strain by name on Leafly, then Weedmaps. Null when neither resolves. */
+/** Look up one strain by name on Leafly + Weedmaps, with reviews and Reddit. */
 export const searchStrain = onCall(
+  { timeoutSeconds: 60 },
   async (request): Promise<StrainProfile | null> => {
     const name =
       typeof request.data?.name === "string" ? request.data.name : "";
@@ -227,28 +228,38 @@ function prefsBlock(prefs: ResearchPrefs | undefined): string {
   return lines.join("\n");
 }
 
+export function compareStrainPayload(s: StrainProfile) {
+  const hasBody = Boolean(
+    s.inKnowledgeBase ||
+      s.type ||
+      s.thcRange ||
+      s.description ||
+      (s.effects && s.effects.length > 0) ||
+      (s.communityNotes && s.communityNotes.length > 0),
+  );
+  if (!hasBody) return { name: s.name, noCuratedProfile: true as const };
+  return {
+    name: s.name,
+    type: s.type,
+    thcRange: s.thcRange,
+    cbdRange: s.cbdRange,
+    lineage: s.lineage,
+    terpenes: s.terpenes,
+    medicalUses: s.medicalUses,
+    effects: s.effects,
+    sideEffects: s.sideEffects,
+    description: s.description,
+    communityNotes: s.communityNotes,
+    noCuratedProfile: !s.inKnowledgeBase,
+  };
+}
+
 function comparePrompt(
   strains: StrainProfile[],
   conditions: string[] | undefined,
   prefs?: ResearchPrefs,
 ): string {
-  const payload = strains.map((s) =>
-    s.inKnowledgeBase
-      ? {
-          name: s.name,
-          type: s.type,
-          thcRange: s.thcRange,
-          cbdRange: s.cbdRange,
-          lineage: s.lineage,
-          terpenes: s.terpenes,
-          medicalUses: s.medicalUses,
-          effects: s.effects,
-          sideEffects: s.sideEffects,
-          description: s.description,
-          communityNotes: s.communityNotes,
-        }
-      : { name: s.name, noCuratedProfile: true },
-  );
+  const payload = strains.map(compareStrainPayload);
   return [
     "Compare the following cannabis strains for a patient deciding which one to try.",
     `Condition focus: ${
