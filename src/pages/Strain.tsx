@@ -141,7 +141,7 @@ export default function Strain() {
               >
                 <span
                   className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-indigo-900 shadow ring-1 ring-black/10"
-                  style={{ left: `${score}%` }}
+                  style={{ left: `${100 - score}%` }}
                 />
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
