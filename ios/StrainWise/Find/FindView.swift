@@ -56,7 +56,7 @@ struct FindView: View {
                             .scaledToFit()
                             .frame(width: 26, height: 26)
                             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        Text("StrainWise")
+                        Text("StrainEase")
                             .font(.system(.headline, design: .serif))
                             .foregroundStyle(Palette.foreground)
                     }
