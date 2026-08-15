@@ -6,8 +6,9 @@ struct StrainWiseApp: App {
     @State private var session = AuthSession()
     @State private var saved = SavedStrainsStore()
     @State private var ailments = SavedAilmentsStore()
+    @State private var medications = SavedMedicationsStore()
+    @State private var relief = ReliefLogStore()
     @State private var recents = RecentlyViewedStore()
-    @State private var logs = ReliefLogStore()
 
     init() {
         FirebaseBootstrap.configure()
@@ -19,8 +20,9 @@ struct StrainWiseApp: App {
                 .environment(session)
                 .environment(saved)
                 .environment(ailments)
+                .environment(medications)
+                .environment(relief)
                 .environment(recents)
-                .environment(logs)
                 .tint(Palette.primary)
                 .preferredColorScheme(nil)
                 .onAppear { session.start() }
@@ -28,11 +30,13 @@ struct StrainWiseApp: App {
                     if let uid {
                         saved.listen(uid: uid)
                         ailments.listen(uid: uid)
-                        logs.listen(uid: uid)
+                        medications.listen(uid: uid)
+                        relief.listen(uid: uid)
                     } else {
                         saved.reset()
                         ailments.reset()
-                        logs.reset()
+                        medications.reset()
+                        relief.reset()
                     }
                 }
                 .onOpenURL { url in

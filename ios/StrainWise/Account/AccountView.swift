@@ -4,6 +4,13 @@ struct AccountView: View {
     @Environment(AuthSession.self) private var session
     @State private var showSignOut = false
 
+    private var onFindAilments: ([String]) -> Void {
+        // No-op placeholder — the web version scrolls the Find tab, the iOS app
+        // doesn't yet have a tabbed Find view to switch into, so the chip just
+        // logs the tap.
+        { _ in }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -11,6 +18,30 @@ struct AccountView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         header
+                        SavedAilmentsCard(onFind: onFindAilments)
+                        SavedMedicationsCard()
+                        NavigationLink {
+                            ReliefHistoryView()
+                        } label: {
+                            SWCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Relief history")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Palette.foreground)
+                                        Text("How strains actually went for you")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Palette.mutedForeground)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Palette.mutedForeground)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+
                         SWCard {
                             VStack(alignment: .leading, spacing: 10) {
                                 labeled("Email", session.user?.email ?? "Not on file")
@@ -78,4 +109,8 @@ struct AccountView: View {
     AccountView()
         .environment(AuthSession.previewSignedIn)
         .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
+        .environment(SavedAilmentsStore.preview(["Anxiety"]))
+        .environment(SavedMedicationsStore.preview(["Lexapro", "Ibuprofen"]))
+        .environment(ReliefLogStore.preview([.sampleSleep]))
+
 }
