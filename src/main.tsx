@@ -4,6 +4,7 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { createRoot } from "react-dom/client";
 import { Loader2 } from "lucide-react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
@@ -11,6 +12,8 @@ import "./index.css";
 import "./types/global.d.ts";
 
 const Landing = lazy(() => import("./pages/Landing.tsx"));
+const Home = lazy(() => import("./pages/Home.tsx"));
+const Browse = lazy(() => import("./pages/Browse.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const StrainPage = lazy(() => import("./pages/Strain.tsx"));
@@ -23,6 +26,13 @@ function RouteLoading() {
       <span className="sr-only">Loading</span>
     </div>
   );
+}
+
+function RootPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <RouteLoading />;
+  // Logged-in users get the iOS-style home; guests keep the marketing landing.
+  return isAuthenticated ? <Home /> : <Landing />;
 }
 
 function RouteSyncer() {
@@ -57,10 +67,26 @@ createRoot(document.getElementById("root")!).render(
         <RouteSyncer />
         <Suspense fallback={<RouteLoading />}>
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<RootPage />} />
             <Route
               path="/auth"
-              element={<AuthPage redirectAfterAuth="/dashboard" />}
+              element={<AuthPage redirectAfterAuth="/" />}
+            />
+            <Route
+              path="/browse/:section/:ailment"
+              element={
+                <RequireAuth>
+                  <Browse />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/browse/:section"
+              element={
+                <RequireAuth>
+                  <Browse />
+                </RequireAuth>
+              }
             />
             <Route
               path="/dashboard"

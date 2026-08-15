@@ -1,10 +1,12 @@
 import { HeroSpecimen } from "@/components/landing/HeroSpecimen";
+import { StrainImage } from "@/components/strain/StrainImage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { usePointerTilt } from "@/hooks/use-pointer-tilt";
 import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
+import { applyCatalogPhotos, topMedicalUses } from "@/lib/strain-catalog";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
@@ -107,6 +109,7 @@ type FeaturedStrain = {
   terpenes: string;
   description?: string;
   leaflyNote?: string;
+  imageUrl?: string;
 };
 
 const FALLBACK_STRAINS: FeaturedStrain[] = [
@@ -135,7 +138,7 @@ const FALLBACK_STRAINS: FeaturedStrain[] = [
     name: "Jack Herer",
     type: "sativa",
     thc: "18–23%",
-    uses: ["Fatigue", "Depression", "ADHD focus"],
+    uses: ["ADHD", "Fatigue", "Depression"],
     terpenes: "Terpinolene · Pinene · Caryophyllene",
   },
   {
@@ -158,19 +161,32 @@ function toFeatured(profile: {
   name: string;
   type?: string;
   thcRange?: string;
-  effects?: { name: string }[];
+  medicalUses?: string[];
   terpenes?: { name: string }[];
   description?: string;
   communityNotes?: { source: string; text: string }[];
+  leaflyRating?: number;
+  leaflyReviewCount?: number;
+  imageUrl?: string;
 }): FeaturedStrain {
   return {
     name: profile.name,
     type: profile.type ?? "hybrid",
     thc: profile.thcRange ?? "",
-    uses: (profile.effects ?? []).slice(0, 3).map((e) => e.name),
+    uses: topMedicalUses(profile),
     terpenes: (profile.terpenes ?? []).map((t) => t.name).join(" · "),
     description: profile.description,
-    leaflyNote: profile.communityNotes?.[0]?.text,
+    imageUrl: profile.imageUrl,
+    leaflyNote:
+      typeof profile.leaflyRating === "number"
+        ? `${profile.leaflyRating.toFixed(1)}★${
+            typeof profile.leaflyReviewCount === "number"
+              ? ` · ${profile.leaflyReviewCount.toLocaleString("en-US")} reviews`
+              : ""
+          }`
+        : profile.communityNotes?.find((n) =>
+            /^\d+(?:\.\d+)?★/.test(n.text.trim()),
+          )?.text,
   };
 }
 
@@ -213,6 +229,12 @@ function StrainCard({
         to={href}
         className="tilt-card group flex h-full flex-col rounded-2xl border border-border/70 bg-card p-6 transition-[border-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-primary/40"
       >
+        <StrainImage
+          src={strain.imageUrl}
+          alt=""
+          type={strain.type}
+          className="mb-4 h-36 w-full rounded-xl border border-border/70"
+        />
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold tracking-tight">{strain.name}</h3>
           <Badge className={cn(typeBadgeClass(strain.type), "capitalize")}>
@@ -388,14 +410,21 @@ export default function Landing() {
 
   const appHref = "/dashboard";
   const appLabel = isAuthenticated ? "Dashboard" : "Find strains";
-  const featured = live ?? FALLBACK_STRAINS;
+  const featured =
+    live ??
+    FALLBACK_STRAINS.map((strain) => {
+      const [filled] = applyCatalogPhotos([
+        { name: strain.name, inKnowledgeBase: true },
+      ]);
+      return { ...strain, imageUrl: filled?.imageUrl };
+    });
 
   useEffect(() => {
     let cancelled = false;
     void popularStrainsCall()
       .then((list) => {
         if (!cancelled && Array.isArray(list) && list.length > 0) {
-          setLive(list.map(toFeatured));
+          setLive(applyCatalogPhotos(list).map(toFeatured));
         }
       })
       .catch(() => {

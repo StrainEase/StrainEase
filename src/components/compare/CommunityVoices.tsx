@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Leaf, MessageCircle, Quote } from "lucide-react";
+import { Leaf, MessageCircle, Quote, Star } from "lucide-react";
 import { useState } from "react";
 
 const TONE_BADGE: Record<SentimentTone, string> = {
@@ -67,6 +67,53 @@ function SentimentBar({
   );
 }
 
+function StarStrip({ value }: { value: number }) {
+  return (
+    <span className="flex items-center gap-0.5" aria-hidden>
+      {Array.from({ length: 5 }).map((_, i) => {
+        const fill = Math.max(0, Math.min(1, value - i));
+        return (
+          <span key={i} className="relative size-4">
+            <Star className="size-4 text-border" />
+            {fill > 0 ? (
+              <span
+                className="absolute inset-0 overflow-hidden"
+                style={{ width: `${fill * 100}%` }}
+              >
+                <Star className="size-4 fill-primary text-primary" />
+              </span>
+            ) : null}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function LeaflyRatingCard({
+  stars,
+  reviewCount,
+}: {
+  stars: number;
+  reviewCount: number | null;
+}) {
+  return (
+    <div className="flex items-center gap-4 rounded-xl border border-border/70 bg-background px-4 py-3.5">
+      <StarStrip value={stars} />
+      <div className="min-w-0">
+        <p className="text-xl font-semibold tabular-nums tracking-tight">
+          {stars.toFixed(1)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {reviewCount !== null
+            ? `${reviewCount.toLocaleString("en-US")} Leafly reviews`
+            : "Average Leafly rating"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ReviewQuote({ note }: { note: QuoteNote }) {
   return (
     <blockquote className="relative min-w-0 rounded-xl border border-border/60 bg-background px-3 py-3 sm:px-4">
@@ -86,25 +133,34 @@ function ChannelPanel({
   notes,
   strainName,
   conditions,
+  leaflyRating,
+  leaflyReviewCount,
 }: {
   channel: NoteChannel;
   notes: QuoteNote[];
   strainName: string;
   conditions: string[];
+  leaflyRating?: number;
+  leaflyReviewCount?: number;
 }) {
-  const summary = summarizeChannel(notes, channel, strainName, conditions);
+  const summary = summarizeChannel(notes, channel, strainName, conditions, {
+    leaflyRating,
+    leaflyReviewCount,
+  });
   const reviews = sortNotesForConditions(
     individualReviews(notes),
     conditions,
   );
-  const ratingLabel = summary.rating
-    ? summary.rating.reviewCount !== null
-      ? `${summary.rating.stars.toFixed(1)}★ · ${summary.rating.reviewCount.toLocaleString("en-US")} Leafly reviews`
-      : `${summary.rating.stars.toFixed(1)}★ on Leafly`
-    : null;
 
   return (
     <div className="space-y-4">
+      {channel === "cannabis" && summary.rating ? (
+        <LeaflyRatingCard
+          stars={summary.rating.stars}
+          reviewCount={summary.rating.reviewCount}
+        />
+      ) : null}
+
       <div className="rounded-xl border border-border/70 bg-background px-4 py-4 sm:px-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -129,11 +185,6 @@ function ChannelPanel({
               </Badge>
             </div>
           </div>
-          {ratingLabel ? (
-            <p className="shrink-0 text-xs font-medium text-foreground sm:pt-5 sm:text-right">
-              {ratingLabel}
-            </p>
-          ) : null}
         </div>
 
         <SentimentBar
@@ -172,16 +223,23 @@ export function CommunityVoices({
   notes,
   strainName,
   conditions = [],
+  leaflyRating,
+  leaflyReviewCount,
 }: {
   notes?: QuoteNote[];
   strainName: string;
   conditions?: string[];
+  leaflyRating?: number;
+  leaflyReviewCount?: number;
 }) {
   const cannabis = notesForChannel(notes, "cannabis");
   const reddit = notesForChannel(notes, "reddit");
-  const hasAny = cannabis.length > 0 || reddit.length > 0;
+  const hasRating = typeof leaflyRating === "number";
+  const hasAny = cannabis.length > 0 || reddit.length > 0 || hasRating;
   const [tab, setTab] = useState<NoteChannel>(
-    cannabis.length > 0 || reddit.length === 0 ? "cannabis" : "reddit",
+    cannabis.length > 0 || reddit.length === 0 || hasRating
+      ? "cannabis"
+      : "reddit",
   );
 
   if (!hasAny && conditions.length === 0) return null;
@@ -243,6 +301,8 @@ export function CommunityVoices({
               notes={tab === "reddit" ? reddit : cannabis}
               strainName={strainName}
               conditions={conditions}
+              leaflyRating={leaflyRating}
+              leaflyReviewCount={leaflyReviewCount}
             />
           </TabsContent>
         </motion.div>

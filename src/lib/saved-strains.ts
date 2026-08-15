@@ -28,6 +28,7 @@ export type SavedStrain = {
   name: string;
   type?: StrainType;
   thcRange?: string;
+  imageUrl?: string;
   savedAt: number;
   notes: SavedNote[];
 };
@@ -72,6 +73,7 @@ export function listenToSavedStrains(
           name?: string;
           type?: StrainType;
           thcRange?: string;
+          imageUrl?: string;
           savedAt?: number;
           notes?: SavedNote[];
         };
@@ -80,6 +82,7 @@ export function listenToSavedStrains(
           name: data.name ?? d.id,
           type: data.type,
           thcRange: data.thcRange,
+          imageUrl: data.imageUrl,
           savedAt: data.savedAt ?? 0,
           notes: Array.isArray(data.notes) ? data.notes : [],
         });
@@ -101,6 +104,7 @@ export function savedStrainFields(
     name: profile.name,
     type: profile.type ?? null,
     thcRange: profile.thcRange ?? null,
+    imageUrl: profile.imageUrl ?? null,
     savedAt,
   };
 }
