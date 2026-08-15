@@ -55,13 +55,24 @@ export function listLocalHistory(): HistoryEntry[] {
   return readLocal();
 }
 
+/** Firestore create rule is title.size() < 200. */
+export const HISTORY_TITLE_MAX = 199;
+
+export function clipHistoryTitle(title: string): string {
+  return title.slice(0, HISTORY_TITLE_MAX);
+}
+
+export function historyCloudData(entry: HistoryEntry) {
+  return {
+    kind: entry.kind,
+    title: clipHistoryTitle(entry.title),
+    createdAt: entry.createdAt,
+  };
+}
+
 export async function rememberCloud(uid: string, entry: HistoryEntry) {
   if (!db) return;
-  await setDoc(doc(db, "users", uid, "history", entry.id), {
-    kind: entry.kind,
-    title: entry.title,
-    createdAt: entry.createdAt,
-  });
+  await setDoc(doc(db, "users", uid, "history", entry.id), historyCloudData(entry));
 }
 
 export function listenToHistory(
