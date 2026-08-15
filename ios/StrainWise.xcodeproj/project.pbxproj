@@ -8,6 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		05FEFEC4EFA4AF4416DF0514 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D84ECF38795DF6FC6B7F3B /* HomeView.swift */; };
+		1811FE01B0CAA235CE64ACAD /* ReliefHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1822FE01B0CAA235CE64ACAD /* ReliefHistoryView.swift */; };
+		1833FE01B0CAA235CE64ACAD /* ReliefLogForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1844FE01B0CAA235CE64ACAD /* ReliefLogForm.swift */; };
+		1855FE01B0CAA235CE64ACAD /* ReliefLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1866FE01B0CAA235CE64ACAD /* ReliefLogStore.swift */; };
+		1877FE01B0CAA235CE64ACAD /* SavedAilmentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1888FE01B0CAA235CE64ACAD /* SavedAilmentsStore.swift */; };
+		1899FE01B0CAA235CE64ACAD /* SharedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AAFE01B0CAA235CE64ACAD /* SharedNotesView.swift */; };
+		18BBFE01B0CAA235CE64ACAD /* TriedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CCFE01B0CAA235CE64ACAD /* TriedNotesView.swift */; };
+		18DDFE01B0CAA235CE64ACAD /* PublicNotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EEFE01B0CAA235CE64ACAD /* PublicNotesStore.swift */; };
 		071D717363A31C87D73A925E /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6BED43C81ED4D1C4CB2E4E /* Components.swift */; };
 		18B989E0B5738E7F706ADEBD /* StrainDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A321898C1D21B156F5E656AF /* StrainDetailView.swift */; };
 		21310596945853CF09E3914E /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = B03B3877011371001498845F /* GoogleSignIn */; };
@@ -54,6 +61,13 @@
 
 /* Begin PBXFileReference section */
 		1946B1C8E418A237324A9C0E /* SavedStrainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsView.swift; sourceTree = "<group>"; };
+		1822FE01B0CAA235CE64ACAD /* ReliefHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefHistoryView.swift; sourceTree = "<group>"; };
+		1844FE01B0CAA235CE64ACAD /* ReliefLogForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogForm.swift; sourceTree = "<group>"; };
+		1866FE01B0CAA235CE64ACAD /* ReliefLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogStore.swift; sourceTree = "<group>"; };
+		1888FE01B0CAA235CE64ACAD /* SavedAilmentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAilmentsStore.swift; sourceTree = "<group>"; };
+		18AAFE01B0CAA235CE64ACAD /* SharedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedNotesView.swift; sourceTree = "<group>"; };
+		18CCFE01B0CAA235CE64ACAD /* TriedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedNotesView.swift; sourceTree = "<group>"; };
+		18EEFE01B0CAA235CE64ACAD /* PublicNotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicNotesStore.swift; sourceTree = "<group>"; };
 		27B1646A9054529E30CC001E /* MeshBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBackground.swift; sourceTree = "<group>"; };
 		357E09006008AF14A9962959 /* StrainPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainPoster.swift; sourceTree = "<group>"; };
 		3A492F65A674EC783E6A321B /* HomeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeModel.swift; sourceTree = "<group>"; };
@@ -144,7 +158,10 @@
 			children = (
 				C5FA329BD7AC6982E6FFCA16 /* FirebaseBootstrap.swift */,
 				73221765338B5CEE84DE1532 /* PreviewData.swift */,
+				18EEFE01B0CAA235CE64ACAD /* PublicNotesStore.swift */,
 				5343719095688D3656C44C69 /* RecentlyViewedStore.swift */,
+				1866FE01B0CAA235CE64ACAD /* ReliefLogStore.swift */,
+				1888FE01B0CAA235CE64ACAD /* SavedAilmentsStore.swift */,
 				8AAC295805AFD32269131658 /* SavedStrainsStore.swift */,
 				F65A3E705F0FE0B8BB24C080 /* StrainAPI.swift */,
 			);
@@ -163,8 +180,11 @@
 		6DA15F6B3C96347A7A00E4F6 /* Strain */ = {
 			isa = PBXGroup;
 			children = (
+				1844FE01B0CAA235CE64ACAD /* ReliefLogForm.swift */,
 				A321898C1D21B156F5E656AF /* StrainDetailView.swift */,
 				94B80469D8D6804EADE68021 /* StrainMeaning.swift */,
+				18AAFE01B0CAA235CE64ACAD /* SharedNotesView.swift */,
+				18CCFE01B0CAA235CE64ACAD /* TriedNotesView.swift */,
 			);
 			path = Strain;
 			sourceTree = "<group>";
@@ -215,6 +235,7 @@
 			isa = PBXGroup;
 			children = (
 				CF6453489643321FAC8E130F /* AccountView.swift */,
+				1822FE01B0CAA235CE64ACAD /* ReliefHistoryView.swift */,
 				1946B1C8E418A237324A9C0E /* SavedStrainsView.swift */,
 			);
 			path = Account;
@@ -375,6 +396,13 @@
 				6C725C28B553AEA147616C9D /* StrainModels.swift in Sources */,
 				CA9ED57AB2EECA8D8E5033BD /* StrainPoster.swift in Sources */,
 				2EE1AB2C26823B1AFDD93FE0 /* StrainWiseApp.swift in Sources */,
+				1811FE01B0CAA235CE64ACAD /* ReliefHistoryView.swift in Sources */,
+				1833FE01B0CAA235CE64ACAD /* ReliefLogForm.swift in Sources */,
+				1855FE01B0CAA235CE64ACAD /* ReliefLogStore.swift in Sources */,
+				1877FE01B0CAA235CE64ACAD /* SavedAilmentsStore.swift in Sources */,
+				1899FE01B0CAA235CE64ACAD /* SharedNotesView.swift in Sources */,
+				18BBFE01B0CAA235CE64ACAD /* TriedNotesView.swift in Sources */,
+				18DDFE01B0CAA235CE64ACAD /* PublicNotesStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
