@@ -38,8 +38,8 @@ const POTENCY_OPTIONS: { value: Potency; label: string; hint: string }[] = [
 const QUICK_AILMENTS = ["Insomnia", "Chronic pain", "Anxiety", "Migraine"];
 
 const RESEARCH_STEPS = [
-  "Pulling Leafly's popular strains…",
-  "Cross-checking Leafly, Weedmaps & Reddit reports…",
+  "Pulling full Leafly & Weedmaps profiles…",
+  "Collecting Reddit quotes for your symptoms…",
   "Ranking the best strains with MiniMax AI…",
 ];
 
@@ -153,7 +153,7 @@ export function StrainFinder({
     <div className="grid items-start gap-8 lg:grid-cols-[340px_1fr]">
       {/* ── Config panel ───────────────────────────────── */}
       <aside className="min-w-0 lg:sticky lg:top-24">
-        <Card className="border-border/70 shadow-sm">
+        <Card className="border-border/70">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <HeartPulse className="size-4 text-primary" />
@@ -308,14 +308,14 @@ export function StrainFinder({
       {/* ── Results ─────────────────────────────────────── */}
       <section ref={resultsRef} className="min-w-0 scroll-mt-24">
         {isRunning ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card px-8 py-20 text-center shadow-sm">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card px-8 py-20 text-center">
             <Loader2 className="size-9 animate-spin text-primary" />
             <p className="mt-6 text-base font-semibold tracking-tight">
               {RESEARCH_STEPS[stepIndex]}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Ranking Leafly's popular strains against your symptoms — usually
-              5–15 seconds.
+              Ranking full strain profiles against your symptoms and attaching
+              Reddit quotes when we find them — usually 8–20 seconds.
             </p>
           </div>
         ) : result ? (
@@ -346,7 +346,7 @@ export function StrainFinder({
               </Button>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-card px-6 py-6 shadow-sm sm:px-8">
+            <div className="rounded-2xl border border-border/70 bg-card px-6 py-6 sm:px-8">
               <h2 className="text-xl font-semibold tracking-tight text-balance sm:text-2xl">
                 {result.headline}
               </h2>
@@ -361,7 +361,7 @@ export function StrainFinder({
                 return (
                   <div
                     key={`${r.strainName}-${i}`}
-                    className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+                    className="rounded-2xl border border-border/70 bg-card p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2.5">
@@ -465,7 +465,7 @@ export function StrainFinder({
         ) : (
           /* ── Empty state ─────────────────────────────── */
           <div className="space-y-8">
-            <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center shadow-sm">
+            <div className="rounded-2xl border border-border/70 bg-card px-8 py-12 text-center">
               <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <HeartPulse className="size-7" />
               </div>
@@ -493,7 +493,7 @@ export function StrainFinder({
                       setAilments([a]);
                       void handleFind([a]);
                     }}
-                    className="group flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-5 py-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md disabled:opacity-50"
+                    className="group flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-5 py-4 text-left transition-[border-color,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-primary/40 disabled:opacity-50"
                   >
                     <div>
                       <p className="text-sm font-semibold tracking-tight">
