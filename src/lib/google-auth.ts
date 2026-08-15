@@ -66,7 +66,12 @@ function loadGisScript(): Promise<void> {
     const existing = document.querySelector<HTMLScriptElement>(
       `script[src="${GIS_SRC}"]`,
     );
-    const script = existing ?? document.createElement("script");
+    // A previous failed load leaves a dead <script> that will never fire
+    // load/error again. Remove it so retry injects a fresh one.
+    if (existing && !window.google?.accounts?.oauth2) {
+      existing.remove();
+    }
+    const script = document.createElement("script");
     script.src = GIS_SRC;
     script.async = true;
     script.defer = true;
@@ -78,12 +83,13 @@ function loadGisScript(): Promise<void> {
     const onError = () => {
       script.removeEventListener("load", onLoad);
       script.removeEventListener("error", onError);
+      script.remove();
       scriptPromise = null;
       reject(new Error("Failed to load Google Identity Services."));
     };
     script.addEventListener("load", onLoad);
     script.addEventListener("error", onError);
-    if (!existing) document.head.appendChild(script);
+    document.head.appendChild(script);
   });
   return scriptPromise;
 }
