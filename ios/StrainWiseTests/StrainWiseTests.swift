@@ -237,6 +237,25 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertEqual(store.items.map(\.name), ["Granddaddy Purple", "Blue Dream"])
     }
 
+    func testPartialStrainListsEveryAISectionAsPending() {
+        let stub = StrainProfile(
+            name: "Green Crack",
+            inKnowledgeBase: true,
+            type: .sativa,
+            thcRange: "15–25%"
+        )
+        let pending = stub.pendingHydrationSections
+        XCTAssertEqual(
+            pending,
+            Set(StrainHydrationSection.allCases),
+            "A catalog stub must show a placeholder for every researched section"
+        )
+        XCTAssertTrue(StrainHydrationSection.allCases.allSatisfy { !$0.caption.isEmpty })
+        XCTAssertFalse(StrainProfile.sampleGDP.pendingHydrationSections.contains(.description))
+        XCTAssertFalse(StrainProfile.sampleGDP.pendingHydrationSections.contains(.effects))
+        XCTAssertFalse(StrainProfile.sampleGDP.pendingHydrationSections.contains(.community))
+    }
+
     func testCatalogGreenCrackIsAPartialStub() {
         let greenCrack = StrainCatalog.all.first { $0.slug == "green-crack" }
         XCTAssertNotNil(greenCrack)
@@ -433,6 +452,16 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse"])
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("saved"))
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
+    }
+
+    @MainActor
+    func testHeaderFavoritesOpensSavedNotBrowse() {
+        let nav = AppNavigation()
+        XCTAssertFalse(nav.showSaved)
+        XCTAssertEqual(nav.tab, .home)
+        nav.openSaved()
+        XCTAssertTrue(nav.showSaved)
+        XCTAssertEqual(nav.tab, .home)
     }
 
     private static var fixedCalendar: Calendar {

@@ -146,3 +146,24 @@ struct PreviewStrainAPI: StrainServicing {
     }
 
 }
+
+/// Preview helper that never resolves so strain-detail placeholders stay visible.
+struct DelayedPreviewAPI: StrainServicing {
+    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?) async throws -> RecommendationResult {
+        try await Task.sleep(for: .seconds(60))
+        return .sample
+    }
+
+    func search(name: String) async throws -> StrainProfile? {
+        try await Task.sleep(for: .seconds(60))
+        return .sampleGDP
+    }
+
+    func popular() async throws -> [StrainProfile] {
+        StrainCatalog.all
+    }
+
+    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison {
+        StrainComparison.sample
+    }
+}
