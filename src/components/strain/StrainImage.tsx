@@ -1,6 +1,6 @@
 import { Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function fallbackTone(type?: string) {
   switch (type) {
@@ -19,6 +19,13 @@ function fallbackTone(type?: string) {
   }
 }
 
+/**
+ * Strain photo with graceful loading. Paints a skeleton block while the
+ * image is in flight, falls back to a leaf icon when the source is
+ * missing or fails to load. `key={src}` on the img element bumps the
+ * loaded state back to false when the URL changes (e.g. strain page
+ * navigates between two different strains).
+ */
 export function StrainImage({
   src,
   alt,
@@ -33,8 +40,16 @@ export function StrainImage({
   type?: string;
 }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const showFallback = !src || failedSrc === src;
   const tone = fallbackTone(type);
+
+  // Reset the loaded flag when the source URL changes so the new image
+  // gets its own skeleton frame instead of flashing in.
+  useEffect(() => {
+    setLoaded(false);
+    setFailedSrc(null);
+  }, [src]);
 
   if (showFallback) {
     return (
@@ -54,14 +69,25 @@ export function StrainImage({
   return (
     <div
       className={cn(
-        "flex items-center justify-center overflow-hidden bg-white",
+        "relative flex items-center justify-center overflow-hidden bg-white",
         className,
       )}
     >
+      {!loaded && (
+        <span
+          aria-hidden
+          className="skeleton-line absolute inset-0"
+        />
+      )}
       <img
+        key={src}
         src={src}
         alt={alt}
-        className="h-full w-full object-contain"
+        className={cn(
+          "h-full w-full object-contain transition-opacity duration-300",
+          loaded ? "opacity-100" : "opacity-0",
+        )}
+        onLoad={() => setLoaded(true)}
         onError={() => {
           if (src) setFailedSrc(src);
         }}

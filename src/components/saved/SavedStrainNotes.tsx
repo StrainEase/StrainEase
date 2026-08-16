@@ -8,9 +8,10 @@ import {
 } from "@/lib/saved-strains";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { cn } from "@/lib/utils";
 import { doc, onSnapshot, type Unsubscribe } from "firebase/firestore";
-import { Globe, Lock, NotebookPen, Plus, Trash2 } from "lucide-react";
+import { Globe, Lock, Loader2, NotebookPen, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -45,21 +46,26 @@ export function SavedStrainNotes({
   const [draft, setDraft] = useState("");
   const [makePublic, setMakePublic] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [notesLoaded, setNotesLoaded] = useState(false);
 
   useEffect(() => {
     if (!db || !user || !isSaved) {
       setNotes([]);
+      setNotesLoaded(false);
       return;
     }
+    setNotesLoaded(false);
     const unsubscribe: Unsubscribe = onSnapshot(
       doc(db, "users", user.uid, "savedStrains", slug),
       (snap) => {
         const data = snap.data() as { notes?: SavedNote[] } | undefined;
         setNotes(Array.isArray(data?.notes) ? data.notes : []);
+        setNotesLoaded(true);
       },
       () => {
         // Offline / rules not deployed yet — render an empty list silently.
         setNotes([]);
+        setNotesLoaded(true);
       },
     );
     return unsubscribe;
@@ -78,6 +84,20 @@ export function SavedStrainNotes({
           Save this strain first, then you can jot down what it actually
           did for you — dose, time of day, symptom relief, side effects.
         </p>
+      </div>
+    );
+  }
+
+  if (!notesLoaded) {
+    return (
+      <div className="rounded-2xl border border-border/70 bg-card p-6">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Loader2 className="size-3.5 animate-spin text-primary" />
+          Your notes
+        </div>
+        <div className="mt-4">
+          <SkeletonLines variant="compact" />
+        </div>
       </div>
     );
   }
