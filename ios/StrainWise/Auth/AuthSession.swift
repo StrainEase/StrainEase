@@ -276,7 +276,7 @@ extension AuthSession {
 
     static var previewSignedIn: AuthSession {
         let session = AuthSession()
-        session.status = .signedIn(SessionUser(uid: "preview", email: "patient@strainwise.app", name: "Patient"))
+        session.status = .signedIn(SessionUser(uid: "preview", email: "patient@strainease.ai", name: "Patient"))
         return session
     }
 }

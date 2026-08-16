@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,6 +20,7 @@ import { signInWithApple } from "@/lib/apple-auth";
 import { signInWithGoogle } from "@/lib/google-auth";
 import { ArrowRight, Loader2, Lock, Mail } from "lucide-react";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { documentTitle } from "@/lib/site";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 interface AuthProps {
@@ -159,7 +161,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 <Link to="/">
                   <img
                     src={logo}
-                    alt="StrainWise logo"
+                    alt="StrainEase logo"
                     width={64}
                     height={64}
                     className="mb-4 mt-4 rounded-lg"
@@ -168,7 +170,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               </div>
               <CardTitle className="text-xl">Almost there</CardTitle>
               <CardDescription>
-                StrainWise saves your strains and notes with Firebase. Add your
+                StrainEase saves your strains and notes with Firebase. Add your
                 Firebase project keys in the Keys/API keys tab to enable
                 accounts:
               </CardDescription>
@@ -217,14 +219,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 <Link to="/">
                   <img
                     src={logo}
-                    alt="StrainWise logo"
+                    alt="StrainEase logo"
                     width={64}
                     height={64}
                     className="mb-4 mt-4 rounded-lg"
                   />
                 </Link>
               </div>
-              <CardTitle className="text-xl tracking-tight">Welcome to StrainWise</CardTitle>
+              <CardTitle className="text-xl tracking-tight">Welcome to StrainEase</CardTitle>
               <CardDescription>
                 Sign in to compare strains, save your favorites, and keep
                 private notes
@@ -387,14 +389,22 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
 export default function AuthPage(props: AuthProps) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[100dvh] items-center justify-center">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        </div>
-      }
-    >
-      <Auth {...props} />
-    </Suspense>
+    <>
+      <Seo
+        title={documentTitle("Sign in")}
+        description="Sign in to StrainEase to save strains, keep notes, and run personalized medical comparisons."
+        path="/auth"
+        noindex
+      />
+      <Suspense
+        fallback={
+          <div className="flex min-h-[100dvh] items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        }
+      >
+        <Auth {...props} />
+      </Suspense>
+    </>
   );
 }

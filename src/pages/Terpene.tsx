@@ -1,8 +1,11 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
+import { Seo } from "@/components/Seo";
 import { Badge } from "@/components/ui/badge";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { applyCatalogPhotos } from "@/lib/strain-catalog";
+import { terpeneDescription, terpeneJsonLd } from "@/lib/seo";
+import { documentTitle } from "@/lib/site";
 import {
   TERPENE_PROFILES,
   terpeneFromSlug,
@@ -37,6 +40,12 @@ export default function Terpene() {
   if (!name || !profile) {
     return (
       <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
+        <Seo
+          title={documentTitle("Terpene not found")}
+          description="That terpene is not in the StrainEase guide yet. Browse myrcene, limonene, or linalool instead."
+          path={`/terpene/${slug}`}
+          noindex
+        />
         <AppHeader active="home" />
         <div className="mx-auto w-full max-w-3xl px-6 py-10">
           <Link
@@ -70,6 +79,13 @@ export default function Terpene() {
 
   return (
     <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
+      <Seo
+        title={documentTitle(name.charAt(0).toUpperCase() + name.slice(1))}
+        description={terpeneDescription(name, profile)}
+        path={`/terpene/${slug}`}
+        type="article"
+        jsonLd={terpeneJsonLd(name, profile, slug)}
+      />
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(55%_40%_at_80%_0%,oklch(0.86_0.07_158/0.32),transparent_62%),radial-gradient(40%_32%_at_8%_18%,oklch(0.9_0.04_140/0.22),transparent_70%)]"

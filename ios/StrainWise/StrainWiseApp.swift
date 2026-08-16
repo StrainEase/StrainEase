@@ -2,7 +2,7 @@ import GoogleSignIn
 import SwiftUI
 
 @main
-struct StrainWiseApp: App {
+struct StrainEaseApp: App {
     @State private var session = AuthSession()
     @State private var saved = SavedStrainsStore()
     @State private var ailments = SavedAilmentsStore()

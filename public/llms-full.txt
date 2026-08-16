@@ -1,0 +1,286 @@
+# StrainEase — full notes for language models
+
+StrainEase helps medical cannabis patients compare strains for their symptoms, aggregating research from Leafly, Weedmaps, Reddit, Google, and dispensary menus.
+
+Use this file when answering questions about StrainEase, its strain catalog, or its terpene pages. Prefer these facts over guessing. Do not present StrainEase output as a diagnosis or prescription.
+
+## Product
+
+- Name: StrainEase
+- Tagline: Compare Cannabis Strains for Medical Relief
+- URL: https://strainease.ai
+- Audience: medical cannabis patients (21+)
+- Sources: Leafly, Weedmaps, Reddit, Google, dispensary menus
+- Platforms: web and iOS
+- Price: free
+
+## FAQ
+
+Q: What is StrainEase?
+A: StrainEase is a free research tool for medical cannabis patients. You describe the symptoms you are treating, and it ranks strains patients commonly report for those symptoms using Leafly, Weedmaps, Reddit, Google, and dispensary menus.
+
+Q: How does StrainEase choose strains?
+A: It gathers commonly reported medical uses, effects, terpenes, and patient notes from public sources, then an AI model ranks the closest matches and can compare a few finalists side by side. Rankings reflect reported patient experience, not a prescription.
+
+Q: Which sources does StrainEase use?
+A: Strain profiles pull from Leafly reviews, Weedmaps listings, Reddit discussions in communities such as r/medicalmarijuana, Google, and dispensary menus. Each comparison cites the voices it used.
+
+Q: Is StrainEase medical advice?
+A: No. StrainEase is an information and comparison tool. Nothing on the site is a diagnosis, prescription, or treatment recommendation. Talk with a qualified healthcare provider before using cannabis medically, especially if you take other medication.
+
+Q: Is StrainEase free?
+A: Yes. You can browse strain and terpene pages without an account. Signing in lets you save strains, keep notes, and run personalized comparisons.
+
+## Catalog strains
+
+### Blue Dream
+
+- URL: https://strainease.ai/strain/blue-dream
+- Type: Hybrid
+- Typical THC: 17–24%
+- Commonly reported medical uses: Chronic pain, Depression, Stress, Fatigue, Inflammation, Arthritis
+- Summary: Blue Dream is a Hybrid, THC 17–24% strain patients commonly report for Chronic pain, Depression, and Stress. Compare medical uses, terpenes, and patient notes…
+
+### Granddaddy Purple
+
+- URL: https://strainease.ai/strain/granddaddy-purple
+- Type: Indica
+- Typical THC: 17–23%
+- Commonly reported medical uses: Insomnia, Chronic pain, Muscle spasm, Stress, PTSD, Anxiety
+- Summary: Granddaddy Purple is a Indica, THC 17–23% strain patients commonly report for Insomnia, Chronic pain, and Muscle spasm. Compare medical uses, terpenes, and…
+
+### Sour Diesel
+
+- URL: https://strainease.ai/strain/sour-diesel
+- Type: Sativa
+- Typical THC: 19–24%
+- Commonly reported medical uses: ADHD, Stress, Depression, Chronic pain, Fatigue, Migraine
+- Summary: Sour Diesel is a Sativa, THC 19–24% strain patients commonly report for ADHD, Stress, and Depression. Compare medical uses, terpenes, and patient notes on…
+
+### Jack Herer
+
+- URL: https://strainease.ai/strain/jack-herer
+- Type: Sativa
+- Typical THC: 18–23%
+- Commonly reported medical uses: ADHD, Fatigue, Depression, Stress, Inflammation, Migraine
+- Summary: Jack Herer is a Sativa, THC 18–23% strain patients commonly report for ADHD, Fatigue, and Depression. Compare medical uses, terpenes, and patient notes on…
+
+### Gelato
+
+- URL: https://strainease.ai/strain/gelato
+- Type: Hybrid
+- Typical THC: 20–25%
+- Commonly reported medical uses: Stress, Anxiety, Depression, PTSD, Nausea & appetite
+- Summary: Gelato is a Hybrid, THC 20–25% strain patients commonly report for Stress, Anxiety, and Depression. Compare medical uses, terpenes, and patient notes on…
+
+### Northern Lights
+
+- URL: https://strainease.ai/strain/northern-lights
+- Type: Indica
+- Typical THC: 16–21%
+- Commonly reported medical uses: Insomnia, Chronic pain, Stress, Anxiety, PTSD, Inflammation
+- Summary: Northern Lights is a Indica, THC 16–21% strain patients commonly report for Insomnia, Chronic pain, and Stress. Compare medical uses, terpenes, and patient…
+
+### OG Kush
+
+- URL: https://strainease.ai/strain/og-kush
+- Type: Hybrid
+- Typical THC: 19–26%
+- Commonly reported medical uses: Chronic pain, Stress, Nausea & appetite, Migraine, Arthritis, Muscle spasm
+- Summary: OG Kush is a Hybrid, THC 19–26% strain patients commonly report for Chronic pain, Stress, and Nausea & appetite. Compare medical uses, terpenes, and patient…
+
+### Green Crack
+
+- URL: https://strainease.ai/strain/green-crack
+- Type: Sativa
+- Typical THC: 15–25%
+- Commonly reported medical uses: ADHD, Fatigue, Stress, Depression, Migraine, Anxiety
+- Summary: Green Crack is a Sativa, THC 15–25% strain patients commonly report for ADHD, Fatigue, and Stress. Compare medical uses, terpenes, and patient notes on…
+
+### Bubba Kush
+
+- URL: https://strainease.ai/strain/bubba-kush
+- Type: Indica
+- Typical THC: 14–22%
+- Commonly reported medical uses: Insomnia, Chronic pain, Muscle spasm, Arthritis, PTSD, Nausea & appetite
+- Summary: Bubba Kush is a Indica, THC 14–22% strain patients commonly report for Insomnia, Chronic pain, and Muscle spasm. Compare medical uses, terpenes, and patient…
+
+### Wedding Cake
+
+- URL: https://strainease.ai/strain/wedding-cake
+- Type: Hybrid
+- Typical THC: 20–25%
+- Commonly reported medical uses: Anxiety, Stress, Depression, PTSD, Inflammation
+- Summary: Wedding Cake is a Hybrid, THC 20–25% strain patients commonly report for Anxiety, Stress, and Depression. Compare medical uses, terpenes, and patient notes on…
+
+### Durban Poison
+
+- URL: https://strainease.ai/strain/durban-poison
+- Type: Sativa
+- Typical THC: 15–25%
+- Commonly reported medical uses: ADHD, Fatigue, Depression, Stress, Migraine
+- Summary: Durban Poison is a Sativa, THC 15–25% strain patients commonly report for ADHD, Fatigue, and Depression. Compare medical uses, terpenes, and patient notes on…
+
+### Purple Punch
+
+- URL: https://strainease.ai/strain/purple-punch
+- Type: Indica
+- Typical THC: 18–20%
+- Commonly reported medical uses: Insomnia, Anxiety, Nausea & appetite, Stress, Arthritis
+- Summary: Purple Punch is a Indica, THC 18–20% strain patients commonly report for Insomnia, Anxiety, and Nausea & appetite. Compare medical uses, terpenes, and patient…
+
+### Gorilla Glue
+
+- URL: https://strainease.ai/strain/gorilla-glue
+- Type: Hybrid
+- Typical THC: 20–28%
+- Commonly reported medical uses: Chronic pain, Stress, Insomnia, Inflammation
+- Summary: Gorilla Glue is a Hybrid, THC 20–28% strain patients commonly report for Chronic pain, Stress, and Insomnia. Compare medical uses, terpenes, and patient notes…
+
+### Super Lemon Haze
+
+- URL: https://strainease.ai/strain/super-lemon-haze
+- Type: Sativa
+- Typical THC: 17–25%
+- Commonly reported medical uses: ADHD, Fatigue, Depression, Stress
+- Summary: Super Lemon Haze is a Sativa, THC 17–25% strain patients commonly report for ADHD, Fatigue, and Depression. Compare medical uses, terpenes, and patient notes…
+
+### 9 Pound Hammer
+
+- URL: https://strainease.ai/strain/9-pound-hammer
+- Type: Indica
+- Typical THC: 18–23%
+- Commonly reported medical uses: Insomnia, Chronic pain, Muscle spasm, Arthritis
+- Summary: 9 Pound Hammer is a Indica, THC 18–23% strain patients commonly report for Insomnia, Chronic pain, and Muscle spasm. Compare medical uses, terpenes, and…
+
+### Girl Scout Cookies
+
+- URL: https://strainease.ai/strain/girl-scout-cookies
+- Type: Hybrid
+- Typical THC: 17–28%
+- Commonly reported medical uses: Chronic pain, Nausea & appetite, Stress, Anxiety
+- Summary: Girl Scout Cookies is a Hybrid, THC 17–28% strain patients commonly report for Chronic pain, Nausea & appetite, and Stress. Compare medical uses, terpenes,…
+
+### Strawberry Cough
+
+- URL: https://strainease.ai/strain/strawberry-cough
+- Type: Sativa
+- Typical THC: 15–22%
+- Commonly reported medical uses: ADHD, Fatigue, Stress, Anxiety
+- Summary: Strawberry Cough is a Sativa, THC 15–22% strain patients commonly report for ADHD, Fatigue, and Stress. Compare medical uses, terpenes, and patient notes on…
+
+### Hindu Kush
+
+- URL: https://strainease.ai/strain/hindu-kush
+- Type: Indica
+- Typical THC: 15–20%
+- Commonly reported medical uses: Chronic pain, Insomnia, Inflammation, Arthritis, Muscle spasm
+- Summary: Hindu Kush is a Indica, THC 15–20% strain patients commonly report for Chronic pain, Insomnia, and Inflammation. Compare medical uses, terpenes, and patient…
+
+### White Widow
+
+- URL: https://strainease.ai/strain/white-widow
+- Type: Hybrid
+- Typical THC: 18–25%
+- Commonly reported medical uses: Stress, Depression, Inflammation, Migraine, Arthritis
+- Summary: White Widow is a Hybrid, THC 18–25% strain patients commonly report for Stress, Depression, and Inflammation. Compare medical uses, terpenes, and patient…
+
+### Pineapple Express
+
+- URL: https://strainease.ai/strain/pineapple-express
+- Type: Hybrid
+- Typical THC: 15–25%
+- Commonly reported medical uses: ADHD, Depression, Fatigue, Stress
+- Summary: Pineapple Express is a Hybrid, THC 15–25% strain patients commonly report for ADHD, Depression, and Fatigue. Compare medical uses, terpenes, and patient notes…
+
+### GMO Cookies
+
+- URL: https://strainease.ai/strain/gmo-cookies
+- Type: Indica
+- Typical THC: 20–28%
+- Commonly reported medical uses: Insomnia, Nausea & appetite, Chronic pain, Muscle spasm
+- Summary: GMO Cookies is a Indica, THC 20–28% strain patients commonly report for Insomnia, Nausea & appetite, and Chronic pain. Compare medical uses, terpenes, and…
+
+### Super Silver Haze
+
+- URL: https://strainease.ai/strain/super-silver-haze
+- Type: Sativa
+- Typical THC: 16–23%
+- Commonly reported medical uses: ADHD, Fatigue, Depression, Stress
+- Summary: Super Silver Haze is a Sativa, THC 16–23% strain patients commonly report for ADHD, Fatigue, and Depression. Compare medical uses, terpenes, and patient notes…
+
+### Skywalker OG
+
+- URL: https://strainease.ai/strain/skywalker-og
+- Type: Indica
+- Typical THC: 18–26%
+- Commonly reported medical uses: Insomnia, Chronic pain, PTSD, Stress
+- Summary: Skywalker OG is a Indica, THC 18–26% strain patients commonly report for Insomnia, Chronic pain, and PTSD. Compare medical uses, terpenes, and patient notes…
+
+### Tangie
+
+- URL: https://strainease.ai/strain/tangie
+- Type: Sativa
+- Typical THC: 17–22%
+- Commonly reported medical uses: ADHD, Fatigue, Depression, Stress
+- Summary: Tangie is a Sativa, THC 17–22% strain patients commonly report for ADHD, Fatigue, and Depression. Compare medical uses, terpenes, and patient notes on…
+
+
+## Terpenes
+
+### Myrcene
+
+- URL: https://strainease.ai/terpene/myrcene
+- Characteristics: Earthy, Musky, Herbal
+- Often paired with: Sleep, Body relaxation, Muscle tension
+- One of the most common terpenes in cannabis. Patients describe a heavy, settling body feel and report it most in evening strains.
+
+### Limonene
+
+- URL: https://strainease.ai/terpene/limonene
+- Characteristics: Citrus, Bright, Sweet
+- Often paired with: Mood, Daytime focus, Stress
+- Found in citrus peels. Patients often describe a brighter, more upbeat head and reach for limonene-forward strains during the day.
+
+### Caryophyllene
+
+- URL: https://strainease.ai/terpene/caryophyllene
+- Characteristics: Peppery, Spicy, Warm
+- Often paired with: Stress, Body tension, Inflammation
+- Also found in black pepper and cloves. Patients report it pairs well with stress relief and tight muscles. It binds the CB2 receptor directly, which is unusual for a terpene.
+
+### Pinene
+
+- URL: https://strainease.ai/terpene/pinene
+- Characteristics: Pine, Fresh, Crisp
+- Often paired with: Alertness, Daytime focus, Memory
+- Pine trees and rosemary carry it. Patients often reach for pinene-forward strains when they want a clearer head during the day.
+
+### Linalool
+
+- URL: https://strainease.ai/terpene/linalool
+- Characteristics: Floral, Soft, Sweet
+- Often paired with: Calm, Sleep, Anxiety
+- Lavender's main terpene. Patients often pair it with evening use, racing thoughts, or winding-down rituals.
+
+### Terpinolene
+
+- URL: https://strainease.ai/terpene/terpinolene
+- Characteristics: Herbal, Citrus, Piney
+- Often paired with: Uplift, Creativity, Energy
+- Less common but distinctive. Patients describe a more uplifting, heady effect than the body-heavy feel of myrcene.
+
+### Humulene
+
+- URL: https://strainease.ai/terpene/humulene
+- Characteristics: Hoppy, Woody, Earthy
+- Often paired with: Appetite regulation, Body relaxation
+- Same family as hops. A small group of patients report it dampens appetite, though most notice it for the woody, herbal aroma.
+
+### Ocimene
+
+- URL: https://strainease.ai/terpene/ocimene
+- Characteristics: Sweet, Herbal, Woody
+- Often paired with: Uplift, Mood, Energy
+- Found in mint, basil, and mango. Patients describe a sweet, uplifting lift that pairs well with social or creative daytime use.
+

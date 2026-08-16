@@ -1,7 +1,9 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { HomeScreen } from "@/components/home/HomeScreen";
+import { Seo } from "@/components/Seo";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
+import { SITE_DESCRIPTION, documentTitle } from "@/lib/site";
 import { motion } from "framer-motion";
 
 export default function Home() {
@@ -10,6 +12,11 @@ export default function Home() {
 
   return (
     <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
+      <Seo
+        title={documentTitle("Home")}
+        description={SITE_DESCRIPTION}
+        path="/"
+      />
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(55%_40%_at_80%_0%,oklch(0.86_0.07_158/0.38),transparent_62%),radial-gradient(40%_32%_at_8%_18%,oklch(0.9_0.04_140/0.28),transparent_70%)]"

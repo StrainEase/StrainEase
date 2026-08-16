@@ -1,4 +1,4 @@
-# Deploys the StrainWise backend (Firebase Cloud Functions + Firestore rules)
+# Deploys the StrainEase backend (Firebase Cloud Functions + Firestore rules)
 # to Firebase whenever functions-related code lands on `main`, or on demand
 # via the Actions tab.
 #

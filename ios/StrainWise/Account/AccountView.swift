@@ -66,7 +66,7 @@ struct AccountView: View {
                     Button("Close") { dismiss() }
                 }
             }
-            .confirmationDialog("Sign out of StrainWise?", isPresented: $showSignOut, titleVisibility: .visible) {
+            .confirmationDialog("Sign out of StrainEase?", isPresented: $showSignOut, titleVisibility: .visible) {
                 Button("Sign out", role: .destructive) { session.signOut() }
                 Button("Cancel", role: .cancel) {}
             }

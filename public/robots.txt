@@ -1,0 +1,127 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: GPTBot
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: Claude-User
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: Amazonbot
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: CCBot
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: meta-externalagent
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+User-agent: Bytespider
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /browse/
+Disallow: /find/
+Disallow: /compare/
+Disallow: /doctors
+
+Sitemap: https://strainease.ai/sitemap.xml

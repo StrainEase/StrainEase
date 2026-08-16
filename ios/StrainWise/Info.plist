@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>StrainWise</string>
+	<string>StrainEase</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -36,7 +36,7 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>StrainWise uses your location to find medical-marijuana doctors near you.</string>
+	<string>StrainEase uses your location to find medical-marijuana doctors near you.</string>
 	<key>GIDClientID</key>
 	<string>89734321536-s3njeabohn98bd8s0rqh05diur2mk9h2.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>

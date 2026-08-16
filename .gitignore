@@ -58,5 +58,5 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
-# iOS-specific (StrainWise companion)
+# iOS-specific (StrainEase companion)
 ios/StrainWise/GoogleService-Info.plist
