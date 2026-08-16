@@ -107,8 +107,22 @@ createRoot(document.getElementById("root")!).render(
             />
             <Route path="/find/:rid" element={<Dashboard />} />
             <Route path="/compare/:rid" element={<Dashboard />} />
-            <Route path="/strain/:slug" element={<StrainPage />} />
-            <Route path="/terpene/:slug" element={<TerpenePage />} />
+            <Route
+              path="/strain/:slug"
+              element={
+                <RequireAuth>
+                  <StrainPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/terpene/:slug"
+              element={
+                <RequireAuth>
+                  <TerpenePage />
+                </RequireAuth>
+              }
+            />
             <Route
               path="/doctors"
               element={

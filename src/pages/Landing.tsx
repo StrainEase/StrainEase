@@ -444,6 +444,9 @@ function LandingNav({
 export default function Landing() {
   const { isAuthenticated } = useAuth();
   const [live, setLive] = useState<FeaturedStrain[] | null>(null);
+  // Tailwind's `sm` breakpoint. The strains grid is single-column below it,
+  // so we cap the list to keep the section from scrolling forever on phones.
+  const [isMobile, setIsMobile] = useState(false);
 
   const appHref = "/dashboard";
   const appLabel = isAuthenticated ? "Dashboard" : "Find strains";
@@ -456,6 +459,7 @@ export default function Landing() {
       ]);
       return { ...strain, imageUrl: filled?.imageUrl };
     });
+  const visibleFeatured = isMobile ? featured.slice(0, 5) : featured;
 
   useEffect(() => {
     let cancelled = false;
@@ -471,6 +475,15 @@ export default function Landing() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
   }, []);
 
   return (
@@ -498,7 +511,7 @@ export default function Landing() {
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(55%_48%_at_78%_18%,oklch(0.86_0.07_158/0.45),transparent_62%),radial-gradient(40%_36%_at_12%_88%,oklch(0.9_0.04_140/0.35),transparent_70%)]"
         />
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:pb-24 lg:pt-6">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pb-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:pb-16 lg:pt-6">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -574,7 +587,7 @@ export default function Landing() {
       </section>
 
       <section className="border-y border-border/60">
-        <div className="mx-auto w-full max-w-6xl px-6 py-24">
+        <div className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16">
           <motion.div
             {...fadeUp(0)}
             className="flex flex-col items-center gap-6 text-center"
@@ -608,8 +621,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="how-it-works" className="mx-auto w-full max-w-6xl px-6 py-24">
-        <motion.div {...fadeUp(0)} className="mb-14 max-w-xl">
+      <section id="how-it-works" className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16">
+        <motion.div {...fadeUp(0)} className="mb-10 max-w-xl sm:mb-14">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
             How it works
           </p>
@@ -645,10 +658,10 @@ export default function Landing() {
       </section>
 
       <section id="strains" className="border-y border-border/60">
-        <div className="mx-auto w-full max-w-6xl px-6 py-24">
+        <div className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16">
           <motion.div
             {...fadeUp(0)}
-            className="mb-14 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end"
+            className="mb-10 flex flex-col items-start justify-between gap-4 sm:mb-14 sm:flex-row sm:items-end"
           >
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
@@ -665,7 +678,7 @@ export default function Landing() {
             </p>
           </motion.div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((strain, i) => (
+            {visibleFeatured.map((strain, i) => (
               <StrainCard
                 key={strain.name}
                 strain={strain}
@@ -690,8 +703,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="sources" className="mx-auto w-full max-w-6xl px-6 py-24">
-        <div className="grid items-start gap-16 lg:grid-cols-2">
+      <section id="sources" className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16">
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
           <motion.div {...fadeUp(0)}>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
               Where the knowledge comes from
@@ -760,7 +773,7 @@ export default function Landing() {
       </section>
 
       <section id="faq" className="mx-auto w-full max-w-6xl px-6 pb-8">
-        <motion.div {...fadeUp(0)} className="mb-10 max-w-xl">
+        <motion.div {...fadeUp(0)} className="mb-8 max-w-xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
             FAQ
           </p>
@@ -786,7 +799,7 @@ export default function Landing() {
         </dl>
       </section>
 
-      <section className="mx-auto w-full max-w-4xl px-6 pb-16">
+      <section className="mx-auto w-full max-w-4xl px-6 pb-10">
         <div className="flex items-start gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-6">
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-amber-600" />
           <div>
@@ -801,8 +814,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 pb-24">
-        <div className="relative overflow-hidden rounded-[2rem] bg-primary px-8 py-20 text-center text-primary-foreground sm:px-16">
+      <section className="mx-auto w-full max-w-6xl px-6 pb-12 sm:pb-16">
+        <div className="relative overflow-hidden rounded-[2rem] bg-primary px-8 py-16 text-center text-primary-foreground sm:px-16 sm:py-20">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_80%_at_50%_0%,oklch(1_0_0/0.14),transparent_65%)]"
