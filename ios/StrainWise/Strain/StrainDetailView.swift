@@ -91,7 +91,7 @@ struct StrainDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .topBarTrailing) {
                 CompareToggleButton(
                     isInSelection: isInCompare,
                     atCap: compareAtCap
