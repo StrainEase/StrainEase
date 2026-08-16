@@ -184,6 +184,39 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertTrue(hits.contains { $0.slug == "granddaddy-purple" })
     }
 
+    func testCatalogPhotoFillsEveryHomeRailNotJustRecents() {
+        let live = [
+            StrainProfile(name: "Blue Dream", inKnowledgeBase: true, type: .hybrid),
+            StrainProfile(name: "Sour Diesel", inKnowledgeBase: true, type: .sativa),
+            StrainProfile(name: "Granddaddy Purple", inKnowledgeBase: true, type: .indica),
+            StrainProfile(name: "GSC", inKnowledgeBase: true, type: .hybrid),
+        ]
+        XCTAssertTrue(live.allSatisfy { $0.imageUrl == nil || $0.imageUrl?.isEmpty == true })
+
+        let rails: [[StrainProfile]] = [
+            StrainCatalog.merge(live),
+            StrainCatalog.merge(live, preferringType: .sativa),
+            StrainCatalog.merge(live, preferringType: .hybrid),
+            StrainCatalog.merge(live, preferringType: .indica),
+            StrainCatalog.matching(ailment: "Insomnia", live: live),
+            StrainCatalog.applyingCatalogPhotos(live),
+        ]
+        for list in rails {
+            XCTAssertFalse(list.isEmpty)
+            XCTAssertTrue(
+                list.allSatisfy { $0.imageUrl?.isEmpty == false },
+                "Home rail is missing a nug photo"
+            )
+        }
+
+        let gsc = StrainCatalog.applyingCatalogPhoto(
+            StrainProfile(name: "GSC", inKnowledgeBase: true)
+        )
+        XCTAssertEqual(gsc.imageUrl, StrainCatalog.applyingCatalogPhoto(
+            StrainProfile(name: "Girl Scout Cookies", inKnowledgeBase: true)
+        ).imageUrl)
+    }
+
     @MainActor
     func testHomePreviewShowsSixThenHasMore() async {
         let model = HomeModel(api: PreviewStrainAPI())

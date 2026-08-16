@@ -140,6 +140,10 @@ function imageFrom(raw: RawRecord): string | undefined {
   return firstHttpsImage(
     raw.nugImage,
     raw.stockNugImage,
+    raw.imageUrl,
+    raw.image,
+    raw.photoUrl,
+    raw.photo_url,
     highlightedPhoto(raw),
   );
 }

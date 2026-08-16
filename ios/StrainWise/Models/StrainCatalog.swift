@@ -36,14 +36,23 @@ enum StrainCatalog {
             return !live.contains { $0.slug == catalog.slug }
         }
         let head = type == nil ? live : live.filter { $0.type == type }
-        return unique(head + extras).map(withCatalogPhoto)
+        return applyingCatalogPhotos(unique(head + extras))
     }
 
     static func matching(ailment: String, live: [StrainProfile]) -> [StrainProfile] {
         let combined = unique(live + all)
         let hits = combined.filter { matches($0, ailment: ailment) }
         let list = hits.isEmpty ? Array(combined.prefix(8)) : hits
-        return list.map(withCatalogPhoto)
+        return applyingCatalogPhotos(list)
+    }
+
+    static func applyingCatalogPhotos(_ profiles: [StrainProfile]) -> [StrainProfile] {
+        profiles.map(applyingCatalogPhoto)
+    }
+
+    /// Prefer the curated nug shot so Home rails don't keep a live URL that 404s.
+    static func applyingCatalogPhoto(_ profile: StrainProfile) -> StrainProfile {
+        withCatalogPhoto(profile)
     }
 
     static func unique(_ profiles: [StrainProfile]) -> [StrainProfile] {
@@ -79,6 +88,13 @@ enum StrainCatalog {
         } == true
     }
 
+    private static let slugAliases: [String: String] = [
+        "gsc": "girl-scout-cookies",
+        "gg4": "gorilla-glue",
+        "gg-4": "gorilla-glue",
+        "original-glue": "gorilla-glue",
+    ]
+
     private static let photos: [String: String] = [
         "blue-dream": "https://images.leafly.com/flower-images/blue-dream.png",
         "granddaddy-purple": "https://images.leafly.com/flower-images/granddaddy-purple.png",
@@ -106,13 +122,18 @@ enum StrainCatalog {
         "tangie": "https://leafly-public.imgix.net/strains/photos/8wTMziz0RQaJqNE4juPn_Tangie.png",
     ]
 
+    private static func photoKey(for slug: String) -> String {
+        slugAliases[slug] ?? slug
+    }
+
     private static func withCatalogPhoto(_ profile: StrainProfile) -> StrainProfile {
         var next = profile
-        if next.imageUrl == nil || next.imageUrl?.isEmpty == true {
-            next.imageUrl = photos[profile.slug]
+        let key = photoKey(for: profile.slug)
+        if let catalog = photos[key] {
+            next.imageUrl = catalog
         }
         if next.medicalUses == nil || next.medicalUses?.isEmpty == true,
-           let uses = all.first(where: { $0.slug == profile.slug })?.medicalUses {
+           let uses = all.first(where: { $0.slug == key })?.medicalUses {
             next.medicalUses = uses
         }
         return next

@@ -51,7 +51,9 @@ final class HomeModel {
         isLoading = popular.isEmpty
         errorMessage = nil
         do {
-            popular = StrainCatalog.unique(try await api.popular())
+            popular = StrainCatalog.applyingCatalogPhotos(
+                StrainCatalog.unique(try await api.popular())
+            )
         } catch {
             errorMessage = error.localizedDescription
             if popular.isEmpty { popular = [] }

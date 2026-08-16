@@ -3,9 +3,10 @@ import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
-import { listenToSavedStrains } from "@/lib/saved-strains";
+import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import { searchStrain } from "@/lib/strain-api";
+import { applyCatalogPhotos } from "@/lib/strain-catalog";
 import {
   dayNightLabel,
   dayNightScore,
@@ -36,16 +37,23 @@ export default function Strain() {
       .then((found) => {
         if (cancelled) return;
         if (found) {
-          setProfile(found);
+          const [filled] = applyCatalogPhotos([found]);
+          setProfile(filled ?? found);
           setStatus("ready");
         } else {
-          setProfile({ name, inKnowledgeBase: false });
+          const [filled] = applyCatalogPhotos([
+            { name, inKnowledgeBase: false },
+          ]);
+          setProfile(filled ?? { name, inKnowledgeBase: false });
           setStatus("missing");
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setProfile({ name, inKnowledgeBase: false });
+          const [filled] = applyCatalogPhotos([
+            { name, inKnowledgeBase: false },
+          ]);
+          setProfile(filled ?? { name, inKnowledgeBase: false });
           setStatus("missing");
         }
       });

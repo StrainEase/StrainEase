@@ -86,14 +86,15 @@ struct StrainDetailView: View {
         defer { isHydrating = false }
         do {
             guard var full = try await api.search(name: profile.name) else { return }
-            // Backend doesn't extract an image URL, so reuse the local one
-            // when missing — otherwise the recents entry (and a re-render of
-            // Home) silently downgrades to the leaf placeholder.
+            // Backend often omits imageUrl. Keep the local nug shot, then
+            // fill from the catalog so every Home rail (not just recents)
+            // still shows a photo after hydrate.
             if (full.imageUrl?.isEmpty ?? true),
                let local = profile.imageUrl,
                !local.isEmpty {
                 full.imageUrl = local
             }
+            full = StrainCatalog.applyingCatalogPhoto(full)
             profile = full
             recents.record(full)
         } catch {

@@ -345,12 +345,13 @@ export function uniqueProfiles(profiles: StrainProfile[]): StrainProfile[] {
   return [...seen.values()];
 }
 
-/** Fill catalog photos and medical uses when a live profile is missing them. */
+/** Fill catalog nug shots and medical uses. Prefer the curated photo so Home
+ *  rails don't keep a live URL that 404s and falls back to the leaf. */
 export function applyCatalogPhotos(profiles: StrainProfile[]): StrainProfile[] {
   return profiles.map((profile) => {
     const defaults = catalogDefaults(profile.name);
     if (!defaults) return profile;
-    const imageUrl = profile.imageUrl || defaults.imageUrl;
+    const imageUrl = defaults.imageUrl || profile.imageUrl;
     const medicalUses =
       profile.medicalUses && profile.medicalUses.length > 0
         ? profile.medicalUses
@@ -373,7 +374,7 @@ export function mergeCatalog(
   const head = preferringType
     ? live.filter((item) => item.type === preferringType)
     : live;
-  return uniqueProfiles([...head, ...extras]);
+  return applyCatalogPhotos(uniqueProfiles([...head, ...extras]));
 }
 
 export function matchingAilment(

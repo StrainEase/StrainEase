@@ -28,9 +28,9 @@ struct HomeView: View {
                         typeRail(.indica)
                         StrainRail(
                             title: HomeSection.recents.title,
-                            strains: Array(recents.items.prefix(model.previewLimit)),
+                            strains: Array(recentProfiles.prefix(model.previewLimit)),
                             emptyText: "Open a strain and it’ll land here.",
-                            onSeeMore: { openGrid(.recents, recents.items) },
+                            onSeeMore: { openGrid(.recents, recentProfiles) },
                             onSelect: openProfile
                         )
                     }
@@ -82,6 +82,10 @@ struct HomeView: View {
                 .foregroundStyle(Palette.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var recentProfiles: [StrainProfile] {
+        StrainCatalog.applyingCatalogPhotos(recents.items)
     }
 
     private func typeRail(_ section: HomeSection) -> some View {

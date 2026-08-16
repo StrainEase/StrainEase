@@ -1,5 +1,5 @@
 import { popularStrains } from "@/lib/strain-api";
-import { uniqueProfiles } from "@/lib/strain-catalog";
+import { applyCatalogPhotos, uniqueProfiles } from "@/lib/strain-catalog";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { useEffect, useState } from "react";
 
@@ -11,7 +11,7 @@ function loadPopular(): Promise<StrainProfile[]> {
   if (!inflight) {
     inflight = popularStrains()
       .then((list) => {
-        cached = uniqueProfiles(list);
+        cached = applyCatalogPhotos(uniqueProfiles(list));
         return cached;
       })
       .finally(() => {
