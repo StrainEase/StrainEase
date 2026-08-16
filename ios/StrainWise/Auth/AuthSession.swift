@@ -87,6 +87,24 @@ final class AuthSession {
         }
     }
 
+    func updateDisplayName(_ name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if !FirebaseBootstrap.isConfigured {
+            applyLocalName(trimmed)
+            return
+        }
+        await run {
+            guard let user = Auth.auth().currentUser else {
+                throw StrainAPIError.message("You’re not signed in.")
+            }
+            let request = user.createProfileChangeRequest()
+            request.displayName = trimmed
+            try await request.commitChanges()
+            self.applyLocalName(trimmed)
+        }
+    }
+
     func signOut() {
         do {
             try Auth.auth().signOut()
@@ -94,6 +112,13 @@ final class AuthSession {
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func applyLocalName(_ name: String) {
+        if case .signedIn(var current) = status {
+            current.name = name
+            status = .signedIn(current)
         }
     }
 

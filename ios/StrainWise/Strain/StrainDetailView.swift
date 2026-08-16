@@ -29,6 +29,11 @@ struct StrainDetailView: View {
                                 .foregroundStyle(Palette.foreground)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
+                    } else if isHydrating {
+                        hydratingCard(lines: 3)
+                    }
+                    if isHydrating && profile.medicalUses?.isEmpty != false {
+                        hydratingCard(lines: 2)
                     }
                     dayNight
                     if let uses = profile.medicalUses, !uses.isEmpty {
@@ -36,9 +41,13 @@ struct StrainDetailView: View {
                     }
                     if let effects = profile.effects, !effects.isEmpty {
                         effectsSection(effects)
+                    } else if isHydrating {
+                        hydratingCard(lines: 4)
                     }
                     if let terpenes = profile.terpenes, !terpenes.isEmpty {
                         terpenesSection(terpenes)
+                    } else if isHydrating {
+                        hydratingCard(lines: 2)
                     }
                     if let sides = profile.sideEffects, !sides.isEmpty {
                         chipSection("Watch for", items: sides)
@@ -102,16 +111,36 @@ struct StrainDetailView: View {
         }
     }
 
+    private func hydratingCard(lines: Int) -> some View {
+        SWCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .tint(Palette.primary)
+                    Text("Loading profile…")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Palette.mutedForeground)
+                }
+                ForEach(0..<lines, id: \.self) { index in
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Palette.muted)
+                        .frame(height: 12)
+                        .frame(maxWidth: index == lines - 1 ? 180 : .infinity)
+                }
+            }
+        }
+        .accessibilityIdentifier("strain.hydrating")
+        .accessibilityLabel("Loading strain details")
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if profile.imageUrl != nil {
-                StrainPhoto(
-                    urlString: profile.imageUrl,
-                    type: profile.type,
-                    height: 248,
-                    cornerRadius: 20
-                )
-            }
+            StrainPhoto(
+                urlString: profile.imageUrl,
+                type: profile.type,
+                height: 248,
+                cornerRadius: 20
+            )
             HStack(spacing: 8) {
                 TypeBadge(type: profile.type)
                 if !profile.inKnowledgeBase {

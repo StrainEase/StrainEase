@@ -317,4 +317,139 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertEqual(decoded.profile(named: "granddaddy purple")?.leaflyReviewCount, 3201)
         XCTAssertEqual(decoded.profile(named: "granddaddy purple")?.quoteNotes.count, 1)
     }
+
+    func testDayPartHourBuckets() {
+        let calendar = Self.fixedCalendar
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 5, calendar: calendar), calendar: calendar), .morning)
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 11, calendar: calendar), calendar: calendar), .morning)
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 12, calendar: calendar), calendar: calendar), .afternoon)
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 16, calendar: calendar), calendar: calendar), .afternoon)
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 17, calendar: calendar), calendar: calendar), .evening)
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 21, calendar: calendar), calendar: calendar), .evening)
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 22, calendar: calendar), calendar: calendar), .night)
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 4, calendar: calendar), calendar: calendar), .night)
+        XCTAssertEqual(HomeHeadline.dayPart(for: Self.date(hour: 0, calendar: calendar), calendar: calendar), .night)
+    }
+
+    func testSameDateYieldsSameHeadline() {
+        let calendar = Self.fixedCalendar
+        let date = Self.date(year: 2026, month: 8, day: 16, hour: 10, calendar: calendar)
+        XCTAssertEqual(
+            HomeHeadline.text(for: date, calendar: calendar),
+            HomeHeadline.text(for: date, calendar: calendar)
+        )
+        XCTAssertEqual(
+            HomeHeadline.dayPart(for: date, calendar: calendar),
+            .morning
+        )
+        XCTAssertTrue(
+            HomeHeadline.pools[.morning]!.contains(HomeHeadline.text(for: date, calendar: calendar))
+        )
+    }
+
+    func testThirtyEveningsYieldMoreThanOneHeadline() {
+        let calendar = Self.fixedCalendar
+        var headlines = Set<String>()
+        for day in 1...30 {
+            let date = Self.date(year: 2026, month: 3, day: day, hour: 19, calendar: calendar)
+            XCTAssertEqual(HomeHeadline.dayPart(for: date, calendar: calendar), .evening)
+            headlines.insert(HomeHeadline.text(for: date, calendar: calendar))
+        }
+        XCTAssertGreaterThan(headlines.count, 1)
+        XCTAssertTrue(headlines.isSubset(of: Set(HomeHeadline.pools[.evening]!)))
+    }
+
+    func testThcMidpointMatchesWebRangeRules() {
+        XCTAssertEqual(DirectoryFilter.thcMidpoint("17-24%"), 20.5)
+        XCTAssertEqual(DirectoryFilter.thcMidpoint("~20%"), 20)
+        XCTAssertEqual(DirectoryFilter.thcMidpoint("<1%"), 0.5)
+        XCTAssertEqual(DirectoryFilter.thcMidpoint("17–24%"), 20.5)
+        XCTAssertNil(DirectoryFilter.thcMidpoint(nil))
+        XCTAssertNil(DirectoryFilter.thcMidpoint("abc"))
+    }
+
+    func testRelaxedEffectMatchesRelaxingNotSleepy() {
+        let profile = StrainProfile(
+            name: "Test",
+            inKnowledgeBase: true,
+            effects: [StrainEffect(name: "relaxed", intensity: 3)]
+        )
+        XCTAssertTrue(DirectoryFilter.matches(profile, bucket: .relaxing))
+        XCTAssertFalse(DirectoryFilter.matches(profile, bucket: .sleepy))
+        XCTAssertTrue(
+            DirectoryFilter.matches(profile, effectIDs: ["relaxed"])
+        )
+        XCTAssertFalse(
+            DirectoryFilter.matches(profile, effectIDs: ["sleepy"])
+        )
+    }
+
+    func testDirectoryApplyFiltersByTypeThcAndSearch() {
+        let mildSativa = StrainProfile(
+            name: "Jack Herer",
+            inKnowledgeBase: true,
+            type: .sativa,
+            thcRange: "12-14%"
+        )
+        let strongIndica = StrainProfile(
+            name: "Granddaddy Purple",
+            inKnowledgeBase: true,
+            type: .indica,
+            thcRange: "22-28%"
+        )
+        let list = [mildSativa, strongIndica]
+        XCTAssertEqual(
+            DirectoryFilter.apply(
+                to: list,
+                query: "jack",
+                type: .all,
+                thc: .any,
+                effectIDs: []
+            ).map(\.name),
+            ["Jack Herer"]
+        )
+        XCTAssertEqual(
+            DirectoryFilter.apply(
+                to: list,
+                query: "",
+                type: .indica,
+                thc: .strong,
+                effectIDs: []
+            ).map(\.name),
+            ["Granddaddy Purple"]
+        )
+        XCTAssertTrue(
+            DirectoryFilter.apply(
+                to: list,
+                query: "",
+                type: .sativa,
+                thc: .strong,
+                effectIDs: []
+            ).isEmpty
+        )
+    }
+
+    func testPrimaryTabsAreHomeFindBrowse() {
+        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse"])
+        XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("saved"))
+        XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
+    }
+
+    private static var fixedCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+        return calendar
+    }
+
+    private static func date(
+        year: Int = 2026,
+        month: Int = 8,
+        day: Int = 16,
+        hour: Int,
+        calendar: Calendar
+    ) -> Date {
+        calendar.date(
+            from: DateComponents(year: year, month: month, day: day, hour: hour)
+        )!
+    }
 }

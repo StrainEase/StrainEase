@@ -43,21 +43,8 @@ struct HomeView: View {
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: 8) {
-                        Image("AppLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 26, height: 26)
-                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        Text("StrainWise")
-                            .font(.system(.headline, design: .serif))
-                            .foregroundStyle(Palette.foreground)
-                    }
-                    .accessibilityHidden(true)
-                }
-            }
+            .appChrome()
+            .accessibilityIdentifier("home.root")
             .navigationDestination(for: BrowseDestination.self) { destination in
                 switch destination {
                 case .profile(let profile):
@@ -74,10 +61,11 @@ struct HomeView: View {
     private var hero: some View {
         VStack(alignment: .leading, spacing: 8) {
             Eyebrow(text: "Browse")
-            Text("Find a strain that fits tonight")
+            Text(HomeHeadline.text())
                 .font(.system(.largeTitle, design: .serif).weight(.regular))
                 .foregroundStyle(Palette.foreground)
-            Text("Popular picks, symptoms, and phenotypes — tap See more for the full grid.")
+                .accessibilityIdentifier("home.headline")
+            Text(HomeHeadline.subtitle)
                 .font(.system(size: 15))
                 .foregroundStyle(Palette.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
@@ -109,6 +97,8 @@ struct HomeView: View {
 #Preview("Home") {
     HomeView(model: HomeModel(api: PreviewStrainAPI()))
         .environment(\.strainAPI, PreviewStrainAPI())
+        .environment(AppNavigation())
+        .environment(AuthSession.previewSignedIn)
         .environment(RecentlyViewedStore.preview([.sampleGDP, .sampleBlueDream]))
         .environment(SavedStrainsStore.preview())
 }

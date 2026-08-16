@@ -15,9 +15,7 @@ struct AilmentCarousel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            StrainSectionHeader(title: "For your symptoms") {
-                onSeeMore(currentName)
-            }
+            StrainSectionHeader(title: "For your symptoms")
             VStack(spacing: 8) {
                 ScrollView(.horizontal) {
                     HStack(spacing: 0) {
