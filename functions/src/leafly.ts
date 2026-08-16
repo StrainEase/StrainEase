@@ -3,6 +3,10 @@
 // scrape of public pages — no keys needed, but the HTML structure can change,
 // so the parsers below are defensive and return empty/partial data rather
 // than throwing when a field is missing.
+import {
+  getCachedStrainProfile,
+  putCachedStrainProfile,
+} from "./strain-info-cache";
 import type { CommunityNote, StrainProfile, StrainType } from "./types";
 
 const BASE = "https://www.leafly.com";
@@ -439,6 +443,8 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+const POPULAR_SLUG = "__popular__";
+
 export async function fetchPopular(): Promise<StrainProfile[]> {
   const html = await fetchLeaflyHtml("/strains");
   const data = extractNextData(html);
@@ -456,6 +462,21 @@ export async function fetchProfile(
 ): Promise<StrainProfile | null> {
   const slug = slugify(name);
   if (!slug) return null;
+  // Distributed cache hit — reuse the parsed profile, only freshly fetch
+  // the extra ailment reviews that were not part of the original scrape.
+  const cached = await getCachedStrainProfile(slug);
+  if (cached) {
+    const extraReviews = opts.extraReviews
+      ? await fetchLeaflyReviews(name)
+      : ([] as CommunityNote[]);
+    return {
+      ...cached.profile,
+      communityNotes: mergeReviewNotes(
+        cached.profile.communityNotes ?? [],
+        extraReviews,
+      ),
+    };
+  }
   try {
     const extraPromise = opts.extraReviews
       ? fetchLeaflyReviews(name)
@@ -472,10 +493,12 @@ export async function fetchProfile(
     const pageReviews = reviewNotesFrom(
       (data as RawRecord)?.props?.pageProps?.reviews,
     );
-    return {
+    const profile = {
       ...detailToProfile(raw),
       communityNotes: mergeReviewNotes(pageReviews, extra),
     };
+    void putCachedStrainProfile(slug, profile);
+    return profile;
   } catch {
     // 404 or a parse failure → not a strain page on Leafly.
     return null;
