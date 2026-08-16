@@ -162,6 +162,19 @@ async function searchPullPush(query: string): Promise<RawComment[]> {
   return Array.isArray(list) ? list : [];
 }
 
+function arcticShiftRecentSubredditUrl(
+  sub: string,
+  limit = ARCTIC_SHIFT_LIMIT,
+): string {
+  // `after=6m` keeps pages bounded to the last six months. Without it
+  // the endpoint will happily 502 on a popular sub. Note: Arctic Shift
+  // accepts `6m` (singular unit) but rejects `6months` — keep this as
+  // a regression-tested URL so we don't reintroduce the bug.
+  return `${ARCTIC_SHIFT}?subreddit=${encodeURIComponent(
+    sub,
+  )}&after=6m&limit=${limit}&sort=desc`;
+}
+
 /**
  * Pull the latest comments from one subreddit via Arctic Shift. We do
  * NOT pass a `body` keyword filter on the wire — its Postgres FTS path
@@ -171,11 +184,7 @@ async function searchPullPush(query: string): Promise<RawComment[]> {
 async function searchArcticShiftSubreddit(
   sub: string,
 ): Promise<RawComment[]> {
-  // `after=6months` keeps pages bounded. Without it the endpoint will
-  // happily 502 on a popular sub.
-  const url = `${ARCTIC_SHIFT}?subreddit=${encodeURIComponent(
-    sub,
-  )}&after=6months&limit=${ARCTIC_SHIFT_LIMIT}&sort=desc&format=json`;
+  const url = arcticShiftRecentSubredditUrl(sub);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ARCTIC_SHIFT_TIMEOUT_MS);
   try {
@@ -388,3 +397,11 @@ export async function fetchRedditQuotesFor(
 export function __resetRedditMemoryCacheForTest(): void {
   memoryCache.clear();
 }
+
+/** Test-only namespace. The shape is intentional — internal surface,
+ *  not public API. */
+export const __test__ = {
+  arcticShiftRecentSubredditUrl,
+  pickQuotes,
+  expandAilment,
+};
