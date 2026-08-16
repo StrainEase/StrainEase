@@ -67,12 +67,18 @@ struct FindView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 24)
                     // Tap anywhere on the form's background to dismiss the
-                    // keyboard. Buttons consume their own taps so this only
-                    // fires for taps on empty/label areas.
+                    // keyboard. We use `.simultaneousGesture` rather than
+                    // `.onTapGesture` so the dismiss-keyboard gesture never
+                    // shadows child Button taps: with `.contentShape(...)`,
+                    // a plain `.onTapGesture` on the parent absorbs hits
+                    // across the whole rectangle and silently disables the
+                    // Compare CTA (and any other button) inside the form.
+                    // `.simultaneousGesture` lets the button fire first
+                    // while still dismissing focus on taps in empty space.
                     .contentShape(Rectangle())
-                    .onTapGesture {
+                    .simultaneousGesture(TapGesture().onEnded {
                         focused = nil
-                    }
+                    })
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
