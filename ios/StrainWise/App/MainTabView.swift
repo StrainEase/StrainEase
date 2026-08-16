@@ -18,8 +18,6 @@ struct MainTabView: View {
         @Bindable var nav = nav
         tabContent(selection: $nav.tab)
             .tint(Palette.primary)
-            .environment(nav)
-            .environment(compareStore)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 CompareTrayBar()
             }
@@ -33,6 +31,11 @@ struct MainTabView: View {
                 }
                 .tint(Palette.primary)
             }
+            // Applied last so the tray (safeAreaInset) and tab content
+            // both see the same store. Inset content is a sibling of
+            // earlier modifiers, not a descendant.
+            .environment(nav)
+            .environment(compareStore)
     }
 
     @ViewBuilder
