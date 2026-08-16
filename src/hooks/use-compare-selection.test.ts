@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
   CAP,
+  COMPARE_STORAGE_KEY,
   dedupeAndCap,
   parseStrains,
+  readStoredStrains,
   serializeStrains,
+  writeStoredStrains,
 } from "./use-compare-selection";
 
 describe("CAP", () => {
@@ -136,5 +139,19 @@ describe("dedupeAndCap", () => {
 
   test("returns an empty array for empty input", () => {
     expect(dedupeAndCap([])).toEqual([]);
+  });
+});
+
+describe("sessionStorage compare selection", () => {
+  test("round-trips names so a strain page can toggle without losing the tray", () => {
+    sessionStorage.removeItem(COMPARE_STORAGE_KEY);
+    expect(readStoredStrains()).toEqual([]);
+    expect(writeStoredStrains(["Blue Dream", "GDP", "GDP"])).toEqual([
+      "Blue Dream",
+      "GDP",
+    ]);
+    expect(readStoredStrains()).toEqual(["Blue Dream", "GDP"]);
+    expect(writeStoredStrains([])).toEqual([]);
+    expect(readStoredStrains()).toEqual([]);
   });
 });

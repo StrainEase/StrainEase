@@ -1,13 +1,15 @@
-import { AppTabBar } from "@/components/home/AppHeader";
+import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
+import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
-import { parseStrains } from "@/hooks/use-compare-selection";
+import { useCompareSelection } from "@/hooks/use-compare-selection";
+import { useReliefSummary } from "@/hooks/use-relief-summary";
 import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import {
@@ -25,17 +27,17 @@ import {
 } from "@/lib/strain-meaning";
 import { terpeneProfile, terpeneSlug } from "@/lib/terpenes";
 import type { StrainProfile } from "@/lib/strain-profile";
-import logo from "@/assets/logo.svg";
 import { ArrowLeft, GitCompareArrows, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 export default function Strain() {
   const { slug = "" } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const compare = useCompareSelection();
+  const { logs } = useReliefSummary();
   const [profile, setProfile] = useState<StrainProfile | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "missing">(
     "loading",
@@ -111,20 +113,10 @@ export default function Strain() {
     return savedNames.some((n) => n.trim().toLowerCase() === target);
   }, [profile, savedNames]);
 
-  // Reflect an in-flight compare selection that may have been passed
-  // into this page via ?strains= (e.g. from a previous Strain click).
-  // The Dashboard owns the source of truth; this is just a UI hint so
-  // the toggle reads "In compare" while the strain is already queued.
-  const compareSelection = useMemo(
-    () => parseStrains(searchParams.get("strains")),
-    [searchParams],
-  );
-  const isInCompareSelection = useMemo(() => {
-    if (!profile) return false;
-    const target = profile.name.toLowerCase();
-    return compareSelection.some((n) => n.toLowerCase() === target);
-  }, [profile, compareSelection]);
-  const compareAtCap = compareSelection.length >= 3;
+  const isInCompareSelection = profile
+    ? compare.isIn(profile.name)
+    : false;
+  const compareAtCap = compare.atCap;
 
   const displayName = strainDisplayName(
     status === "loading" ? null : profile,
@@ -146,32 +138,7 @@ export default function Strain() {
             : undefined
         }
       />
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2.5">
-            <img
-              src={logo}
-              alt="StrainEase logo"
-              width={30}
-              height={30}
-              className="rounded-lg"
-            />
-            <span className="text-base font-semibold tracking-tight">
-              StrainEase
-            </span>
-          </Link>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="cursor-pointer rounded-full"
-          >
-            <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
-              {isAuthenticated ? "Dashboard" : "Open the app"}
-            </Link>
-          </Button>
-        </div>
-      </header>
+      <AppHeader active="home" />
 
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
         <div className="mb-6 flex items-center justify-between gap-3">
@@ -187,11 +154,7 @@ export default function Strain() {
             <CompareToggleButton
               isInSelection={isInCompareSelection}
               isFull={compareAtCap}
-              onToggle={() =>
-                navigate(
-                  `/dashboard?strains=${encodeURIComponent(profile.name)}`,
-                )
-              }
+              onToggle={() => compare.toggle(profile.name)}
             />
           )}
         </div>
@@ -308,11 +271,54 @@ export default function Strain() {
             )}
 
             {isAuthenticated && profile && (
-              <SavedStrainNotes
-                slug={slugify(profile.name)}
-                strainName={profile.name}
-                isSaved={isSaved}
-              />
+              <>
+                <div className="rounded-2xl border border-border/70 bg-card p-6">
+                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    How did this go?
+                  </p>
+                  <ReliefLogButton strainName={profile.name} />
+                  {logs.filter(
+                    (log) =>
+                      log.strainName.trim().toLowerCase() ===
+                      profile.name.trim().toLowerCase(),
+                  ).length > 0 && (
+                    <ul className="mt-4 space-y-2">
+                      {logs
+                        .filter(
+                          (log) =>
+                            log.strainName.trim().toLowerCase() ===
+                            profile.name.trim().toLowerCase(),
+                        )
+                        .slice(0, 6)
+                        .map((log) => (
+                          <li
+                            key={log.id}
+                            className="rounded-xl border border-border/60 bg-background px-4 py-3 text-sm"
+                          >
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="font-medium capitalize">
+                                {log.fit.replace("-", " ")}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {log.relief}/5 relief
+                              </span>
+                            </div>
+                            {log.note ? (
+                              <p className="mt-1.5 text-sm leading-6">
+                                {log.note}
+                              </p>
+                            ) : null}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
+                <SavedStrainNotes
+                  slug={slugify(profile.name)}
+                  strainName={profile.name}
+                  isSaved={isSaved}
+                />
+              </>
             )}
           </motion.div>
         )}

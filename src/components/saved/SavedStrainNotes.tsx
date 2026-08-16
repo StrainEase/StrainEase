@@ -3,6 +3,7 @@ import { db } from "@/lib/firebase";
 import {
   addNote,
   removeNote,
+  saveStrain,
   setNotePublic,
   type SavedNote,
 } from "@/lib/saved-strains";
@@ -28,9 +29,8 @@ function formatDate(ts: number): string {
  * subscribes to `users/{uid}/savedStrains/{slug}` and renders the add
  * form, the existing note list, public/private toggle, and delete.
  *
- * Returns `null` until the parent tells us the strain is saved — we
- * can't write to a doc that doesn't exist yet (Firestore rules on the
- * `notes` field assume the parent doc is already there from saveStrain).
+ * Adding a note auto-saves the strain first, matching iOS
+ * `SavedStrainsStore.addNote(to:)`.
  */
 export function SavedStrainNotes({
   slug,
@@ -49,7 +49,7 @@ export function SavedStrainNotes({
   const [notesLoaded, setNotesLoaded] = useState(false);
 
   useEffect(() => {
-    if (!db || !user || !isSaved) {
+    if (!db || !user) {
       setNotes([]);
       setNotesLoaded(false);
       return;
@@ -69,26 +69,11 @@ export function SavedStrainNotes({
       },
     );
     return unsubscribe;
-  }, [user?.uid, slug, isSaved]);
+  }, [user?.uid, slug]);
 
   if (!user) return null;
 
-  if (!isSaved) {
-    return (
-      <div className="rounded-2xl border border-border/70 bg-card p-6">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          <NotebookPen className="size-3.5 text-primary" />
-          Your notes
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Save this strain first, then you can jot down what it actually
-          did for you — dose, time of day, symptom relief, side effects.
-        </p>
-      </div>
-    );
-  }
-
-  if (!notesLoaded) {
+  if (!notesLoaded && isSaved) {
     return (
       <div className="rounded-2xl border border-border/70 bg-card p-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -108,6 +93,12 @@ export function SavedStrainNotes({
     if (text === "") return;
     setBusy(true);
     try {
+      if (!isSaved) {
+        await saveStrain(user.uid, {
+          name: strainName,
+          inKnowledgeBase: false,
+        });
+      }
       await addNote(user.uid, slug, text, makePublic, user.name, strainName);
       setDraft("");
       setMakePublic(false);
