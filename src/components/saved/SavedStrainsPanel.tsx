@@ -27,6 +27,7 @@ import {
   Lock,
   MessageCircle,
   Moon,
+  NotebookPen,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -166,9 +167,22 @@ export function SavedStrainsPanel() {
                   iconClassName="size-4"
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-base font-semibold tracking-tight">
-                    {strain.name}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-base font-semibold tracking-tight">
+                      {strain.name}
+                    </p>
+                    {strain.notes.length > 0 && (
+                      <span
+                        title="This strain has your notes"
+                        className="shrink-0 text-primary"
+                      >
+                        <NotebookPen
+                          className="size-3.5"
+                          aria-label="Has notes"
+                        />
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {[
                       strain.type ? TYPE_LABEL[strain.type] : null,
