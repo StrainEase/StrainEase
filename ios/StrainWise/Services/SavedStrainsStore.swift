@@ -199,6 +199,14 @@ final class SavedStrainsStore {
     }
 
     /// Saves the strain if needed, then appends a note — same shape as web `addNote`.
+    ///
+    /// Implementation note: we merge the strain fields and the appended notes
+    /// into a single `setData(_:merge:true)` call. Two sequential writes used
+    /// to race with the snapshot listener — the listener fired after the
+    /// profile write but before the notes write, and reset `items[index].notes`
+    /// to its old value (the freshly-appended note was never on the server
+    /// yet), so the second write persisted only the old list and the new
+    /// note silently disappeared. One atomic write avoids the window.
     func addNote(
         to profile: StrainProfile,
         text: String,
@@ -235,7 +243,6 @@ final class SavedStrainsStore {
                 .document(uid)
                 .collection("savedStrains")
                 .document(profile.slug)
-            try await ref.setData(Self.document(for: profile), merge: true)
             if isPublic {
                 note.publicId = try await publishNote(note, uid: uid, authorName: authorName, strainName: profile.name)
                 note.isPublic = true
@@ -245,7 +252,9 @@ final class SavedStrainsStore {
                 }
             }
             let next = items.first { $0.slug == profile.slug }?.notes ?? [note]
-            try await ref.setData(["notes": next.map(Self.noteDocument)], merge: true)
+            // Single atomic write — strain fields + the notes array together.
+            // This closes the listener-vs-write race described above.
+            try await ref.setData(Self.addNotePayload(for: profile, notes: next), merge: true)
         } catch {
             if let index = items.firstIndex(where: { $0.slug == profile.slug }) {
                 items[index].notes.removeAll { $0.id == note.id }
@@ -368,5 +377,22 @@ final class SavedStrainsStore {
             data["publicId"] = publicId
         }
         return data
+    }
+
+    /// Single `setData(_:merge:true)` payload that carries the strain fields
+    /// and the appended notes together. Tests pin this so the
+    /// profile-write / notes-write race can't return: two sequential writes
+    /// leave a window where the snapshot listener resets `items[index].notes`
+    /// to the pre-write list and the second write persists only the old
+    /// notes. One atomic write avoids it.
+    static func addNotePayload(
+        for profile: StrainProfile,
+        notes: [SavedNote],
+        savedAt: Int = Int(Date().timeIntervalSince1970 * 1000)
+    ) -> [String: Any] {
+        var payload = document(for: profile)
+        payload["savedAt"] = savedAt
+        payload["notes"] = notes.map(noteDocument)
+        return payload
     }
 }
