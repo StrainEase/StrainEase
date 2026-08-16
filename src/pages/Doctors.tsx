@@ -157,7 +157,7 @@ export default function Doctors() {
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(55%_40%_at_80%_0%,oklch(0.86_0.07_158/0.32),transparent_62%),radial-gradient(40%_32%_at_8%_18%,oklch(0.9_0.04_140/0.22),transparent_70%)]"
       />
-      <AppHeader active="home" />
+      <AppHeader active="doctors" />
       <div className="mx-auto w-full max-w-3xl px-6 py-8 sm:py-10">
         <Button
           asChild
@@ -271,7 +271,7 @@ export default function Doctors() {
           )}
         </div>
       </div>
-      <AppTabBar active="home" />
+      <AppTabBar active="doctors" />
     </main>
   );
 }
