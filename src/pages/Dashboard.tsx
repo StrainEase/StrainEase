@@ -1,8 +1,8 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useMedications } from "@/hooks/use-medications";
-import { AccountMenu } from "@/components/account/AccountMenu";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
+import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { Seo } from "@/components/Seo";
 import {
   compareStrains as compareStrainsCall,
@@ -11,7 +11,6 @@ import {
 } from "@/lib/strain-api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
-import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +43,11 @@ import {
   compactPrefs,
   type ResearchPrefs,
 } from "@/lib/research-prefs";
+import {
+  dashboardModeFromSearch,
+  dashboardTab,
+  type DashboardMode,
+} from "@/lib/app-nav";
 import { documentTitle } from "@/lib/site";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
@@ -103,7 +107,7 @@ export default function Dashboard() {
   const { summary: reliefSummary } = useReliefSummary();
   const { names: savedMedications } = useMedications();
   const { rid } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   type CompareResult = Awaited<ReturnType<typeof compareStrainsCall>>;
 
@@ -120,20 +124,27 @@ export default function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [mode, setMode] = useState<
-    "find" | "directory" | "compare" | "saved" | "history"
-  >(
-    searchParams.get("mode") === "compare"
-      ? "compare"
-      : searchParams.get("mode") === "saved"
-        ? "saved"
-        : searchParams.get("mode") === "history"
-          ? "history"
-          : searchParams.get("mode") === "directory"
-            ? "directory"
-            : "find",
+  const [mode, setMode] = useState<DashboardMode>(() =>
+    dashboardModeFromSearch(searchParams.get("mode")),
   );
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  function applyMode(next: DashboardMode) {
+    setMode(next);
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        if (next === "find") params.delete("mode");
+        else params.set("mode", next);
+        return params;
+      },
+      { replace: true },
+    );
+  }
+
+  useEffect(() => {
+    setMode(dashboardModeFromSearch(searchParams.get("mode")));
+  }, [searchParams]);
 
   // Restore a shared result from a /find/:rid or /compare/:rid link.
   useEffect(() => {
@@ -142,10 +153,10 @@ export default function Dashboard() {
     void loadResearch(rid).then((stored) => {
       if (cancelled || !stored) return;
       if (stored.kind === "compare") {
-        setMode("compare");
+        applyMode("compare");
         setResult(stored.result as CompareResult);
       } else {
-        setMode("find");
+        applyMode("find");
       }
     });
     return () => {
@@ -279,7 +290,7 @@ export default function Dashboard() {
   };
 
   const startCompareFromFinder = (names: string[], focus: string[]) => {
-    setMode("compare");
+    applyMode("compare");
     selection.setNames(names);
     setCondition(focus);
     setResult(null);
@@ -300,39 +311,26 @@ export default function Dashboard() {
   }, [query, popular]);
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-background text-foreground">
+    <main className="min-h-screen overflow-x-clip bg-background pb-24 text-foreground sm:pb-0">
       <Seo
         title={documentTitle("Compare strains")}
         description="Find and compare cannabis strains for your symptoms. Sign in to save favorites and keep private notes."
         path="/dashboard"
         noindex
       />
-      {/* ── Header ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-2.5">
-            <img
-              src={logo}
-              alt="StrainEase logo"
-              width={30}
-              height={30}
-              className="rounded-lg"
-            />
-            <span className="text-base font-semibold tracking-tight">
-              StrainEase
-            </span>
-          </div>
-          <AccountMenu onOpenSettings={() => setSettingsOpen(true)} />
-        </div>
-      </header>
+      <AppHeader
+        active={dashboardTab(mode)}
+        favorites={mode === "saved"}
+      />
 
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
-        {/* ── Mode tabs ─────────────────────────────────────── */}
-        <div className="mb-8 flex justify-center">
+        {/* Desktop keeps the full mode strip. Mobile uses the iOS-style
+            bottom tabs for Find/Browse and the header heart for Saved. */}
+        <div className="mb-8 hidden justify-center sm:flex">
           <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-border/70 bg-card p-1">
             <button
               type="button"
-              onClick={() => setMode("find")}
+              onClick={() => applyMode("find")}
               className={cn(
                 "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
                 mode === "find"
@@ -346,7 +344,7 @@ export default function Dashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setMode("directory")}
+              onClick={() => applyMode("directory")}
               className={cn(
                 "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
                 mode === "directory"
@@ -360,7 +358,7 @@ export default function Dashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setMode("compare")}
+              onClick={() => applyMode("compare")}
               className={cn(
                 "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
                 mode === "compare"
@@ -374,7 +372,7 @@ export default function Dashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setMode("saved")}
+              onClick={() => applyMode("saved")}
               className={cn(
                 "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
                 mode === "saved"
@@ -388,7 +386,7 @@ export default function Dashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setMode("history")}
+              onClick={() => applyMode("history")}
               className={cn(
                 "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
                 mode === "history"
@@ -845,7 +843,9 @@ export default function Dashboard() {
         selection={selection}
         onCompare={() => void handleCompare()}
         isRunning={isRunning}
+        className="bottom-[4.75rem] pb-3 sm:bottom-0 sm:pb-[env(safe-area-inset-bottom)]"
       />
+      <AppTabBar active={dashboardTab(mode)} />
     </main>
   );
 }

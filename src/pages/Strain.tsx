@@ -1,3 +1,4 @@
+import { AppTabBar } from "@/components/home/AppHeader";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
@@ -131,7 +132,7 @@ export default function Strain() {
   );
 
   return (
-    <main className="min-h-[100dvh] bg-background text-foreground">
+    <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
       <Seo
         title={documentTitle(displayName)}
         description={strainDescription(profile, displayName)}
@@ -316,6 +317,7 @@ export default function Strain() {
           </motion.div>
         )}
       </div>
+      <AppTabBar active="home" />
     </main>
   );
 }
