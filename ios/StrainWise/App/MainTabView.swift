@@ -2,16 +2,27 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var homeModel = HomeModel()
-    @State private var findModel = FindModel()
+    @State private var findModel: FindModel
     @State private var directoryModel = DirectoryModel()
     @State private var doctorsModel = DoctorsModel()
     @State private var nav = AppNavigation()
+    @State private var compareStore = CompareSelectionStore()
+
+    init() {
+        let store = CompareSelectionStore()
+        _compareStore = State(wrappedValue: store)
+        _findModel = State(wrappedValue: FindModel(compareStore: store))
+    }
 
     var body: some View {
         @Bindable var nav = nav
         tabContent(selection: $nav.tab)
             .tint(Palette.primary)
             .environment(nav)
+            .environment(compareStore)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                CompareTrayBar()
+            }
             .sheet(isPresented: $nav.showAccount) {
                 AccountView()
                     .environment(nav)
@@ -68,4 +79,5 @@ struct MainTabView: View {
         .environment(RecentlyViewedStore.preview([.sampleGDP]))
         .environment(SavedAilmentsStore.preview(["Insomnia"]))
         .environment(ReliefLogStore.preview([.sampleSleep]))
+        .environment(CompareSelectionStore())
 }

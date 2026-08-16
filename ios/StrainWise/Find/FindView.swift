@@ -4,6 +4,8 @@ struct FindView: View {
     @Environment(SavedAilmentsStore.self) private var savedAilments
     @Environment(SavedMedicationsStore.self) private var savedMedications
     @Environment(ReliefLogStore.self) private var relief
+    @Environment(\.strainAPI) private var api
+    @Environment(CompareSelectionStore.self) private var compareStore
 
     @State private var model: FindModel
     @State private var path: [StrainProfile] = []
@@ -42,6 +44,7 @@ struct FindView: View {
                         conditions
                         potency
                         prefs
+                        compareTray
                         findButton
                         if let error = model.errorMessage {
                             errorBanner(error)
@@ -52,6 +55,11 @@ struct FindView: View {
                         if let result = model.result {
                             results(result)
                                 .id(result.headline)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
+                        if let comparison = compareStore.comparison {
+                            CompareResultsView(comparison: comparison) { path.append($0) }
+                                .id(comparison.resultId ?? comparison.analysis.headline)
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
                     }
@@ -324,7 +332,7 @@ struct FindView: View {
             HStack(alignment: .firstTextBaseline) {
                 SectionLabel("Compare strains")
                 Spacer(minLength: 0)
-                Text("\(model.compareNames.count)/3 selected")
+                Text("\(compareStore.count)/3 selected")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Palette.mutedForeground)
                     .accessibilityIdentifier("find.compare.count")
@@ -333,17 +341,17 @@ struct FindView: View {
                 .font(.system(size: 13))
                 .foregroundStyle(Palette.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
-            if !model.compareNames.isEmpty {
+            if !compareStore.names.isEmpty {
                 FlowLayout(spacing: 8) {
-                    ForEach(model.compareNames, id: \.self) { name in
+                    ForEach(compareStore.names, id: \.self) { name in
                         CompareChip(name: name) {
-                            model.removeFromCompare(name)
+                            compareStore.remove(name)
                         }
                     }
                 }
-                if model.compareNames.count >= 2 {
+                if compareStore.names.count >= 2 {
                     Button {
-                        model.removeFromCompare(model.compareNames[0])
+                        compareStore.clear()
                     } label: {
                         Text("Clear all")
                             .font(.system(size: 12, weight: .medium))
@@ -352,80 +360,25 @@ struct FindView: View {
                     .buttonStyle(.plain)
                 }
             }
+            let canRun = compareStore.canRunCompare && !compareStore.isComparing
             SWPrimaryButton(
-                title: model.isComparing
+                title: compareStore.isComparing
                     ? "Comparing…"
-                    : (model.canCompare ? "Compare \(model.compareNames.count) strains" : "Add 2 strains to compare"),
+                    : (canRun ? "Compare \(compareStore.count) strains" : "Add 2 strains to compare"),
                 systemImage: "arrow.left.arrow.right",
-                isBusy: model.isComparing
+                isBusy: compareStore.isComparing
             ) {
-                Task { await model.compareSelected(reliefSummary: relief.summary.isEmpty ? nil : relief.summary) }
-            }
-            .disabled(!model.canCompare)
-            .opacity(model.canCompare || model.isComparing ? 1 : 0.55)
-        }
-    }
-
-    private func compareResults(_ comparison: StrainComparison) -> some View {
-        let analysis = comparison.analysis
-        return VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                SectionLabel("Comparison")
-                Text(analysis.headline)
-                    .font(.system(.title, design: .serif))
-                    .foregroundStyle(Palette.foreground)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(analysis.summary)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Palette.mutedForeground)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let pick = analysis.forCondition {
-                SWCard {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Best for your symptoms")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Palette.primary)
-                        Text(pick.best)
-                            .font(.system(.title3, design: .serif))
-                        Text(pick.why)
-                            .font(.system(size: 14))
-                            .foregroundStyle(Palette.mutedForeground)
-                        if !pick.runnerUp.isEmpty {
-                            Text("Runner-up: \(pick.runnerUp)")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Palette.mutedForeground)
-                        }
-                    }
+                Task {
+                    await compareStore.runCompare(
+                        api: api,
+                        conditions: model.ailments,
+                        prefs: model.prefs,
+                        reliefSummary: relief.summary.isEmpty ? nil : relief.summary
+                    )
                 }
             }
-            compareList("Key differences", analysis.keyDifferences)
-            compareList("Common ground", analysis.commonGround)
-            compareList("Cautions", analysis.cautions)
-            ForEach(comparison.strains) { profile in
-                Button {
-                    path.append(profile)
-                } label: {
-                    SWCard {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(profile.name)
-                                    .font(.system(.title3, design: .serif))
-                                    .foregroundStyle(Palette.foreground)
-                                if !profile.subtitle.isEmpty {
-                                    Text(profile.subtitle)
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Palette.mutedForeground)
-                                }
-                            }
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .foregroundStyle(Palette.mutedForeground)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-            }
+            .disabled(!canRun)
+            .opacity(canRun || compareStore.isComparing ? 1 : 0.55)
         }
     }
 
@@ -633,6 +586,7 @@ struct FindView: View {
 
         .environment(RecentlyViewedStore.preview())
         .environment(ReliefLogStore.preview([.sampleSleep]))
+        .environment(CompareSelectionStore())
 }
 
 #Preview("Results · Dark") {
@@ -646,6 +600,7 @@ struct FindView: View {
 
         .environment(RecentlyViewedStore.preview())
         .environment(ReliefLogStore.preview())
+        .environment(CompareSelectionStore())
         .preferredColorScheme(.dark)
 }
 
