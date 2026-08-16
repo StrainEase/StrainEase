@@ -320,22 +320,42 @@ struct FindView: View {
     }
 
     private var compareTray: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionLabel("Compare strains")
-            Text("Look up 2–3 names, then compare them side by side.")
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                SectionLabel("Compare strains")
+                Spacer(minLength: 0)
+                Text("\(model.compareNames.count)/3 selected")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.mutedForeground)
+                    .accessibilityIdentifier("find.compare.count")
+            }
+            Text("Pick up to three strains to compare side by side. Tap a chip below to remove it.")
                 .font(.system(size: 13))
                 .foregroundStyle(Palette.mutedForeground)
+                .fixedSize(horizontal: false, vertical: true)
             if !model.compareNames.isEmpty {
                 FlowLayout(spacing: 8) {
                     ForEach(model.compareNames, id: \.self) { name in
-                        SWChip(title: name, isOn: true) {
+                        CompareChip(name: name) {
                             model.removeFromCompare(name)
                         }
                     }
                 }
+                if model.compareNames.count >= 2 {
+                    Button {
+                        model.removeFromCompare(model.compareNames[0])
+                    } label: {
+                        Text("Clear all")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Palette.mutedForeground)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             SWPrimaryButton(
-                title: model.canCompare || model.isComparing ? "Compare selected" : "Add 2 strains to compare",
+                title: model.isComparing
+                    ? "Comparing…"
+                    : (model.canCompare ? "Compare \(model.compareNames.count) strains" : "Add 2 strains to compare"),
                 systemImage: "arrow.left.arrow.right",
                 isBusy: model.isComparing
             ) {
@@ -627,4 +647,32 @@ struct FindView: View {
         .environment(RecentlyViewedStore.preview())
         .environment(ReliefLogStore.preview())
         .preferredColorScheme(.dark)
+}
+
+private struct CompareChip: View {
+    let name: String
+    var onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(name)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.primaryForeground)
+                .lineLimit(1)
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Palette.primaryForeground.opacity(0.85))
+                    .padding(4)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove \(name) from comparison")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Palette.primary, in: Capsule())
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("find.compare.chip.\(name)")
+    }
 }
