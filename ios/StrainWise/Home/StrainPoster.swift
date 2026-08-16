@@ -40,6 +40,25 @@ struct StrainPhoto: View {
     var height: CGFloat = 88
     var cornerRadius: CGFloat = 16
 
+    var body: some View {
+        StrainPhotoBody(
+            urlString: urlString,
+            type: type,
+            height: height,
+            cornerRadius: cornerRadius
+        )
+        .id(urlString ?? "")
+    }
+}
+
+private struct StrainPhotoBody: View {
+    let urlString: String?
+    var type: StrainType?
+    var height: CGFloat = 88
+    var cornerRadius: CGFloat = 16
+
+    @State private var isLoaded = false
+
     private var hasPhoto: Bool { urlString?.isEmpty == false }
 
     var body: some View {
@@ -47,6 +66,9 @@ struct StrainPhoto: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(hasPhoto ? Color.white : TypeStyle.color(for: type).opacity(0.14))
             if let urlString, let url = URL(string: urlString) {
+                if !isLoaded {
+                    loadingPlaceholder
+                }
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
@@ -54,10 +76,16 @@ struct StrainPhoto: View {
                             .resizable()
                             .scaledToFit()
                             .padding(height > 160 ? 8 : 4)
+                            .opacity(isLoaded ? 1 : 0)
+                            .onAppear {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isLoaded = true
+                                }
+                            }
                     case .failure:
                         leaf
                     case .empty:
-                        leaf.opacity(0.45)
+                        Color.clear
                     @unknown default:
                         leaf
                     }
@@ -74,6 +102,17 @@ struct StrainPhoto: View {
                 .strokeBorder(Palette.border, lineWidth: 1)
         )
         .accessibilityHidden(true)
+    }
+
+    private var loadingPlaceholder: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(Palette.muted)
+            .overlay {
+                ProgressView()
+                    .tint(Palette.mutedForeground)
+                    .controlSize(height > 120 ? .regular : .mini)
+            }
+            .accessibilityLabel("Loading photo")
     }
 
     private var leaf: some View {

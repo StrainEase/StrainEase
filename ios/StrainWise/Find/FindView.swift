@@ -53,23 +53,9 @@ struct FindView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .navigationTitle("Search")
+            .navigationTitle("Find")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: 8) {
-                        Image("AppLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 26, height: 26)
-                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        Text("StrainWise")
-                            .font(.system(.headline, design: .serif))
-                            .foregroundStyle(Palette.foreground)
-                    }
-                    .accessibilityHidden(true)
-                }
-            }
+            .appChrome()
             .toolbarBackground(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 searchBar
@@ -581,6 +567,8 @@ struct FindView: View {
 #Preview("Empty") {
     FindView(model: .previewEmpty)
         .environment(\.strainAPI, PreviewStrainAPI())
+        .environment(AppNavigation())
+        .environment(AuthSession.previewSignedIn)
         .environment(SavedStrainsStore.preview())
         .environment(SavedAilmentsStore.preview())
         .environment(SavedMedicationsStore.preview(["Lexapro"]))
@@ -592,6 +580,8 @@ struct FindView: View {
 #Preview("Results · Dark") {
     FindView(model: .previewFilled)
         .environment(\.strainAPI, PreviewStrainAPI())
+        .environment(AppNavigation())
+        .environment(AuthSession.previewSignedIn)
         .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
         .environment(SavedAilmentsStore.preview(["Insomnia"]))
         .environment(SavedMedicationsStore.preview(["Lexapro", "Ibuprofen"]))

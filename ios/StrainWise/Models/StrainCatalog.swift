@@ -1,9 +1,17 @@
 import Foundation
 
 enum StrainCatalog {
+    private struct DirectoryEntry: Decodable {
+        var name: String
+        var type: StrainType
+        var thc: String
+        var uses: [String]
+        var imageUrl: String?
+    }
+
     /// Curated browse set so Home rails always have 6+ strains per type and ailment,
     /// even when the live popular list is short or missing a phenotype.
-    static let all: [StrainProfile] = [
+    private static let curated: [StrainProfile] = [
         entry("Blue Dream", .hybrid, "17–24%", ["Chronic pain", "Depression", "Stress", "Fatigue", "Inflammation", "Arthritis"]),
         entry("Granddaddy Purple", .indica, "17–23%", ["Insomnia", "Chronic pain", "Muscle spasm", "Stress", "PTSD", "Anxiety"]),
         entry("Sour Diesel", .sativa, "19–24%", ["ADHD", "Stress", "Depression", "Chronic pain", "Fatigue", "Migraine"]),
@@ -29,6 +37,12 @@ enum StrainCatalog {
         entry("Skywalker OG", .indica, "18–26%", ["Insomnia", "Chronic pain", "PTSD", "Stress"]),
         entry("Tangie", .sativa, "17–22%", ["ADHD", "Fatigue", "Depression", "Stress"]),
     ]
+
+    /// Leafly + Weedmaps dump bundled as `strain-directory.json`.
+    private static let directory: [StrainProfile] = loadDirectory()
+
+    /// Curated rows win on medical uses when a name also appears in the dump.
+    static let all: [StrainProfile] = unique(curated + directory).map(applyKnownPhoto)
 
     static func merge(_ live: [StrainProfile], preferringType type: StrainType? = nil) -> [StrainProfile] {
         let extras = all.filter { catalog in
@@ -126,12 +140,18 @@ enum StrainCatalog {
         slugAliases[slug] ?? slug
     }
 
-    private static func withCatalogPhoto(_ profile: StrainProfile) -> StrainProfile {
+    private static func applyKnownPhoto(_ profile: StrainProfile) -> StrainProfile {
         var next = profile
         let key = photoKey(for: profile.slug)
         if let catalog = photos[key] {
             next.imageUrl = catalog
         }
+        return next
+    }
+
+    private static func withCatalogPhoto(_ profile: StrainProfile) -> StrainProfile {
+        var next = applyKnownPhoto(profile)
+        let key = photoKey(for: profile.slug)
         if next.medicalUses == nil || next.medicalUses?.isEmpty == true,
            let uses = all.first(where: { $0.slug == key })?.medicalUses {
             next.medicalUses = uses
@@ -154,4 +174,28 @@ enum StrainCatalog {
         )
         return withCatalogPhoto(stub)
     }
+
+    private static func loadDirectory() -> [StrainProfile] {
+        let url = Bundle.main.url(forResource: "strain-directory", withExtension: "json")
+            ?? Bundle(for: BundleToken.self).url(forResource: "strain-directory", withExtension: "json")
+        guard
+            let url,
+            let data = try? Data(contentsOf: url),
+            let rows = try? JSONDecoder().decode([DirectoryEntry].self, from: data)
+        else { return [] }
+        return rows.compactMap { row in
+            let name = row.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return nil }
+            return StrainProfile(
+                name: name,
+                inKnowledgeBase: true,
+                type: row.type,
+                thcRange: row.thc.isEmpty ? nil : row.thc,
+                medicalUses: row.uses.isEmpty ? nil : row.uses,
+                imageUrl: row.imageUrl
+            )
+        }
+    }
 }
+
+private final class BundleToken {}
