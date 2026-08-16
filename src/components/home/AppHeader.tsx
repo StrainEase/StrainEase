@@ -2,19 +2,20 @@ import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/logo.svg";
-import { BookOpen, Home, Search } from "lucide-react";
+import { BookOpen, Home, Library, Search } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
 export type AppNavId = "home" | "find" | "directory";
+
+const DIRECTORY_HREF = "/dashboard?mode=directory";
 
 const NAV: { id: AppNavId; to: string; label: string; icon: typeof Home }[] = [
   { id: "home", to: "/", label: "Home", icon: Home },
   { id: "find", to: "/dashboard", label: "Find", icon: Search },
   {
     id: "directory",
-    to: "/dashboard?mode=directory",
+    to: DIRECTORY_HREF,
     label: "Browse",
     icon: BookOpen,
   },
@@ -24,21 +25,24 @@ export function AppHeader({ active }: { active?: AppNavId }) {
   const { user } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  const onDirectory = active === "directory";
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-6">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link
-          to="/"
-          aria-label="StrainWise home"
-          className="flex items-center gap-2.5 sm:hidden"
+          to={DIRECTORY_HREF}
+          aria-label="Open strain library"
+          aria-current={onDirectory ? "page" : undefined}
+          className={cn(
+            "flex shrink-0 cursor-pointer items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary/40 hover:text-primary",
+            onDirectory
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : "text-muted-foreground",
+          )}
         >
-          <img
-            src={logo}
-            alt=""
-            width={30}
-            height={30}
-            className="rounded-lg"
-          />
+          <Library className="size-4" strokeWidth={onDirectory ? 2.4 : 2} />
+          <span className="hidden sm:inline">Library</span>
         </Link>
         <nav
           className="hidden items-center gap-1 sm:flex"
