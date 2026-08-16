@@ -68,7 +68,7 @@ The Dashboard has many call sites that currently read or mutate `selectedNames`.
   - `toggleStrainName` (line 196): `setSelectedNames(prev => ...)` → `selection.toggle(name)`.
   - `addCustomStrain` (line 207): unchanged in shape; calls `selection.toggle(name)` and clears the search query.
 - **Reads re-pointed.** Every `selectedNames.some((n) => ...)` and `selectedNames.length` site is unchanged in shape (they read `selection.names` via the alias).
-- **`startCompareFromFinder` (lines 294–302):** unchanged. It calls `handleCompare(names, focus)` and the hook now keeps `selection.names` in sync with the URL.
+- **`startCompareFromFinder` (lines 294–302):** signature unchanged; body updates to call `selection.setNames(names)` (line 296 currently calls `setSelectedNames(names)` and would no longer compile after the swap). `setCondition(focus)`, `setResult(null)`, `setQuery("")`, `setSearchOutcome(null)`, and the trailing `void handleCompare(names, focus)` stay as-is.
 - **`handleCompare` (lines 236–273):** unchanged in signature. Reads `selection.names` instead of `selectedNames` via the alias. The tray's "Compare (N)" CTA invokes this same function — single run path.
 - **Mount `<CompareTray />`** once at the Dashboard root (after the `<main>` opens), outside the mode-tab divs so it floats above every tab. Pass `selection` and `handleCompare` as props.
 
@@ -82,7 +82,7 @@ The Dashboard has many call sites that currently read or mutate `selectedNames`.
 | `StrainDirectory.tsx` | The current per-card `<Button asChild><Link to="…?mode=compare&strains=NAME">Compare</Link></Button>` is replaced with `<CompareToggleButton />`. Heading gains a small "N selected · Clear" inline hint when `count > 0`, positioned just below the existing `<h1>` (Directory.tsx:174–180). |
 | `SavedStrainsPanel.tsx` | Each saved-strain row gets a `<CompareToggleButton />` next to the existing actions. Wires through the hook (acquired via `useCompareSelection()` since the panel is inside the Dashboard). |
 | `Strain.tsx` (detail page — public route, **not** wrapped in `RequireAuth`) | New primary "Add to compare" button alongside "Save". On click, navigates to `/dashboard?strains=<name>`. **The button is rendered regardless of auth state** — `RequireAuth` will redirect unauthenticated users to `/auth?returnTo=/dashboard?strains=...`, which preserves the selection. Existing "vs {saved}" block stays. |
-| `StrainFinder.tsx` | No internal changes — its `onAddToCompare` / `inCompareSelection` / `compareAtCap` props already abstract the parent's selection. Dashboard passes the hook's `toggle`, `isIn`, `atCap` (single-line change per prop in Dashboard.tsx:415–423). |
+| `StrainFinder.tsx` | No internal changes — its `onAddToCompare` / `inCompareSelection` / `compareAtCap` props already abstract the parent's selection. Dashboard.tsx:415–423 explicitly wires: `onAddToCompare={selection.toggle}`, `inCompareSelection={selection.isIn}`, `compareAtCap={selection.atCap}`. |
 | `Dashboard.tsx`'s existing `handleCompare` calls | Unchanged. `applyQuickPick` (line 281), `startCompareFromFinder` (line 301), and the Compare tab's "Compare strains" button (line 685) all keep working because they call `handleCompare(names, focus)` which reads `selection.names` via the alias. |
 
 ### URL semantics
@@ -94,7 +94,6 @@ The Dashboard has many call sites that currently read or mutate `selectedNames`.
   - `/dashboard?mode=compare&strains=Blue%20Dream,OG%20Kush` → opens Compare tab with the same selection (existing legacy behavior preserved).
   - `/dashboard?strains=Blue%20Dream` → one pre-selected; tray visible but the Compare button is disabled until a second is added (matches existing `handleCompare` early-return at Dashboard.tsx:240).
 - **When the selection becomes empty, the param is removed entirely** (no `?strains=` left dangling).
-- **Precedence:** when both `?strains=` and a future `?compare=` are ever present, the hook reads only `?strains=`. (This is moot now since we kept one key, but documented for posterity.)
 - **Pre-existing emitters continue to work:**
   - `StrainDirectory.tsx:384` — `?mode=compare&strains=NAME` still works.
   - `Strain.tsx:231` — `?mode=compare&strains=NAME1,NAME2` still works.
@@ -126,7 +125,7 @@ The Dashboard has many call sites that currently read or mutate `selectedNames`.
   - Case-insensitive dedup uses `String.caseInsensitiveCompare(_:)`, matching `FindModel`'s existing helpers.
 - `ios/StrainWise/Compare/CompareTrayBar.swift` — overlay view rendered in `MainTabView`. Hidden when `names.isEmpty`. Hidden when `nav.tab == .find` to avoid a duplicate CTA on that tab (FindModel+FindView continue to handle the result inline as today). Contents: a horizontal scroll of chips per name (each with a close button), primary "Compare N strains" button, secondary "Clear" button. Sits above the tab bar with `safeAreaInset(edge: .bottom)` plus an explicit keyboard observer so it never hides under the keyboard. Animates in/out via SwiftUI transition (`.move(edge: .bottom).combined(with: .opacity)`). When `store.comparison` becomes non-nil, presents a sheet containing a reusable `CompareResultsView(comparison:)` extracted from FindView.
 - `ios/StrainWise/Compare/CompareToggleButton.swift` — small `Button` (SF symbol `arrow.left.arrow.right` idle / `arrow.left.arrow.right.circle.fill` selected) with the three visual states. Uses `.buttonStyle(.borderless)` plus `.contentShape(Rectangle())` for tap interception in `NavigationLink`-wrapped parents. `accessibilityLabel` and `accessibilityHint` mirror the web tooltip.
-- `ios/StrainWise/Compare/CompareResultsView.swift` — extracted from `FindView`'s existing inline results section (FindView.swift:369–430). Renders the comparison result with the same layout. Reused by both FindView (inline) and the tray's sheet.
+- `ios/StrainWise/Compare/CompareResultsView.swift` — **new view**, parameterized as `struct CompareResultsView: View { let comparison: StrainComparison; let onSelectProfile: (StrainProfile) -> Void }`. Renders the same comparison layout as the existing `compareResults(_:)` helper at FindView.swift:369–450, but takes an `onSelectProfile` callback so it works in any host (FindView's `NavigationStack(path: $path)` wraps it with `{ path.append($0) }`; the tray's sheet wraps it with a closure that pushes onto its own internal `NavigationStack`). The dead `compareResults(_:)` helper at FindView.swift:369–450 is **removed**; the dead `compareTray` helper at FindView.swift:322–367 is **wired up** into FindView's body (see Wiring table).
 - `ios/StrainWiseTests/CompareSelectionStoreTests.swift` — XCTest for add / remove / toggle / dedup / cap / clear / canRunCompare / setNames.
 
 ### Project.yml / xcodegen note
@@ -140,10 +139,10 @@ The Dashboard has many call sites that currently read or mutate `selectedNames`.
 | `MainTabView.swift` | Owns `@State private var compareStore = CompareSelectionStore()`. Injects via `.environment(compareStore)`. Renders `<CompareTrayBar />` as a `.safeAreaInset(edge: .bottom)` overlay above the `TabView`. Tray is bound to `nav.tab` so it can hide when `nav.tab == .find`. |
 | `StrainPoster.swift` | Gains optional `compareStore: CompareSelectionStore?` parameter; when set, overlays `CompareToggleButton` on the photo using `.overlay(alignment: .topTrailing)`. |
 | `StrainRail.swift` | Picks up `compareStore` from `@Environment(CompareSelectionStore.self)` and forwards to each `StrainPoster`. |
-| `HomeView.swift`, `DirectoryView.swift`, `SavedStrainsView.swift` | All three pick up `compareStore` from the environment and forward to their `StrainPoster` instances. No new parameters on these views themselves. |
-| `StrainDetailView.swift` | Toolbar gains a second trailing item. Because the heart already lives in `.topBarTrailing`, the new button goes in `.topBarLeading` (alongside the existing "Favorites" toolbar heart from `AppChromeModifier`) — **or** in a dedicated trailing position when the chrome toolbar isn't applied. The button is a `Button` with `arrow.left.arrow.right` (idle) / `arrow.left.arrow.right.circle.fill` (selected), wired to `compareStore.toggle(profile.name)`. `accessibilityLabel` mirrors the web tooltip. |
-| `FindModel.swift` | `compareNames`, `isComparing`, `comparison`, and `compareError` are removed and replaced with reads/writes through `@Environment(CompareSelectionStore.self) compareStore`. The `addToCompare`, `removeFromCompare`, `toggleCompare`, `isInCompare`, `compareAtCap`, `canCompare`, `compareSelected`, `reset` methods delegate to the store. **Specifically:** `addToCompare` → `store.add`, `removeFromCompare` → `store.remove`, `toggleCompare` → `store.toggle`, `isInCompare` → `store.isIn`, `compareAtCap` → `store.atCap`, `canCompare` → `store.canRunCompare && !store.isComparing`, `compareSelected` → `await store.runCompare(...)`, `reset` calls `store.clear()` and `store.comparison = nil`. |
-| `FindView.swift` | Reads the shared store via `@Environment(CompareSelectionStore.self) compareStore`. Renders inline `CompareResultsView(comparison: store.comparison)` inside its existing results section (extracted view). The in-tab "Compare N strains" CTA stays but its action is now `await compareStore.runCompare(...)`. **Tray is hidden on this tab** (the tray reads `nav.tab`), so there's exactly one Compare CTA visible. |
+| `HomeView.swift`, `DirectoryView.swift`, `SavedStrainsView.swift`, `AilmentCarousel.swift` | All four pick up `compareStore` from `@Environment(CompareSelectionStore.self)` and forward to their `StrainPoster` instances. No new parameters on these views themselves. (`AilmentCarousel.swift:107–114` renders `StrainPoster` inside `Button`s; without the env wiring the most-visible Home carousel silently misses the toggle.) |
+| `StrainDetailView.swift` | Toolbar gains a second trailing item. `StrainDetailView` does **not** apply `.appChrome()` (verified — `grep -n "appChrome" StrainDetailView.swift` returns nothing), so the Favorites heart from `AppChromeModifier` is not present on this screen. The heart is at `StrainDetailView.swift:91–102` (`.topBarTrailing`). The new "Add to compare" button goes in `.topBarLeading` so it sits to the left of the heart without crowding the trailing slot. SF symbols: `arrow.left.arrow.right` (idle) / `arrow.left.arrow.right.circle.fill` (selected). Action: `compareStore.toggle(profile.name)`. `accessibilityLabel` mirrors the web tooltip. |
+| `FindModel.swift` | `compareNames`, `isComparing`, `comparison`, and `compareError` are removed and replaced with reads/writes through `@Environment(CompareSelectionStore.self) compareStore`. The `addToCompare`, `removeFromCompare`, `toggleCompare`, `isInCompare`, `compareAtCap`, `canCompare`, `compareSelected`, `reset` methods delegate to the store. **Specifically:** `addToCompare` → `store.add`, `removeFromCompare` → `store.remove`, `toggleCompare` → `store.toggle`, `isInCompare` → `store.isIn`, `compareAtCap` → `store.atCap`, `canCompare` → `store.canRunCompare && !store.isComparing`, `compareSelected` → `await store.runCompare(api: conditions: prefs: reliefSummary:)`, `reset` keeps its existing behavior of clearing ailments, searched, result, prefs, potency, lookupQuery, lookupError, customAilment, **plus** delegates compare-side cleanup to `store.clear()` and `store.comparison = nil` (does not touch `store.isComparing` or `store.compareError` mid-run — those clear themselves when `runCompare` finishes). |
+| `FindView.swift` | Reads the shared store via `@Environment(CompareSelectionStore.self) compareStore`. **Two structural changes to the body** (these are net-new, not refactors): (1) `compareTray` (FindView.swift:322–367, currently dead code) is **wired into the body** — it renders inside the existing `ScrollView` between the prefs and the recommendation results. All of its references re-point: `model.compareNames` → `compareStore.names`, `model.removeFromCompare(name)` → `compareStore.remove(name)`, `model.canCompare` → `compareStore.canRunCompare && !compareStore.isComparing`, `model.isComparing` → `compareStore.isComparing`, `model.compareSelected(...)` → `await compareStore.runCompare(api: api, conditions: model.ailments, prefs: model.prefs, reliefSummary: relief.summary.isEmpty ? nil : relief.summary)`. (2) The recommendation `results(result)` block (FindView.swift:485) gains a new trailing view: `if let comparison = compareStore.comparison { CompareResultsView(comparison: comparison) { path.append($0) }.id(comparison.headline) }`. **Tray is hidden on this tab** (`nav.tab == .find`), so there's exactly one Compare CTA visible. |
 
 ### Tap propagation
 
@@ -155,8 +154,8 @@ The Dashboard has many call sites that currently read or mutate `selectedNames`.
 
 When the tray's "Compare N strains" is tapped (on Browse, Saved, or Home tabs):
 
-1. Tray calls `await compareStore.runCompare(api: api, conditions: [], prefs: .empty, reliefSummary: nil)`. (Conditions and prefs default to empty on the tray path; the Find tab passes the real values.)
-2. On success, `store.comparison` is set. The tray observes this and presents `<CompareResultsView />` as a sheet.
+1. Tray calls `await compareStore.runCompare(api: api, conditions: [], prefs: ResearchPrefs(), reliefSummary: nil)`. (Conditions and prefs default to empty on the tray path; the Find tab passes the real values.)
+2. On success, `store.comparison` is set. The tray observes this and presents a sheet. The sheet wraps a `NavigationStack { CompareResultsView(comparison: store.comparison, onSelectProfile: { path.append($0) }) }` so the user can drill into a strain detail from inside the sheet.
 3. On failure, `store.compareError` is set. The tray surfaces via the existing `errorMessage` pattern + a `sensoryFeedback(.error)` haptic.
 
 When FindView's "Compare N strains" is tapped:
@@ -212,7 +211,7 @@ Same store, same method, same result; presentation differs by tab. One source of
 
 - No changes to the `compareStrains` Cloud Function.
 - No new Firebase callables.
-- No changes to the Compare tab's analysis UI (`<AnalysisPanel />`, `<StrainDetailCard />`) or to FindView's existing comparison UI (it gets extracted into `CompareResultsView` but visually identical).
+- No changes to the Compare tab's analysis UI (`<AnalysisPanel />`, `<StrainDetailCard />`) or to FindView's existing comparison-result UI (it gets parameterized into `CompareResultsView` but stays visually identical).
 - No persistence across logged-out sessions (URL/env store is enough for this slice).
 - No bulk "compare all saved" — that's a different feature.
 - No reordering of the selection order (it's a set, not an ordered list, until we run).
@@ -224,7 +223,7 @@ Same store, same method, same result; presentation differs by tab. One source of
 
 ### Web
 
-- `use-compare-selection.test.ts` — URL parse/serialize/dedup/cap; round-trip property `parse(serialize(names)) == names`; `clear()` removes the param.
+- `use-compare-selection.test.ts` — URL parse/serialize/dedup/cap; round-trip property `parse(serialize(names)) == names`; `clear()` removes the param; `setNames(names)` wipes previous selection, dedupes, caps, drops the URL param when the result is empty.
 - `CompareToggleButton.test.tsx` — renders idle / selected / full states, click toggles, click on full is a no-op, click stops propagation (parent click handler is not called).
 - `CompareTray.test.tsx` — empty (renders nothing), populated (chips + buttons render), remove a chip calls the hook, Compare button invokes the passed-in `handleCompare`, Clear empties.
 - Manual smoke: pick strains from Directory and Saved, see tray across tab switches, run Compare from the tray, verify result renders identically to today's Compare tab.
