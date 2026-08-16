@@ -1,6 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Server-side strain cache — written only by the Cloud Function admin
+    // SDK. Clients never read or write directly; they go through the
+    // public/AI callables which hydrate from this cache.
+    match /strainCache/{slug} {
+      allow read, write: if false;
+    }
+
     // Saved strains + notes are private to each user.
     match /users/{uid}/savedStrains/{slug} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
