@@ -173,14 +173,27 @@ export default function Strain() {
       </header>
 
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Back
-        </button>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            Back
+          </button>
+          {profile && (
+            <CompareToggleButton
+              isInSelection={isInCompareSelection}
+              isFull={compareAtCap}
+              onToggle={() =>
+                navigate(
+                  `/dashboard?strains=${encodeURIComponent(profile.name)}`,
+                )
+              }
+            />
+          )}
+        </div>
 
         {status === "loading" && (
           <motion.div
@@ -266,22 +279,6 @@ export default function Strain() {
             )}
 
             <ShopLinks strain={profile} />
-
-            <div className="flex flex-wrap items-center gap-2">
-              <CompareToggleButton
-                isInSelection={isInCompareSelection}
-                isFull={compareAtCap}
-                onToggle={() =>
-                  navigate(
-                    `/dashboard?strains=${encodeURIComponent(profile.name)}`,
-                  )
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Add this strain to a side-by-side comparison. Selection
-                survives sign-in, so you can browse a few strains first.
-              </p>
-            </div>
 
             {isAuthenticated && others.length > 0 && (
               <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
