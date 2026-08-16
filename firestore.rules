@@ -8,6 +8,13 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Server-side Reddit quote cache (PullPush + Arctic Shift + daily
+    // refresh). Same shape as strainCache: admin-SDK-only, clients
+    // route through the AI/public callables.
+    match /redditQuoteCache/{key} {
+      allow read, write: if false;
+    }
+
     // Saved strains + notes are private to each user.
     match /users/{uid}/savedStrains/{slug} {
       allow read, write: if request.auth != null && request.auth.uid == uid;

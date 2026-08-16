@@ -74,19 +74,25 @@ function preferAilmentNotes(
   conditions: string[],
 ): CommunityNote[] {
   if (conditions.length === 0 || notes.length === 0) return notes;
+
+  // Ailment-matched first — that's the slice the patient actually cares
+  // about. Anything left over fills with the rest (Leafly rating, then
+  // Reddit, then other), capped at 12.
   const matched = notes.filter((n) => mentionsAilment(n.text, conditions));
+  if (matched.length >= 12) return matched.slice(0, 12);
+
   const rest = notes.filter((n) => !mentionsAilment(n.text, conditions));
-  // Bucket non-matching notes so Reddit quotes never get lost below the cap
-  // when ailment-matching notes dominate.
-  const rating = rest.filter((n) => (n.kind ?? kindFromSource(n.source)) === "leafly");
-  const reddit = rest.filter((n) => (n.kind ?? kindFromSource(n.source)) === "reddit");
-  const other = rest.filter(
-    (n) => {
-      const k = n.kind ?? kindFromSource(n.source);
-      return k !== "leafly" && k !== "reddit";
-    },
+  const ranking = rest.filter(
+    (n) => (n.kind ?? kindFromSource(n.source)) === "leafly",
   );
-  return [...rating, ...reddit, ...matched, ...other].slice(0, 12);
+  const reddit = rest.filter(
+    (n) => (n.kind ?? kindFromSource(n.source)) === "reddit",
+  );
+  const other = rest.filter((n) => {
+    const k = n.kind ?? kindFromSource(n.source);
+    return k !== "leafly" && k !== "reddit";
+  });
+  return [...matched, ...ranking, ...reddit, ...other].slice(0, 12);
 }
 
 function unionStrings(a?: string[], b?: string[]): string[] | undefined {
