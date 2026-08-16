@@ -5,6 +5,7 @@ import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useDismissKeyboardOnOutsideTap } from "@/hooks/use-dismiss-keyboard";
 import { createRoot } from "react-dom/client";
 import { Loader2 } from "lucide-react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
@@ -58,6 +59,11 @@ function RouteSyncer() {
   return null;
 }
 
+function KeyboardDismiss() {
+  useDismissKeyboardOnOutsideTap();
+  return null;
+}
+
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -65,6 +71,7 @@ createRoot(document.getElementById("root")!).render(
     <InstrumentationProvider>
       <BrowserRouter>
         <RouteSyncer />
+        <KeyboardDismiss />
         <Suspense fallback={<RouteLoading />}>
           <Routes>
             <Route path="/" element={<RootPage />} />
