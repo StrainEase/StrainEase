@@ -16,6 +16,56 @@ struct StrainEffect: Codable, Hashable, Sendable {
     var intensity: Int
 }
 
+struct RedditSource: Hashable, Sendable, Identifiable {
+    var url: String
+    var subreddit: String
+    var title: String
+    var snippet: String?
+    var score: Int?
+
+    var id: String { url }
+
+    var link: URL { URL(string: url) ?? URL(string: "https://old.reddit.com")! }
+
+    var caption: String {
+        var parts = ["r/\(subreddit)"]
+        if let score, score > 0 {
+            parts.append("\(score) pts")
+        }
+        return parts.joined(separator: " · ")
+    }
+}
+
+extension RedditSource: Codable {
+    enum CodingKeys: String, CodingKey {
+        case url, subreddit, title, snippet, score
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        url = try c.decode(String.self, forKey: .url)
+        subreddit = try c.decode(String.self, forKey: .subreddit)
+        title = try c.decode(String.self, forKey: .title)
+        snippet = try c.decodeIfPresent(String.self, forKey: .snippet)
+        if let int = try c.decodeIfPresent(Int.self, forKey: .score) {
+            score = int
+        } else if let double = try c.decodeIfPresent(Double.self, forKey: .score) {
+            score = Int(double)
+        } else {
+            score = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(url, forKey: .url)
+        try c.encode(subreddit, forKey: .subreddit)
+        try c.encode(title, forKey: .title)
+        try c.encodeIfPresent(snippet, forKey: .snippet)
+        try c.encodeIfPresent(score, forKey: .score)
+    }
+}
+
 struct CommunityNote: Codable, Hashable, Sendable, Identifiable {
     var source: String
     var text: String
@@ -115,6 +165,7 @@ struct RecommendationResult: Codable, Hashable, Sendable {
     var summary: String
     var recommendations: [StrainRecommendation]
     var strains: [StrainProfile]
+    var redditSources: [RedditSource]? = nil
     var resultId: String?
 
     func profile(named name: String) -> StrainProfile? {
@@ -276,6 +327,7 @@ struct StrainAnalysis: Codable, Hashable, Sendable {
     var keyDifferences: [String]
     var commonGround: [String]
     var cautions: [String]
+    var redditSources: [RedditSource]? = nil
 }
 
 struct StrainComparison: Codable, Hashable, Sendable {

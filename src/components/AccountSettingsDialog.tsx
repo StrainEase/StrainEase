@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useAilments } from "@/hooks/use-ailments";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,16 +10,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { LogOut, ShieldCheck, User } from "lucide-react";
+import { FIND_HREF, HISTORY_HREF } from "@/lib/app-nav";
+import { CONDITIONS } from "@/lib/strain-ui";
+import { cn } from "@/lib/utils";
+import { Clock, LogOut, ShieldCheck, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 /**
- * Account settings modal. Triggered from the Profile menu in the
- * Dashboard header. The only writable field right now is the
- * display name (updated client-side via Firebase's
- * updateProfile). The form is intentionally short — future
- * per-user preferences (timezone, default conditions) will plug in
- * here without re-architecting.
+ * Account settings modal. Display name, saved ailments (same
+ * `users/{uid}` fields as iOS), and a link to past research.
  */
 export function AccountSettingsDialog({
   open,
@@ -28,6 +29,7 @@ export function AccountSettingsDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { user, signOut } = useAuth();
+  const ailments = useAilments();
   const [draftName, setDraftName] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -60,7 +62,7 @@ export function AccountSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border-border/70">
+      <DialogContent className="max-h-[85dvh] max-w-md overflow-y-auto border-border/70">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <User className="size-4 text-primary" />
@@ -106,6 +108,64 @@ export function AccountSettingsDialog({
           {savedAt !== null && (
             <p className="text-xs text-primary">Display name updated.</p>
           )}
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Your ailments
+              </p>
+              {ailments.names.length > 0 && (
+                <Link
+                  to={FIND_HREF}
+                  onClick={() => onOpenChange(false)}
+                  className="text-xs font-semibold text-primary"
+                >
+                  Find for these
+                </Link>
+              )}
+            </div>
+            <p className="mb-2.5 text-xs text-muted-foreground">
+              Saved so Find can jump back to them.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {CONDITIONS.map((name) => {
+                const on = ailments.names.some(
+                  (item) => item.toLowerCase() === name.toLowerCase(),
+                );
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => void ailments.toggle(name)}
+                    className={cn(
+                      "cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium",
+                      on
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border/70 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Link
+            to={HISTORY_HREF}
+            onClick={() => onOpenChange(false)}
+            className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background px-4 py-3"
+          >
+            <span>
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <Clock className="size-3.5 text-primary" />
+                Past research
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Reopen a find or comparison
+              </span>
+            </span>
+          </Link>
         </div>
 
         <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">

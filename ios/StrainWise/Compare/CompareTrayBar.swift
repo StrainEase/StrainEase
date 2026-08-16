@@ -14,6 +14,7 @@ struct CompareTrayBar: View {
     @Environment(CompareSelectionStore.self) private var store
     @Environment(AppNavigation.self) private var nav
     @Environment(\.strainAPI) private var api
+    @Environment(ResearchHistoryStore.self) private var history
     @Environment(\.horizontalSizeClass) private var hSize
 
     @State private var presented: ComparisonPresentation?
@@ -113,6 +114,13 @@ struct CompareTrayBar: View {
                         prefs: ResearchPrefs(),
                         reliefSummary: nil
                     )
+                    if let comparison = store.comparison {
+                        await history.remember(
+                            compare: comparison,
+                            names: store.names,
+                            conditions: []
+                        )
+                    }
                 }
             } label: {
                 HStack(spacing: 10) {

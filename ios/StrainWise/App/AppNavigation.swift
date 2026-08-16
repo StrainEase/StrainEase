@@ -36,6 +36,10 @@ final class AppNavigation {
     /// then clears it. Lets the terpene drill-down sheet jump to a
     /// strain detail without owning the Home stack directly.
     var pendingStrain: StrainProfile?
+    /// Saved ailments the Find tab should select after Account “Find for these”.
+    var pendingFindAilments: [String] = []
+    /// Restored Find / Compare payload from Past research.
+    var pendingResearch: RestoredResearch?
 
     func openSaved() {
         showSaved = true
@@ -43,6 +47,30 @@ final class AppNavigation {
 
     func openProfile() {
         showAccount = true
+    }
+
+    func openFind(ailments: [String]) {
+        pendingFindAilments = ailments
+        showAccount = false
+        tab = .find
+    }
+
+    func openResearch(_ research: RestoredResearch) {
+        pendingResearch = research
+        showAccount = false
+        tab = .find
+    }
+
+    func consumeFindAilments() -> [String] {
+        let next = pendingFindAilments
+        pendingFindAilments = []
+        return next
+    }
+
+    func consumeResearch() -> RestoredResearch? {
+        let next = pendingResearch
+        pendingResearch = nil
+        return next
     }
 
     func requestOpenProfile(_ profile: StrainProfile) {

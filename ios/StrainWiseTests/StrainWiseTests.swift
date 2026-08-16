@@ -79,6 +79,108 @@ final class StrainWiseTests: XCTestCase {
     }
 
     @MainActor
+    func testHistoryCloudDataMatchesWebShape() {
+        let long = "Best strains for " + String(repeating: "pain, ", count: 50)
+        let entry = HistoryEntry(
+            id: "abc",
+            kind: .find,
+            title: long,
+            createdAt: 1
+        )
+        let doc = ResearchHistoryStore.cloudData(for: entry)
+        XCTAssertEqual(doc["kind"] as? String, "find")
+        XCTAssertEqual(doc["createdAt"] as? Int, 1)
+        XCTAssertEqual((doc["title"] as? String)?.count, ResearchHistoryStore.titleMax)
+        XCTAssertLessThan((doc["title"] as? String)?.count ?? 0, 200)
+        XCTAssertEqual(
+            ResearchHistoryStore.titleForFind(conditions: ["Insomnia", "Pain"]),
+            "Best strains for Insomnia, Pain"
+        )
+        XCTAssertEqual(
+            ResearchHistoryStore.titleForCompare(
+                names: ["Blue Dream", "GDP"],
+                conditions: ["Anxiety"]
+            ),
+            "Blue Dream vs. GDP · Anxiety"
+        )
+    }
+
+    @MainActor
+    func testHistoryDecodesFindAndCompareResults() throws {
+        let findJSON: [String: Any] = [
+            "kind": "find",
+            "args": ["conditions": ["Insomnia"]],
+            "result": [
+                "headline": "Night pick",
+                "summary": "Heavier indica first.",
+                "recommendations": [[
+                    "strainName": "Granddaddy Purple",
+                    "reason": "Sleep",
+                    "bestFor": "Night",
+                    "caution": "Strong",
+                ]],
+                "strains": [],
+                "redditSources": [[
+                    "url": "https://old.reddit.com/r/trees/comments/abc",
+                    "subreddit": "trees",
+                    "title": "GDP for sleep",
+                    "snippet": "Knocked me out",
+                    "score": 12.0,
+                ]],
+                "resultId": "find1",
+            ],
+        ]
+        let find = try XCTUnwrap(ResearchHistoryStore.decodeResearch(findJSON))
+        guard case let .find(result, conditions) = find else {
+            return XCTFail("expected find restore")
+        }
+        XCTAssertEqual(conditions, ["Insomnia"])
+        XCTAssertEqual(result.headline, "Night pick")
+        XCTAssertEqual(result.redditSources?.first?.subreddit, "trees")
+        XCTAssertEqual(result.redditSources?.first?.score, 12)
+
+        let compareJSON: [String: Any] = [
+            "kind": "compare",
+            "args": ["strainNames": ["Blue Dream", "GDP"]],
+            "result": [
+                "strains": [],
+                "analysis": [
+                    "headline": "GDP for night",
+                    "summary": "Heavier body.",
+                    "keyDifferences": ["Sedation"],
+                    "commonGround": ["Pain"],
+                    "cautions": ["Dry mouth"],
+                    "redditSources": [[
+                        "url": "https://old.reddit.com/r/trees/comments/xyz",
+                        "subreddit": "trees",
+                        "title": "Blue Dream vs GDP",
+                    ]],
+                ],
+                "resultId": "cmp1",
+            ],
+        ]
+        let compare = try XCTUnwrap(ResearchHistoryStore.decodeResearch(compareJSON))
+        guard case let .compare(comparison) = compare else {
+            return XCTFail("expected compare restore")
+        }
+        XCTAssertEqual(comparison.analysis.headline, "GDP for night")
+        XCTAssertEqual(comparison.analysis.redditSources?.first?.title, "Blue Dream vs GDP")
+    }
+
+    @MainActor
+    func testFindModelAppliesSavedAilmentsAndRestoredResult() {
+        let model = FindModel(api: PreviewStrainAPI())
+        model.applyAilments(["Insomnia", " insomnia ", "Pain"])
+        XCTAssertEqual(model.ailments, ["Insomnia", "Pain"])
+        model.applyAilments(["Anxiety"], replace: true)
+        XCTAssertEqual(model.ailments, ["Anxiety"])
+        model.applyRestored(result: .sample, conditions: ["Insomnia"])
+        XCTAssertEqual(model.searched, ["Insomnia"])
+        XCTAssertEqual(model.ailments, ["Insomnia"])
+        XCTAssertEqual(model.result?.headline, RecommendationResult.sample.headline)
+    }
+
+    @MainActor
     func testReliefLogDocumentMatchesWebShape() {
         let doc = ReliefLogStore.document(.sampleSleep)
         XCTAssertEqual(doc["strainName"] as? String, "Granddaddy Purple")

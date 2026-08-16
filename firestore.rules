@@ -58,6 +58,32 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Saved ailments live on the user doc (same fields iOS already writes).
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      function ailmentsPayload() {
+        return request.resource.data.keys().hasAll(['ailments', 'ailmentsUpdatedAt'])
+          && request.resource.data.ailments is list
+          && request.resource.data.ailments.size() <= 16
+          && request.resource.data.ailmentsUpdatedAt is number
+          && request.resource.data.ailmentsUpdatedAt > 0;
+      }
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['ailments', 'ailmentsUpdatedAt'])
+        && ailmentsPayload();
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['ailments', 'ailmentsUpdatedAt'])
+        && ailmentsPayload();
+
+      allow delete: if false;
+    }
+
     // Persistent medication list per user — private, list/add/remove only.
     match /users/{uid}/medications/{id} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
