@@ -1,3 +1,4 @@
+import { useStrainImage } from "@/hooks/use-strain-image";
 import { Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -22,7 +23,10 @@ function fallbackTone(type?: string) {
 /**
  * Strain photo with graceful loading. Paints a skeleton block while the
  * image is in flight, falls back to a leaf icon when the source is
- * missing or fails to load. `key={src}` on the img element bumps the
+ * missing or fails to load. The URL is proxied through the
+ * `cachedStrainImage` Firebase callable so repeat visits load from
+ * Firebase Storage instead of re-hitting Leafly (which often 404s for
+ * deprecated CDN paths). `key={src}` on the img element bumps the
  * loaded state back to false when the URL changes (e.g. strain page
  * navigates between two different strains).
  */
@@ -41,15 +45,17 @@ export function StrainImage({
 }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const showFallback = !src || failedSrc === src;
+  const { url } = useStrainImage(src);
+  const resolvedUrl = url === undefined ? null : url;
+  const showFallback = !resolvedUrl || failedSrc === resolvedUrl;
   const tone = fallbackTone(type);
 
-  // Reset the loaded flag when the source URL changes so the new image
+  // Reset the loaded flag when the resolved URL changes so the new image
   // gets its own skeleton frame instead of flashing in.
   useEffect(() => {
     setLoaded(false);
     setFailedSrc(null);
-  }, [src]);
+  }, [resolvedUrl]);
 
   if (showFallback) {
     return (
@@ -80,8 +86,8 @@ export function StrainImage({
         />
       )}
       <img
-        key={src}
-        src={src}
+        key={resolvedUrl ?? src}
+        src={resolvedUrl ?? src}
         alt={alt}
         className={cn(
           "h-full w-full object-contain transition-opacity duration-300",
@@ -89,7 +95,7 @@ export function StrainImage({
         )}
         onLoad={() => setLoaded(true)}
         onError={() => {
-          if (src) setFailedSrc(src);
+          if (resolvedUrl) setFailedSrc(resolvedUrl);
         }}
       />
     </div>
