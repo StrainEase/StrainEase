@@ -111,6 +111,7 @@ export function SavedStrainNotes({
       await addNote(user.uid, slug, text, makePublic, user.name, strainName);
       setDraft("");
       setMakePublic(false);
+      toast.success("Note saved.");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Could not save the note.");
     } finally {
