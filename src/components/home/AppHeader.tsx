@@ -1,9 +1,12 @@
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
+import { CompareTray } from "@/components/compare/CompareTray";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/hooks/use-auth";
+import { useCompareSelection } from "@/hooks/use-compare-selection";
 import {
   APP_NAV,
   DIRECTORY_HREF,
+  FIND_HREF,
   SAVED_HREF,
   type AppNavId,
 } from "@/lib/app-nav";
@@ -17,7 +20,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 const ICONS: Record<AppNavId, typeof Home> = {
   home: Home,
@@ -28,12 +31,38 @@ const ICONS: Record<AppNavId, typeof Home> = {
 
 export type { AppNavId };
 
+export function AppCompareTray({
+  onCompare,
+  isRunning = false,
+}: {
+  onCompare?: () => void;
+  isRunning?: boolean;
+}) {
+  const selection = useCompareSelection();
+  const navigate = useNavigate();
+  return (
+    <CompareTray
+      selection={selection}
+      onCompare={
+        onCompare ??
+        (() => navigate(`${FIND_HREF}?mode=compare`))
+      }
+      isRunning={isRunning}
+      className="bottom-[4.75rem] pb-3 sm:bottom-0 sm:pb-[env(safe-area-inset-bottom)]"
+    />
+  );
+}
+
 export function AppHeader({
   active,
   favorites = false,
+  onCompare,
+  isComparing = false,
 }: {
   active?: AppNavId;
   favorites?: boolean;
+  onCompare?: () => void;
+  isComparing?: boolean;
 }) {
   const { user } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -100,6 +129,7 @@ export function AppHeader({
           onOpenChange={setSettingsOpen}
         />
       </div>
+      <AppCompareTray onCompare={onCompare} isRunning={isComparing} />
     </header>
   );
 }

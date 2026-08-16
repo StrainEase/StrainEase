@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
-import { CompareTray } from "@/components/compare/CompareTray";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { StrainDirectory } from "@/components/directory/StrainDirectory";
 import { StrainImage } from "@/components/strain/StrainImage";
@@ -321,6 +320,8 @@ export default function Dashboard() {
       <AppHeader
         active={dashboardTab(mode)}
         favorites={mode === "saved"}
+        onCompare={() => void handleCompare()}
+        isComparing={isRunning}
       />
 
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -839,12 +840,6 @@ export default function Dashboard() {
         onOpenChange={setSettingsOpen}
       />
 
-      <CompareTray
-        selection={selection}
-        onCompare={() => void handleCompare()}
-        isRunning={isRunning}
-        className="bottom-[4.75rem] pb-3 sm:bottom-0 sm:pb-[env(safe-area-inset-bottom)]"
-      />
       <AppTabBar active={dashboardTab(mode)} />
     </main>
   );

@@ -16,13 +16,40 @@
  * {@link dedupeAndCap} are exported so unit tests can exercise the URL
  * round-trip and dedup/cap rules without React.
  */
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 
 /** Hard cap shared with the iOS store and the `compareStrains` function. */
 export const CAP = 3;
 
 const STRAINS_PARAM = "strains";
+export const COMPARE_STORAGE_KEY = "strainwise:compare.v1";
+const COMPARE_EVENT = "strainwise:compare-change";
+
+export function readStoredStrains(): string[] {
+  if (typeof sessionStorage === "undefined") return [];
+  try {
+    return parseStrains(sessionStorage.getItem(COMPARE_STORAGE_KEY));
+  } catch {
+    return [];
+  }
+}
+
+export function writeStoredStrains(names: readonly string[]): string[] {
+  const next = dedupeAndCap(names);
+  if (typeof sessionStorage !== "undefined") {
+    try {
+      if (next.length === 0) sessionStorage.removeItem(COMPARE_STORAGE_KEY);
+      else sessionStorage.setItem(COMPARE_STORAGE_KEY, serializeStrains(next));
+    } catch {
+      // quota / private mode
+    }
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(COMPARE_EVENT));
+  }
+  return next;
+}
 
 /**
  * Parse a raw `?strains=` value (decoded by `URLSearchParams.get`) into
@@ -102,15 +129,32 @@ export type CompareSelection = {
  */
 export function useCompareSelection(): CompareSelection {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [stored, setStored] = useState<string[]>(readStoredStrains);
 
-  const names = useMemo(
+  useEffect(() => {
+    const sync = () => setStored(readStoredStrains());
+    window.addEventListener(COMPARE_EVENT, sync);
+    return () => window.removeEventListener(COMPARE_EVENT, sync);
+  }, []);
+
+  const urlNames = useMemo(
     () => parseStrains(searchParams.get(STRAINS_PARAM)),
     [searchParams],
   );
 
+  useEffect(() => {
+    if (urlNames.length === 0) return;
+    const current = readStoredStrains();
+    if (serializeStrains(current) === serializeStrains(urlNames)) return;
+    writeStoredStrains(urlNames);
+  }, [urlNames]);
+
+  const names = urlNames.length > 0 ? urlNames : stored;
+
   const writeNames = useCallback(
     (next: readonly string[]) => {
-      const deduped = dedupeAndCap(next);
+      const deduped = writeStoredStrains(next);
+      setStored(deduped);
       setSearchParams(
         (prev) => {
           const params = new URLSearchParams(prev);
