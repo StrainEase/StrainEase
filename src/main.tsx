@@ -18,6 +18,7 @@ const Browse = lazy(() => import("./pages/Browse.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const StrainPage = lazy(() => import("./pages/Strain.tsx"));
+const DoctorsPage = lazy(() => import("./pages/Doctors.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 function RouteLoading() {
@@ -106,6 +107,14 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/find/:rid" element={<Dashboard />} />
             <Route path="/compare/:rid" element={<Dashboard />} />
             <Route path="/strain/:slug" element={<StrainPage />} />
+            <Route
+              path="/doctors"
+              element={
+                <RequireAuth>
+                  <DoctorsPage />
+                </RequireAuth>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
