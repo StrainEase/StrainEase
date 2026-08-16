@@ -33,14 +33,9 @@ export function AilmentCarousel({
     };
   }, [api]);
 
-  const current = ailments[page] ?? ailments[0];
-  const seeMoreHref = current
-    ? sectionHref({ kind: "ailment", name: current })
-    : undefined;
-
   return (
     <section className="space-y-3">
-      <StrainSectionHeader title="For your symptoms" seeMoreHref={seeMoreHref} />
+      <StrainSectionHeader title="For your symptoms" />
       <Carousel
         setApi={setApi}
         opts={{ align: "start", loop: false }}
