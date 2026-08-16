@@ -90,3 +90,40 @@ describe("strainMatchesBucket", () => {
     expect(strainMatchesBucket(profile([]), EFFECT_BUCKETS[0])).toBe(false);
   });
 });
+
+describe("directory ailment filter", () => {
+  const profile = (uses: string[]): StrainProfile => ({
+    name: "Test",
+    inKnowledgeBase: true,
+    medicalUses: uses,
+  });
+
+  // Mirror matchesCondition from src/lib/strain-ui.ts. We re-declare it
+  // here so this test file stays free of UI imports — same approach as
+  // the THC midpoint tests above.
+  function ailmentMatches(
+    uses: string[] | undefined,
+    condition: string,
+  ): boolean {
+    if (!uses?.length) return false;
+    const key = condition.toLowerCase();
+    return uses.some((u) => u.toLowerCase() === key);
+  }
+
+  test("keeps strains whose medicalUses include the condition", () => {
+    expect(ailmentMatches(profile(["Insomnia", "Stress"]).medicalUses, "Insomnia")).toBe(true);
+    expect(ailmentMatches(profile(["Stress"]).medicalUses, "Insomnia")).toBe(false);
+  });
+
+  test("AND-combines multiple conditions", () => {
+    const strains = [
+      profile(["Insomnia", "Chronic pain"]),
+      profile(["Insomnia"]),
+      profile(["Chronic pain"]),
+    ];
+    const kept = strains.filter((s) =>
+      ["Insomnia", "Chronic pain"].every((c) => ailmentMatches(s.medicalUses, c)),
+    );
+    expect(kept.map((s) => s.medicalUses)).toEqual([["Insomnia", "Chronic pain"]]);
+  });
+});

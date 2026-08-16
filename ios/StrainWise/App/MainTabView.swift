@@ -4,6 +4,7 @@ struct MainTabView: View {
     @State private var homeModel = HomeModel()
     @State private var findModel = FindModel()
     @State private var directoryModel = DirectoryModel()
+    @State private var doctorsModel = DoctorsModel()
     @State private var nav = AppNavigation()
 
     var body: some View {
@@ -36,6 +37,9 @@ struct MainTabView: View {
                 Tab("Browse", systemImage: AppTab.browse.systemImage, value: AppTab.browse) {
                     DirectoryView(model: directoryModel)
                 }
+                Tab("Doctors", systemImage: AppTab.doctors.systemImage, value: AppTab.doctors) {
+                    DoctorsView(model: doctorsModel)
+                }
             }
         } else {
             TabView(selection: selection) {
@@ -48,6 +52,9 @@ struct MainTabView: View {
                 DirectoryView(model: directoryModel)
                     .tabItem { Label("Browse", systemImage: AppTab.browse.systemImage) }
                     .tag(AppTab.browse)
+                DoctorsView(model: doctorsModel)
+                    .tabItem { Label("Doctors", systemImage: AppTab.doctors.systemImage) }
+                    .tag(AppTab.doctors)
             }
         }
     }

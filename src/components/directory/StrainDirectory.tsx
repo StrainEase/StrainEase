@@ -1,6 +1,6 @@
 import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
-import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
+import { CONDITIONS, TYPE_LABEL, matchesCondition, typeBadgeClass } from "@/lib/strain-ui";
 import type { StrainProfile, StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,10 @@ function strainMatchesBucket(
   return bucket.match.some((kw) => lower.has(kw));
 }
 
+/** Curated ailment chips. Curated list lives in src/lib/strain-ui.ts so
+ *  the same options surface across the homepage carousel, the directory,
+ *  and the strain page. Filter matches against `medicalUses` aliases. */
+
 /**
  * Browse the popular strains directory. Filters: type, THC band, and
  * effect buckets. The richer data (medicalUses, lineage, sideEffects)
@@ -84,6 +88,7 @@ export function StrainDirectory() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [thcBand, setThcBand] = useState<ThcBand>("any");
   const [effectFilter, setEffectFilter] = useState<string[]>([]);
+  const [ailmentFilter, setAilmentFilter] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,6 +109,7 @@ export function StrainDirectory() {
     const q = query.trim().toLowerCase();
     const thc = THC_BANDS.find((b) => b.value === thcBand) ?? THC_BANDS[0];
     const buckets = EFFECT_BUCKETS.filter((b) => effectFilter.includes(b.id));
+    const ailments = CONDITIONS.filter((c) => ailmentFilter.includes(c));
     return popular.filter((p) => {
       if (typeFilter !== "all" && p.type !== typeFilter) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
@@ -115,14 +121,20 @@ export function StrainDirectory() {
       if (buckets.length > 0) {
         if (!buckets.every((b) => strainMatchesBucket(p, b))) return false;
       }
+      if (ailments.length > 0) {
+        if (!ailments.every((c) => matchesCondition(p.medicalUses, c))) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [popular, query, typeFilter, thcBand, effectFilter]);
+  }, [popular, query, typeFilter, thcBand, effectFilter, ailmentFilter]);
 
   const filtersActive =
     typeFilter !== "all" ||
     thcBand !== "any" ||
     effectFilter.length > 0 ||
+    ailmentFilter.length > 0 ||
     query.trim() !== "";
 
   const resetFilters = () => {
@@ -130,11 +142,18 @@ export function StrainDirectory() {
     setTypeFilter("all");
     setThcBand("any");
     setEffectFilter([]);
+    setAilmentFilter([]);
   };
 
   const toggleEffect = (id: string) => {
     setEffectFilter((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const toggleAilment = (name: string) => {
+    setAilmentFilter((prev) =>
+      prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name],
     );
   };
 
@@ -204,7 +223,33 @@ export function StrainDirectory() {
           )}
         </div>
 
-        {/* Row 2: THC band */}
+        {/* Row 2: Ailment chips */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Reported uses
+          </span>
+          {CONDITIONS.map((condition) => {
+            const active = ailmentFilter.includes(condition);
+            return (
+              <button
+                key={condition}
+                type="button"
+                onClick={() => toggleAilment(condition)}
+                aria-pressed={active}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+              >
+                {condition}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Row 3: THC band */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             THC
@@ -227,7 +272,7 @@ export function StrainDirectory() {
           ))}
         </div>
 
-        {/* Row 3: effect buckets */}
+        {/* Row 4: effect buckets */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Feels like

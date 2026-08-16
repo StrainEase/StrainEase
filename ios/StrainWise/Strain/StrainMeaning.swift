@@ -1,22 +1,15 @@
 import Foundation
 
 enum StrainMeaning {
-    private static let terpeneCopy: [String: String] = [
-        "myrcene": "Earthy. Often linked with body heaviness and easier sleep.",
-        "limonene": "Citrus. Commonly described as mood-lifting and daytime-friendly.",
-        "caryophyllene": "Peppery. Patients often mention it for stress and body tension.",
-        "pinene": "Pine. Associated with a clearer, more alert head.",
-        "linalool": "Floral. Frequently reported as calming.",
-        "terpinolene": "Herbal-citrus. Often a brighter, more stimulating profile.",
-        "humulene": "Hoppy. Sometimes noted as appetite-dampening.",
-        "ocimene": "Sweet-herbal. Usually described as uplifting.",
-    ]
-
     private static let night = Set(["sleepy", "relaxed", "sedated", "hungry", "tingly"])
     private static let day = Set(["energetic", "focused", "uplifted", "creative", "talkative", "happy"])
 
+    /// Reads from the curated TerpeneCatalog so the strain card and the
+    /// drill-down sheet show the same copy. Falls back to nil when the
+    /// terpene isn't in the curated set, letting callers fall back to
+    /// the strain's raw `profile` text.
     static func terpeneMeaning(_ name: String) -> String? {
-        terpeneCopy[name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()]
+        TerpeneCatalog.profile(for: name)?.summary
     }
 
     /// 0 = firmly night, 100 = firmly day.

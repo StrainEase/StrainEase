@@ -105,3 +105,49 @@ export function cachedStrainImage(url: string): Promise<CachedStrainImage> {
     url,
   });
 }
+
+/** A medical-marijuana doctor clinic scraped from Leafly's public directory. */
+export type Doctor = {
+  id: string;
+  name: string;
+  slug: string;
+  url: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  lat: number | null;
+  lon: number | null;
+  /** Distance from the caller's coordinates in miles. Null when coords were not provided. */
+  distanceMi: number | null;
+  rating: number | null;
+  reviewCount: number | null;
+  reviewSnippet: string | null;
+  logoUrl: string | null;
+  timezone: string | null;
+};
+
+export type DoctorQuery = {
+  lat?: number;
+  lon?: number;
+  city?: string;
+  state?: string;
+  zip?: string;
+  radiusMiles?: number;
+};
+
+export type DoctorResult = {
+  doctors: Doctor[];
+  resolvedLocation: { city: string; state: string; lat: number; lon: number } | null;
+  source: string;
+};
+
+/**
+ * Look up medical-marijuana doctors near the patient. Public callable —
+ * no sign-in required. Returns Leafly's top 30 clinics closest to the
+ * resolved location, re-ranked by haversine distance from the caller's
+ * coordinates when lat/lon is provided.
+ */
+export function findDoctors(args: DoctorQuery): Promise<DoctorResult> {
+  return call<DoctorQuery, DoctorResult>("findDoctors", args);
+}

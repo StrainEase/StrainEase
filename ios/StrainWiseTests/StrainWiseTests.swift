@@ -449,7 +449,7 @@ final class StrainWiseTests: XCTestCase {
     }
 
     func testPrimaryTabsAreHomeFindBrowse() {
-        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse"])
+        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse", "Doctors"])
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("saved"))
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
     }
@@ -480,5 +480,123 @@ final class StrainWiseTests: XCTestCase {
         calendar.date(
             from: DateComponents(year: year, month: month, day: day, hour: hour)
         )!
+    }
+
+    // MARK: - Doctor model + query helpers
+
+    func testDoctorAddressLineSkipsEmptyParts() {
+        let doctor = Doctor(
+            id: "1",
+            name: "Doc",
+            slug: "doc",
+            url: "https://example.com/doc",
+            street: "",
+            city: "Denver",
+            state: "CO",
+            zip: "80202",
+            lat: nil,
+            lon: nil,
+            distanceMi: nil,
+            rating: nil,
+            reviewCount: nil,
+            reviewSnippet: nil,
+            logoUrl: nil,
+            timezone: nil
+        )
+        XCTAssertEqual(doctor.addressLine, "Denver, CO, 80202")
+    }
+
+    func testDoctorMapsURLUsesCoordinatesWhenAvailable() {
+        let doctor = Doctor.sample
+        let url = try? doctor.mapsURL!.absoluteString
+        XCTAssertNotNil(url)
+        XCTAssertTrue(url?.contains("ll=39.758") ?? false)
+    }
+
+    func testDoctorMapsURLFallsBackToAddressSearch() {
+        var doctor = Doctor.sample
+        doctor.lat = nil
+        doctor.lon = nil
+        let url = try? doctor.mapsURL!.absoluteString
+        XCTAssertNotNil(url)
+        XCTAssertTrue(url?.contains("q=Doc") ?? false)
+    }
+
+    func testDoctorQueryIsEmpty() {
+        XCTAssertTrue(DoctorQuery().isEmpty)
+        XCTAssertFalse(DoctorQuery(city: "Denver", state: "CO").isEmpty)
+        XCTAssertFalse(DoctorQuery(lat: 1, lon: 1).isEmpty)
+    }
+
+    // MARK: - Terpene curated copy
+
+    func testStrainMeaningTerpeneUsesCuratedSummary() {
+        // Mirrors the web curated profile so the strain card shows the
+        // same copy as /terpene/:slug on web.
+        XCTAssertEqual(
+            StrainMeaning.terpeneMeaning("Myrcene"),
+            "Earthy. Often linked with body heaviness and easier sleep."
+        )
+        XCTAssertEqual(
+            StrainMeaning.terpeneMeaning("Limonene"),
+            "Citrus. Commonly described as mood-lifting and daytime-friendly."
+        )
+    }
+
+    // MARK: - Directory ailment filter
+
+    func testDirectoryAilmentMatchesByCaseInsensitiveName() {
+        let profile = StrainProfile(
+            name: "Test",
+            inKnowledgeBase: true,
+            medicalUses: ["Insomnia", "Stress"]
+        )
+        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "Insomnia", uses: profile.medicalUses ?? []))
+        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "insomnia", uses: profile.medicalUses ?? []))
+        XCTAssertFalse(DirectoryFilter.matchesCondition(ailment: "Chronic pain", uses: profile.medicalUses ?? []))
+    }
+
+    func testDirectoryAilmentAliasOCDToAnxiety() {
+        let profile = StrainProfile(
+            name: "Test",
+            inKnowledgeBase: true,
+            medicalUses: ["Anxiety"]
+        )
+        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "OCD", uses: profile.medicalUses ?? []))
+    }
+
+    func testDirectoryAilmentFilterAndCombines() {
+        let insomnia = StrainProfile(name: "A", inKnowledgeBase: true, medicalUses: ["Insomnia"])
+        let insomniaPain = StrainProfile(name: "B", inKnowledgeBase: true, medicalUses: ["Insomnia", "Chronic pain"])
+        let profiles = [insomnia, insomniaPain]
+        let kept = DirectoryFilter.apply(
+            to: profiles,
+            query: "",
+            type: .all,
+            thc: .any,
+            effectIDs: [],
+            ailments: ["Insomnia", "Chronic pain"]
+        )
+        XCTAssertEqual(kept.map(\.name), ["B"])
+    }
+
+    // MARK: - Terpene curated catalog
+
+    func testTerpeneCatalogExposesCuratedProfiles() {
+        XCTAssertNotNil(TerpeneCatalog.profile(for: "Myrcene"))
+        XCTAssertNotNil(TerpeneCatalog.profile(for: "Limonene"))
+        XCTAssertNotNil(TerpeneCatalog.profile(for: "Pinene"))
+        XCTAssertNil(TerpeneCatalog.profile(for: "totally-fake-terpene"))
+    }
+
+    func testTerpeneCatalogSlugRules() {
+        XCTAssertEqual(TerpeneCatalog.slug(for: "Myrcene"), "myrcene")
+        XCTAssertEqual(TerpeneCatalog.slug(for: "  Linalool  "), "linalool")
+    }
+
+    func testTerpeneCatalogIsCurated() {
+        XCTAssertTrue(TerpeneCatalog.isCurated("Limonene"))
+        XCTAssertTrue(TerpeneCatalog.isCurated("limonene"))
+        XCTAssertFalse(TerpeneCatalog.isCurated("Unknown"))
     }
 }

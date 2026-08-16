@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(RecentlyViewedStore.self) private var recents
+    @Environment(AppNavigation.self) private var nav
     @State private var model: HomeModel
     @State private var path: [BrowseDestination] = []
 
@@ -52,6 +53,18 @@ struct HomeView: View {
                 case .grid(let section, let strains):
                     StrainGridView(title: section.title, strains: strains, onSelect: openProfile)
                 }
+            }
+            .onChange(of: nav.pendingStrain) { _, next in
+                guard let next else { return }
+                if !path.contains(where: { existing in
+                    if case let .profile(pending) = existing {
+                        return pending.id == next.id
+                    }
+                    return false
+                }) {
+                    path.append(.profile(next))
+                }
+                nav.consumePendingStrain()
             }
             .task { await model.load() }
         }

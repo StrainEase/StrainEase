@@ -153,7 +153,8 @@ enum DirectoryFilter {
         query: String = "",
         type: TypeFilter = .all,
         thc: ThcBand = .any,
-        effectIDs: [String] = []
+        effectIDs: [String] = [],
+        ailments: [String] = []
     ) -> Bool {
         if let wanted = type.strainType, profile.type != wanted {
             return false
@@ -171,6 +172,10 @@ enum DirectoryFilter {
         if !buckets.isEmpty, !buckets.allSatisfy({ matches(profile, bucket: $0) }) {
             return false
         }
+        if !ailments.isEmpty,
+           !ailments.allSatisfy({ matchesCondition(ailment: $0, uses: profile.medicalUses ?? []) }) {
+            return false
+        }
         return true
     }
 
@@ -179,10 +184,30 @@ enum DirectoryFilter {
         query: String,
         type: TypeFilter,
         thc: ThcBand,
-        effectIDs: [String]
+        effectIDs: [String],
+        ailments: [String] = []
     ) -> [StrainProfile] {
         profiles.filter {
-            matches($0, query: query, type: type, thc: thc, effectIDs: effectIDs)
+            matches(
+                $0,
+                query: query,
+                type: type,
+                thc: thc,
+                effectIDs: effectIDs,
+                ailments: ailments
+            )
+        }
+    }
+
+    /// True when at least one of the strain's reported uses matches the
+    /// curated ailment (case-insensitive, alias-aware). Mirrors
+    /// `src/lib/strain-ui.ts#matchesCondition` so web + iOS read the
+    /// same set of conditions.
+    static func matchesCondition(ailment: String, uses: [String]) -> Bool {
+        guard !ailment.isEmpty, !uses.isEmpty else { return false }
+        let keys = Conditions.matchKeys(for: ailment).map { $0.lowercased() }
+        return uses.contains { use in
+            keys.contains(use.lowercased())
         }
     }
 }

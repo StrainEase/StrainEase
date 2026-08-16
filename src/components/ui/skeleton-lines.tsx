@@ -5,7 +5,7 @@ type SkeletonLinesProps = {
    * Optional row layout. Defaults to a single heading + a paragraph of
    * varying-width lines, sized for the Strain info page card.
    */
-  variant?: "strain-card" | "compact" | "strain-page";
+  variant?: "strain-card" | "compact" | "strain-page" | "doctor-list";
   className?: string;
 };
 

@@ -8,6 +8,7 @@ import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/
 import { defineSecret } from "firebase-functions/params";
 import { getStorage } from "firebase-admin/storage";
 import { enrichProfiles, lookupProfile } from "./enrich";
+import { findDoctors, type DoctorQuery, type DoctorResult } from "./doctors";
 import { fetchPopular, fetchProfiles } from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callMiniMax, extractJsonObject } from "./minimax";
@@ -630,5 +631,39 @@ export const cachedStrainImage = onCall(
       bytes: cached.bytes.length,
       source: cached.source,
     };
+  },
+);
+
+/**
+ * Look up medical-marijuana doctors near the patient. Scrapes Leafly's
+ * public doctors directory (the page embedded `__NEXT_DATA__` blob
+ * carries the structured listings) and reverse-geocodes the caller's
+ * coordinates via OpenStreetMap Nominatim when only lat/lon is given.
+ * Public — no auth required.
+ */
+export const findDoctorsCallable = onCall(
+  { timeoutSeconds: 30, memory: "256MiB" },
+  async (request): Promise<DoctorResult> => {
+    const data = (request.data ?? {}) as Partial<DoctorQuery>;
+    const lat =
+      typeof data.lat === "number" && Number.isFinite(data.lat) ? data.lat : undefined;
+    const lon =
+      typeof data.lon === "number" && Number.isFinite(data.lon) ? data.lon : undefined;
+    const city = typeof data.city === "string" ? data.city.trim() : undefined;
+    const state = typeof data.state === "string" ? data.state.trim() : undefined;
+    const zip = typeof data.zip === "string" ? data.zip.trim() : undefined;
+    const radiusMiles =
+      typeof data.radiusMiles === "number" && Number.isFinite(data.radiusMiles)
+        ? Math.max(1, Math.min(data.radiusMiles, 200))
+        : undefined;
+
+    if (!lat && !lon && !city && !state && !zip) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Provide lat/lon, a city+state pair, or a zip code.",
+      );
+    }
+
+    return await findDoctors({ lat, lon, city, state, zip, radiusMiles });
   },
 );

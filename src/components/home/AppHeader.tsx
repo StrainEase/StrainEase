@@ -2,13 +2,14 @@ import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { BookOpen, Home, Library, Search } from "lucide-react";
+import { BookOpen, Home, Library, Search, Stethoscope } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
-export type AppNavId = "home" | "find" | "directory";
+export type AppNavId = "home" | "find" | "directory" | "doctors";
 
 const DIRECTORY_HREF = "/dashboard?mode=directory";
+const DOCTORS_HREF = "/doctors";
 
 const NAV: { id: AppNavId; to: string; label: string; icon: typeof Home }[] = [
   { id: "home", to: "/", label: "Home", icon: Home },
@@ -18,6 +19,12 @@ const NAV: { id: AppNavId; to: string; label: string; icon: typeof Home }[] = [
     to: DIRECTORY_HREF,
     label: "Browse",
     icon: BookOpen,
+  },
+  {
+    id: "doctors",
+    to: DOCTORS_HREF,
+    label: "Doctors",
+    icon: Stethoscope,
   },
 ];
 
