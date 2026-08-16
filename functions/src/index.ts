@@ -115,6 +115,50 @@ Reddit sourcing rules:
 - Prefer threads whose "snippet" matches the patient's symptom focus.
 - If the list has no relevant threads, return an empty array for "redditSources" rather than fabricating any.`;
 
+/**
+ * Per-strain AI description for a specific patient. The patient has a
+ * saved set of ailments; we tailor the writeup to those while still
+ * keeping a healthy dose of general, factual information so the page
+ * is useful even if the ailments don't all overlap with the strain.
+ *
+ * We also accept the patient's medications and a short relief-log
+ * summary so the model can flag known interactions (caution only,
+ * never "stop your prescription") and weight "What it might do for
+ * you" against how similar strains have actually worked for them.
+ *
+ * Output is split into a fixed three sections so the client can render
+ * them as three discrete blocks instead of one wall of text:
+ *   - "Overview"               — what this strain is, plain-language intro.
+ *   - "What it might do for you" — tied to the patient's ailments.
+ *   - "What to expect"         — practical considerations (potency,
+ *                                timing, cautions).
+ *
+ * Each section body is short prose (2-4 sentences), no markdown, no
+ * headings inside the body.
+ */
+const DESCRIBE_SYSTEM_PROMPT = `You are StrainEase, writing a patient-facing description for a single cannabis strain.
+
+Rules:
+- Base every claim on the strain data provided. Never invent numbers, terpenes, effects, or uses.
+- Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the "Overview" section.
+- The patient has a saved set of ailments. Write the "What it might do for you" section to map the strain's commonly reported uses and effects onto those ailments — speak directly to the patient ("for your insomnia…", "if your anxiety spikes in the evening…"). Keep it grounded; do not promise cures or diagnose.
+- The patient has also told us what medications they take and what has actually happened the last few times they used other strains (their relief log). Use both pieces of context where they help:
+    * Medications: only mention a medication when there is a commonly cited interaction risk between cannabis and that specific drug (e.g. sedative load with benzodiazepines, blood-pressure effects with certain antihypertensives, CYP450 metabolism warnings with SSRIs / antipsychotics). Always phrase as "ask your clinician about combining with X" — never advise stopping a prescription. When in doubt, omit.
+    * Relief log: when the patient has logged how previous strains went for these same ailments, use that history to calibrate "What it might do for you" — e.g. "Last time Northern Lights was too strong for your insomnia; this one leans similar, so start lower." If the relief log is empty, say nothing.
+- Keep each section body short (2-4 sentences). No markdown, no inner headings, no bullet lists inside a section.
+- Keep general information present too — the page should still feel informative even if the strain only partially matches the patient's ailments. Roughly two-thirds of the body can be general, one-third tailored.
+- Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider. The "What to expect" section must include a short, practical caution (potency, timing, side-effect watch-out) and a gentle nudge to start low.
+- Respond with ONLY a single JSON object. No markdown, no text outside the JSON.
+
+JSON shape (all fields required):
+{
+  "sections": [
+    {"heading": "Overview", "body": "2-4 sentences introducing the strain"},
+    {"heading": "What it might do for you", "body": "2-4 sentences tied to the patient's ailments, medications, and recent history with other strains"},
+    {"heading": "What to expect", "body": "2-4 sentences on practical considerations, including a caution to start low"}
+  ]
+}`;
+
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((x): x is string => typeof x === "string")
@@ -665,6 +709,209 @@ export const findDoctors = onCall(
     }
 
     return await findDoctorsImpl({ lat, lon, city, state, zip, radiusMiles });
+  },
+);
+
+/* ── Patient-tailored per-strain description (auth-gated) ──────────── */
+
+/** Section shape returned by describeStrainForUser. */
+type StrainDescriptionSection = {
+  heading: string;
+  body: string;
+};
+
+/** Response shape for describeStrainForUser. */
+type StrainDescriptionResult = {
+  /** Always exactly three sections, in display order. */
+  sections: [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection];
+};
+
+/**
+ * Build a compact, LLM-safe payload from a StrainProfile. Mirrors
+ * compareStrainPayload but strips the fields the description prompt
+ * does not need (communityNotes, redditSources) to keep the user
+ * message tight.
+ */
+export function describeStrainPayload(s: StrainProfile) {
+  const hasBody = Boolean(
+    s.inKnowledgeBase ||
+      s.type ||
+      s.thcRange ||
+      s.description ||
+      (s.effects && s.effects.length > 0) ||
+      (s.medicalUses && s.medicalUses.length > 0),
+  );
+  if (!hasBody) return { name: s.name, noCuratedProfile: true as const };
+  return {
+    name: s.name,
+    type: s.type,
+    thcRange: s.thcRange,
+    cbdRange: s.cbdRange,
+    lineage: s.lineage,
+    terpenes: s.terpenes,
+    medicalUses: s.medicalUses,
+    effects: s.effects,
+    sideEffects: s.sideEffects,
+    description: s.description,
+    noCuratedProfile: !s.inKnowledgeBase,
+  };
+}
+
+export function describePrompt(
+  strain: StrainProfile,
+  ailments: string[],
+  medications: string[],
+  reliefHistory: string,
+): string {
+  const payload = describeStrainPayload(strain);
+  const contextLines: string[] = [];
+  contextLines.push(
+    ailments.length > 0
+      ? `Patient's saved ailments (tailor the middle section to these, in this priority order): ${ailments.join(", ")}`
+      : "Patient's saved ailments: none — give a general description across all three sections.",
+  );
+  contextLines.push(
+    medications.length > 0
+      ? `Patient's current medications (mention a specific drug only when there is a commonly cited cannabis interaction — always phrase as "ask your clinician about combining with X", never advise stopping): ${medications.join(", ")}`
+      : "Patient's current medications: none reported.",
+  );
+  contextLines.push(
+    reliefHistory.length > 0
+      ? `Patient's recent relief log with other strains, newest first (use to calibrate the middle section against what has actually worked): ${reliefHistory}`
+      : "Patient's recent relief log: empty.",
+  );
+  return [
+    "Write a patient-facing description for this cannabis strain.",
+    ...contextLines,
+    "",
+    "Strain data:",
+    JSON.stringify(payload, null, 2),
+    "",
+    'Strains marked "noCuratedProfile": true were not found on Leafly or Weedmaps. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the "Overview" when a detail is a commonly-reported figure rather than a verified lab result.',
+    "",
+    "Return only the JSON object described in your instructions.",
+  ].join("\n");
+}
+
+/**
+ * Validate the LLM's JSON shape. We always want exactly three sections,
+ * with non-empty headings and bodies. If the model returns fewer, fill
+ * in the missing ones with a generic safe placeholder so the client
+ * still has something to render instead of breaking layout.
+ */
+function normalizeDescriptionSections(
+  value: unknown,
+  fallbackName: string,
+): [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection] {
+  const list: StrainDescriptionSection[] = [];
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (!item || typeof item !== "object") continue;
+      const r = item as Record<string, unknown>;
+      const heading =
+        typeof r.heading === "string" ? r.heading.trim() : "";
+      const body = typeof r.body === "string" ? r.body.trim() : "";
+      if (!heading || !body) continue;
+      list.push({ heading, body });
+    }
+  }
+  const filler = (heading: string, body: string): StrainDescriptionSection => ({
+    heading,
+    body,
+  });
+  const overview = list[0] ?? filler("Overview", `${fallbackName} is a cannabis strain. Talk to your healthcare provider before trying it, and start with a low dose.`);
+  const tailored =
+    list[1] ??
+    filler(
+      "What it might do for you",
+      "We didn't get a tailored writeup for your saved symptoms. Compare it against other strains in your list for a closer fit.",
+    );
+  const expect =
+    list[2] ??
+    filler(
+      "What to expect",
+      "Start low, give the dose time to settle, and check in with how you feel before taking more.",
+    );
+  return [overview, tailored, expect];
+}
+
+function parseDescription(
+  content: string,
+  fallbackName: string,
+): StrainDescriptionResult {
+  const parsed = extractJsonObject(content) as { sections?: unknown } | null;
+  return {
+    sections: normalizeDescriptionSections(parsed?.sections, fallbackName),
+  };
+}
+
+/** Exposed for tests. */
+export const __testing = { normalizeDescriptionSections };
+
+/**
+ * Generate a tailored, three-section description for a single strain.
+ * Auth-gated: the caller must be signed in so we can pull their saved
+ * ailments without exposing them to guest traffic. Guests hit the
+ * rate-limited fallback in `clientIp`/`guestRateLimit` instead.
+ */
+export const describeStrainForUser = onCall(
+  AI_OPTIONS,
+  async (request): Promise<StrainDescriptionResult> => {
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
+    }
+
+    const data = (request.data ?? {}) as {
+      strain?: unknown;
+      ailments?: unknown;
+      medications?: unknown;
+      reliefHistory?: unknown;
+    };
+    const strain = (data.strain ?? {}) as StrainProfile;
+    const name =
+      typeof strain.name === "string" && strain.name.trim()
+        ? strain.name.trim().slice(0, 120)
+        : "";
+    if (name === "") {
+      throw new HttpsError("invalid-argument", "Provide a strain to describe.");
+    }
+    // Trim ailments to a sensible cap (matches the Firestore write cap
+    // in iOS/web) so a malicious caller can't blow up the prompt.
+    const ailments = asStringArray(data.ailments)
+      .map((a) => a.trim())
+      .filter((a) => a !== "")
+      .slice(0, 16);
+    // Medications come in as a string[] (one per saved med). Cap them
+    // and clamp each entry so a long name can't bloat the prompt.
+    const medications = asStringArray(data.medications)
+      .map((m) => m.trim().slice(0, 80))
+      .filter((m) => m !== "")
+      .slice(0, 24);
+    // Relief history is already a short prose summary on the client.
+    // Trim and clamp it explicitly so a malicious caller can't pass a
+    // 100k-char blob.
+    const reliefHistory =
+      typeof data.reliefHistory === "string"
+        ? data.reliefHistory.trim().slice(0, 800)
+        : "";
+    const safeStrain: StrainProfile = { ...strain, name };
+
+    const content = await callMiniMax(MINIMAX_API_KEY.value(), [
+      { role: "system", content: DESCRIBE_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: describePrompt(safeStrain, ailments, medications, reliefHistory),
+      },
+    ]);
+
+    return parseDescription(content, name);
   },
 );
 

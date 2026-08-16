@@ -60,6 +60,34 @@ enum StrainCatalog {
         return applyingCatalogPhotos(list)
     }
 
+    /// Score every strain against the patient's saved ailments and
+    /// return the strongest matches first. A strain that reports itself
+    /// for multiple saved ailments ranks higher than one that reports
+    /// itself for only one, so the patient sees the "covers the most
+    /// ground" picks at the top of the rail.
+    ///
+    /// Returns an empty array when no ailments are given — callers
+    /// should always treat the empty case as "don't personalize, fall
+    /// back to Popular".
+    static func matching(ailments: [String], live: [StrainProfile], limit: Int = 6) -> [StrainProfile] {
+        let cleaned = ailments
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !cleaned.isEmpty else { return [] }
+        let combined = unique(live + all)
+        let scored: [(StrainProfile, Int)] = combined.compactMap { profile in
+            let score = cleaned.reduce(0) { acc, ailment in
+                matches(profile, ailment: ailment) ? acc + 1 : acc
+            }
+            return score > 0 ? (profile, score) : nil
+        }
+        let sorted = scored.sorted { lhs, rhs in
+            if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
+            return lhs.0.name.localizedCaseInsensitiveCompare(rhs.0.name) == .orderedAscending
+        }
+        return applyingCatalogPhotos(sorted.prefix(limit).map(\.0))
+    }
+
     static func applyingCatalogPhotos(_ profiles: [StrainProfile]) -> [StrainProfile] {
         profiles.map(applyingCatalogPhoto)
     }

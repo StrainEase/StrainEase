@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(RecentlyViewedStore.self) private var recents
+    @Environment(SavedAilmentsStore.self) private var ailmentsStore
     @Environment(AppNavigation.self) private var nav
     @State private var model: HomeModel
     @State private var path: [BrowseDestination] = []
@@ -17,9 +18,14 @@ struct HomeView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
                         hero
+                        if model.hasSavedAilments,
+                           !model.strains(for: .forYou).isEmpty
+                        {
+                            typeRail(.forYou)
+                        }
                         typeRail(.popular)
                         AilmentCarousel(
-                            ailments: model.ailments,
+                            ailments: model.ailmentsForCarousel,
                             preview: { Array(model.strains(for: .ailment($0)).prefix(model.previewLimit)) },
                             onSeeMore: { name in openGrid(.ailment(name), model.strains(for: .ailment(name))) },
                             onSelect: openProfile
@@ -66,7 +72,13 @@ struct HomeView: View {
                 }
                 nav.consumePendingStrain()
             }
-            .task { await model.load() }
+            .onChange(of: ailmentsStore.ailments) { _, next in
+                model.updateSavedAilments(next)
+            }
+            .task {
+                model.updateSavedAilments(ailmentsStore.ailments)
+                await model.load()
+            }
         }
         .tint(Palette.primary)
     }

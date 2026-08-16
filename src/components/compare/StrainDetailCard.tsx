@@ -1,5 +1,7 @@
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { StrainDescriptionView } from "@/components/strain/StrainDescription";
+import { useTailoredDescription } from "@/hooks/use-tailored-description";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
@@ -54,6 +56,7 @@ export function StrainDetailCard({
 }) {
   const Heading = headingLevel;
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
+  const { description: tailored } = useTailoredDescription(strain);
 
   useEffect(() => {
     if (!db) {
@@ -154,10 +157,14 @@ export function StrainDetailCard({
           </div>
         )}
 
-        {strain.description && (
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {strain.description}
-          </p>
+        {tailored ? (
+          <StrainDescriptionView description={tailored} />
+        ) : (
+          strain.description && (
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              {strain.description}
+            </p>
+          )
         )}
       </div>
 
