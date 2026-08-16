@@ -33,6 +33,7 @@
 		7A99F739D8D6ECD453F8CB26 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A538477A9E8CEFA4C6479CB4 /* FirebaseFunctions */; };
 		8053DBA5884A96D65B056F36 /* PublicNotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648CF481E640E18F7B4B47E9 /* PublicNotesStore.swift */; };
 		8821927B929F07592A4871F8 /* StrainWiseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D58596872C36B0B71B8273B /* StrainWiseTests.swift */; };
+		95011B8D7AFDF3614B841F77 /* StrainHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE946975B03B7A9EB66743B /* StrainHydration.swift */; };
 		97C18BC73D5AFBAEF7CD2413 /* HomeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A492F65A674EC783E6A321B /* HomeModel.swift */; };
 		9AB210BAB6C430188D3CAB77 /* ReliefLogForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE633D8DF9FC60A6054EB28 /* ReliefLogForm.swift */; };
 		A1FD1525D190F0D89947142C /* StrainAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65A3E705F0FE0B8BB24C080 /* StrainAPI.swift */; };
@@ -100,6 +101,7 @@
 		90623AAD5EF394539B457A8B /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
 		914751E7D4D775463DEB6CA9 /* AilmentCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AilmentCarousel.swift; sourceTree = "<group>"; };
 		94B80469D8D6804EADE68021 /* StrainMeaning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainMeaning.swift; sourceTree = "<group>"; };
+		9FE946975B03B7A9EB66743B /* StrainHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainHydration.swift; sourceTree = "<group>"; };
 		A321898C1D21B156F5E656AF /* StrainDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainDetailView.swift; sourceTree = "<group>"; };
 		A408909E10D3882449C9D57D /* ReliefHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefHistoryView.swift; sourceTree = "<group>"; };
 		A5599B52492008F8E0F1A0BE /* StrainGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainGridView.swift; sourceTree = "<group>"; };
@@ -213,6 +215,7 @@
 				4FE633D8DF9FC60A6054EB28 /* ReliefLogForm.swift */,
 				2472C11CB87864EA4159E36C /* SharedNotesView.swift */,
 				A321898C1D21B156F5E656AF /* StrainDetailView.swift */,
+				9FE946975B03B7A9EB66743B /* StrainHydration.swift */,
 				94B80469D8D6804EADE68021 /* StrainMeaning.swift */,
 				2652F71BBBAD5D6FD8B126B4 /* TriedNotesView.swift */,
 			);
@@ -450,6 +453,7 @@
 				A49771561CE42BA02A3F04D5 /* StrainCatalog.swift in Sources */,
 				18B989E0B5738E7F706ADEBD /* StrainDetailView.swift in Sources */,
 				ABE89A91398C06A7CF67EC69 /* StrainGridView.swift in Sources */,
+				95011B8D7AFDF3614B841F77 /* StrainHydration.swift in Sources */,
 				AA49FDAE50FA0663EF005E3A /* StrainMeaning.swift in Sources */,
 				6C725C28B553AEA147616C9D /* StrainModels.swift in Sources */,
 				CA9ED57AB2EECA8D8E5033BD /* StrainPoster.swift in Sources */,

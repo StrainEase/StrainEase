@@ -237,6 +237,25 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertEqual(store.items.map(\.name), ["Granddaddy Purple", "Blue Dream"])
     }
 
+    func testPartialStrainListsEveryAISectionAsPending() {
+        let stub = StrainProfile(
+            name: "Green Crack",
+            inKnowledgeBase: true,
+            type: .sativa,
+            thcRange: "15–25%"
+        )
+        let pending = stub.pendingHydrationSections
+        XCTAssertEqual(
+            pending,
+            Set(StrainHydrationSection.allCases),
+            "A catalog stub must show a placeholder for every researched section"
+        )
+        XCTAssertTrue(StrainHydrationSection.allCases.allSatisfy { !$0.caption.isEmpty })
+        XCTAssertFalse(StrainProfile.sampleGDP.pendingHydrationSections.contains(.description))
+        XCTAssertFalse(StrainProfile.sampleGDP.pendingHydrationSections.contains(.effects))
+        XCTAssertFalse(StrainProfile.sampleGDP.pendingHydrationSections.contains(.community))
+    }
+
     func testCatalogGreenCrackIsAPartialStub() {
         let greenCrack = StrainCatalog.all.first { $0.slug == "green-crack" }
         XCTAssertNotNil(greenCrack)

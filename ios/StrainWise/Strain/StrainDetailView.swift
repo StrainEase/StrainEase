@@ -3,7 +3,7 @@ import SwiftUI
 struct StrainDetailView: View {
     @Environment(\.strainAPI) private var api
     @State private var profile: StrainProfile
-    @State private var isHydrating = false
+    @State private var isHydrating: Bool
     @Environment(SavedStrainsStore.self) private var saved
     @Environment(SavedAilmentsStore.self) private var ailments
     @Environment(RecentlyViewedStore.self) private var recents
@@ -11,10 +11,14 @@ struct StrainDetailView: View {
 
     init(profile: StrainProfile) {
         _profile = State(initialValue: profile)
+        _isHydrating = State(initialValue: !profile.pendingHydrationSections.isEmpty)
     }
 
     private var score: Int { StrainMeaning.dayNightScore(profile) }
     private var isLiked: Bool { saved.isSaved(profile.slug) }
+    private var pending: Set<StrainHydrationSection> {
+        isHydrating ? profile.pendingHydrationSections : []
+    }
 
     var body: some View {
         ZStack {
@@ -29,35 +33,43 @@ struct StrainDetailView: View {
                                 .foregroundStyle(Palette.foreground)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                    } else if isHydrating {
-                        hydratingCard(lines: 3)
+                    } else if pending.contains(.description) {
+                        hydratingSection(.description)
                     }
-                    if isHydrating && profile.medicalUses?.isEmpty != false {
-                        hydratingCard(lines: 2)
+                    if pending.contains(.dayNight) {
+                        hydratingSection(.dayNight)
+                    } else {
+                        dayNight
                     }
-                    dayNight
                     if let uses = profile.medicalUses, !uses.isEmpty {
                         chipSection("Reported uses", items: uses)
+                    } else if pending.contains(.uses) {
+                        hydratingSection(.uses)
                     }
                     if let effects = profile.effects, !effects.isEmpty {
                         effectsSection(effects)
-                    } else if isHydrating {
-                        hydratingCard(lines: 4)
+                    } else if pending.contains(.effects) {
+                        hydratingSection(.effects)
                     }
                     if let terpenes = profile.terpenes, !terpenes.isEmpty {
                         terpenesSection(terpenes)
-                    } else if isHydrating {
-                        hydratingCard(lines: 2)
+                    } else if pending.contains(.terpenes) {
+                        hydratingSection(.terpenes)
                     }
                     if let sides = profile.sideEffects, !sides.isEmpty {
                         chipSection("Watch for", items: sides)
+                    } else if pending.contains(.sideEffects) {
+                        hydratingSection(.sideEffects)
                     }
                     TriedNotesView(profile: profile)
                     ReliefLogForm(strainName: profile.name, conditions: ailments.ailments)
                     ReliefHistoryList(logs: relief.logs(for: profile.name))
                     SharedNotesView(strainKey: profile.slug)
 
-                    CommunityVoicesSection(profile: profile, isHydrating: isHydrating)
+                    CommunityVoicesSection(
+                        profile: profile,
+                        isHydrating: pending.contains(.community)
+                    )
                     if !profile.inKnowledgeBase && !isHydrating {
                         missing
                     }
@@ -91,7 +103,7 @@ struct StrainDetailView: View {
     }
 
     private func hydrate() async {
-        isHydrating = profile.isPartial
+        isHydrating = !profile.pendingHydrationSections.isEmpty
         defer { isHydrating = false }
         do {
             guard var full = try await api.search(name: profile.name) else { return }
@@ -111,26 +123,29 @@ struct StrainDetailView: View {
         }
     }
 
-    private func hydratingCard(lines: Int) -> some View {
-        SWCard {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .tint(Palette.primary)
-                    Text("Loading profile…")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Palette.mutedForeground)
-                }
-                ForEach(0..<lines, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Palette.muted)
-                        .frame(height: 12)
-                        .frame(maxWidth: index == lines - 1 ? 180 : .infinity)
+    private func hydratingSection(_ section: StrainHydrationSection) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionLabel(section.title)
+            SWCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .tint(Palette.primary)
+                        Text(section.caption)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Palette.mutedForeground)
+                    }
+                    ForEach(0..<section.placeholderLines, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Palette.muted)
+                            .frame(height: 12)
+                            .frame(maxWidth: index == section.placeholderLines - 1 ? 180 : .infinity)
+                    }
                 }
             }
         }
-        .accessibilityIdentifier("strain.hydrating")
-        .accessibilityLabel("Loading strain details")
+        .accessibilityIdentifier("strain.hydrating.\(section.rawValue)")
+        .accessibilityLabel("Loading \(section.title)")
     }
 
     private var header: some View {
@@ -164,6 +179,17 @@ struct StrainDetailView: View {
                 Text(lineage)
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.mutedForeground)
+            } else if pending.contains(.lineage) {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .tint(Palette.primary)
+                        .controlSize(.mini)
+                    Text(StrainHydrationSection.lineage.caption)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.mutedForeground)
+                }
+                .accessibilityIdentifier("strain.hydrating.lineage")
+                .accessibilityLabel("Loading Lineage")
             }
         }
     }
@@ -383,6 +409,23 @@ private struct LeaflyRatingCard: View {
         }
         return "Leafly rating \(rating)"
     }
+}
+
+#Preview("Hydrating stub") {
+    NavigationStack {
+        StrainDetailView(profile: StrainProfile(
+            name: "Green Crack",
+            inKnowledgeBase: true,
+            type: .sativa,
+            thcRange: "15–25%"
+        ))
+    }
+    .environment(\.strainAPI, DelayedPreviewAPI())
+    .environment(SavedStrainsStore.preview())
+    .environment(SavedAilmentsStore.preview())
+    .environment(RecentlyViewedStore.preview())
+    .environment(ReliefLogStore.preview())
+    .environment(AuthSession.previewSignedIn)
 }
 
 #Preview("Granddaddy Purple") {
