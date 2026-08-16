@@ -8,6 +8,7 @@ import {
   type HomeSection,
 } from "@/lib/home-sections";
 import type { StrainProfile } from "@/lib/strain-profile";
+import { TIME_OF_DAY_SUBTITLE, timeOfDayHeadline } from "@/lib/time-of-day";
 
 export function HomeScreen({
   popular,
@@ -26,6 +27,8 @@ export function HomeScreen({
     />
   );
 
+  const headline = timeOfDayHeadline();
+
   return (
     <div className="space-y-10">
       <div>
@@ -33,11 +36,10 @@ export function HomeScreen({
           Browse
         </p>
         <h1 className="mt-2 font-display text-4xl leading-[1.05] tracking-tight text-balance sm:text-5xl">
-          Find a strain that fits tonight
+          {headline}
         </h1>
         <p className="mt-3 max-w-xl text-[15px] leading-6 text-muted-foreground">
-          Popular picks, symptoms, and phenotypes — tap See more for the full
-          grid.
+          {TIME_OF_DAY_SUBTITLE}
         </p>
       </div>
 
