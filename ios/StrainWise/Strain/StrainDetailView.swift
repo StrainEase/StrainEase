@@ -12,6 +12,7 @@ struct StrainDetailView: View {
     @Environment(RecentlyViewedStore.self) private var recents
     @Environment(ReliefLogStore.self) private var relief
     @Environment(AppNavigation.self) private var nav
+    @Environment(CompareSelectionStore.self) private var compareStore
 
     init(profile: StrainProfile) {
         _profile = State(initialValue: profile)
@@ -20,6 +21,8 @@ struct StrainDetailView: View {
 
     private var score: Int { StrainMeaning.dayNightScore(profile) }
     private var isLiked: Bool { saved.isSaved(profile.slug) }
+    private var isInCompare: Bool { compareStore.isIn(profile.name) }
+    private var compareAtCap: Bool { compareStore.atCap }
     private var pending: Set<StrainHydrationSection> {
         isHydrating ? profile.pendingHydrationSections : []
     }
@@ -88,6 +91,14 @@ struct StrainDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                CompareToggleButton(
+                    isInSelection: isInCompare,
+                    atCap: compareAtCap
+                ) {
+                    compareStore.toggle(profile.name)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await saved.toggle(profile) }
@@ -470,6 +481,7 @@ private struct LeaflyRatingCard: View {
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview())
     .environment(AuthSession.previewSignedIn)
+    .environment(CompareSelectionStore())
 }
 
 #Preview("Granddaddy Purple") {
@@ -482,6 +494,7 @@ private struct LeaflyRatingCard: View {
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview([.sampleSleep]))
     .environment(AuthSession.previewSignedIn)
+    .environment(CompareSelectionStore())
 }
 
 private struct ActiveTerpene: Identifiable, Hashable {
@@ -542,5 +555,6 @@ private struct TerpeneRow: View {
     .environment(ReliefLogStore.preview())
     .environment(AuthSession.previewSignedIn)
     .environment(AppNavigation())
+    .environment(CompareSelectionStore())
     .preferredColorScheme(.dark)
 }
