@@ -1,6 +1,6 @@
-# StrainWise iOS
+# StrainEase iOS
 
-Native SwiftUI companion for the StrainWise web app. Same Firebase project, same accounts.
+Native SwiftUI companion for the StrainEase web app (`strainease.ai`). Same Firebase project, same accounts.
 
 **v1 slice:** email / Google / Apple sign-in, Find (recommend), strain detail.
 

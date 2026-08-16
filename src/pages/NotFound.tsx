@@ -1,4 +1,6 @@
+import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
+import { documentTitle } from "@/lib/site";
 import logo from "@/assets/logo.svg";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
@@ -12,15 +14,21 @@ export default function NotFound() {
       transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
       className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-6 text-foreground"
     >
+      <Seo
+        title={documentTitle("Page not found")}
+        description="That StrainEase page does not exist. Head back to find strains for your symptoms."
+        path="/404"
+        noindex
+      />
       <Link to="/" className="mb-10 flex items-center gap-2.5">
         <img
           src={logo}
-          alt="StrainWise logo"
+          alt="StrainEase logo"
           width={32}
           height={32}
           className="rounded-[10px]"
         />
-        <span className="text-sm font-semibold tracking-tight">StrainWise</span>
+        <span className="text-sm font-semibold tracking-tight">StrainEase</span>
       </Link>
       <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
         404
@@ -34,7 +42,7 @@ export default function NotFound() {
       </p>
       <Button asChild className="group mt-8 cursor-pointer rounded-full pl-5 pr-1.5">
         <Link to="/">
-          Back to StrainWise
+          Back to StrainEase
           <span className="flex size-7 items-center justify-center rounded-full border border-current/20">
             <ArrowUpRight className="size-3.5" />
           </span>

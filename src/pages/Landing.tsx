@@ -1,4 +1,5 @@
 import { HeroSpecimen } from "@/components/landing/HeroSpecimen";
+import { Seo } from "@/components/Seo";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,8 +7,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePointerTilt } from "@/hooks/use-pointer-tilt";
 import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
-import { applyCatalogPhotos, topMedicalUses } from "@/lib/strain-catalog";
+import { homeJsonLd, SITE_FAQS } from "@/lib/seo";
+import { SITE_DESCRIPTION, documentTitle } from "@/lib/site";
+import { applyCatalogPhotos, CATALOG, topMedicalUses } from "@/lib/strain-catalog";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
+import { TERPENE_PROFILES, terpeneSlug } from "@/lib/terpenes";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -263,7 +267,7 @@ function StrainCard({
       >
         <StrainImage
           src={strain.imageUrl}
-          alt=""
+          alt={`${strain.name} flower`}
           type={strain.type}
           className="mb-4 h-36 w-full rounded-xl border border-border/70"
         />
@@ -335,6 +339,7 @@ function LandingNav({
     { href: "#how-it-works", label: "How it works" },
     { href: "#strains", label: "Strains" },
     { href: "#sources", label: "Sources" },
+    { href: "#faq", label: "FAQ" },
   ];
 
   return (
@@ -343,13 +348,13 @@ function LandingNav({
         <Link to="/" className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2">
           <img
             src={logo}
-            alt="StrainWise logo"
+            alt="StrainEase logo"
             width={32}
             height={32}
             className="rounded-[10px]"
           />
           <span className="text-[15px] font-semibold tracking-tight">
-            StrainWise
+            StrainEase
           </span>
         </Link>
 
@@ -470,6 +475,12 @@ export default function Landing() {
 
   return (
     <div className="landing-grain min-h-[100dvh] bg-background text-foreground">
+      <Seo
+        title={documentTitle()}
+        description={SITE_DESCRIPTION}
+        path="/"
+        jsonLd={homeJsonLd()}
+      />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:border focus:bg-background focus:px-4 focus:py-2"
@@ -506,7 +517,7 @@ export default function Landing() {
               you need
             </h1>
             <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
-              Tell StrainWise what you&apos;re treating — it researches Leafly,
+              Tell StrainEase what you&apos;re treating — it researches Leafly,
               Weedmaps, Reddit, Google and dispensary menus, then uses AI to
               rank the strains patients report work best for your symptoms.
             </p>
@@ -589,7 +600,7 @@ export default function Landing() {
               ))}
             </div>
             <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-              Pick your symptoms and StrainWise researches the strains patients
+              Pick your symptoms and StrainEase researches the strains patients
               report work best for them — then ranks the top matches so you
               can compare the finalists side by side.
             </p>
@@ -692,7 +703,7 @@ export default function Landing() {
               </em>
             </h2>
             <p className="mt-4 max-w-lg text-sm leading-7 text-muted-foreground sm:text-base">
-              StrainWise doesn&apos;t guess. Each strain profile aggregates
+              StrainEase doesn&apos;t guess. Each strain profile aggregates
               commonly reported information from the sources patients actually
               use, then our AI weighs them together for a practical,
               medical-focused verdict.
@@ -748,13 +759,40 @@ export default function Landing() {
         </div>
       </section>
 
+      <section id="faq" className="mx-auto w-full max-w-6xl px-6 pb-8">
+        <motion.div {...fadeUp(0)} className="mb-10 max-w-xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+            FAQ
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Questions patients usually ask
+          </h2>
+        </motion.div>
+        <dl className="grid gap-4 md:grid-cols-2">
+          {SITE_FAQS.map((item, i) => (
+            <motion.div
+              key={item.question}
+              {...fadeUp(i * 0.05)}
+              className="rounded-2xl border border-border/70 bg-card p-6"
+            >
+              <dt className="text-base font-semibold tracking-tight">
+                {item.question}
+              </dt>
+              <dd className="mt-2 text-sm leading-6 text-muted-foreground">
+                {item.answer}
+              </dd>
+            </motion.div>
+          ))}
+        </dl>
+      </section>
+
       <section className="mx-auto w-full max-w-4xl px-6 pb-16">
         <div className="flex items-start gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-6">
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-amber-600" />
           <div>
             <p className="text-sm font-semibold">Not medical advice</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              StrainWise is an information and comparison tool. Nothing here is
+              StrainEase is an information and comparison tool. Nothing here is
               a diagnosis, prescription, or treatment recommendation. Always
               consult a qualified healthcare provider before using cannabis for
               medical purposes — especially if you take other medication.
@@ -795,17 +833,75 @@ export default function Landing() {
       </section>
 
       <footer className="border-t border-border/60">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 px-6 py-10 sm:flex-row">
+        <div className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-12 sm:grid-cols-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Strains
+            </p>
+            <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-sm text-muted-foreground">
+              {CATALOG.map((strain) => (
+                <li key={strain.name}>
+                  <Link
+                    to={`/strain/${slugify(strain.name)}`}
+                    className="transition-colors hover:text-foreground"
+                  >
+                    {strain.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Terpenes
+            </p>
+            <ul className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
+              {Object.keys(TERPENE_PROFILES).map((name) => (
+                <li key={name}>
+                  <Link
+                    to={`/terpene/${terpeneSlug(name)}`}
+                    className="capitalize transition-colors hover:text-foreground"
+                  >
+                    {name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              StrainEase
+            </p>
+            <ul className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
+              <li>
+                <a href="#how-it-works" className="transition-colors hover:text-foreground">
+                  How it works
+                </a>
+              </li>
+              <li>
+                <a href="#faq" className="transition-colors hover:text-foreground">
+                  FAQ
+                </a>
+              </li>
+              <li>
+                <Link to={appHref} className="transition-colors hover:text-foreground">
+                  {isAuthenticated ? "Dashboard" : "Find strains"}
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 border-t border-border/60 px-6 py-8 sm:flex-row">
           <Link to="/" className="flex items-center gap-2.5">
             <img
               src={logo}
-              alt="StrainWise logo"
+              alt="StrainEase logo"
               width={28}
               height={28}
               className="rounded-lg"
             />
             <span className="text-sm font-semibold tracking-tight">
-              StrainWise
+              StrainEase
             </span>
           </Link>
           <p className="text-center text-xs text-muted-foreground">

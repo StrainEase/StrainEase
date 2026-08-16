@@ -1,0 +1,53 @@
+# StrainEase
+
+> StrainEase helps medical cannabis patients compare strains for their symptoms, aggregating research from Leafly, Weedmaps, Reddit, Google, and dispensary menus.
+
+StrainEase is a medical-cannabis research product for patients. It is not a dispensary, not a doctor, and not medical advice. Content summarizes commonly reported patient experience from public sources.
+
+## Site
+
+- [Home](https://strainease.ai/): Product overview, how matching works, and popular strains
+- [Full catalog for language models](https://strainease.ai/llms-full.txt): Structured strain and terpene notes
+- [Sitemap](https://strainease.ai/sitemap.xml)
+
+## Strain pages
+
+- [Blue Dream](https://strainease.ai/strain/blue-dream): Hybrid, THC 17–24%; reported for Chronic pain, Depression, Stress
+- [Granddaddy Purple](https://strainease.ai/strain/granddaddy-purple): Indica, THC 17–23%; reported for Insomnia, Chronic pain, Muscle spasm
+- [Sour Diesel](https://strainease.ai/strain/sour-diesel): Sativa, THC 19–24%; reported for ADHD, Stress, Depression
+- [Jack Herer](https://strainease.ai/strain/jack-herer): Sativa, THC 18–23%; reported for ADHD, Fatigue, Depression
+- [Gelato](https://strainease.ai/strain/gelato): Hybrid, THC 20–25%; reported for Stress, Anxiety, Depression
+- [Northern Lights](https://strainease.ai/strain/northern-lights): Indica, THC 16–21%; reported for Insomnia, Chronic pain, Stress
+- [OG Kush](https://strainease.ai/strain/og-kush): Hybrid, THC 19–26%; reported for Chronic pain, Stress, Nausea & appetite
+- [Green Crack](https://strainease.ai/strain/green-crack): Sativa, THC 15–25%; reported for ADHD, Fatigue, Stress
+- [Bubba Kush](https://strainease.ai/strain/bubba-kush): Indica, THC 14–22%; reported for Insomnia, Chronic pain, Muscle spasm
+- [Wedding Cake](https://strainease.ai/strain/wedding-cake): Hybrid, THC 20–25%; reported for Anxiety, Stress, Depression
+- [Durban Poison](https://strainease.ai/strain/durban-poison): Sativa, THC 15–25%; reported for ADHD, Fatigue, Depression
+- [Purple Punch](https://strainease.ai/strain/purple-punch): Indica, THC 18–20%; reported for Insomnia, Anxiety, Nausea & appetite
+- [Gorilla Glue](https://strainease.ai/strain/gorilla-glue): Hybrid, THC 20–28%; reported for Chronic pain, Stress, Insomnia
+- [Super Lemon Haze](https://strainease.ai/strain/super-lemon-haze): Sativa, THC 17–25%; reported for ADHD, Fatigue, Depression
+- [9 Pound Hammer](https://strainease.ai/strain/9-pound-hammer): Indica, THC 18–23%; reported for Insomnia, Chronic pain, Muscle spasm
+- [Girl Scout Cookies](https://strainease.ai/strain/girl-scout-cookies): Hybrid, THC 17–28%; reported for Chronic pain, Nausea & appetite, Stress
+- [Strawberry Cough](https://strainease.ai/strain/strawberry-cough): Sativa, THC 15–22%; reported for ADHD, Fatigue, Stress
+- [Hindu Kush](https://strainease.ai/strain/hindu-kush): Indica, THC 15–20%; reported for Chronic pain, Insomnia, Inflammation
+- [White Widow](https://strainease.ai/strain/white-widow): Hybrid, THC 18–25%; reported for Stress, Depression, Inflammation
+- [Pineapple Express](https://strainease.ai/strain/pineapple-express): Hybrid, THC 15–25%; reported for ADHD, Depression, Fatigue
+- [GMO Cookies](https://strainease.ai/strain/gmo-cookies): Indica, THC 20–28%; reported for Insomnia, Nausea & appetite, Chronic pain
+- [Super Silver Haze](https://strainease.ai/strain/super-silver-haze): Sativa, THC 16–23%; reported for ADHD, Fatigue, Depression
+- [Skywalker OG](https://strainease.ai/strain/skywalker-og): Indica, THC 18–26%; reported for Insomnia, Chronic pain, PTSD
+- [Tangie](https://strainease.ai/strain/tangie): Sativa, THC 17–22%; reported for ADHD, Fatigue, Depression
+
+## Terpene pages
+
+- [Myrcene](https://strainease.ai/terpene/myrcene): Earthy. Often linked with body heaviness and easier sleep.
+- [Limonene](https://strainease.ai/terpene/limonene): Citrus. Commonly described as mood-lifting and daytime-friendly.
+- [Caryophyllene](https://strainease.ai/terpene/caryophyllene): Peppery. Patients often mention it for stress and body tension.
+- [Pinene](https://strainease.ai/terpene/pinene): Pine. Associated with a clearer, more alert head.
+- [Linalool](https://strainease.ai/terpene/linalool): Floral. Frequently reported as calming.
+- [Terpinolene](https://strainease.ai/terpene/terpinolene): Herbal-citrus. Often a brighter, more stimulating profile.
+- [Humulene](https://strainease.ai/terpene/humulene): Hoppy. Sometimes noted as appetite-dampening.
+- [Ocimene](https://strainease.ai/terpene/ocimene): Sweet-herbal. Usually described as uplifting.
+
+## Optional
+
+- [Sign in](https://strainease.ai/auth): Account for saved strains and personalized comparisons (noindex)

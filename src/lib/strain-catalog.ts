@@ -1,6 +1,6 @@
-import { slugify } from "@/lib/saved-strains";
-import type { StrainProfile, StrainType } from "@/lib/strain-profile";
-import { matchesCondition } from "@/lib/strain-ui";
+import { slugify } from "./slug";
+import type { StrainProfile, StrainType } from "./strain-profile";
+import { matchesCondition } from "./strain-ui";
 
 type CatalogEntry = {
   name: string;

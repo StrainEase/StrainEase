@@ -1,6 +1,7 @@
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
+import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
@@ -8,8 +9,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { parseStrains } from "@/hooks/use-compare-selection";
 import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
+import {
+  strainDescription,
+  strainDisplayName,
+  strainJsonLd,
+} from "@/lib/seo";
+import { documentTitle } from "@/lib/site";
 import { searchStrain } from "@/lib/strain-api";
-import { applyCatalogPhotos } from "@/lib/strain-catalog";
+import { applyCatalogPhotos, CATALOG } from "@/lib/strain-catalog";
 import {
   dayNightLabel,
   dayNightScore,
@@ -34,16 +41,22 @@ export default function Strain() {
   );
   const [savedNames, setSavedNames] = useState<string[]>([]);
 
+  const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
+
   useEffect(() => {
     let cancelled = false;
     setStatus("loading");
-    const name = slug.replace(/-/g, " ");
+    const name = catalogHit?.name ?? slug.replace(/-/g, " ");
     void searchStrain(name)
       .then((found) => {
         if (cancelled) return;
         if (found) {
           const [filled] = applyCatalogPhotos([found]);
           setProfile(filled ?? found);
+          setStatus("ready");
+        } else if (catalogHit) {
+          const [filled] = applyCatalogPhotos([catalogHit]);
+          setProfile(filled ?? catalogHit);
           setStatus("ready");
         } else {
           const [filled] = applyCatalogPhotos([
@@ -54,18 +67,23 @@ export default function Strain() {
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          const [filled] = applyCatalogPhotos([
-            { name, inKnowledgeBase: false },
-          ]);
-          setProfile(filled ?? { name, inKnowledgeBase: false });
-          setStatus("missing");
+        if (cancelled) return;
+        if (catalogHit) {
+          const [filled] = applyCatalogPhotos([catalogHit]);
+          setProfile(filled ?? catalogHit);
+          setStatus("ready");
+          return;
         }
+        const [filled] = applyCatalogPhotos([
+          { name, inKnowledgeBase: false },
+        ]);
+        setProfile(filled ?? { name, inKnowledgeBase: false });
+        setStatus("missing");
       });
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, catalogHit]);
 
   useEffect(() => {
     if (!isAuthenticated || status !== "ready" || !profile) return;
@@ -107,20 +125,38 @@ export default function Strain() {
   }, [profile, compareSelection]);
   const compareAtCap = compareSelection.length >= 3;
 
+  const displayName = strainDisplayName(
+    status === "loading" ? null : profile,
+    slug,
+  );
+
   return (
     <main className="min-h-[100dvh] bg-background text-foreground">
+      <Seo
+        title={documentTitle(displayName)}
+        description={strainDescription(profile, displayName)}
+        path={`/strain/${slug}`}
+        image={profile?.imageUrl}
+        type="article"
+        noindex={status === "missing"}
+        jsonLd={
+          status === "ready" && profile
+            ? strainJsonLd(profile, slug)
+            : undefined
+        }
+      />
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <img
               src={logo}
-              alt="StrainWise logo"
+              alt="StrainEase logo"
               width={30}
               height={30}
               className="rounded-lg"
             />
             <span className="text-base font-semibold tracking-tight">
-              StrainWise
+              StrainEase
             </span>
           </Link>
           <Button
@@ -163,7 +199,7 @@ export default function Strain() {
             transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
             className="space-y-8"
           >
-            <StrainDetailCard strain={profile} />
+            <StrainDetailCard strain={profile} headingLevel="h1" />
 
             <div className="rounded-2xl border border-border/70 bg-card p-6">
               <div className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">

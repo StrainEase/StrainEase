@@ -12,7 +12,10 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { slugify } from "./slug";
 import type { StrainProfile, StrainType } from "./strain-profile";
+
+export { slugify };
 
 export type SavedNote = {
   id: string;
@@ -47,14 +50,6 @@ export const PUBLIC_NOTE_MAX = 1999;
 
 export function clipPublicNote(text: string): string {
   return text.trim().slice(0, PUBLIC_NOTE_MAX);
-}
-
-export function slugify(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 const savedColl = (uid: string) => collection(db!, "users", uid, "savedStrains");

@@ -3,6 +3,7 @@ import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useMedications } from "@/hooks/use-medications";
 import { AccountMenu } from "@/components/account/AccountMenu";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
+import { Seo } from "@/components/Seo";
 import {
   compareStrains as compareStrainsCall,
   popularStrains as popularStrainsCall,
@@ -43,6 +44,7 @@ import {
   compactPrefs,
   type ResearchPrefs,
 } from "@/lib/research-prefs";
+import { documentTitle } from "@/lib/site";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
@@ -299,19 +301,25 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen overflow-x-clip bg-background text-foreground">
+      <Seo
+        title={documentTitle("Compare strains")}
+        description="Find and compare cannabis strains for your symptoms. Sign in to save favorites and keep private notes."
+        path="/dashboard"
+        noindex
+      />
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
             <img
               src={logo}
-              alt="StrainWise logo"
+              alt="StrainEase logo"
               width={30}
               height={30}
               className="rounded-lg"
             />
             <span className="text-base font-semibold tracking-tight">
-              StrainWise
+              StrainEase
             </span>
           </div>
           <AccountMenu onOpenSettings={() => setSettingsOpen(true)} />

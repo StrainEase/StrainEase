@@ -45,11 +45,14 @@ export function StrainDetailCard({
   strain,
   badge,
   conditions = [],
+  headingLevel = "h3",
 }: {
   strain: StrainProfile;
   badge?: "best" | "runnerUp" | null;
   conditions?: string[];
+  headingLevel?: "h1" | "h3";
 }) {
+  const Heading = headingLevel;
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
 
   useEffect(() => {
@@ -92,14 +95,14 @@ export function StrainDetailCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold tracking-tight">
+              <Heading className="text-lg font-semibold tracking-tight">
                 <Link
                   to={`/strain/${slugify(strain.name)}`}
                   className="hover:text-primary"
                 >
                   {strain.name}
                 </Link>
-              </h3>
+              </Heading>
               {!strain.inKnowledgeBase && (
                 <Badge
                   variant="outline"

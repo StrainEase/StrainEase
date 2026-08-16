@@ -81,7 +81,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<GeocodeResult |
   url.searchParams.set("addressdetails", "1");
 
   const res = await fetch(url, {
-    headers: { "User-Agent": "StrainWise/1.0 (doctor-finder)", Accept: "application/json" },
+    headers: { "User-Agent": "StrainEase/1.0 (doctor-finder)", Accept: "application/json" },
   });
   if (!res.ok) {
     geocodeCache.set(key, { at: Date.now(), value: null });
