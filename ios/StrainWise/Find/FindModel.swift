@@ -64,6 +64,22 @@ final class FindModel {
         customAilment = ""
     }
 
+    func applyAilments(_ names: [String], replace: Bool = false) {
+        if replace { ailments = [] }
+        for raw in names {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, !isSelected(trimmed) else { continue }
+            ailments.append(trimmed)
+        }
+    }
+
+    func applyRestored(result: RecommendationResult, conditions: [String]) {
+        self.result = result
+        errorMessage = nil
+        searched = conditions
+        applyAilments(conditions, replace: true)
+    }
+
     func find(reliefSummary: String? = nil) async {
         guard canFind else { return }
         isRunning = true

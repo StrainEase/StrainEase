@@ -67,6 +67,7 @@ export function StrainFinder({
   inCompareSelection,
   compareAtCap,
   defaultMedications,
+  defaultAilments,
   restoreId,
 }: {
   onCompare: (names: string[], focus: string[]) => void;
@@ -82,6 +83,8 @@ export function StrainFinder({
   compareAtCap?: boolean;
   /** Pre-fill the medications field with the user's saved list. */
   defaultMedications?: string[];
+  /** Pre-fill symptom chips from the user's saved ailments. */
+  defaultAilments?: string[];
   restoreId?: string;
 }) {
   type RecommendResult = Awaited<ReturnType<typeof recommendStrainsCall>>;
@@ -94,6 +97,12 @@ export function StrainFinder({
   const [potency, setPotency] = useState<Potency>("");
   const [prefs, setPrefs] = useState<ResearchPrefs>({});
   const seededMedsRef = useRef(false);
+  const seededAilmentsRef = useRef(false);
+  const [result, setResult] = useState<RecommendResult | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   // Seed prefs.medications from the user's saved profile list on first mount.
   // Only happens once; later edits to the field win.
@@ -105,11 +114,14 @@ export function StrainFinder({
     );
     seededMedsRef.current = true;
   }, [defaultMedications]);
-  const [result, setResult] = useState<RecommendResult | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [stepIndex, setStepIndex] = useState(0);
-  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Seed symptom chips from Account saved ailments once, if Find is empty.
+  useEffect(() => {
+    if (seededAilmentsRef.current) return;
+    if (!defaultAilments || defaultAilments.length === 0) return;
+    setAilments((prev) => (prev.length > 0 ? prev : defaultAilments));
+    seededAilmentsRef.current = true;
+  }, [defaultAilments]);
 
   useEffect(() => {
     if (!restoreId) return;

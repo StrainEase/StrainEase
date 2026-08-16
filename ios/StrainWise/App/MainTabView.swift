@@ -83,4 +83,5 @@ struct MainTabView: View {
         .environment(SavedAilmentsStore.preview(["Insomnia"]))
         .environment(ReliefLogStore.preview([.sampleSleep]))
         .environment(CompareSelectionStore())
+        .environment(ResearchHistoryStore.preview())
 }

@@ -6,6 +6,8 @@ struct FindView: View {
     @Environment(ReliefLogStore.self) private var relief
     @Environment(\.strainAPI) private var api
     @Environment(CompareSelectionStore.self) private var compareStore
+    @Environment(AppNavigation.self) private var nav
+    @Environment(ResearchHistoryStore.self) private var history
 
     @State private var model: FindModel
     @State private var path: [StrainProfile] = []
@@ -115,6 +117,19 @@ struct FindView: View {
             }
             .navigationDestination(for: StrainProfile.self) { profile in
                 StrainDetailView(profile: profile)
+            }
+            .onAppear {
+                hydrateAilmentsIfNeeded()
+                applyPendingNavigation()
+            }
+            .onChange(of: savedAilments.ailments) { _, _ in
+                hydrateAilmentsIfNeeded()
+            }
+            .onChange(of: nav.pendingFindAilments) { _, _ in
+                applyPendingAilments()
+            }
+            .onChange(of: nav.pendingResearch) { _, _ in
+                applyPendingResearch()
             }
         }
         .tint(Palette.primary)
@@ -268,6 +283,41 @@ struct FindView: View {
         }
     }
 
+    /// Prefill symptom chips from the saved account list once. Subsequent
+    /// chip taps win — only runs when Find is still empty.
+    private func hydrateAilmentsIfNeeded() {
+        guard !didHydrateAilments else { return }
+        if model.ailments.isEmpty, !savedAilments.ailments.isEmpty {
+            model.applyAilments(savedAilments.ailments)
+        }
+        if !savedAilments.ailments.isEmpty || !model.ailments.isEmpty {
+            didHydrateAilments = true
+        }
+    }
+
+    private func applyPendingNavigation() {
+        applyPendingAilments()
+        applyPendingResearch()
+    }
+
+    private func applyPendingAilments() {
+        let next = nav.consumeFindAilments()
+        guard !next.isEmpty else { return }
+        didHydrateAilments = true
+        model.applyAilments(next, replace: true)
+    }
+
+    private func applyPendingResearch() {
+        guard let restored = nav.consumeResearch() else { return }
+        switch restored {
+        case let .find(result, conditions):
+            didHydrateAilments = true
+            model.applyRestored(result: result, conditions: conditions)
+        case let .compare(comparison):
+            compareStore.applyRestored(comparison)
+        }
+    }
+
     /// Prefill prefs.medications from the saved profile list once. Subsequent
     /// edits win — only runs when the field is still empty.
     private func hydrateMedicationsIfNeeded() {
@@ -381,6 +431,13 @@ struct FindView: View {
                         prefs: model.prefs,
                         reliefSummary: relief.summary.isEmpty ? nil : relief.summary
                     )
+                    if let comparison = compareStore.comparison {
+                        await history.remember(
+                            compare: comparison,
+                            names: compareStore.names,
+                            conditions: model.ailments
+                        )
+                    }
                 }
             }
             .disabled(!canRun)
@@ -416,7 +473,12 @@ struct FindView: View {
             isBusy: model.isRunning
         ) {
             focused = nil
-            Task { await model.find(reliefSummary: relief.summary.isEmpty ? nil : relief.summary) }
+            Task {
+                await model.find(reliefSummary: relief.summary.isEmpty ? nil : relief.summary)
+                if let result = model.result {
+                    await history.remember(find: result, conditions: model.searched)
+                }
+            }
         }
         .disabled(!model.canFind)
         .opacity(model.canFind || model.isRunning ? 1 : 0.55)
@@ -465,6 +527,8 @@ struct FindView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            RedditThreadsView(sources: result.redditSources ?? [])
 
             Button("Start over", action: model.reset)
                 .font(.system(size: 14, weight: .medium))
@@ -593,6 +657,7 @@ struct FindView: View {
         .environment(RecentlyViewedStore.preview())
         .environment(ReliefLogStore.preview([.sampleSleep]))
         .environment(CompareSelectionStore())
+        .environment(ResearchHistoryStore.preview())
 }
 
 #Preview("Results · Dark") {
@@ -607,6 +672,7 @@ struct FindView: View {
         .environment(RecentlyViewedStore.preview())
         .environment(ReliefLogStore.preview())
         .environment(CompareSelectionStore())
+        .environment(ResearchHistoryStore.preview())
         .preferredColorScheme(.dark)
 }
 

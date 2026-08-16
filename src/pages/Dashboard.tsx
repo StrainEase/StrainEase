@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
+import { useAilments } from "@/hooks/use-ailments";
 import { useMedications } from "@/hooks/use-medications";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
@@ -106,6 +107,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { summary: reliefSummary } = useReliefSummary();
   const { names: savedMedications } = useMedications();
+  const { names: savedAilments } = useAilments();
   const { rid } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -408,6 +410,7 @@ export default function Dashboard() {
             inCompareSelection={selection.isIn}
             compareAtCap={selection.atCap}
             defaultMedications={savedMedications}
+            defaultAilments={savedAilments}
             restoreId={mode === "find" ? rid : undefined}
           />
         </div>

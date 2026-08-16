@@ -83,4 +83,10 @@ final class CompareSelectionStore {
             compareError = error.localizedDescription
         }
     }
+
+    func applyRestored(_ restored: StrainComparison) {
+        comparison = restored
+        compareError = nil
+        setNames(restored.strains.map(\.name))
+    }
 }

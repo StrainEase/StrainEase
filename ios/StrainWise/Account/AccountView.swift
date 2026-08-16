@@ -16,11 +16,31 @@ struct AccountView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         header
                         displayName
-                        SavedAilmentsCard(onFind: { _ in
-                            nav.showAccount = false
-                            nav.tab = .find
+                        SavedAilmentsCard(onFind: { ailments in
+                            nav.openFind(ailments: ailments)
                         })
                         SavedMedicationsCard()
+                        NavigationLink {
+                            ResearchHistoryView()
+                        } label: {
+                            SWCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Past research")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Palette.foreground)
+                                        Text("Reopen a find or comparison")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Palette.mutedForeground)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Palette.mutedForeground)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
                         NavigationLink {
                             ReliefHistoryView()
                         } label: {
@@ -167,4 +187,5 @@ struct AccountView: View {
         .environment(SavedAilmentsStore.preview(["Anxiety"]))
         .environment(SavedMedicationsStore.preview(["Lexapro", "Ibuprofen"]))
         .environment(ReliefLogStore.preview([.sampleSleep]))
+        .environment(ResearchHistoryStore.preview())
 }

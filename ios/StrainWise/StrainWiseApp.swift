@@ -9,6 +9,7 @@ struct StrainEaseApp: App {
     @State private var medications = SavedMedicationsStore()
     @State private var relief = ReliefLogStore()
     @State private var recents = RecentlyViewedStore()
+    @State private var history = ResearchHistoryStore()
 
     init() {
         FirebaseBootstrap.configure()
@@ -23,6 +24,7 @@ struct StrainEaseApp: App {
                 .environment(medications)
                 .environment(relief)
                 .environment(recents)
+                .environment(history)
                 .tint(Palette.primary)
                 .preferredColorScheme(nil)
                 .onAppear { session.start() }
@@ -32,11 +34,13 @@ struct StrainEaseApp: App {
                         ailments.listen(uid: uid)
                         medications.listen(uid: uid)
                         relief.listen(uid: uid)
+                        history.listen(uid: uid)
                     } else {
                         saved.reset()
                         ailments.reset()
                         medications.reset()
                         relief.reset()
+                        history.reset()
                     }
                 }
                 .onOpenURL { url in

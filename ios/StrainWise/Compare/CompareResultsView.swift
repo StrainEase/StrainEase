@@ -69,6 +69,7 @@ struct CompareResultsView: View {
                 }
                 .buttonStyle(.plain)
             }
+            RedditThreadsView(sources: analysis.redditSources ?? [])
         }
     }
 
