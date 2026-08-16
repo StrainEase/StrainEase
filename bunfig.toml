@@ -1,0 +1,4 @@
+[test]
+# Preload happy-dom so React component tests have a window/document
+# before any test file runs. Pure-logic tests (no DOM) are unaffected.
+preload = ["./happydom.ts"]

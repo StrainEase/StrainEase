@@ -18,22 +18,28 @@ final class FindModel {
     var isRunning = false
     var step: ResearchStep = .leafly
     var errorMessage: String?
-    var compareNames: [String] = []
-    var comparison: StrainComparison?
-    var isComparing = false
     var lookupQuery = ""
     var lookupError: String?
     var isLookingUp = false
 
     @ObservationIgnored private let api: any StrainServicing
+    @ObservationIgnored private weak var compareStore: CompareSelectionStore?
     @ObservationIgnored private var stepTask: Task<Void, Never>?
 
-    init(api: any StrainServicing = LiveStrainAPI()) {
+    /// `compareStore` is the shared selection + comparison result store
+    /// owned by `MainTabView`. Pass it here so the Find tab can read and
+    /// mutate the same selection as the floating tray on every other tab.
+    /// Optional for preview helpers that don't need a real store.
+    init(api: any StrainServicing = LiveStrainAPI(), compareStore: CompareSelectionStore? = nil) {
         self.api = api
+        self.compareStore = compareStore
     }
 
     var canFind: Bool { !ailments.isEmpty && !isRunning }
-    var canCompare: Bool { compareNames.count >= 2 && compareNames.count <= 3 && !isComparing }
+
+    var canCompare: Bool {
+        compareStore?.canRunCompare == true && compareStore?.isComparing != true
+    }
 
     var canLookup: Bool {
         !lookupQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLookingUp
@@ -98,69 +104,52 @@ final class FindModel {
         }
     }
 
-    func addToCompare(_ name: String) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        if !compareNames.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            if compareNames.count < 3 { compareNames.append(trimmed) }
-        }
+    // MARK: - Compare selection (delegates to CompareSelectionStore)
+
+    @discardableResult
+    func addToCompare(_ name: String) -> Bool {
+        compareStore?.add(name) ?? false
     }
 
     func removeFromCompare(_ name: String) {
-        compareNames.removeAll { $0.caseInsensitiveCompare(name) == .orderedSame }
+        compareStore?.remove(name)
     }
 
-    /// Toggle a strain in the compare selection — used by the recommendation
-    /// card's "Add to compare" button so a research session doesn't auto-run
-    /// a comparison.
-    func toggleCompare(_ name: String) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        if compareNames.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            removeFromCompare(trimmed)
-        } else if compareNames.count < 3 {
-            compareNames.append(trimmed)
-        }
+    @discardableResult
+    func toggleCompare(_ name: String) -> Bool {
+        compareStore?.toggle(name) ?? false
     }
 
     func isInCompare(_ name: String) -> Bool {
-        compareNames.contains { $0.caseInsensitiveCompare(name) == .orderedSame }
+        compareStore?.isIn(name) ?? false
     }
 
-    /// True when adding a new strain would exceed the 3-strain cap.
-    var compareAtCap: Bool { compareNames.count >= 3 }
+    var compareAtCap: Bool { compareStore?.atCap ?? false }
 
     func compareSelected(reliefSummary: String? = nil) async {
-        guard canCompare else { return }
-        isComparing = true
-        errorMessage = nil
-        defer { isComparing = false }
-        do {
-            comparison = try await api.compare(
-                strainNames: compareNames,
-                conditions: ailments,
-                prefs: prefs,
-                reliefSummary: reliefSummary
-            )
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        guard let compareStore, canCompare else { return }
+        await compareStore.runCompare(
+            api: api,
+            conditions: ailments,
+            prefs: prefs,
+            reliefSummary: reliefSummary
+        )
     }
-
-
-
 
     func reset() {
         result = nil
-        comparison = nil
         errorMessage = nil
         ailments = []
-        compareNames = []
         searched = []
         potency = .any
         prefs = ResearchPrefs()
         lookupQuery = ""
         lookupError = nil
+        // Compare-side cleanup. We don't touch `isComparing` or
+        // `compareError` mid-run — those clear themselves when
+        // `runCompare` finishes.
+        compareStore?.clear()
+        compareStore?.comparison = nil
     }
 
     private func startSteps() {

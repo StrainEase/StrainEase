@@ -1,9 +1,11 @@
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { ShopLinks } from "@/components/strain/ShopLinks";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
+import { parseStrains } from "@/hooks/use-compare-selection";
 import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import { searchStrain } from "@/lib/strain-api";
@@ -19,12 +21,13 @@ import logo from "@/assets/logo.svg";
 import { ArrowLeft, GitCompareArrows, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 export default function Strain() {
   const { slug = "" } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<StrainProfile | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "missing">(
     "loading",
@@ -88,6 +91,21 @@ export default function Strain() {
     const target = profile.name.trim().toLowerCase();
     return savedNames.some((n) => n.trim().toLowerCase() === target);
   }, [profile, savedNames]);
+
+  // Reflect an in-flight compare selection that may have been passed
+  // into this page via ?strains= (e.g. from a previous Strain click).
+  // The Dashboard owns the source of truth; this is just a UI hint so
+  // the toggle reads "In compare" while the strain is already queued.
+  const compareSelection = useMemo(
+    () => parseStrains(searchParams.get("strains")),
+    [searchParams],
+  );
+  const isInCompareSelection = useMemo(() => {
+    if (!profile) return false;
+    const target = profile.name.toLowerCase();
+    return compareSelection.some((n) => n.toLowerCase() === target);
+  }, [profile, compareSelection]);
+  const compareAtCap = compareSelection.length >= 3;
 
   return (
     <main className="min-h-[100dvh] bg-background text-foreground">
@@ -212,6 +230,22 @@ export default function Strain() {
             )}
 
             <ShopLinks strain={profile} />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <CompareToggleButton
+                isInSelection={isInCompareSelection}
+                isFull={compareAtCap}
+                onToggle={() =>
+                  navigate(
+                    `/dashboard?strains=${encodeURIComponent(profile.name)}`,
+                  )
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Add this strain to a side-by-side comparison. Selection
+                survives sign-in, so you can browse a few strains first.
+              </p>
+            </div>
 
             {isAuthenticated && others.length > 0 && (
               <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
