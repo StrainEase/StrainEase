@@ -12,6 +12,7 @@ protocol StrainServicing {
 
     func search(name: String) async throws -> StrainProfile?
     func popular() async throws -> [StrainProfile]
+    func findDoctors(query: DoctorQuery) async throws -> DoctorResult
 }
 
 enum StrainAPIError: LocalizedError {
@@ -70,6 +71,17 @@ struct LiveStrainAPI: StrainServicing {
 
     func popular() async throws -> [StrainProfile] {
         try await call("popularStrains", data: [:])
+    }
+
+    func findDoctors(query: DoctorQuery) async throws -> DoctorResult {
+        var payload: [String: Any] = [:]
+        if let lat = query.lat { payload["lat"] = lat }
+        if let lon = query.lon { payload["lon"] = lon }
+        if let city = query.city, !city.isEmpty { payload["city"] = city }
+        if let state = query.state, !state.isEmpty { payload["state"] = state }
+        if let zip = query.zip, !zip.isEmpty { payload["zip"] = zip }
+        if let radius = query.radiusMiles { payload["radiusMiles"] = radius }
+        return try await call("findDoctors", data: payload)
     }
 
     private func call<T: Decodable>(_ name: String, data: [String: Any]) async throws -> T {
@@ -141,6 +153,10 @@ struct PreviewStrainAPI: StrainServicing {
         StrainCatalog.all
     }
 
+    func findDoctors(query: DoctorQuery) async throws -> DoctorResult {
+        DoctorResult(doctors: [.sample], resolvedLocation: nil, source: "preview")
+    }
+
     func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison {
         StrainComparison.sample
     }
@@ -161,6 +177,11 @@ struct DelayedPreviewAPI: StrainServicing {
 
     func popular() async throws -> [StrainProfile] {
         StrainCatalog.all
+    }
+
+    func findDoctors(query: DoctorQuery) async throws -> DoctorResult {
+        try await Task.sleep(for: .seconds(60))
+        return DoctorResult(doctors: [.sample], resolvedLocation: nil, source: "preview")
     }
 
     func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison {

@@ -449,7 +449,7 @@ final class StrainWiseTests: XCTestCase {
     }
 
     func testPrimaryTabsAreHomeFindBrowse() {
-        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse"])
+        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse", "Doctors"])
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("saved"))
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
     }
@@ -480,5 +480,66 @@ final class StrainWiseTests: XCTestCase {
         calendar.date(
             from: DateComponents(year: year, month: month, day: day, hour: hour)
         )!
+    }
+
+    // MARK: - Doctor model + query helpers
+
+    func testDoctorAddressLineSkipsEmptyParts() {
+        let doctor = Doctor(
+            id: "1",
+            name: "Doc",
+            slug: "doc",
+            url: "https://example.com/doc",
+            street: "",
+            city: "Denver",
+            state: "CO",
+            zip: "80202",
+            lat: nil,
+            lon: nil,
+            distanceMi: nil,
+            rating: nil,
+            reviewCount: nil,
+            reviewSnippet: nil,
+            logoUrl: nil,
+            timezone: nil
+        )
+        XCTAssertEqual(doctor.addressLine, "Denver, CO, 80202")
+    }
+
+    func testDoctorMapsURLUsesCoordinatesWhenAvailable() {
+        let doctor = Doctor.sample
+        let url = try? doctor.mapsURL!.absoluteString
+        XCTAssertNotNil(url)
+        XCTAssertTrue(url?.contains("ll=39.758") ?? false)
+    }
+
+    func testDoctorMapsURLFallsBackToAddressSearch() {
+        var doctor = Doctor.sample
+        doctor.lat = nil
+        doctor.lon = nil
+        let url = try? doctor.mapsURL!.absoluteString
+        XCTAssertNotNil(url)
+        XCTAssertTrue(url?.contains("q=Doc") ?? false)
+    }
+
+    func testDoctorQueryIsEmpty() {
+        XCTAssertTrue(DoctorQuery().isEmpty)
+        XCTAssertFalse(DoctorQuery(city: "Denver", state: "CO").isEmpty)
+        XCTAssertFalse(DoctorQuery(lat: 1, lon: 1).isEmpty)
+    }
+
+    // MARK: - Terpene curated copy
+
+    func testStrainMeaningTerpeneUsesCuratedSummary() {
+        // Mirrors the web curated profile so the strain card shows the
+        // same copy as /terpene/:slug on web.
+        XCTAssertEqual(
+            StrainMeaning.terpeneMeaning("Myrcene"),
+            "Earthy. Often linked with body heaviness and easier sleep."
+        )
+        XCTAssertEqual(
+            StrainMeaning.terpeneMeaning("Limonene"),
+            "Citrus. Commonly described as mood-lifting and daytime-friendly."
+        )
     }
 }

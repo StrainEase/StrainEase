@@ -35,6 +35,8 @@
 	<string>UIStatusBarStyleDefault</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>StrainWise uses your location to find medical-marijuana doctors near you.</string>
 	<key>GIDClientID</key>
 	<string>89734321536-s3njeabohn98bd8s0rqh05diur2mk9h2.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
