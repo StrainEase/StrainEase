@@ -6,6 +6,8 @@ struct TriedNotesView: View {
     @Environment(AuthSession.self) private var session
     @State private var draft = ""
     @State private var draftPublic = false
+    @State private var savedAt: Date?
+    @State private var savedTick = 0
 
     private var notes: [SavedNote] { saved.notes(for: profile.slug) }
     private var authorName: String { session.user?.name ?? "A patient" }
@@ -108,6 +110,31 @@ struct TriedNotesView: View {
                 }
             }
         }
+        .overlay(alignment: .top) {
+            if savedAt != nil {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Palette.primary)
+                    Text("Note saved")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.foreground)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Palette.card, in: Capsule())
+                .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
+                .padding(.top, 10)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .accessibilityLabel("Note saved")
+            }
+        }
+        .animation(.snappy(duration: 0.28), value: savedAt)
+        .sensoryFeedback(.success, trigger: savedTick)
+        .task(id: savedAt) {
+            guard savedAt != nil else { return }
+            try? await Task.sleep(for: .milliseconds(1800))
+            if savedAt != nil { savedAt = nil }
+        }
     }
 
     private func submit() async {
@@ -116,6 +143,11 @@ struct TriedNotesView: View {
         draft = ""
         draftPublic = false
         await saved.addNote(to: profile, text: text, isPublic: share, authorName: authorName)
+        // addNote only sets errorMessage on failure — treat a clean run as saved.
+        if saved.errorMessage == nil {
+            savedAt = Date()
+            savedTick += 1
+        }
     }
 
     private static func formatted(_ millis: Int) -> String {
