@@ -23,6 +23,7 @@ struct DirectoryView: View {
                         hero
                         searchField
                         filterRow("Type") { typeChips }
+                        filterRow("Reported uses") { ailmentChips }
                         filterRow("THC") { thcChips }
                         filterRow("Effects") { effectChips }
                         if model.filtersActive {
@@ -106,6 +107,19 @@ struct DirectoryView: View {
             ForEach(DirectoryFilter.ThcBand.allCases) { band in
                 SWChip(title: band.label, isOn: model.thcBand == band) {
                     model.thcBand = band
+                }
+            }
+        }
+    }
+
+    private var ailmentChips: some View {
+        FlowLayout(spacing: 8) {
+            ForEach(Conditions.catalog, id: \.self) { condition in
+                SWChip(
+                    title: condition,
+                    isOn: model.ailmentFilter.contains(condition)
+                ) {
+                    model.toggleAilment(condition)
                 }
             }
         }

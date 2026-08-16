@@ -542,4 +542,41 @@ final class StrainWiseTests: XCTestCase {
             "Citrus. Commonly described as mood-lifting and daytime-friendly."
         )
     }
+
+    // MARK: - Directory ailment filter
+
+    func testDirectoryAilmentMatchesByCaseInsensitiveName() {
+        let profile = StrainProfile(
+            name: "Test",
+            inKnowledgeBase: true,
+            medicalUses: ["Insomnia", "Stress"]
+        )
+        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "Insomnia", uses: profile.medicalUses ?? []))
+        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "insomnia", uses: profile.medicalUses ?? []))
+        XCTAssertFalse(DirectoryFilter.matchesCondition(ailment: "Chronic pain", uses: profile.medicalUses ?? []))
+    }
+
+    func testDirectoryAilmentAliasOCDToAnxiety() {
+        let profile = StrainProfile(
+            name: "Test",
+            inKnowledgeBase: true,
+            medicalUses: ["Anxiety"]
+        )
+        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "OCD", uses: profile.medicalUses ?? []))
+    }
+
+    func testDirectoryAilmentFilterAndCombines() {
+        let insomnia = StrainProfile(name: "A", inKnowledgeBase: true, medicalUses: ["Insomnia"])
+        let insomniaPain = StrainProfile(name: "B", inKnowledgeBase: true, medicalUses: ["Insomnia", "Chronic pain"])
+        let profiles = [insomnia, insomniaPain]
+        let kept = DirectoryFilter.apply(
+            to: profiles,
+            query: "",
+            type: .all,
+            thc: .any,
+            effectIDs: [],
+            ailments: ["Insomnia", "Chronic pain"]
+        )
+        XCTAssertEqual(kept.map(\.name), ["B"])
+    }
 }

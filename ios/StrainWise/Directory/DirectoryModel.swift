@@ -10,6 +10,7 @@ final class DirectoryModel {
     var typeFilter: DirectoryFilter.TypeFilter = .all
     var thcBand: DirectoryFilter.ThcBand = .any
     var effectIDs: [String] = []
+    var ailmentFilter: [String] = []
 
     @ObservationIgnored private let api: any StrainServicing
 
@@ -21,6 +22,7 @@ final class DirectoryModel {
         typeFilter != .all
             || thcBand != .any
             || !effectIDs.isEmpty
+            || !ailmentFilter.isEmpty
             || !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
@@ -30,7 +32,8 @@ final class DirectoryModel {
             query: query,
             type: typeFilter,
             thc: thcBand,
-            effectIDs: effectIDs
+            effectIDs: effectIDs,
+            ailments: ailmentFilter,
         )
     }
 
@@ -42,11 +45,20 @@ final class DirectoryModel {
         }
     }
 
+    func toggleAilment(_ name: String) {
+        if let index = ailmentFilter.firstIndex(of: name) {
+            ailmentFilter.remove(at: index)
+        } else {
+            ailmentFilter.append(name)
+        }
+    }
+
     func resetFilters() {
         query = ""
         typeFilter = .all
         thcBand = .any
         effectIDs = []
+        ailmentFilter = []
     }
 
     func load() async {
