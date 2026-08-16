@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SavedStrainsView: View {
     @Environment(SavedStrainsStore.self) private var saved
+    @Environment(\.dismiss) private var dismiss
+    var showsClose = false
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -34,12 +36,20 @@ struct SavedStrainsView: View {
                 }
             }
         }
-        .navigationTitle("Saved")
+        .navigationTitle("Favorites")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            if showsClose {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
         .navigationDestination(for: StrainProfile.self) { profile in
             StrainDetailView(profile: profile)
         }
+        .accessibilityIdentifier("saved.root")
     }
 }
 

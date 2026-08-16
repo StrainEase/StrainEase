@@ -65,15 +65,6 @@ struct AccountView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        SavedStrainsView()
-                    } label: {
-                        Image(systemName: "heart")
-                            .foregroundStyle(Palette.primary)
-                    }
-                    .accessibilityLabel("Saved strains")
-                }
             }
             .confirmationDialog("Sign out of StrainWise?", isPresented: $showSignOut, titleVisibility: .visible) {
                 Button("Sign out", role: .destructive) { session.signOut() }

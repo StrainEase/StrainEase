@@ -15,6 +15,12 @@ struct MainTabView: View {
                 AccountView()
                     .environment(nav)
             }
+            .sheet(isPresented: $nav.showSaved) {
+                NavigationStack {
+                    SavedStrainsView(showsClose: true)
+                }
+                .tint(Palette.primary)
+            }
     }
 
     @ViewBuilder

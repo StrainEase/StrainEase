@@ -435,6 +435,16 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
     }
 
+    @MainActor
+    func testHeaderFavoritesOpensSavedNotBrowse() {
+        let nav = AppNavigation()
+        XCTAssertFalse(nav.showSaved)
+        XCTAssertEqual(nav.tab, .home)
+        nav.openSaved()
+        XCTAssertTrue(nav.showSaved)
+        XCTAssertEqual(nav.tab, .home)
+    }
+
     private static var fixedCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!

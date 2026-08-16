@@ -27,9 +27,10 @@ enum AppTab: String, Hashable, CaseIterable {
 final class AppNavigation {
     var tab: AppTab = .home
     var showAccount = false
+    var showSaved = false
 
-    func openLibrary() {
-        tab = .browse
+    func openSaved() {
+        showSaved = true
     }
 
     func openProfile() {
@@ -50,30 +51,22 @@ private struct AppChromeModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button(action: nav.openLibrary) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "books.vertical")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Library")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundStyle(nav.tab == .browse ? Palette.primary : Palette.mutedForeground)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Palette.card,
-                        in: Capsule()
-                    )
-                    .overlay(
-                        Capsule().strokeBorder(
-                            nav.tab == .browse ? Palette.primary.opacity(0.4) : Palette.border,
-                            lineWidth: 1
+                Button(action: nav.openSaved) {
+                    Image(systemName: "heart")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(nav.showSaved ? Palette.primary : Palette.mutedForeground)
+                        .frame(width: 32, height: 32)
+                        .background(Palette.card, in: Circle())
+                        .overlay(
+                            Circle().strokeBorder(
+                                nav.showSaved ? Palette.primary.opacity(0.4) : Palette.border,
+                                lineWidth: 1
+                            )
                         )
-                    )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Open strain library")
-                .accessibilityAddTraits(nav.tab == .browse ? .isSelected : [])
+                .accessibilityLabel("Favorites")
+                .accessibilityHint("Opens saved strains")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: nav.openProfile) {
