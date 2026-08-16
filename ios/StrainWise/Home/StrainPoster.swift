@@ -4,6 +4,8 @@ struct StrainPoster: View {
     let profile: StrainProfile
     var compact = false
     var photoHeight: CGFloat? = nil
+    /// Private notes on this saved strain. Home rails leave this at 0.
+    var noteCount = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 6 : 8) {
@@ -14,13 +16,21 @@ struct StrainPoster: View {
                 cornerRadius: 16
             )
             TypeBadge(type: profile.type)
-            Text(profile.name)
-                .font(.system(size: compact ? 13 : 15, weight: .semibold, design: .serif))
-                .foregroundStyle(Palette.foreground)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: compact ? 32 : 38, alignment: .top)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(profile.name)
+                    .font(.system(size: compact ? 13 : 15, weight: .semibold, design: .serif))
+                    .foregroundStyle(Palette.foreground)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                if noteCount > 0 {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: compact ? 11 : 13, weight: .semibold))
+                        .foregroundStyle(Palette.primary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: compact ? 32 : 38, alignment: .top)
             if let thc = profile.thcRange, !thc.isEmpty {
                 Text("THC \(thc)")
                     .font(.system(size: 11, weight: .medium))
@@ -29,8 +39,14 @@ struct StrainPoster: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(profile.name)
+        .accessibilityLabel(accessibilityName)
         .accessibilityHint(profile.subtitle)
+    }
+
+    private var accessibilityName: String {
+        guard noteCount > 0 else { return profile.name }
+        let noun = noteCount == 1 ? "note" : "notes"
+        return "\(profile.name), \(noteCount) \(noun)"
     }
 }
 

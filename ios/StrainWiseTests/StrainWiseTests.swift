@@ -57,6 +57,19 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertFalse(store.isSaved("granddaddy-purple"))
     }
 
+    func testSavedStrainReportsNotesForFavoritesBadge() {
+        let bare = SavedStrainItem(profile: .sampleGDP)
+        XCTAssertFalse(bare.hasNotes)
+        XCTAssertEqual(bare.notes.count, 0)
+
+        let withNote = SavedStrainItem(
+            profile: .sampleGDP,
+            notes: [SavedNote(id: "n1", text: "Slept through", isPublic: false, createdAt: 1)]
+        )
+        XCTAssertTrue(withNote.hasNotes)
+        XCTAssertEqual(withNote.notes.count, 1)
+    }
+
     @MainActor
     func testSavedStrainDocumentMatchesWebShape() {
         let doc = SavedStrainsStore.document(for: .sampleGDP)
