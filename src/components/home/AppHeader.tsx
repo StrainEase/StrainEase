@@ -1,9 +1,11 @@
-import { Button } from "@/components/ui/button";
+import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
-import { BookOpen, Home, LogOut, Search } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { BookOpen, Home, Search } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router";
 
 export type AppNavId = "home" | "find" | "directory";
 
@@ -19,25 +21,29 @@ const NAV: { id: AppNavId; to: string; label: string; icon: typeof Home }[] = [
 ];
 
 export function AppHeader({ active }: { active?: AppNavId }) {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-6">
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link
+          to="/"
+          aria-label="StrainWise home"
+          className="flex items-center gap-2.5 sm:hidden"
+        >
           <img
             src={logo}
-            alt="StrainWise logo"
+            alt=""
             width={30}
             height={30}
             className="rounded-lg"
           />
-          <span className="text-base font-semibold tracking-tight">
-            StrainWise
-          </span>
         </Link>
-        <nav className="hidden items-center gap-1 sm:flex">
+        <nav
+          className="hidden items-center gap-1 sm:flex"
+          aria-label="App"
+        >
           {NAV.map((item) => (
             <Link
               key={item.id}
@@ -54,24 +60,21 @@ export function AppHeader({ active }: { active?: AppNavId }) {
           ))}
         </nav>
         <div className="flex items-center gap-3">
-          {user?.name && (
-            <span className="hidden text-sm text-muted-foreground md:block">
-              {user.name}
-            </span>
+          {user ? (
+            <ProfileMenu onOpenSettings={() => setSettingsOpen(true)} />
+          ) : (
+            <Link
+              to="/auth"
+              className="rounded-full border border-border/70 px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              Sign in
+            </Link>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="cursor-pointer gap-2"
-            onClick={() => {
-              void signOut().then(() => navigate("/"));
-            }}
-          >
-            <LogOut className="size-4" />
-            Sign out
-          </Button>
         </div>
+        <AccountSettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+        />
       </div>
     </header>
   );
