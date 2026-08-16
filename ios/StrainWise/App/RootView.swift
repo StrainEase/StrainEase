@@ -28,6 +28,7 @@ struct RootView: View {
         .environment(AuthSession.previewSignedOut)
         .environment(SavedStrainsStore.preview())
         .environment(RecentlyViewedStore.preview())
+        .environment(ReliefLogStore.preview())
 }
 
 #Preview("Signed in") {
@@ -35,4 +36,5 @@ struct RootView: View {
         .environment(AuthSession.previewSignedIn)
         .environment(SavedStrainsStore.preview())
         .environment(RecentlyViewedStore.preview([.sampleGDP]))
+        .environment(ReliefLogStore.preview())
 }

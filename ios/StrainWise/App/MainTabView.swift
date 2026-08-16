@@ -42,4 +42,7 @@ struct MainTabView: View {
         .environment(AuthSession.previewSignedIn)
         .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
         .environment(RecentlyViewedStore.preview([.sampleGDP]))
+        .environment(SavedAilmentsStore.preview(["Insomnia"]))
+        .environment(ReliefLogStore.preview([.sampleSleep]))
+
 }

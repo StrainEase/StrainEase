@@ -5,7 +5,9 @@ struct StrainDetailView: View {
     @State private var profile: StrainProfile
     @State private var isHydrating = false
     @Environment(SavedStrainsStore.self) private var saved
+    @Environment(SavedAilmentsStore.self) private var ailments
     @Environment(RecentlyViewedStore.self) private var recents
+    @Environment(ReliefLogStore.self) private var relief
 
     init(profile: StrainProfile) {
         _profile = State(initialValue: profile)
@@ -41,6 +43,11 @@ struct StrainDetailView: View {
                     if let sides = profile.sideEffects, !sides.isEmpty {
                         chipSection("Watch for", items: sides)
                     }
+                    TriedNotesView(profile: profile)
+                    ReliefLogForm(strainName: profile.name, conditions: ailments.ailments)
+                    ReliefHistoryList(logs: relief.logs(for: profile.name))
+                    SharedNotesView(strainKey: profile.slug)
+
                     CommunityVoicesSection(profile: profile, isHydrating: isHydrating)
                     if !profile.inKnowledgeBase && !isHydrating {
                         missing
@@ -78,7 +85,16 @@ struct StrainDetailView: View {
         isHydrating = profile.isPartial
         defer { isHydrating = false }
         do {
-            guard let full = try await api.search(name: profile.name) else { return }
+            guard var full = try await api.search(name: profile.name) else { return }
+            // Backend often omits imageUrl. Keep the local nug shot, then
+            // fill from the catalog so every Home rail (not just recents)
+            // still shows a photo after hydrate.
+            if (full.imageUrl?.isEmpty ?? true),
+               let local = profile.imageUrl,
+               !local.isEmpty {
+                full.imageUrl = local
+            }
+            full = StrainCatalog.applyingCatalogPhoto(full)
             profile = full
             recents.record(full)
         } catch {
@@ -346,7 +362,10 @@ private struct LeaflyRatingCard: View {
     }
     .environment(\.strainAPI, PreviewStrainAPI())
     .environment(SavedStrainsStore.preview())
+    .environment(SavedAilmentsStore.preview(["Insomnia"]))
     .environment(RecentlyViewedStore.preview())
+    .environment(ReliefLogStore.preview([.sampleSleep]))
+    .environment(AuthSession.previewSignedIn)
 }
 
 #Preview("Liked · Dark") {
@@ -355,6 +374,9 @@ private struct LeaflyRatingCard: View {
     }
     .environment(\.strainAPI, PreviewStrainAPI())
     .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
+    .environment(SavedAilmentsStore.preview())
     .environment(RecentlyViewedStore.preview())
+    .environment(ReliefLogStore.preview())
+    .environment(AuthSession.previewSignedIn)
     .preferredColorScheme(.dark)
 }

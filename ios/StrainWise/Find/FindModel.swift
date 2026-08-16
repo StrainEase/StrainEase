@@ -18,6 +18,9 @@ final class FindModel {
     var isRunning = false
     var step: ResearchStep = .leafly
     var errorMessage: String?
+    var compareNames: [String] = []
+    var comparison: StrainComparison?
+    var isComparing = false
     var lookupQuery = ""
     var lookupError: String?
     var isLookingUp = false
@@ -30,6 +33,7 @@ final class FindModel {
     }
 
     var canFind: Bool { !ailments.isEmpty && !isRunning }
+    var canCompare: Bool { compareNames.count >= 2 && compareNames.count <= 3 && !isComparing }
 
     var canLookup: Bool {
         !lookupQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLookingUp
@@ -54,7 +58,7 @@ final class FindModel {
         customAilment = ""
     }
 
-    func find() async {
+    func find(reliefSummary: String? = nil) async {
         guard canFind else { return }
         isRunning = true
         errorMessage = nil
@@ -68,7 +72,8 @@ final class FindModel {
             result = try await api.recommend(
                 conditions: ailments,
                 potency: potency,
-                prefs: prefs
+                prefs: prefs,
+                reliefSummary: reliefSummary
             )
         } catch {
             errorMessage = error.localizedDescription
@@ -93,10 +98,64 @@ final class FindModel {
         }
     }
 
+    func addToCompare(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if !compareNames.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            if compareNames.count < 3 { compareNames.append(trimmed) }
+        }
+    }
+
+    func removeFromCompare(_ name: String) {
+        compareNames.removeAll { $0.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
+    /// Toggle a strain in the compare selection — used by the recommendation
+    /// card's "Add to compare" button so a research session doesn't auto-run
+    /// a comparison.
+    func toggleCompare(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if compareNames.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            removeFromCompare(trimmed)
+        } else if compareNames.count < 3 {
+            compareNames.append(trimmed)
+        }
+    }
+
+    func isInCompare(_ name: String) -> Bool {
+        compareNames.contains { $0.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
+    /// True when adding a new strain would exceed the 3-strain cap.
+    var compareAtCap: Bool { compareNames.count >= 3 }
+
+    func compareSelected(reliefSummary: String? = nil) async {
+        guard canCompare else { return }
+        isComparing = true
+        errorMessage = nil
+        defer { isComparing = false }
+        do {
+            comparison = try await api.compare(
+                strainNames: compareNames,
+                conditions: ailments,
+                prefs: prefs,
+                reliefSummary: reliefSummary
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+
+
+
     func reset() {
         result = nil
+        comparison = nil
         errorMessage = nil
         ailments = []
+        compareNames = []
         searched = []
         potency = .any
         prefs = ResearchPrefs()

@@ -65,7 +65,84 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertEqual(doc["thcRange"] as? String, "17–23%")
         XCTAssertNil(doc["imageUrl"] as? String)
         XCTAssertNotNil(doc["savedAt"] as? Int)
-        XCTAssertEqual((doc["notes"] as? [Any])?.count, 0)
+        XCTAssertNil(doc["notes"], "Notes must be omitted so a re-save cannot wipe them")
+    }
+
+    @MainActor
+    func testAilmentNormalizeAndEquality() {
+        XCTAssertEqual(
+            SavedAilmentsStore.normalize(["Anxiety", " anxiety ", "OCD", ""]),
+            ["Anxiety", "OCD"]
+        )
+        XCTAssertTrue(SavedAilmentsStore.equal(["ADHD", "Anxiety"], ["anxiety", "adhd"]))
+        XCTAssertFalse(SavedAilmentsStore.equal(["Anxiety"], ["ADHD"]))
+    }
+
+    @MainActor
+    func testReliefLogDocumentMatchesWebShape() {
+        let doc = ReliefLogStore.document(.sampleSleep)
+        XCTAssertEqual(doc["strainName"] as? String, "Granddaddy Purple")
+        XCTAssertEqual(doc["fit"] as? String, "just-right")
+        XCTAssertEqual(doc["relief"] as? Int, 5)
+        XCTAssertEqual(doc["conditions"] as? [String], ["Insomnia"])
+        XCTAssertNotNil(doc["createdAt"] as? Int)
+    }
+
+    @MainActor
+    func testReliefSummaryAndSleepHint() {
+        XCTAssertTrue(ReliefLogStore.isNightCondition("Insomnia"))
+        XCTAssertTrue(ReliefLogStore.isNightCondition("can't sleep"))
+        XCTAssertFalse(ReliefLogStore.isNightCondition("Anxiety"))
+
+        let store = ReliefLogStore.preview([.sampleSleep])
+        XCTAssertTrue(store.summary.contains("Granddaddy Purple"))
+        XCTAssertEqual(
+            store.tonightHint,
+            "Last time Granddaddy Purple helped your sleep. Consider it again tonight."
+        )
+
+        let harsh = ReliefLog(
+            id: "preview-harsh",
+            strainName: "Gorilla Glue",
+            conditions: ["Sleep"],
+            fit: .tooStrong,
+            relief: 3,
+            note: "",
+            createdAt: 1
+        )
+        XCTAssertEqual(
+            ReliefLogStore.preview([harsh]).tonightHint,
+            "Gorilla Glue was too strong at night — look for a gentler option."
+        )
+    }
+
+    @MainActor
+    func testPreviewPublicNoteToggle() async {
+        let store = SavedStrainsStore.preview()
+        await store.addNote(to: .sampleGDP, text: "Helped my back", isPublic: true, authorName: "Pat")
+        XCTAssertEqual(store.notes(for: "granddaddy-purple").first?.isPublic, true)
+        await store.setNotePublic(
+            slug: "granddaddy-purple",
+            noteId: store.notes(for: "granddaddy-purple")[0].id,
+            isPublic: false,
+            authorName: "Pat",
+            strainName: "Granddaddy Purple"
+        )
+        XCTAssertEqual(store.notes(for: "granddaddy-purple").first?.isPublic, false)
+    }
+
+    @MainActor
+    func testPreviewNotesSaveOnTriedStrain() async {
+        let store = SavedStrainsStore.preview()
+        await store.addNote(to: .sampleGDP, text: "Helped me sleep")
+        XCTAssertTrue(store.isSaved("granddaddy-purple"))
+        XCTAssertEqual(store.notes(for: "granddaddy-purple").map(\.text), ["Helped me sleep"])
+    }
+
+    func testDirectoryIncludesLeaflyDump() {
+        XCTAssertGreaterThanOrEqual(StrainCatalog.all.count, 150)
+        XCTAssertTrue(StrainCatalog.all.contains { $0.slug == "blue-dream" })
+
     }
 
     @MainActor
@@ -105,6 +182,39 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertNil(live.medicalUses)
         let hits = StrainCatalog.matching(ailment: "Insomnia", live: [live])
         XCTAssertTrue(hits.contains { $0.slug == "granddaddy-purple" })
+    }
+
+    func testCatalogPhotoFillsEveryHomeRailNotJustRecents() {
+        let live = [
+            StrainProfile(name: "Blue Dream", inKnowledgeBase: true, type: .hybrid),
+            StrainProfile(name: "Sour Diesel", inKnowledgeBase: true, type: .sativa),
+            StrainProfile(name: "Granddaddy Purple", inKnowledgeBase: true, type: .indica),
+            StrainProfile(name: "GSC", inKnowledgeBase: true, type: .hybrid),
+        ]
+        XCTAssertTrue(live.allSatisfy { $0.imageUrl == nil || $0.imageUrl?.isEmpty == true })
+
+        let rails: [[StrainProfile]] = [
+            StrainCatalog.merge(live),
+            StrainCatalog.merge(live, preferringType: .sativa),
+            StrainCatalog.merge(live, preferringType: .hybrid),
+            StrainCatalog.merge(live, preferringType: .indica),
+            StrainCatalog.matching(ailment: "Insomnia", live: live),
+            StrainCatalog.applyingCatalogPhotos(live),
+        ]
+        for list in rails {
+            XCTAssertFalse(list.isEmpty)
+            XCTAssertTrue(
+                list.allSatisfy { $0.imageUrl?.isEmpty == false },
+                "Home rail is missing a nug photo"
+            )
+        }
+
+        let gsc = StrainCatalog.applyingCatalogPhoto(
+            StrainProfile(name: "GSC", inKnowledgeBase: true)
+        )
+        XCTAssertEqual(gsc.imageUrl, StrainCatalog.applyingCatalogPhoto(
+            StrainProfile(name: "Girl Scout Cookies", inKnowledgeBase: true)
+        ).imageUrl)
     }
 
     @MainActor
