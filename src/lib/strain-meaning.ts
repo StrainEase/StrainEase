@@ -1,18 +1,13 @@
 import type { StrainProfile } from "./strain-profile";
+import { TERPENE_PROFILES } from "./terpenes";
 
-const TERPENE_MEANING: Record<string, string> = {
-  myrcene: "Earthy. Often linked with body heaviness and easier sleep.",
-  limonene: "Citrus. Commonly described as mood-lifting and daytime-friendly.",
-  caryophyllene: "Peppery. Patients often mention it for stress and body tension.",
-  pinene: "Pine. Associated with a clearer, more alert head.",
-  linalool: "Floral. Frequently reported as calming.",
-  terpinolene: "Herbal-citrus. Often a brighter, more stimulating profile.",
-  humulene: "Hoppy. Sometimes noted as appetite-dampening.",
-  ocimene: "Sweet-herbal. Usually described as uplifting.",
-};
-
+/**
+ * Backwards-compatible one-liner for the existing strain card display.
+ * Pulls from the curated terpene profile table (see ./terpenes) so web
+ * and iOS never drift.
+ */
 export function terpeneMeaning(name: string): string | undefined {
-  return TERPENE_MEANING[name.trim().toLowerCase()];
+  return TERPENE_PROFILES[name.trim().toLowerCase()]?.summary;
 }
 
 const NIGHT_EFFECTS = new Set([

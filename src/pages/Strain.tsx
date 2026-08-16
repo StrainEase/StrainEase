@@ -1,5 +1,6 @@
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
+import { ShopLinks } from "@/components/strain/ShopLinks";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,6 +13,7 @@ import {
   dayNightScore,
   terpeneMeaning,
 } from "@/lib/strain-meaning";
+import { terpeneProfile, terpeneSlug } from "@/lib/terpenes";
 import type { StrainProfile } from "@/lib/strain-profile";
 import logo from "@/assets/logo.svg";
 import { ArrowLeft, GitCompareArrows, Moon, Sun } from "lucide-react";
@@ -180,20 +182,36 @@ export default function Strain() {
                   What the terpenes usually mean
                 </p>
                 <ul className="mt-4 space-y-3">
-                  {profile.terpenes.map((t) => (
-                    <li key={t.name}>
-                      <p className="text-sm font-medium">{t.name}</p>
-                      <p className="text-sm leading-6 text-muted-foreground">
-                        {terpeneMeaning(t.name) ??
-                          (t.profile
-                            ? t.profile
-                            : "Commonly listed on this strain; meaning varies by patient.")}
-                      </p>
-                    </li>
-                  ))}
+                  {profile.terpenes.map((t) => {
+                    const curated = terpeneProfile(t.name);
+                    return (
+                      <li key={t.name}>
+                        <p className="text-sm font-medium">
+                          {curated ? (
+                            <Link
+                              to={`/terpene/${terpeneSlug(t.name)}`}
+                              className="text-foreground transition-colors hover:text-primary"
+                            >
+                              {t.name}
+                            </Link>
+                          ) : (
+                            t.name
+                          )}
+                        </p>
+                        <p className="text-sm leading-6 text-muted-foreground">
+                          {terpeneMeaning(t.name) ??
+                            (t.profile
+                              ? t.profile
+                              : "Commonly listed on this strain; meaning varies by patient.")}
+                        </p>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
+
+            <ShopLinks strain={profile} />
 
             {isAuthenticated && others.length > 0 && (
               <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
