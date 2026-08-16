@@ -172,11 +172,15 @@ export function SavedStrainsPanel() {
                       {strain.name}
                     </p>
                     {strain.notes.length > 0 && (
-                      <NotebookPen
-                        className="size-3.5 shrink-0 text-primary"
-                        aria-label="Has notes"
+                      <span
                         title="This strain has your notes"
-                      />
+                        className="shrink-0 text-primary"
+                      >
+                        <NotebookPen
+                          className="size-3.5"
+                          aria-label="Has notes"
+                        />
+                      </span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
