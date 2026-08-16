@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useMedications } from "@/hooks/use-medications";
 import { AccountMenu } from "@/components/account/AccountMenu";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
+import { CompareTray } from "@/components/compare/CompareTray";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { StrainDirectory } from "@/components/directory/StrainDirectory";
 import { StrainImage } from "@/components/strain/StrainImage";
@@ -103,7 +105,8 @@ export default function Dashboard() {
 
   type CompareResult = Awaited<ReturnType<typeof compareStrainsCall>>;
 
-  const [selectedNames, setSelectedNames] = useState<string[]>([]);
+  const selection = useCompareSelection();
+  const selectedNames = selection.names;
   const [condition, setCondition] = useState<string[]>([]);
   const [prefs, setPrefs] = useState<ResearchPrefs>({});
   const [query, setQuery] = useState("");
@@ -148,17 +151,6 @@ export default function Dashboard() {
     };
   }, [rid]);
 
-  useEffect(() => {
-    const raw = searchParams.get("strains");
-    if (!raw) return;
-    const names = raw
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s !== "")
-      .slice(0, 3);
-    if (names.length > 0) setSelectedNames(names);
-  }, [searchParams]);
-
   // Load Leafly's popular strains once for quick-pick suggestions.
   useEffect(() => {
     let cancelled = false;
@@ -194,18 +186,11 @@ export default function Dashboard() {
   }, [result]);
 
   const toggleStrainName = (name: string) => {
-    setSelectedNames((prev) => {
-      const lower = name.toLowerCase();
-      if (prev.some((n) => n.toLowerCase() === lower)) {
-        return prev.filter((n) => n.toLowerCase() !== lower);
-      }
-      if (prev.length >= 3) return prev;
-      return [...prev, name];
-    });
+    selection.toggle(name);
   };
 
   const addCustomStrain = (name: string) => {
-    toggleStrainName(name);
+    selection.toggle(name);
     setQuery("");
     setSearchOutcome(null);
   };
@@ -273,7 +258,7 @@ export default function Dashboard() {
   };
 
   const applyQuickPick = async (pick: (typeof QUICK_PICKS)[number]) => {
-    setSelectedNames(pick.strains);
+    selection.setNames(pick.strains);
     setCondition([pick.condition]);
     setResult(null);
     setQuery("");
@@ -284,7 +269,7 @@ export default function Dashboard() {
   const resetComparison = () => {
     setResult(null);
     setError(null);
-    setSelectedNames([]);
+    selection.clear();
     setCondition([]);
     setPrefs({});
     setQuery("");
@@ -293,7 +278,7 @@ export default function Dashboard() {
 
   const startCompareFromFinder = (names: string[], focus: string[]) => {
     setMode("compare");
-    setSelectedNames(names);
+    selection.setNames(names);
     setCondition(focus);
     setResult(null);
     setQuery("");
@@ -301,7 +286,7 @@ export default function Dashboard() {
     void handleCompare(names, focus);
   };
 
-  const atCap = selectedNames.length >= 3;
+  const atCap = selection.atCap;
 
   // Instant name matches within the popular list as the user types.
   const instantMatches = useMemo(() => {
@@ -413,13 +398,9 @@ export default function Dashboard() {
         <div className={cn(mode !== "find" && "hidden")}>
           <StrainFinder
             onCompare={startCompareFromFinder}
-            onAddToCompare={(name) => toggleStrainName(name)}
-            inCompareSelection={(name) =>
-              selectedNames.some(
-                (n) => n.toLowerCase() === name.toLowerCase(),
-              )
-            }
-            compareAtCap={atCap}
+            onAddToCompare={selection.toggle}
+            inCompareSelection={selection.isIn}
+            compareAtCap={selection.atCap}
             defaultMedications={savedMedications}
             restoreId={mode === "find" ? rid : undefined}
           />
@@ -850,6 +831,12 @@ export default function Dashboard() {
       <AccountSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+      />
+
+      <CompareTray
+        selection={selection}
+        onCompare={() => void handleCompare()}
+        isRunning={isRunning}
       />
     </main>
   );
