@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useMedications } from "@/hooks/use-medications";
 import { AccountMenu } from "@/components/account/AccountMenu";
+import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import {
   compareStrains as compareStrainsCall,
   popularStrains as popularStrainsCall,
@@ -108,6 +109,7 @@ export default function Dashboard() {
   const [query, setQuery] = useState("");
   const [popular, setPopular] = useState<StrainProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOutcome, setSearchOutcome] = useState<SearchOutcome>(null);
   const [result, setResult] = useState<CompareResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -327,7 +329,7 @@ export default function Dashboard() {
               StrainWise
             </span>
           </div>
-          <AccountMenu />
+          <AccountMenu onOpenSettings={() => setSettingsOpen(true)} />
         </div>
       </header>
 
@@ -844,6 +846,11 @@ export default function Dashboard() {
           </section>
         </div>
       </div>
+
+      <AccountSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
     </main>
   );
 }

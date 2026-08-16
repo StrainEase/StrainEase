@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { LogOut, Pill, Plus, X } from "lucide-react";
+import { LogOut, Pill, Plus, Settings, X } from "lucide-react";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -22,7 +22,15 @@ function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export function AccountMenu() {
+export function AccountMenu({
+  onOpenSettings,
+}: {
+  /**
+   * Called when the user picks "Account settings" inside the popover.
+   * Wire it up to whatever opens your displayName / email editor.
+   */
+  onOpenSettings?: () => void;
+} = {}) {
   const { user, signOut } = useAuth();
   const { list, add, remove, isLoading } = useMedications();
   const [open, setOpen] = useState(false);
@@ -175,6 +183,27 @@ export function AccountMenu() {
         </div>
 
         <Separator />
+
+        {onOpenSettings && (
+          <>
+            <div className="px-3 py-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full cursor-pointer justify-start rounded-full text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenSettings();
+                }}
+              >
+                <Settings className="size-4" />
+                Account settings
+              </Button>
+            </div>
+            <Separator />
+          </>
+        )}
 
         {/* Sign out */}
         <div className="px-3 py-2">
