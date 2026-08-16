@@ -139,6 +139,45 @@ final class StrainWiseTests: XCTestCase {
         XCTAssertEqual(store.notes(for: "granddaddy-purple").map(\.text), ["Helped me sleep"])
     }
 
+    /// Regression for the "Note saved" badge firing while the appended note
+    /// silently disappeared. `addNote` used to do two sequential `setData`
+    /// calls (one for the strain profile, one for the notes array). The
+    /// Firestore snapshot listener could fire between them, reset
+    /// `items[index].notes` to its old list, and the second write then
+    /// persisted only those old notes — the new one vanished. The fix is a
+    /// single atomic write that carries both strain fields and the appended
+    /// notes together. This test pins the payload shape so the two-write
+    /// pattern can't sneak back in.
+    @MainActor
+    func testAddNotePayloadIsAtomic() {
+        let existing = SavedNote(
+            id: "existing",
+            text: "existing",
+            isPublic: false,
+            createdAt: 1,
+            publicId: nil
+        )
+        let appended = SavedNote(
+            id: "appended",
+            text: "appended",
+            isPublic: false,
+            createdAt: 2,
+            publicId: nil
+        )
+        let payload = SavedStrainsStore.addNotePayload(
+            for: .sampleGDP,
+            notes: [existing, appended],
+            savedAt: 42
+        )
+        XCTAssertEqual(payload["name"] as? String, "Granddaddy Purple")
+        XCTAssertEqual(payload["savedAt"] as? Int, 42)
+        XCTAssertEqual(payload["type"] as? String, "indica")
+        let writtenNotes = payload["notes"] as? [[String: Any]] ?? []
+        XCTAssertEqual(writtenNotes.count, 2)
+        XCTAssertEqual(writtenNotes.first?["id"] as? String, "existing")
+        XCTAssertEqual(writtenNotes.last?["id"] as? String, "appended")
+    }
+
     func testDirectoryIncludesLeaflyDump() {
         XCTAssertGreaterThanOrEqual(StrainCatalog.all.count, 150)
         XCTAssertTrue(StrainCatalog.all.contains { $0.slug == "blue-dream" })
