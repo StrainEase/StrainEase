@@ -7,9 +7,17 @@ struct FindView: View {
 
     @State private var model: FindModel
     @State private var path: [StrainProfile] = []
-    @FocusState private var searchFocused: Bool
+    @FocusState private var focused: Field?
     @State private var didHydrateAilments = false
     @State private var didHydrateMedications = false
+
+    /// Identifies every text input on this screen so a single `@FocusState`
+    /// can dismiss any of them. Without these bindings, SwiftUI wouldn't
+    /// track focus on the form fields at all and the keyboard would stay
+    /// up after tapping chips or buttons.
+    enum Field: Hashable {
+        case customAilment, patientNote, ownedStrains, medications, lookup
+    }
 
 
     init(model: FindModel) {
@@ -50,6 +58,13 @@ struct FindView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                     .padding(.bottom, 24)
+                    // Tap anywhere on the form's background to dismiss the
+                    // keyboard. Buttons consume their own taps so this only
+                    // fires for taps on empty/label areas.
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        focused = nil
+                    }
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
@@ -57,6 +72,18 @@ struct FindView: View {
             .navigationBarTitleDisplayMode(.inline)
             .appChrome()
             .toolbarBackground(.hidden, for: .navigationBar)
+            // Adds a "Done" button above the keyboard so users have a
+            // discoverable way to dismiss focus without leaving the form.
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        focused = nil
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.primary)
+                }
+            }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 searchBar
             }
@@ -106,14 +133,20 @@ struct FindView: View {
             }
             HStack(spacing: 8) {
                 TextField("Or type any symptom", text: $model.customAilment)
+                    .focused($focused, equals: .customAilment)
+                    .submitLabel(.done)
                     .textInputAutocapitalization(.sentences)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
                     .background(Palette.card, in: Capsule())
                     .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
-                    .onSubmit { model.addCustomAilment() }
+                    .onSubmit {
+                        model.addCustomAilment()
+                        focused = nil
+                    }
                 Button {
                     model.addCustomAilment()
+                    focused = nil
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 14, weight: .semibold))
@@ -196,17 +229,20 @@ struct FindView: View {
                 placeholder: "I need to sleep but I have to be up at 7…",
                 text: $model.prefs.patientNote
             )
+            .focused($focused, equals: .patientNote)
             SWField(
                 title: "Already have",
                 placeholder: "Blue Dream, Gelato",
                 text: $model.prefs.ownedStrainsText
             )
+            .focused($focused, equals: .ownedStrains)
             VStack(alignment: .leading, spacing: 6) {
                 SWField(
                     title: "Other meds",
                     placeholder: "Medication we should be careful around",
                     text: $model.prefs.medications
                 )
+                .focused($focused, equals: .medications)
                 Text("We never tell you to stop a prescription — only to check with your clinician.")
                     .font(.system(size: 12))
                     .foregroundStyle(Palette.mutedForeground)
@@ -239,10 +275,10 @@ struct FindView: View {
                     .foregroundStyle(Palette.mutedForeground)
                     .accessibilityHidden(true)
                 TextField("Look up a strain", text: $model.lookupQuery)
+                    .focused($focused, equals: .lookup)
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
                     .submitLabel(.search)
-                    .focused($searchFocused)
                     .onSubmit { Task { await lookup() } }
             }
             .padding(.horizontal, 14)
@@ -252,6 +288,7 @@ struct FindView: View {
 
             Button {
                 Task { await lookup() }
+                focused = nil
             } label: {
                 Group {
                     if model.isLookingUp {
@@ -399,6 +436,7 @@ struct FindView: View {
             systemImage: "sparkles",
             isBusy: model.isRunning
         ) {
+            focused = nil
             Task { await model.find(reliefSummary: relief.summary.isEmpty ? nil : relief.summary) }
         }
         .disabled(!model.canFind)
@@ -558,7 +596,7 @@ struct FindView: View {
     private func lookup() async {
         guard model.canLookup else { return }
         if let profile = await model.lookup() {
-            searchFocused = false
+            focused = nil
             path.append(profile)
         }
     }
