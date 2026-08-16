@@ -2,15 +2,20 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
-import { Bookmark, Home, LogOut, Search } from "lucide-react";
+import { BookOpen, Home, LogOut, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
-export type AppNavId = "home" | "find" | "saved";
+export type AppNavId = "home" | "find" | "directory";
 
 const NAV: { id: AppNavId; to: string; label: string; icon: typeof Home }[] = [
   { id: "home", to: "/", label: "Home", icon: Home },
   { id: "find", to: "/dashboard", label: "Find", icon: Search },
-  { id: "saved", to: "/dashboard?mode=saved", label: "Saved", icon: Bookmark },
+  {
+    id: "directory",
+    to: "/dashboard?mode=directory",
+    label: "Browse",
+    icon: BookOpen,
+  },
 ];
 
 export function AppHeader({ active }: { active?: AppNavId }) {
