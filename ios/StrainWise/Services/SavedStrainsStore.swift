@@ -37,6 +37,8 @@ struct SavedStrainItem: Identifiable, Hashable, Sendable {
 
     var id: String { slug }
 
+    var hasNotes: Bool { !notes.isEmpty }
+
     var profile: StrainProfile {
         StrainProfile(
             name: name,

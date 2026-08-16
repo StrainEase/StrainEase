@@ -24,8 +24,11 @@ struct SavedStrainsView: View {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(saved.items) { item in
                             NavigationLink(value: item.profile) {
-                                StrainPoster(profile: item.profile)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                StrainPoster(
+                                    profile: item.profile,
+                                    noteCount: item.notes.count
+                                )
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.plain)
                         }
