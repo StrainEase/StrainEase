@@ -8,7 +8,7 @@ import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/
 import { defineSecret } from "firebase-functions/params";
 import { getStorage } from "firebase-admin/storage";
 import { enrichProfiles, lookupProfile } from "./enrich";
-import { findDoctors, type DoctorQuery, type DoctorResult } from "./doctors";
+import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } from "./doctors";
 import { fetchPopular, fetchProfiles } from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callMiniMax, extractJsonObject } from "./minimax";
@@ -641,7 +641,7 @@ export const cachedStrainImage = onCall(
  * coordinates via OpenStreetMap Nominatim when only lat/lon is given.
  * Public — no auth required.
  */
-export const findDoctorsCallable = onCall(
+export const findDoctors = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
   async (request): Promise<DoctorResult> => {
     const data = (request.data ?? {}) as Partial<DoctorQuery>;
@@ -664,6 +664,6 @@ export const findDoctorsCallable = onCall(
       );
     }
 
-    return await findDoctors({ lat, lon, city, state, zip, radiusMiles });
+    return await findDoctorsImpl({ lat, lon, city, state, zip, radiusMiles });
   },
 );
