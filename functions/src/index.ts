@@ -667,3 +667,7 @@ export const findDoctors = onCall(
     return await findDoctorsImpl({ lat, lon, city, state, zip, radiusMiles });
   },
 );
+
+/* ── Background jobs ──────────────────────────────────────────────── */
+
+export { redditCacheRefresh } from "./reddit-refresh";
