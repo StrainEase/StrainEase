@@ -178,3 +178,8 @@ the `Setup Node.js` step in `firebase-functions-deploy.yml`.
 - When wiring a new Firebase callable, add the typed wrapper in
   `src/lib/strain-api.ts` and re-export it from there. Don't import
   `firebase/functions` directly in a component.
+
+# Remember:
+
+- Always ensure platform parity
+- Write functional code not innovative code
