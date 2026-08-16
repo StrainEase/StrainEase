@@ -4,10 +4,14 @@ struct StrainDetailView: View {
     @Environment(\.strainAPI) private var api
     @State private var profile: StrainProfile
     @State private var isHydrating: Bool
+    @State private var activeTerpene: String?
+    @State private var familyStrains: [StrainProfile] = []
+    @State private var isLoadingFamily = false
     @Environment(SavedStrainsStore.self) private var saved
     @Environment(SavedAilmentsStore.self) private var ailments
     @Environment(RecentlyViewedStore.self) private var recents
     @Environment(ReliefLogStore.self) private var relief
+    @Environment(AppNavigation.self) private var nav
 
     init(profile: StrainProfile) {
         _profile = State(initialValue: profile)
@@ -56,6 +60,7 @@ struct StrainDetailView: View {
                     } else if pending.contains(.terpenes) {
                         hydratingSection(.terpenes)
                     }
+                    ShopLinksView(profile: profile)
                     if let sides = profile.sideEffects, !sides.isEmpty {
                         chipSection("Watch for", items: sides)
                     } else if pending.contains(.sideEffects) {
@@ -283,26 +288,65 @@ struct StrainDetailView: View {
             SectionLabel("Terpenes")
             VStack(spacing: 10) {
                 ForEach(terpenes, id: \.name) { terpene in
-                    SWCard {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(terpene.name)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Palette.foreground)
-                            if let meaning = StrainMeaning.terpeneMeaning(terpene.name) {
-                                Text(meaning)
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Palette.mutedForeground)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            } else if !terpene.profile.isEmpty {
-                                Text(terpene.profile)
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Palette.mutedForeground)
-                            }
-                        }
+                    TerpeneRow(terpene: terpene) {
+                        openTerpene(terpene.name)
                     }
                 }
             }
         }
+        .sheet(item: Binding(
+            get: { activeTerpene.flatMap(ActiveTerpene.init) },
+            set: { activeTerpene = $0?.name }
+        )) { active in
+            TerpeneDetailView(
+                name: active.name,
+                profile: TerpeneCatalog.profile(for: active.name) ?? TerpeneProfile(
+                    summary: "Listed on this strain.",
+                    description: "",
+                    characteristics: [],
+                    benefits: []
+                ),
+                familyStrains: familyStrains,
+                onSelectStrain: { selected in
+                    activeTerpene = nil
+                    navigateToStrain(selected)
+                }
+            )
+        }
+    }
+
+    private func openTerpene(_ name: String) {
+        guard TerpeneCatalog.isCurated(name) else { return }
+        activeTerpene = name
+        if familyStrains.isEmpty && !isLoadingFamily {
+            loadTerpeneFamily(for: name)
+        }
+    }
+
+    private func loadTerpeneFamily(for name: String) {
+        isLoadingFamily = true
+        Task {
+            defer { isLoadingFamily = false }
+            do {
+                let popular = try await api.popular()
+                let target = name.lowercased()
+                let matching = StrainCatalog.applyingCatalogPhotos(popular)
+                    .filter { strain in
+                        let names = (strain.terpenes ?? []).map { $0.name.lowercased() }
+                        return names.contains(target)
+                    }
+                familyStrains = matching
+            } catch {
+                // Leafly unreachable; leave family empty so the sheet
+                // shows the "no popular strains" copy.
+            }
+        }
+    }
+
+    private func navigateToStrain(_ strain: StrainProfile) {
+        // The strain detail lives inside Home's NavigationStack, so
+        // push onto the active path via the AppNavigation helper.
+        nav.requestOpenProfile(strain)
     }
 
     private var missing: some View {
@@ -440,6 +484,53 @@ private struct LeaflyRatingCard: View {
     .environment(AuthSession.previewSignedIn)
 }
 
+private struct ActiveTerpene: Identifiable, Hashable {
+    let name: String
+    var id: String { name.lowercased() }
+}
+
+private struct TerpeneRow: View {
+    let terpene: Terpene
+    var onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            SWCard {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(terpene.name)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Palette.foreground)
+                        Spacer(minLength: 0)
+                        if TerpeneCatalog.isCurated(terpene.name) {
+                            HStack(spacing: 4) {
+                                Text("Details")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Palette.primary)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(Palette.primary)
+                            }
+                        }
+                    }
+                    if let meaning = StrainMeaning.terpeneMeaning(terpene.name) {
+                        Text(meaning)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.mutedForeground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if !terpene.profile.isEmpty {
+                        Text(terpene.profile)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.mutedForeground)
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(!TerpeneCatalog.isCurated(terpene.name))
+    }
+}
+
 #Preview("Liked · Dark") {
     NavigationStack {
         StrainDetailView(profile: .sampleGDP)
@@ -450,5 +541,6 @@ private struct LeaflyRatingCard: View {
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview())
     .environment(AuthSession.previewSignedIn)
+    .environment(AppNavigation())
     .preferredColorScheme(.dark)
 }

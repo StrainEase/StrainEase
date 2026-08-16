@@ -579,4 +579,24 @@ final class StrainWiseTests: XCTestCase {
         )
         XCTAssertEqual(kept.map(\.name), ["B"])
     }
+
+    // MARK: - Terpene curated catalog
+
+    func testTerpeneCatalogExposesCuratedProfiles() {
+        XCTAssertNotNil(TerpeneCatalog.profile(for: "Myrcene"))
+        XCTAssertNotNil(TerpeneCatalog.profile(for: "Limonene"))
+        XCTAssertNotNil(TerpeneCatalog.profile(for: "Pinene"))
+        XCTAssertNil(TerpeneCatalog.profile(for: "totally-fake-terpene"))
+    }
+
+    func testTerpeneCatalogSlugRules() {
+        XCTAssertEqual(TerpeneCatalog.slug(for: "Myrcene"), "myrcene")
+        XCTAssertEqual(TerpeneCatalog.slug(for: "  Linalool  "), "linalool")
+    }
+
+    func testTerpeneCatalogIsCurated() {
+        XCTAssertTrue(TerpeneCatalog.isCurated("Limonene"))
+        XCTAssertTrue(TerpeneCatalog.isCurated("limonene"))
+        XCTAssertFalse(TerpeneCatalog.isCurated("Unknown"))
+    }
 }

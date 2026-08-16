@@ -31,6 +31,11 @@ final class AppNavigation {
     var tab: AppTab = .home
     var showAccount = false
     var showSaved = false
+    /// Pending strain profile the Home tab should push onto its
+    /// NavigationStack. The HomeView observes this and pops to it once,
+    /// then clears it. Lets the terpene drill-down sheet jump to a
+    /// strain detail without owning the Home stack directly.
+    var pendingStrain: StrainProfile?
 
     func openSaved() {
         showSaved = true
@@ -38,6 +43,17 @@ final class AppNavigation {
 
     func openProfile() {
         showAccount = true
+    }
+
+    func requestOpenProfile(_ profile: StrainProfile) {
+        pendingStrain = profile
+        tab = .home
+    }
+
+    func consumePendingStrain() -> StrainProfile? {
+        let next = pendingStrain
+        pendingStrain = nil
+        return next
     }
 }
 
