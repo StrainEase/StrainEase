@@ -5,7 +5,7 @@ import type { StrainProfile, StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
-import { GitCompareArrows, Loader2, Search, Sparkles, X } from "lucide-react";
+import { Loader2, Search, Sparkles, X } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -374,18 +374,6 @@ export function StrainDirectory() {
                   className="cursor-pointer rounded-full"
                 >
                   <Link to={`/strain/${slugify(p.name)}`}>View</Link>
-                </Button>
-                <Button
-                  asChild
-                  size="sm"
-                  className="cursor-pointer rounded-full"
-                >
-                  <Link
-                    to={`/dashboard?mode=compare&strains=${encodeURIComponent(p.name)}`}
-                  >
-                    <GitCompareArrows className="size-3.5" />
-                    Compare
-                  </Link>
                 </Button>
               </div>
             </div>
