@@ -20,6 +20,7 @@ import {
 import { documentTitle } from "@/lib/site";
 import { searchStrain } from "@/lib/strain-api";
 import { applyCatalogPhotos, CATALOG } from "@/lib/strain-catalog";
+import { getFeaturedStrainProfile } from "@/lib/featured-strain-details";
 import {
   dayNightLabel,
   dayNightScore,
@@ -45,9 +46,19 @@ export default function Strain() {
   const [savedNames, setSavedNames] = useState<string[]>([]);
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
+  const featuredProfile = getFeaturedStrainProfile(slug);
 
   useEffect(() => {
     let cancelled = false;
+    // Featured strains ship a preloaded profile — skip the Leafly scrape and
+    // render the mock detail view immediately.
+    if (featuredProfile) {
+      setProfile(featuredProfile);
+      setStatus("ready");
+      return () => {
+        cancelled = true;
+      };
+    }
     setStatus("loading");
     const name = catalogHit?.name ?? slug.replace(/-/g, " ");
     void searchStrain(name)
@@ -86,7 +97,7 @@ export default function Strain() {
     return () => {
       cancelled = true;
     };
-  }, [slug, catalogHit]);
+  }, [slug, catalogHit, featuredProfile]);
 
   useEffect(() => {
     if (!isAuthenticated || status !== "ready" || !profile) return;
