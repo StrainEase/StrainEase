@@ -64,10 +64,12 @@ const SECOND_DOCTOR: Doctor = {
 function buildLeaflyHtml(doctors: Doctor[]): string {
   const nextData = {
     props: {
-      initialState: {
-        search: {
-          results: {
-            dispensaries: doctors.map((doctor) => ({
+      pageProps: {
+        retailType: "clinic",
+        isLocationPage: true,
+        storeLocatorResults: {
+          data: {
+            organicStores: doctors.map((doctor) => ({
               id: Number(doctor.id) || doctor.id,
               slug: doctor.slug,
               name: doctor.name,
@@ -89,6 +91,15 @@ function buildLeaflyHtml(doctors: Doctor[]): string {
               logoUrl: doctor.logoUrl,
               timeZone: doctor.timezone,
             })),
+            sponsoredStores: [],
+            spotlightStores: [],
+          },
+          metadata: {
+            pagination: {
+              currentCount: doctors.length,
+              skip: 0,
+              totalCount: doctors.length,
+            },
           },
         },
       },

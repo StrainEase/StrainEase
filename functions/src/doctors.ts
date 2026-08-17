@@ -139,12 +139,25 @@ async function fetchLeaflyDoctorsPage(stateSlug: string, citySlug: string): Prom
     return [];
   }
   const props = parsed.props as Record<string, unknown> | undefined;
+  const pageProps = props?.pageProps as Record<string, unknown> | undefined;
+  // Leafly's current directory page embeds the structured clinic list at
+  // props.pageProps.storeLocatorResults.data.organicStores. The old
+  // props.initialState.search.results.dispensaries path is kept as a
+  // fallback in case Leafly rolls back or splits the data between the two.
+  const storeLocator = pageProps?.storeLocatorResults as
+    | Record<string, unknown>
+    | undefined;
+  const locatorData = storeLocator?.data as Record<string, unknown> | undefined;
+  const organicStores = Array.isArray(locatorData?.organicStores)
+    ? (locatorData!.organicStores as unknown[])
+    : null;
   const initialState = props?.initialState as Record<string, unknown> | undefined;
   const search = initialState?.search as Record<string, unknown> | undefined;
   const results = search?.results as Record<string, unknown> | undefined;
-  const dispensaries = Array.isArray(results?.dispensaries)
+  const legacyStores = Array.isArray(results?.dispensaries)
     ? (results!.dispensaries as unknown[])
-    : [];
+    : null;
+  const dispensaries = organicStores ?? legacyStores ?? [];
 
   const doctors: Doctor[] = [];
   for (const raw of dispensaries) {
