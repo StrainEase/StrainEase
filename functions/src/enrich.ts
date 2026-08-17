@@ -77,9 +77,11 @@ function preferAilmentNotes(
 
   // Ailment-matched first — that's the slice the patient actually cares
   // about. Anything left over fills with the rest (Leafly rating, then
-  // Reddit, then other), capped at 12.
+  // Reddit, then other). Cap is 5 per strain to stay under the AI
+  // provider's per-request token budget; the compare + recommend
+  // system prompts only surface 1-3 reddit sources per strain anyway.
   const matched = notes.filter((n) => mentionsAilment(n.text, conditions));
-  if (matched.length >= 12) return matched.slice(0, 12);
+  if (matched.length >= 5) return matched.slice(0, 5);
 
   const rest = notes.filter((n) => !mentionsAilment(n.text, conditions));
   const ranking = rest.filter(
@@ -92,7 +94,7 @@ function preferAilmentNotes(
     const k = n.kind ?? kindFromSource(n.source);
     return k !== "leafly" && k !== "reddit";
   });
-  return [...matched, ...ranking, ...reddit, ...other].slice(0, 12);
+  return [...matched, ...ranking, ...reddit, ...other].slice(0, 5);
 }
 
 function unionStrings(a?: string[], b?: string[]): string[] | undefined {

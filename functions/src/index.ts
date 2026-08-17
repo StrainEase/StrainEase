@@ -13,7 +13,7 @@ import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } f
 import { fetchPopular, fetchProfiles } from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callGroq, extractJsonObject } from "./groq";
-import { redditSeedForPrompt } from "./reddit-seed";
+import { matchRedditSeeds } from "./reddit-seed";
 import { clientIp, guestRateLimit, persistResult } from "./results";
 import type {
   RecommendationResult,
@@ -292,11 +292,9 @@ export function compareStrainPayload(s: StrainProfile) {
     type: s.type,
     thcRange: s.thcRange,
     cbdRange: s.cbdRange,
-    lineage: s.lineage,
     terpenes: s.terpenes,
     medicalUses: s.medicalUses,
     effects: s.effects,
-    sideEffects: s.sideEffects,
     description: s.description,
     communityNotes: s.communityNotes,
     noCuratedProfile: !s.inKnowledgeBase,
@@ -309,6 +307,15 @@ function comparePrompt(
   prefs?: ResearchPrefs,
 ): string {
   const payload = strains.map(compareStrainPayload);
+  // Filter the Reddit seed list to threads relevant to this patient's
+  // condition focus + the strains in play. The full pool (~45 entries)
+  // blows past Groq's on-demand TPM budget; 8 vetted, ranked threads
+  // is plenty since the model only picks 1-3 anyway.
+  const redditSeeds = matchRedditSeeds({
+    conditions: conditions ?? [],
+    strainNames: strains.map((s) => s.name),
+    limit: 8,
+  });
   return [
     "Compare the following cannabis strains for a patient deciding which one to try.",
     `Condition focus: ${
@@ -324,7 +331,7 @@ function comparePrompt(
     'Strains marked "noCuratedProfile": true were not found on Leafly or Weedmaps. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the summary when a detail is a commonly-reported figure rather than a verified lab result.',
     "",
     "Vetted Reddit threads (pick from this list only — copy url / subreddit / title verbatim):",
-    JSON.stringify(redditSeedForPrompt(), null, 2),
+    JSON.stringify(redditSeeds, null, 2),
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
@@ -341,14 +348,19 @@ function recommendPrompt(
     type: s.type,
     thcRange: s.thcRange,
     cbdRange: s.cbdRange,
-    lineage: s.lineage,
     terpenes: s.terpenes,
     medicalUses: s.medicalUses,
     effects: s.effects,
-    sideEffects: s.sideEffects,
     description: s.description,
-    communityNotes: s.communityNotes,
   }));
+  // Filter the Reddit seed list to threads relevant to this patient's
+  // symptoms + the popular strains in play. Same TPM-budget reason as
+  // comparePrompt above.
+  const redditSeeds = matchRedditSeeds({
+    conditions,
+    strainNames: strains.map((s) => s.name),
+    limit: 8,
+  });
   return [
     "Recommend the best cannabis strains for a patient treating these symptoms:",
     conditions.join(", "),
@@ -363,7 +375,7 @@ function recommendPrompt(
     "You may also suggest strains not in this list from your general knowledge, as long as you are confident they are real and commonly reported for these symptoms.",
     "",
     "Vetted Reddit threads (pick from this list only — copy url / subreddit / title verbatim):",
-    JSON.stringify(redditSeedForPrompt(), null, 2),
+    JSON.stringify(redditSeeds, null, 2),
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
@@ -651,19 +663,10 @@ export const recommendStrainsForConditions = onCall(
 
 /**
  * Cache + serve a strain image. The function fetches the upstream
- * bytes once via cachedFetchImage (in-memory then Storage), makes the
- * stored object publicly readable, and returns a permanent public URL
- * the browser can fetch directly with normal HTTP caching. Repeat
- * calls within the 7-day TTL hit the Storage copy without re-touching
- * Leafly, and the URL itself never expires — the cached bytes are the
- * exact same Leafly images, so making them public is no wider than
- * the source already is.
- *
- * If the Storage write can't land a publicly-readable object (e.g.
- * the bucket has uniform bucket-level access enabled and rejects
- * makePublic), we fall back to the original upstream URL so the image
- * still loads. The browser's <img onError> handler swaps to a leaf
- * fallback if even that 404s.
+ * bytes once via cachedFetchImage (in-memory then Storage), then
+ * returns a signed URL pointing at the cached object so the browser
+ * can fetch it directly with normal HTTP caching. Repeat calls within
+ * the 7-day TTL hit the Storage copy without re-touching Leafly.
  */
 export const cachedStrainImage = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
@@ -680,25 +683,18 @@ export const cachedStrainImage = onCall(
     }
     const cached = await cachedFetchImage(url);
     const key = imageCacheKey(url);
-    const bucketName = getStorage().bucket().name;
-    const file = getStorage().bucket().file(`strain-images/${key}`);
-    // Probe storage so we don't hand the browser a public URL that
-    // would 404. readFromStorage has already confirmed the object is
-    // within TTL; this just guards against the rare case where
-    // writeToStorage silently failed (uniform bucket-level access,
-    // quota, etc.).
-    const [exists] = await file.exists().catch(() => [false]);
-    if (exists) {
-      const publicUrl = `https://storage.googleapis.com/${bucketName}/strain-images/${key}`;
-      return {
-        url: publicUrl,
-        contentType: cached.contentType,
-        bytes: cached.bytes.length,
-        source: cached.source,
-      };
-    }
+    // Generate a long-lived signed URL for the Storage copy so the
+    // browser caches the image across visits without a callable round-trip.
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const [signedUrl] = await getStorage()
+      .bucket()
+      .file(`strain-images/${key}`)
+      .getSignedUrl({
+        action: "read",
+        expires: expiresAt,
+      });
     return {
-      url,
+      url: signedUrl,
       contentType: cached.contentType,
       bytes: cached.bytes.length,
       source: cached.source,
