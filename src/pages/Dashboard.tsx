@@ -372,8 +372,8 @@ export default function Dashboard() {
               )}
             >
               <GitCompareArrows className="size-4" />
-              Compare
-              <span className="hidden sm:inline">strains</span>
+              <span className="sm:hidden">Compare</span>
+              <span className="hidden sm:inline">Compare strains</span>
             </button>
             <button
               type="button"
@@ -386,8 +386,8 @@ export default function Dashboard() {
               )}
             >
               <Bookmark className="size-4" />
-              Saved
-              <span className="hidden sm:inline">strains</span>
+              <span className="sm:hidden">Saved</span>
+              <span className="hidden sm:inline">Saved strains</span>
             </button>
             <button
               type="button"
