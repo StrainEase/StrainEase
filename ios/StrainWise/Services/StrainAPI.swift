@@ -147,7 +147,7 @@ struct LiveStrainAPI: StrainServicing {
             "termsAccepted": termsAccepted,
             "privacyAccepted": privacyAccepted,
         ]
-        _ = try await invoke(name: "setAgeVerified", data: payload)
+        _ = try await invoke("setAgeVerified", data: payload)
     }
 
     func describe(

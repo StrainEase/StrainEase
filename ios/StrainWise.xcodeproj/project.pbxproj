@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BFFA771005C3F680E105CAFE /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75A64C00FBF2793AAC4F264 /* AgeGateView.swift */; };
+		610139466D6596BEA6F02CC3 /* AgeVerificationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C10180FC7A9555E5DCF69F /* AgeVerificationStore.swift */; };
 		03398FC904CDD3E2EAA06A46 /* CompareSelectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF5A1302C7C3EBC3626C233 /* CompareSelectionStoreTests.swift */; };
 		039911BC1CC6BE4156078629 /* ShopLinksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5CAC268CEFCE3A7E94CE87A /* ShopLinksView.swift */; };
 		05965109EFB38224CDBE87E0 /* SavedMedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7AFEA6605071EE9A9DCD74E /* SavedMedicationsCard.swift */; };
@@ -86,6 +88,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F75A64C00FBF2793AAC4F264 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
+		37C10180FC7A9555E5DCF69F /* AgeVerificationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeVerificationStore.swift; sourceTree = "<group>"; };
 		1946B1C8E418A237324A9C0E /* SavedStrainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsView.swift; sourceTree = "<group>"; };
 		1FA87EEBF1E1ACA1A0904DC8 /* DirectoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryModel.swift; sourceTree = "<group>"; };
 		2472C11CB87864EA4159E36C /* SharedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedNotesView.swift; sourceTree = "<group>"; };
@@ -201,6 +205,7 @@
 		355729E496D415635436688C /* App */ = {
 			isa = PBXGroup;
 			children = (
+				F75A64C00FBF2793AAC4F264 /* AgeGateView.swift */,
 				3C535EE8A012F6DC69B3703D /* AppNavigation.swift */,
 				E20E53734C990850060FB376 /* MainTabView.swift */,
 				BB72C17AE9087DBDFF7D7797 /* RootView.swift */,
@@ -220,6 +225,7 @@
 		5634A2CEFF60FD7712A4E8F8 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				37C10180FC7A9555E5DCF69F /* AgeVerificationStore.swift */,
 				C5FA329BD7AC6982E6FFCA16 /* FirebaseBootstrap.swift */,
 				7AA5EFB0C94D1E5CFD77BD4D /* LocationProvider.swift */,
 				73221765338B5CEE84DE1532 /* PreviewData.swift */,
@@ -482,6 +488,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BFFA771005C3F680E105CAFE /* AgeGateView.swift in Sources */,
+				610139466D6596BEA6F02CC3 /* AgeVerificationStore.swift in Sources */,
 				740F7B1DEF6572CBAE3740DA /* AccountView.swift in Sources */,
 				4B932F74C53ECE955B23C421 /* AilmentCarousel.swift in Sources */,
 				DC6D7D753FF645F6AC922703 /* AppNavigation.swift in Sources */,
