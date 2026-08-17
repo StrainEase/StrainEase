@@ -7,8 +7,8 @@ extension EnvironmentValues {
 }
 
 protocol StrainServicing {
-    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?) async throws -> RecommendationResult
-    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison
+    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> RecommendationResult
+    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> StrainComparison
 
     func search(name: String) async throws -> StrainProfile?
     func popular() async throws -> [StrainProfile]
@@ -25,8 +25,33 @@ protocol StrainServicing {
         strain: StrainProfile,
         ailments: [String],
         medications: [String],
-        reliefHistory: String
+        reliefHistory: String,
+        language: String
     ) async throws -> StrainDescription?
+}
+
+/// Default language for AI-written responses. The backend pins output
+/// language so descriptions never drift into random Chinese or other
+/// languages for strains with international names. Override per-call
+/// by passing a different `language` argument.
+enum StrainAILanguage {
+    /// English (US). The default for users with the en-* locale, which
+    /// covers most StrainEase users today.
+    static let english = "English"
+
+    /// Resolve the user's preferred AI language from their current
+    /// locale. We currently only have translations for English; other
+    /// locales fall back to English until we ship localized copy.
+    static var preferred: String {
+        guard let code = Locale.current.language.languageCode?.identifier else {
+            return english
+        }
+        switch code.lowercased() {
+        case "en": return english
+        // Add more cases as localized prompts ship.
+        default: return english
+        }
+    }
 }
 
 enum StrainAPIError: LocalizedError {
@@ -54,12 +79,14 @@ struct LiveStrainAPI: StrainServicing {
         conditions: [String],
         potency: Potency,
         prefs: ResearchPrefs,
-        reliefSummary: String?
+        reliefSummary: String?,
+        language: String
     ) async throws -> RecommendationResult {
         var payload: [String: Any] = ["conditions": conditions]
         if potency != .any { payload["potency"] = potency.rawValue }
         let compacted = prefs.compacted(reliefSummary: reliefSummary)
         if !compacted.isEmpty { payload["prefs"] = compacted }
+        payload["language"] = language
         return try await call("recommendStrainsForConditions", data: payload)
     }
 
@@ -67,12 +94,14 @@ struct LiveStrainAPI: StrainServicing {
         strainNames: [String],
         conditions: [String],
         prefs: ResearchPrefs,
-        reliefSummary: String?
+        reliefSummary: String?,
+        language: String
     ) async throws -> StrainComparison {
         var payload: [String: Any] = ["strainNames": strainNames]
         if !conditions.isEmpty { payload["condition"] = conditions }
         let compacted = prefs.compacted(reliefSummary: reliefSummary)
         if !compacted.isEmpty { payload["prefs"] = compacted }
+        payload["language"] = language
         return try await call("compareStrains", data: payload)
     }
 
@@ -102,7 +131,8 @@ struct LiveStrainAPI: StrainServicing {
         strain: StrainProfile,
         ailments: [String],
         medications: [String],
-        reliefHistory: String
+        reliefHistory: String,
+        language: String
     ) async throws -> StrainDescription? {
         let trimmedName = strain.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return nil }
@@ -119,6 +149,7 @@ struct LiveStrainAPI: StrainServicing {
             "strain": strainDictionary(strain),
             "ailments": Array(cleanedAilments),
             "medications": Array(cleanedMedications),
+            "language": language,
         ]
         if !cleanedRelief.isEmpty {
             payload["reliefHistory"] = String(cleanedRelief.prefix(800))
@@ -222,7 +253,7 @@ struct PreviewStrainAPI: StrainServicing {
     var result: RecommendationResult = .sample
     var searchResult: StrainProfile? = .sampleGDP
 
-    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?) async throws -> RecommendationResult {
+    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> RecommendationResult {
         result
     }
 
@@ -241,7 +272,7 @@ struct PreviewStrainAPI: StrainServicing {
         DoctorResult(doctors: [.sample], resolvedLocation: nil, source: "preview")
     }
 
-    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison {
+    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> StrainComparison {
         StrainComparison.sample
     }
 
@@ -249,7 +280,8 @@ struct PreviewStrainAPI: StrainServicing {
         strain: StrainProfile,
         ailments: [String],
         medications: [String],
-        reliefHistory: String
+        reliefHistory: String,
+        language: String
     ) async throws -> StrainDescription? {
         StrainDescription.sample
     }
@@ -258,7 +290,7 @@ struct PreviewStrainAPI: StrainServicing {
 
 /// Preview helper that never resolves so strain-detail placeholders stay visible.
 struct DelayedPreviewAPI: StrainServicing {
-    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?) async throws -> RecommendationResult {
+    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> RecommendationResult {
         try await Task.sleep(for: .seconds(60))
         return .sample
     }
@@ -277,7 +309,7 @@ struct DelayedPreviewAPI: StrainServicing {
         return DoctorResult(doctors: [.sample], resolvedLocation: nil, source: "preview")
     }
 
-    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison {
+    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> StrainComparison {
         try await Task.sleep(for: .seconds(60))
         return StrainComparison.sample
     }
@@ -286,7 +318,8 @@ struct DelayedPreviewAPI: StrainServicing {
         strain: StrainProfile,
         ailments: [String],
         medications: [String],
-        reliefHistory: String
+        reliefHistory: String,
+        language: String
     ) async throws -> StrainDescription? {
         try await Task.sleep(for: .seconds(60))
         return StrainDescription.sample

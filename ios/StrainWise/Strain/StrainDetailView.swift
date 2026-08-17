@@ -232,7 +232,8 @@ struct StrainDetailView: View {
                 strain: profile,
                 ailments: ailments.ailments,
                 medications: medications.names,
-                reliefHistory: relief.summary
+                reliefHistory: relief.summary,
+                language: StrainAILanguage.preferred
             )
             tailoredDescription = result
         } catch {
