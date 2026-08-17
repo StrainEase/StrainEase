@@ -24,11 +24,12 @@ function fallbackTone(type?: string) {
  * Strain photo with graceful loading. Paints a skeleton block while the
  * image is in flight, falls back to a leaf icon when the source is
  * missing or fails to load. The URL is proxied through the
- * `cachedStrainImage` Firebase callable so repeat visits load from
- * Firebase Storage instead of re-hitting Leafly (which often 404s for
- * deprecated CDN paths). `key={src}` on the img element bumps the
- * loaded state back to false when the URL changes (e.g. strain page
- * navigates between two different strains).
+ * `cachedStrainImage` Firebase callable when available so repeat visits
+ * load from Firebase Storage instead of re-hitting Leafly (which often
+ * 404s for deprecated CDN paths); when the proxy fails, the browser
+ * falls back to the original Leafly URL automatically. `key={src}` on
+ * the img element bumps the loaded state back to false when the URL
+ * changes (e.g. strain page navigates between two different strains).
  */
 export function StrainImage({
   src,
@@ -46,8 +47,7 @@ export function StrainImage({
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const { url } = useStrainImage(src);
-  const resolvedUrl = url === undefined ? null : url;
-  const showFallback = !resolvedUrl || failedSrc === resolvedUrl;
+  const showFallback = !url || failedSrc === url;
   const tone = fallbackTone(type);
 
   // Reset the loaded flag when the resolved URL changes so the new image
@@ -55,7 +55,7 @@ export function StrainImage({
   useEffect(() => {
     setLoaded(false);
     setFailedSrc(null);
-  }, [resolvedUrl]);
+  }, [url]);
 
   if (showFallback) {
     return (
@@ -86,8 +86,8 @@ export function StrainImage({
         />
       )}
       <img
-        key={resolvedUrl ?? src}
-        src={resolvedUrl ?? src}
+        key={url ?? src}
+        src={url}
         alt={alt}
         className={cn(
           "h-full w-full object-contain transition-opacity duration-300",
@@ -95,7 +95,7 @@ export function StrainImage({
         )}
         onLoad={() => setLoaded(true)}
         onError={() => {
-          if (resolvedUrl) setFailedSrc(resolvedUrl);
+          if (url) setFailedSrc(url);
         }}
       />
     </div>
