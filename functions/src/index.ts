@@ -145,17 +145,17 @@ Rules:
 - The patient has also told us what medications they take and what has actually happened the last few times they used other strains (their relief log). Use both pieces of context where they help:
     * Medications: only mention a medication when there is a commonly cited interaction risk between cannabis and that specific drug (e.g. sedative load with benzodiazepines, blood-pressure effects with certain antihypertensives, CYP450 metabolism warnings with SSRIs / antipsychotics). Always phrase as "ask your clinician about combining with X" — never advise stopping a prescription. When in doubt, omit.
     * Relief log: when the patient has logged how previous strains went for these same ailments, use that history to calibrate "What it might do for you" — e.g. "Last time Northern Lights was too strong for your insomnia; this one leans similar, so start lower." If the relief log is empty, say nothing.
-- Keep each section body short (2-4 sentences). No markdown, no inner headings, no bullet lists inside a section.
+- Keep each section body short and easy to skim on a phone. Split each section into 2-4 short paragraphs (1-2 sentences each), separated by a single blank line, so it reads with breathing room instead of as a wall of text. No markdown, no inner headings, no bullet lists inside a section.
 - Keep general information present too — the page should still feel informative even if the strain only partially matches the patient's ailments. Roughly two-thirds of the body can be general, one-third tailored.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider. The "What to expect" section must include a short, practical caution (potency, timing, side-effect watch-out) and a gentle nudge to start low.
 - Respond with ONLY a single JSON object. No markdown, no text outside the JSON.
 
-JSON shape (all fields required):
+JSON shape (all fields required). Each body is 2-4 short paragraphs (1-2 sentences each), separated by a single "\\n\\n" so the client can render them with paragraph spacing:
 {
   "sections": [
-    {"heading": "Overview", "body": "2-4 sentences introducing the strain"},
-    {"heading": "What it might do for you", "body": "2-4 sentences tied to the patient's ailments, medications, and recent history with other strains"},
-    {"heading": "What to expect", "body": "2-4 sentences on practical considerations, including a caution to start low"}
+    {"heading": "Overview", "body": "2-4 short paragraphs introducing the strain"},
+    {"heading": "What it might do for you", "body": "2-4 short paragraphs honestly rating each of the patient's ailments against the strain, with mismatches called out plainly, and calibrated to medications + recent history with other strains"},
+    {"heading": "What to expect", "body": "2-4 short paragraphs on practical considerations, including a caution to start low"}
   ]
 }`;
 
@@ -500,6 +500,7 @@ export const compareStrains = onCall(
       strainNames?: unknown;
       condition?: unknown;
       prefs?: unknown;
+      language?: unknown;
     };
     const names = asStringArray(data.strainNames);
     if (names.length < 2 || names.length > 3) {
@@ -507,6 +508,7 @@ export const compareStrains = onCall(
     }
     const condition = asStringArray(data.condition);
     const prefs = parsePrefs(data.prefs);
+    const language = parseOutputLanguage(data.language);
 
     // Full profiles: Leafly + Weedmaps, Reddit quotes for the ailments,
     // and MiniMax fill-in when a name is missing from both catalogs.
@@ -517,7 +519,10 @@ export const compareStrains = onCall(
     );
 
     const content = await callMiniMax(MINIMAX_API_KEY.value(), [
-      { role: "system", content: COMPARE_SYSTEM_PROMPT },
+      {
+        role: "system",
+        content: withLanguageClause(COMPARE_SYSTEM_PROMPT, language),
+      },
       { role: "user", content: comparePrompt(strains, condition, prefs) },
     ]);
 
@@ -559,6 +564,7 @@ export const recommendStrainsForConditions = onCall(
       conditions?: unknown;
       potency?: unknown;
       prefs?: unknown;
+      language?: unknown;
     };
     const conditions = asStringArray(data.conditions);
     if (conditions.length === 0) {
@@ -573,6 +579,7 @@ export const recommendStrainsForConditions = onCall(
         ? potencyRaw
         : undefined;
     const prefs = parsePrefs(data.prefs);
+    const language = parseOutputLanguage(data.language);
 
     // Rank against full Leafly detail profiles (not the popular-list
     // summaries) so medical uses, CBD, lineage and side effects are present.
@@ -580,7 +587,10 @@ export const recommendStrainsForConditions = onCall(
     const detailed = await fetchProfiles(popular.map((p) => p.name));
 
     const content = await callMiniMax(MINIMAX_API_KEY.value(), [
-      { role: "system", content: RECOMMEND_SYSTEM_PROMPT },
+      {
+        role: "system",
+        content: withLanguageClause(RECOMMEND_SYSTEM_PROMPT, language),
+      },
       {
         role: "user",
         content: recommendPrompt(detailed, conditions, potency, prefs),
@@ -845,8 +855,54 @@ function parseDescription(
   };
 }
 
+/**
+ * Default language every AI-written response is rendered in. We pin this
+ * on the model so the output stays in the user's chosen language and
+ * does not drift into another language (e.g. random Chinese for strains
+ * with international names). Clients can override by passing a
+ * `language` field to the request, e.g. "Spanish" or "Japanese".
+ */
+const DEFAULT_OUTPUT_LANGUAGE = "English";
+
+/**
+ * Sanitize a `language` request field. We accept a short human-readable
+ * language name (e.g. "English", "Spanish", "Japanese") and reject
+ * anything that smells like prompt-injection: long strings, newlines,
+ * or non-letters. We deliberately keep the regex narrow so a malicious
+ * caller can't sneak instructions into the system prompt.
+ */
+function parseOutputLanguage(value: unknown): string {
+  if (typeof value !== "string") return DEFAULT_OUTPUT_LANGUAGE;
+  const trimmed = value.trim();
+  if (trimmed === "") return DEFAULT_OUTPUT_LANGUAGE;
+  if (trimmed.length > 40) return DEFAULT_OUTPUT_LANGUAGE;
+  if (/[\r\n]/.test(trimmed)) return DEFAULT_OUTPUT_LANGUAGE;
+  // Letters, spaces, hyphens, parentheses only — no quotes, `<`, `:`.
+  if (!/^[\p{L} ()'-]+$/u.test(trimmed)) return DEFAULT_OUTPUT_LANGUAGE;
+  return trimmed;
+}
+
+/**
+ * Append a pinned-language clause to a system prompt. The clause tells
+ * the model to write the entire response in the user's language and
+ * not switch into any other language (we have seen random Chinese and
+ * Korean show up for strains with international names).
+ */
+function withLanguageClause(base: string, language: string): string {
+  return (
+    `${base}\n\n` +
+    `Language pinning (do not skip):\n` +
+    `- Write the entire response in ${language}. Do not switch into any other language, even briefly, even for proper nouns, examples, or strain names that originated in another language. Transliterate or translate foreign-language quotes instead of copying them verbatim.`
+  );
+}
+
 /** Exposed for tests. */
-export const __testing = { normalizeDescriptionSections, DESCRIBE_SYSTEM_PROMPT };
+export const __testing = {
+  normalizeDescriptionSections,
+  DESCRIBE_SYSTEM_PROMPT,
+  parseOutputLanguage,
+  withLanguageClause,
+};
 
 /**
  * Generate a tailored, three-section description for a single strain.
@@ -873,6 +929,7 @@ export const describeStrainForUser = onCall(
       ailments?: unknown;
       medications?: unknown;
       reliefHistory?: unknown;
+      language?: unknown;
     };
     const strain = (data.strain ?? {}) as StrainProfile;
     const name =
@@ -901,10 +958,14 @@ export const describeStrainForUser = onCall(
       typeof data.reliefHistory === "string"
         ? data.reliefHistory.trim().slice(0, 800)
         : "";
+    const language = parseOutputLanguage(data.language);
     const safeStrain: StrainProfile = { ...strain, name };
 
     const content = await callMiniMax(MINIMAX_API_KEY.value(), [
-      { role: "system", content: DESCRIBE_SYSTEM_PROMPT },
+      {
+        role: "system",
+        content: withLanguageClause(DESCRIBE_SYSTEM_PROMPT, language),
+      },
       {
         role: "user",
         content: describePrompt(safeStrain, ailments, medications, reliefHistory),
