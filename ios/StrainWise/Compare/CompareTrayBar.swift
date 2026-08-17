@@ -187,6 +187,7 @@ struct CompareTrayBar: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Palette.primaryForeground)
                 .lineLimit(1)
+            NoteBadge(profile: StrainProfile(name: name, inKnowledgeBase: false), size: 12, compact: true)
             Button {
                 store.remove(name)
             } label: {

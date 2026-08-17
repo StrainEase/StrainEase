@@ -551,6 +551,7 @@ struct FindView: View {
                     Text(rec.strainName)
                         .font(.system(.title3, design: .serif))
                         .foregroundStyle(Palette.foreground)
+                    NoteBadge(profile: profile, size: 14)
                     Spacer(minLength: 8)
                     Image(systemName: "arrow.up.right")
                         .font(.system(size: 12, weight: .semibold))
@@ -675,6 +676,7 @@ private struct CompareChip: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Palette.primaryForeground)
                 .lineLimit(1)
+            NoteBadge(profile: StrainProfile(name: name, inKnowledgeBase: false), size: 12, compact: true)
             Button(action: onRemove) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .bold))

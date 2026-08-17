@@ -6,6 +6,7 @@ import type { StrainProfile } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
+import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import {
   listenToPublicNotes,
@@ -98,13 +99,14 @@ export function StrainDetailCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Heading className="text-lg font-semibold tracking-tight">
+              <Heading className="flex items-center gap-1.5 text-lg font-semibold tracking-tight">
                 <Link
                   to={`/strain/${slugify(strain.name)}`}
                   className="hover:text-primary"
                 >
                   {strain.name}
                 </Link>
+                <StrainNoteIndicator strainName={strain.name} />
               </Heading>
               {!strain.inKnowledgeBase && (
                 <Badge

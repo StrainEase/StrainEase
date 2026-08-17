@@ -1,4 +1,5 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
+import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { Badge } from "@/components/ui/badge";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
@@ -205,8 +206,9 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
         <Sparkles className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold tracking-tight">
+        <p className="flex items-center gap-1.5 truncate text-sm font-semibold tracking-tight">
           {strain.name}
+          <StrainNoteIndicator strainName={strain.name} />
         </p>
         {strain.thcRange && (
           <p className="font-mono text-[11px] tracking-wide text-muted-foreground">
