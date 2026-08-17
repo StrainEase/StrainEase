@@ -2,6 +2,7 @@ import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { Seo } from "@/components/Seo";
 import { StrainGrid } from "@/components/home/StrainGrid";
 import { Button } from "@/components/ui/button";
+import { useAilments } from "@/hooks/use-ailments";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { parseBrowseParams, sectionTitle, strainsFor } from "@/lib/home-sections";
@@ -15,10 +16,11 @@ export default function Browse() {
   const parsed = parseBrowseParams(section, ailment);
   const { popular, isLoading } = usePopularStrains();
   const recents = useRecentlyViewed();
+  const { names: ailments } = useAilments();
 
   if (!parsed) return <Navigate to="/" replace />;
 
-  const strains = strainsFor(parsed, popular, recents);
+  const strains = strainsFor(parsed, popular, recents, ailments);
   const title = sectionTitle(parsed);
 
   return (
@@ -49,7 +51,17 @@ export default function Browse() {
         <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
           {sectionTitle(parsed)}
         </h1>
-        {isLoading && strains.length === 0 ? (
+        {parsed.kind === "forYou" && ailments.length === 0 ? (
+          <div className="mt-12 rounded-2xl border border-border/70 bg-card px-6 py-10 text-center">
+            <p className="font-display text-xl tracking-tight">
+              Save a few symptoms to personalize this rail.
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+              Pick symptoms from your profile to see strains patients commonly
+              report for them.
+            </p>
+          </div>
+        ) : isLoading && strains.length === 0 ? (
           <div className="flex justify-center py-24">
             <Loader2 className="size-8 animate-spin text-primary" />
           </div>

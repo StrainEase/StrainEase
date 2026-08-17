@@ -1,6 +1,7 @@
 import { slugify } from "@/lib/saved-strains";
 import {
   applyCatalogPhotos,
+  matchAilments,
   matchingAilment,
   mergeCatalog,
 } from "@/lib/strain-catalog";
@@ -15,6 +16,7 @@ export type HomeSection =
   | { kind: "hybrid" }
   | { kind: "indica" }
   | { kind: "popular" }
+  | { kind: "forYou" }
   | { kind: "ailment"; name: string };
 
 export const HOME_AILMENTS = CONDITIONS;
@@ -31,6 +33,8 @@ export function sectionTitle(section: HomeSection): string {
       return "Indica";
     case "popular":
       return "Popular strains";
+    case "forYou":
+      return "Top picks for your symptoms";
     case "ailment":
       return section.name;
   }
@@ -39,6 +43,9 @@ export function sectionTitle(section: HomeSection): string {
 export function sectionHref(section: HomeSection): string {
   if (section.kind === "ailment") {
     return `/browse/ailment/${slugify(section.name)}`;
+  }
+  if (section.kind === "forYou") {
+    return "/browse/for-you";
   }
   return `/browse/${section.kind}`;
 }
@@ -56,9 +63,11 @@ export function parseBrowseParams(
     section === "sativa" ||
     section === "hybrid" ||
     section === "indica" ||
-    section === "popular"
+    section === "popular" ||
+    section === "for-you" ||
+    section === "forYou"
   ) {
-    return { kind: section };
+    return { kind: section === "for-you" ? "forYou" : section };
   }
   return null;
 }
@@ -67,6 +76,7 @@ export function strainsFor(
   section: HomeSection,
   popular: StrainProfile[],
   recents: StrainProfile[],
+  ailments: string[] = [],
 ): StrainProfile[] {
   const list = (() => {
     switch (section.kind) {
@@ -82,6 +92,12 @@ export function strainsFor(
         return matchingAilment(section.name, popular);
       case "popular":
         return mergeCatalog(popular);
+      case "forYou":
+        // Mirrors iOS HomeSection.forYou: rank strains against the patient's
+        // saved ailments and return the strongest matches first. Empty
+        // ailments means "no personalization yet" — callers should fall back
+        // to Popular rather than render the rail.
+        return matchAilments(ailments, popular);
     }
   })();
   return applyCatalogPhotos(list);
@@ -91,7 +107,8 @@ export function previewFor(
   section: HomeSection,
   popular: StrainProfile[],
   recents: StrainProfile[] = [],
+  ailments: string[] = [],
   limit = HOME_PREVIEW_LIMIT,
 ): StrainProfile[] {
-  return strainsFor(section, popular, recents).slice(0, limit);
+  return strainsFor(section, popular, recents, ailments).slice(0, limit);
 }

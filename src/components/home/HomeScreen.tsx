@@ -1,11 +1,48 @@
+import { AilmentCarousel } from "@/components/home/AilmentCarousel";
 import { StrainRail } from "@/components/home/StrainRail";
-import { HOME_FEATURED_STRAINS } from "@/lib/strain-catalog";
+import { useAilments } from "@/hooks/use-ailments";
+import { usePopularStrains } from "@/hooks/use-popular-strains";
+import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
+import {
+  HOME_AILMENTS,
+  HOME_PREVIEW_LIMIT,
+  previewFor,
+  sectionHref,
+} from "@/lib/home-sections";
 import { TIME_OF_DAY_SUBTITLE, timeOfDayHeadline } from "@/lib/time-of-day";
+import type { StrainProfile } from "@/lib/strain-profile";
 
-/** Pinned, hard-coded set of strains for the home rail. No API call —
- *  everything is sourced from `HOME_FEATURED_STRAINS` in the catalog. */
+/** Mirrors `ios/StrainWise/Home/HomeView.swift` row order:
+ *   hero → Top picks for your symptoms? → Popular strains → For your symptoms
+ *   (carousel) → Sativa → Hybrid → Indica → Recently viewed.
+ */
 export function HomeScreen() {
   const headline = timeOfDayHeadline();
+  const { popular } = usePopularStrains();
+  const recents = useRecentlyViewed();
+  const { names: savedAilments } = useAilments();
+
+  const hasSavedAilments = savedAilments.length > 0;
+  const forYou = hasSavedAilments
+    ? previewFor(
+        { kind: "forYou" },
+        popular,
+        recents,
+        savedAilments,
+        HOME_PREVIEW_LIMIT,
+      )
+    : [];
+  const popularPreview = previewFor({ kind: "popular" }, popular, recents);
+  const sativa = previewFor({ kind: "sativa" }, popular, recents);
+  const hybrid = previewFor({ kind: "hybrid" }, popular, recents);
+  const indica = previewFor({ kind: "indica" }, popular, recents);
+  const recentPreview = recents.slice(0, HOME_PREVIEW_LIMIT);
+
+  const ailmentsForCarousel = hasSavedAilments
+    ? savedAilments
+    : HOME_AILMENTS;
+  const ailmentPreview = (name: string): StrainProfile[] =>
+    previewFor({ kind: "ailment", name }, popular, recents);
 
   return (
     <div className="space-y-10">
@@ -21,11 +58,50 @@ export function HomeScreen() {
         </p>
       </div>
 
+      {hasSavedAilments && forYou.length > 0 && (
+        <StrainRail
+          title="Top picks for your symptoms"
+          strains={forYou}
+          seeMoreHref={sectionHref({ kind: "forYou" })}
+        />
+      )}
+
       <StrainRail
-        title="Featured strains"
-        strains={HOME_FEATURED_STRAINS}
-        seeMoreHref="/browse/popular"
+        title="Popular strains"
+        strains={popularPreview}
+        seeMoreHref={sectionHref({ kind: "popular" })}
       />
+
+      <AilmentCarousel
+        ailments={ailmentsForCarousel}
+        preview={ailmentPreview}
+        seeMoreHref={(name) => sectionHref({ kind: "ailment", name })}
+      />
+
+      <StrainRail
+        title="Sativa"
+        strains={sativa}
+        seeMoreHref={sectionHref({ kind: "sativa" })}
+      />
+      <StrainRail
+        title="Hybrid"
+        strains={hybrid}
+        seeMoreHref={sectionHref({ kind: "hybrid" })}
+      />
+      <StrainRail
+        title="Indica"
+        strains={indica}
+        seeMoreHref={sectionHref({ kind: "indica" })}
+      />
+
+      {recentPreview.length > 0 && (
+        <StrainRail
+          title="Recently viewed"
+          strains={recentPreview}
+          seeMoreHref={sectionHref({ kind: "recents" })}
+          emptyText="Open a strain and it'll land here."
+        />
+      )}
     </div>
   );
 }
