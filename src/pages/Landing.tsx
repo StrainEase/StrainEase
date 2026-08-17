@@ -674,7 +674,7 @@ export default function Landing() {
             </div>
             <p className="max-w-sm text-sm leading-6 text-muted-foreground">
               These are the strains patients are looking at most on Leafly
-              today — pulled live, no database to maintain. Compare any of them
+              today — pulled live, ee add the medical expertise. Compare any of them
               in the app.
             </p>
           </motion.div>
