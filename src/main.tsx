@@ -1,6 +1,7 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
+import { AgeGate } from "@/components/compliance/AgeGate";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
@@ -20,6 +21,12 @@ const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const StrainPage = lazy(() => import("./pages/Strain.tsx"));
 const TerpenePage = lazy(() => import("./pages/Terpene.tsx"));
 const DoctorsPage = lazy(() => import("./pages/Doctors.tsx"));
+const LegalPage = lazy(() => import("./pages/Legal.tsx"));
+const TermsPage = lazy(() => import("./pages/Terms.tsx"));
+const PrivacyPage = lazy(() => import("./pages/Privacy.tsx"));
+const MedicalDisclaimerPage = lazy(
+  () => import("./pages/MedicalDisclaimer.tsx"),
+);
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 function RouteLoading() {
@@ -74,66 +81,75 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <RouteSyncer />
         <KeyboardDismiss />
-        <Suspense fallback={<RouteLoading />}>
-          <Routes>
-            <Route path="/" element={<RootPage />} />
-            <Route
-              path="/auth"
-              element={<AuthPage redirectAfterAuth="/" />}
-            />
-            <Route
-              path="/browse/:section/:ailment"
-              element={
-                <RequireAuth>
-                  <Browse />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/browse/:section"
-              element={
-                <RequireAuth>
-                  <Browse />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth>
-                  <Dashboard />
-                </RequireAuth>
-              }
-            />
-            <Route path="/find/:rid" element={<Dashboard />} />
-            <Route path="/compare/:rid" element={<Dashboard />} />
-            <Route
-              path="/strain/:slug"
-              element={
-                <RequireAuth>
-                  <StrainPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/terpene/:slug"
-              element={
-                <RequireAuth>
-                  <TerpenePage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/doctors"
-              element={
-                <RequireAuth>
-                  <DoctorsPage />
-                </RequireAuth>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+        <AgeGate>
+          <Suspense fallback={<RouteLoading />}>
+            <Routes>
+              <Route path="/" element={<RootPage />} />
+              <Route
+                path="/auth"
+                element={<AuthPage redirectAfterAuth="/" />}
+              />
+              <Route
+                path="/browse/:section/:ailment"
+                element={
+                  <RequireAuth>
+                    <Browse />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/browse/:section"
+                element={
+                  <RequireAuth>
+                    <Browse />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <RequireAuth>
+                    <Dashboard />
+                  </RequireAuth>
+                }
+              />
+              <Route path="/find/:rid" element={<Dashboard />} />
+              <Route path="/compare/:rid" element={<Dashboard />} />
+              <Route
+                path="/strain/:slug"
+                element={
+                  <RequireAuth>
+                    <StrainPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/terpene/:slug"
+                element={
+                  <RequireAuth>
+                    <TerpenePage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/doctors"
+                element={
+                  <RequireAuth>
+                    <DoctorsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route path="/legal" element={<LegalPage />} />
+              <Route path="/legal/terms" element={<TermsPage />} />
+              <Route path="/legal/privacy" element={<PrivacyPage />} />
+              <Route
+                path="/legal/medical"
+                element={<MedicalDisclaimerPage />}
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </AgeGate>
       </BrowserRouter>
       <Toaster />
     </InstrumentationProvider>

@@ -192,3 +192,21 @@ export type DoctorResult = {
 export function findDoctors(args: DoctorQuery): Promise<DoctorResult> {
   return call<DoctorQuery, DoctorResult>("findDoctors", args);
 }
+
+/**
+ * Record the signed-in caller's age attestation on the server. Sets the
+ * matching custom claim so the AI callables can enforce it, and mirrors
+ * the attestation to Firestore for audit. Requires the caller to be
+ * signed in.
+ */
+export function setAgeVerified(args: {
+  region: string;
+  birthDate: string;
+  termsAccepted: boolean;
+  privacyAccepted: boolean;
+}): Promise<{ ok: true; region: string; expiresAt: number }> {
+  return call<typeof args, { ok: true; region: string; expiresAt: number }>(
+    "setAgeVerified",
+    args,
+  );
+}

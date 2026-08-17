@@ -2,9 +2,11 @@ import SwiftUI
 
 struct AccountView: View {
     @Environment(AuthSession.self) private var session
+    @Environment(AgeVerificationStore.self) private var ageVerification
     @Environment(\.dismiss) private var dismiss
     @Environment(AppNavigation.self) private var nav
     @State private var showSignOut = false
+    @State private var showResetAge = false
     @State private var draftName = ""
     @State private var didSave = false
 
@@ -67,8 +69,35 @@ struct AccountView: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 labeled("Email", session.user?.email ?? "Not on file")
                                 labeled("Account", "Same Firebase login as the web app")
+                                labeled(
+                                    "Age verified",
+                                    ageVerification.isVerified
+                                        ? "\(ageVerification.region?.label ?? "—") (\(ageVerification.region?.minimumAge ?? 21)+)"
+                                        : "Not on this device"
+                                )
                             }
                         }
+                        Button {
+                            showResetAge = true
+                        } label: {
+                            SWCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Reset age verification")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Palette.foreground)
+                                        Text("Use this on a shared device between users.")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Palette.mutedForeground)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Palette.mutedForeground)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
                         SWPrimaryButton(title: "Sign out", systemImage: "rectangle.portrait.and.arrow.right") {
                             showSignOut = true
                         }
@@ -89,6 +118,19 @@ struct AccountView: View {
             .confirmationDialog("Sign out of StrainEase?", isPresented: $showSignOut, titleVisibility: .visible) {
                 Button("Sign out", role: .destructive) { session.signOut() }
                 Button("Cancel", role: .cancel) {}
+            }
+            .confirmationDialog(
+                "Reset age verification?",
+                isPresented: $showResetAge,
+                titleVisibility: .visible
+            ) {
+                Button("Reset", role: .destructive) {
+                    ageVerification.reset()
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The next user of this device will need to verify their own date of birth.")
             }
             .onAppear {
                 draftName = session.user?.name ?? ""
@@ -182,6 +224,7 @@ struct AccountView: View {
 #Preview("Account") {
     AccountView()
         .environment(AuthSession.previewSignedIn)
+        .environment(AgeVerificationStore.preview())
         .environment(AppNavigation())
         .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
         .environment(SavedAilmentsStore.preview(["Anxiety"]))
