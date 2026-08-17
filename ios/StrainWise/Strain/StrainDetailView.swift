@@ -8,6 +8,9 @@ struct StrainDetailView: View {
     @State private var familyStrains: [StrainProfile] = []
     @State private var isLoadingFamily = false
     @State private var tailoredDescription: StrainDescription?
+    @State private var isLoadingTailoredDescription = false
+    @State private var tailoredLoadingMessageIndex = 0
+    @State private var tailoredLoadingRotationTask: Task<Void, Never>?
     @Environment(SavedStrainsStore.self) private var saved
     @Environment(SavedAilmentsStore.self) private var ailments
     @Environment(SavedMedicationsStore.self) private var medications
@@ -130,6 +133,8 @@ struct StrainDetailView: View {
     private var descriptionSection: some View {
         if let tailored = tailoredDescription {
             tailoredDescriptionSection(tailored)
+        } else if shouldFetchTailored, isLoadingTailoredDescription {
+            tailoredDescriptionLoading
         } else if let description = profile.description, !description.isEmpty {
             SWCard {
                 Text(description)
@@ -141,6 +146,40 @@ struct StrainDetailView: View {
             hydratingSection(.description)
         }
     }
+
+    private var tailoredDescriptionLoading: some View {
+        SWCard {
+            HStack(spacing: 10) {
+                ProgressView()
+                    .tint(Palette.primary)
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text(Self.tailoredLoadingMessages[tailoredLoadingMessageIndex])
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Palette.foreground)
+                }
+            }
+        }
+        .accessibilityIdentifier("strain.tailored-description.loading")
+        .accessibilityLabel(Self.tailoredLoadingMessages[tailoredLoadingMessageIndex])
+    }
+
+    /// Status messages rotated while the tailored description is being
+    /// generated. Mirrors the web `TAILORED_LOADING_MESSAGES` so both
+    /// surfaces stay in step.
+    static let tailoredLoadingMessages = [
+        "Loading strain data…",
+        "Cross referencing your symptoms…",
+        "Analyzing medications…",
+        "Looking at past strain experiences…",
+        "Almost done…",
+    ]
+
+    /// How long each status message stays on screen. Matches the web
+    /// `ROTATE_INTERVAL_MS` (1.6s) so a patient reading both surfaces
+    /// sees the same cadence.
+    private static let tailoredLoadingRotationSeconds: UInt64 = 1_600_000_000
 
     private func tailoredDescriptionSection(_ description: StrainDescription) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -178,8 +217,15 @@ struct StrainDetailView: View {
     /// never paint stale text over a fresh strain.
     private func fetchTailoredDescription() async {
         guard shouldFetchTailored else {
+            stopTailoredLoadingRotation()
             tailoredDescription = nil
             return
+        }
+        isLoadingTailoredDescription = true
+        startTailoredLoadingRotation()
+        defer {
+            isLoadingTailoredDescription = false
+            stopTailoredLoadingRotation()
         }
         do {
             let result = try await api.describe(
@@ -193,6 +239,31 @@ struct StrainDetailView: View {
             // Keep the static `profile.description` showing on failure.
             tailoredDescription = nil
         }
+    }
+
+    /// Reset to the first message and start cycling through
+    /// `tailoredLoadingMessages` while the fetch is in flight.
+    private func startTailoredLoadingRotation() {
+        tailoredLoadingRotationTask?.cancel()
+        tailoredLoadingMessageIndex = 0
+        let total = Self.tailoredLoadingMessages.count
+        let interval = Self.tailoredLoadingRotationSeconds
+        tailoredLoadingRotationTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: interval)
+                if Task.isCancelled { return }
+                await MainActor.run {
+                    tailoredLoadingMessageIndex =
+                        (tailoredLoadingMessageIndex + 1) % total
+                }
+            }
+        }
+    }
+
+    private func stopTailoredLoadingRotation() {
+        tailoredLoadingRotationTask?.cancel()
+        tailoredLoadingRotationTask = nil
+        tailoredLoadingMessageIndex = 0
     }
 
     private func hydrate() async {
