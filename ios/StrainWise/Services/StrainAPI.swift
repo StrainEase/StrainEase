@@ -13,6 +13,20 @@ protocol StrainServicing {
     func search(name: String) async throws -> StrainProfile?
     func popular() async throws -> [StrainProfile]
     func findDoctors(query: DoctorQuery) async throws -> DoctorResult
+
+    /// Generate a three-section, patient-tailored description for a
+    /// single strain. The middle section is written around the user's
+    /// saved ailments, with their medications and recent relief-log
+    /// history used to calibrate (caution-only on meds — never "stop
+    /// your prescription"). Returns nil when the server can't return
+    /// a valid shape — the caller should fall back to the static
+    /// `strain.description`.
+    func describe(
+        strain: StrainProfile,
+        ailments: [String],
+        medications: [String],
+        reliefHistory: String
+    ) async throws -> StrainDescription?
 }
 
 enum StrainAPIError: LocalizedError {
@@ -82,6 +96,65 @@ struct LiveStrainAPI: StrainServicing {
         if let zip = query.zip, !zip.isEmpty { payload["zip"] = zip }
         if let radius = query.radiusMiles { payload["radiusMiles"] = radius }
         return try await call("findDoctors", data: payload)
+    }
+
+    func describe(
+        strain: StrainProfile,
+        ailments: [String],
+        medications: [String],
+        reliefHistory: String
+    ) async throws -> StrainDescription? {
+        let trimmedName = strain.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return nil }
+        let cleanedAilments = ailments
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .prefix(16)
+        let cleanedMedications = medications
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .prefix(24)
+        let cleanedRelief = reliefHistory.trimmingCharacters(in: .whitespacesAndNewlines)
+        var payload: [String: Any] = [
+            "strain": strainDictionary(strain),
+            "ailments": Array(cleanedAilments),
+            "medications": Array(cleanedMedications),
+        ]
+        if !cleanedRelief.isEmpty {
+            payload["reliefHistory"] = String(cleanedRelief.prefix(800))
+        }
+        return try await callOptional("describeStrainForUser", data: payload)
+    }
+
+    /// Encode the strain into a plain `[String: Any]` so the backend
+    /// gets the same shape it gets from the web client. Mirrors
+    /// `StrainProfile` only for the fields `describeStrainPayload` on
+    /// the backend actually reads.
+    private func strainDictionary(_ strain: StrainProfile) -> [String: Any] {
+        var out: [String: Any] = [
+            "name": strain.name,
+            "inKnowledgeBase": strain.inKnowledgeBase,
+        ]
+        if let type = strain.type { out["type"] = type.rawValue }
+        if let thc = strain.thcRange { out["thcRange"] = thc }
+        if let cbd = strain.cbdRange, cbd != "<1%" { out["cbdRange"] = cbd }
+        if let lineage = strain.lineage { out["lineage"] = lineage }
+        if let terpenes = strain.terpenes {
+            out["terpenes"] = terpenes.map { ["name": $0.name, "profile": $0.profile] }
+        }
+        if let uses = strain.medicalUses { out["medicalUses"] = uses }
+        if let effects = strain.effects {
+            out["effects"] = effects.map { ["name": $0.name, "intensity": $0.intensity] }
+        }
+        if let sides = strain.sideEffects { out["sideEffects"] = sides }
+        if let description = strain.description { out["description"] = description }
+        if let notes = strain.communityNotes {
+            out["communityNotes"] = notes.map { ["source": $0.source, "text": $0.text] }
+        }
+        if let imageUrl = strain.imageUrl { out["imageUrl"] = imageUrl }
+        if let rating = strain.leaflyRating { out["leaflyRating"] = rating }
+        if let count = strain.leaflyReviewCount { out["leaflyReviewCount"] = count }
+        return out
     }
 
     private func call<T: Decodable>(_ name: String, data: [String: Any]) async throws -> T {
@@ -161,6 +234,15 @@ struct PreviewStrainAPI: StrainServicing {
         StrainComparison.sample
     }
 
+    func describe(
+        strain: StrainProfile,
+        ailments: [String],
+        medications: [String],
+        reliefHistory: String
+    ) async throws -> StrainDescription? {
+        StrainDescription.sample
+    }
+
 }
 
 /// Preview helper that never resolves so strain-detail placeholders stay visible.
@@ -185,6 +267,17 @@ struct DelayedPreviewAPI: StrainServicing {
     }
 
     func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison {
-        StrainComparison.sample
+        try await Task.sleep(for: .seconds(60))
+        return StrainComparison.sample
+    }
+
+    func describe(
+        strain: StrainProfile,
+        ailments: [String],
+        medications: [String],
+        reliefHistory: String
+    ) async throws -> StrainDescription? {
+        try await Task.sleep(for: .seconds(60))
+        return StrainDescription.sample
     }
 }

@@ -125,6 +125,15 @@ private struct StubCompareAPI: StrainServicing {
     func findDoctors(query: DoctorQuery) async throws -> DoctorResult {
         DoctorResult(doctors: [.sample], resolvedLocation: nil, source: "test")
     }
+
+    func describe(
+        strain: StrainProfile,
+        ailments: [String],
+        medications: [String],
+        reliefHistory: String
+    ) async throws -> StrainDescription? {
+        .sample
+    }
 }
 
 private struct CompareFailure: LocalizedError {

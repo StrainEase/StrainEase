@@ -7,8 +7,10 @@ struct StrainDetailView: View {
     @State private var activeTerpene: String?
     @State private var familyStrains: [StrainProfile] = []
     @State private var isLoadingFamily = false
+    @State private var tailoredDescription: StrainDescription?
     @Environment(SavedStrainsStore.self) private var saved
     @Environment(SavedAilmentsStore.self) private var ailments
+    @Environment(SavedMedicationsStore.self) private var medications
     @Environment(RecentlyViewedStore.self) private var recents
     @Environment(ReliefLogStore.self) private var relief
     @Environment(AppNavigation.self) private var nav
@@ -26,6 +28,10 @@ struct StrainDetailView: View {
     private var pending: Set<StrainHydrationSection> {
         isHydrating ? profile.pendingHydrationSections : []
     }
+    /// `true` only when the user has saved ailments AND the AI
+    /// tailored-description endpoint should be invoked. Without saved
+    /// ailments the static `profile.description` is the better surface.
+    private var shouldFetchTailored: Bool { !ailments.ailments.isEmpty }
 
     var body: some View {
         ZStack {
@@ -33,16 +39,7 @@ struct StrainDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header
-                    if let description = profile.description, !description.isEmpty {
-                        SWCard {
-                            Text(description)
-                                .font(.system(size: 16))
-                                .foregroundStyle(Palette.foreground)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    } else if pending.contains(.description) {
-                        hydratingSection(.description)
-                    }
+                    descriptionSection
                     if pending.contains(.dayNight) {
                         hydratingSection(.dayNight)
                     } else {
@@ -115,6 +112,86 @@ struct StrainDetailView: View {
         .task(id: profile.slug) {
             recents.record(profile)
             await hydrate()
+        }
+        .task(id: profile.slug) {
+            await fetchTailoredDescription()
+        }
+        .onChange(of: ailments.ailments) { _, _ in
+            Task { await fetchTailoredDescription() }
+        }
+    }
+
+    /// The visible description block. Prefers the patient-tailored
+    /// three-section AI writeup when the user has saved ailments;
+    /// otherwise falls back to the static `profile.description`; while
+    /// the tailored fetch is in flight for the first time we keep
+    /// showing the static description so the section never blanks.
+    @ViewBuilder
+    private var descriptionSection: some View {
+        if let tailored = tailoredDescription {
+            tailoredDescriptionSection(tailored)
+        } else if let description = profile.description, !description.isEmpty {
+            SWCard {
+                Text(description)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Palette.foreground)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else if pending.contains(.description) {
+            hydratingSection(.description)
+        }
+    }
+
+    private func tailoredDescriptionSection(_ description: StrainDescription) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("Tailored to your symptoms")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.0)
+                    .textCase(.uppercase)
+            }
+            .foregroundStyle(Palette.primary)
+
+            ForEach(description.sections, id: \.heading) { section in
+                SWCard {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(section.heading)
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(1.0)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.mutedForeground)
+                        Text(section.body)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Palette.foreground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("strain.tailored-description")
+    }
+
+    /// Fetch the patient-tailored description. Skipped entirely when
+    /// the user has no saved ailments. Aborts on input change so we
+    /// never paint stale text over a fresh strain.
+    private func fetchTailoredDescription() async {
+        guard shouldFetchTailored else {
+            tailoredDescription = nil
+            return
+        }
+        do {
+            let result = try await api.describe(
+                strain: profile,
+                ailments: ailments.ailments,
+                medications: medications.names,
+                reliefHistory: relief.summary
+            )
+            tailoredDescription = result
+        } catch {
+            // Keep the static `profile.description` showing on failure.
+            tailoredDescription = nil
         }
     }
 

@@ -7,6 +7,7 @@ enum HomeSection: Hashable, Identifiable {
     case indica
     case ailment(String)
     case popular
+    case forYou
 
     var id: String {
         switch self {
@@ -16,6 +17,7 @@ enum HomeSection: Hashable, Identifiable {
         case .indica: "indica"
         case .ailment(let name): "ailment-\(name)"
         case .popular: "popular"
+        case .forYou: "for-you"
         }
     }
 
@@ -27,6 +29,7 @@ enum HomeSection: Hashable, Identifiable {
         case .indica: "Indica"
         case .ailment(let name): name
         case .popular: "Popular strains"
+        case .forYou: "Top picks for your symptoms"
         }
     }
 }
@@ -38,7 +41,13 @@ final class HomeModel {
     var isLoading = false
     var errorMessage: String?
 
-    let ailments = Conditions.catalog
+    /// The signed-in user's saved ailments. When non-empty, the home
+    /// page is tailored: a "Top picks for your symptoms" rail appears
+    /// at the top and the ailment carousel drops the static catalog
+    /// in favor of the user's actual list. Empty for signed-out users
+    /// and when nothing has been saved yet.
+    var savedAilments: [String] = []
+
     let previewLimit = 6
 
     @ObservationIgnored private let api: any StrainServicing
@@ -61,6 +70,20 @@ final class HomeModel {
         isLoading = false
     }
 
+    func updateSavedAilments(_ next: [String]) {
+        guard next != savedAilments else { return }
+        savedAilments = next
+    }
+
+    /// Ailments shown by the carousel: user's saved list when present,
+    /// otherwise the static catalog. Recomputed so the carousel
+    /// updates instantly when savedAilments changes.
+    var ailmentsForCarousel: [String] {
+        savedAilments.isEmpty ? Conditions.catalog : savedAilments
+    }
+
+    var hasSavedAilments: Bool { !savedAilments.isEmpty }
+
     func strains(for section: HomeSection) -> [StrainProfile] {
         switch section {
         case .recents:
@@ -75,6 +98,8 @@ final class HomeModel {
             StrainCatalog.matching(ailment: name, live: popular)
         case .popular:
             StrainCatalog.merge(popular)
+        case .forYou:
+            StrainCatalog.matching(ailments: savedAilments, live: popular, limit: previewLimit)
         }
     }
 

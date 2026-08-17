@@ -86,6 +86,41 @@ export function recommendStrains(args: {
   );
 }
 
+/** One of the three sections returned by describeStrainForUser. */
+export type StrainDescriptionSection = {
+  heading: string;
+  body: string;
+};
+
+/**
+ * Three-section description payload. Always exactly three sections:
+ *   - "Overview"
+ *   - "What it might do for you"
+ *   - "What to expect"
+ */
+export type StrainDescription = {
+  sections: [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection];
+};
+
+/**
+ * Generate a three-section, patient-tailored description for a single
+ * strain. The middle section is written around the patient's saved
+ * ailments, with medications and recent relief-log history used to
+ * calibrate (caution-only on meds — never "stop your prescription").
+ * Surrounding sections stay mostly general. The function is auth-gated
+ * on the backend so the saved ailments are not exposed to guest
+ * traffic, but it will also rate-limit guest callers.
+ */
+export function describeStrainForUser(args: {
+  strain: StrainProfile;
+  ailments: string[];
+  medications?: string[];
+  /** Pre-summarized relief log prose, newest first. Backend caps at 800 chars. */
+  reliefHistory?: string;
+}): Promise<StrainDescription> {
+  return call<typeof args, StrainDescription>("describeStrainForUser", args);
+}
+
 /** Result for a cached strain image request. */
 export type CachedStrainImage = {
   url: string;

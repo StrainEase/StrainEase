@@ -2,6 +2,10 @@ import { slugify } from "./slug";
 import type { StrainProfile, StrainType } from "./strain-profile";
 import { matchesCondition } from "./strain-ui";
 
+/** Cap used by Home rails — mirrored from `home-sections.ts` to avoid
+ *  a circular import between the two files. */
+const HOME_PREVIEW_LIMIT = 6;
+
 type CatalogEntry = {
   name: string;
   type: StrainType;
@@ -387,4 +391,46 @@ export function matchingAilment(
     matchesCondition(profile.medicalUses, key),
   );
   return hits.length === 0 ? combined.slice(0, 8) : hits;
+}
+
+/**
+ * Score every strain against the patient's saved ailments and return
+ * the strongest matches first. A strain that reports itself for
+ * multiple saved ailments ranks higher than one that reports itself
+ * for only one, so the patient sees the "covers the most ground"
+ * picks at the top of the rail.
+ *
+ * Returns an empty array when no ailments are given — callers should
+ * always treat the empty case as "don't personalize, fall back to
+ * Popular".
+ */
+export function matchAilments(
+  ailments: string[],
+  live: StrainProfile[],
+  limit = HOME_PREVIEW_LIMIT,
+): StrainProfile[] {
+  const cleaned = ailments
+    .map((a) => a.trim())
+    .filter((a) => a !== "");
+  if (cleaned.length === 0) return [];
+
+  const combined = applyCatalogPhotos(uniqueProfiles([...live, ...CATALOG]));
+
+  type Scored = { profile: StrainProfile; score: number };
+  const scored: Scored[] = [];
+  for (const profile of combined) {
+    const uses = profile.medicalUses ?? [];
+    let score = 0;
+    for (const ailment of cleaned) {
+      if (matchesCondition(uses, ailment)) score += 1;
+    }
+    if (score > 0) scored.push({ profile, score });
+  }
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    // Stable tie-break: alphabetical so the order doesn't shuffle on
+    // every render.
+    return a.profile.name.localeCompare(b.profile.name);
+  });
+  return scored.slice(0, limit).map((entry) => entry.profile);
 }

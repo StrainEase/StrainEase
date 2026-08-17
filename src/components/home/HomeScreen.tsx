@@ -1,7 +1,9 @@
 import { AilmentCarousel } from "@/components/home/AilmentCarousel";
 import { StrainRail } from "@/components/home/StrainRail";
+import { matchAilments } from "@/lib/strain-catalog";
 import {
   HOME_AILMENTS,
+  HOME_PREVIEW_LIMIT,
   previewFor,
   sectionHref,
   sectionTitle,
@@ -13,9 +15,15 @@ import { TIME_OF_DAY_SUBTITLE, timeOfDayHeadline } from "@/lib/time-of-day";
 export function HomeScreen({
   popular,
   recents,
+  ailments = [],
 }: {
   popular: StrainProfile[];
   recents: StrainProfile[];
+  /** Signed-in user's saved ailments. When non-empty the home page is
+   *  tailored to them: a "Top picks for your symptoms" rail appears at
+   *  the top and the ailment carousel drops the static catalog in favor
+   *  of the user's actual list. */
+  ailments?: string[];
 }) {
   const rail = (
     section: Exclude<HomeSection, { kind: "ailment" | "recents" }>,
@@ -28,6 +36,9 @@ export function HomeScreen({
   );
 
   const headline = timeOfDayHeadline();
+
+  const tailored = ailments.length > 0 ? matchAilments(ailments, popular) : [];
+  const ailmentList = ailments.length > 0 ? ailments : HOME_AILMENTS;
 
   return (
     <div className="space-y-10">
@@ -43,10 +54,17 @@ export function HomeScreen({
         </p>
       </div>
 
+      {tailored.length > 0 && (
+        <StrainRail
+          title="Top picks for your symptoms"
+          strains={tailored.slice(0, HOME_PREVIEW_LIMIT)}
+        />
+      )}
+
       {rail({ kind: "popular" })}
 
       <AilmentCarousel
-        ailments={HOME_AILMENTS}
+        ailments={ailmentList}
         preview={(name) => previewFor({ kind: "ailment", name }, popular)}
       />
 
@@ -60,7 +78,7 @@ export function HomeScreen({
         seeMoreHref={
           recents.length > 0 ? sectionHref({ kind: "recents" }) : undefined
         }
-        emptyText="Open a strain and it’ll land here."
+        emptyText="Open a strain and it'll land here."
       />
     </div>
   );

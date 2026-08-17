@@ -348,3 +348,44 @@ struct StrainComparison: Codable, Hashable, Sendable {
         resultId: nil
     )
 }
+
+/// One section of the patient-tailored strain description returned by
+/// `describeStrainForUser`. Always rendered as a small block with an
+/// eyebrow heading and a prose body.
+struct StrainDescriptionSection: Codable, Hashable, Sendable {
+    var heading: String
+    var body: String
+}
+
+/// Three-section, patient-tailored description for a single strain.
+/// Always exactly three sections:
+///   - "Overview"
+///   - "What it might do for you"
+///   - "What to expect"
+struct StrainDescription: Codable, Hashable, Sendable {
+    var sections: [StrainDescriptionSection]
+
+    init(sections: [StrainDescriptionSection]) {
+        precondition(sections.count == 3, "StrainDescription must have exactly 3 sections.")
+        self.sections = sections
+    }
+
+    var overview: StrainDescriptionSection { sections[0] }
+    var tailored: StrainDescriptionSection { sections[1] }
+    var expectations: StrainDescriptionSection { sections[2] }
+
+    static let sample = StrainDescription(sections: [
+        StrainDescriptionSection(
+            heading: "Overview",
+            body: "A classic daytime-leaning hybrid from the West Coast. Berry- and herbal-leaning aroma with a reputation for a calm, clear-headed lift."
+        ),
+        StrainDescriptionSection(
+            heading: "What it might do for you",
+            body: "Reported by patients for chronic pain, stress, and depression — useful when symptoms are dragging you down and you still need to stay functional."
+        ),
+        StrainDescriptionSection(
+            heading: "What to expect",
+            body: "Onset is gradual; expect two to three hours of effect. Start with a small amount if you're THC-sensitive, and check in with how you feel before taking more."
+        ),
+    ])
+}
