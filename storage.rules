@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Public, cached strain images. The backend uploads Leafly /
+    // Weedmaps image bytes here with public-read ACL and returns the
+    // public URL to the browser. No client writes happen — only the
+    // Cloud Functions admin SDK writes here.
+    match /strain-images/{file=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Default-deny everything else. We don't use Storage for anything
+    // besides strain images today.
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
