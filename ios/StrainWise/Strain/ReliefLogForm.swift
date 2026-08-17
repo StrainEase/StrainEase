@@ -15,8 +15,11 @@ struct ReliefLogForm: View {
             Button(open ? "Cancel" : "How did this go?") {
                 open.toggle()
             }
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(Palette.primary)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(Palette.primaryForeground)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Palette.primary, in: Capsule())
             .accessibilityLabel(open ? "Cancel relief log" : "Log how this strain went")
 
             if open {

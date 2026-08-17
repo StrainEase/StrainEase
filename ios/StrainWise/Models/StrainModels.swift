@@ -69,11 +69,15 @@ extension RedditSource: Codable {
 struct CommunityNote: Codable, Hashable, Sendable, Identifiable {
     var source: String
     var text: String
+    /// Backend-supplied source tag (`leafly`, `weedmaps`, `reddit`,
+    /// `other`). Falls back to a heuristic off the `source` string when
+    /// the backend omits it (older profiles + preview data).
+    var kind: String?
 
     var id: String { "\(source)|\(text.prefix(80))" }
 
     var isReddit: Bool {
-        source.lowercased().contains("reddit")
+        resolvedKind == "reddit"
     }
 
     /// Rating aggregates and site blurbs — not individual patient comments.
@@ -84,6 +88,18 @@ struct CommunityNote: Codable, Hashable, Sendable, Identifiable {
         }
         return text.trimmingCharacters(in: .whitespacesAndNewlines).contains("★")
             && text.range(of: #"^\d+(?:\.\d+)?★"#, options: .regularExpression) != nil
+    }
+
+    /// Tag used for tab filtering. Prefers the backend value; falls
+    /// back to matching the `source` string so older profiles without
+    /// `kind` still split correctly across tabs.
+    var resolvedKind: String {
+        if let kind, !kind.isEmpty { return kind.lowercased() }
+        let s = source.lowercased()
+        if s.contains("reddit") { return "reddit" }
+        if s.contains("weedmaps") { return "weedmaps" }
+        if s.contains("leafly") { return "leafly" }
+        return "other"
     }
 }
 

@@ -110,7 +110,7 @@ final class FindModel {
         lookupError = nil
         defer { isLookingUp = false }
         do {
-            if let found = try await api.search(name: name) {
+            if let found = try await api.search(name: name, conditions: ailments) {
                 return found
             }
             lookupError = "No profile for “\(name)” yet."
