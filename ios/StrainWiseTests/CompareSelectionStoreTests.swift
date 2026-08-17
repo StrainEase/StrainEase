@@ -101,6 +101,32 @@ final class CompareSelectionStoreTests: XCTestCase {
         XCTAssertFalse(store.isComparing)
         XCTAssertEqual(store.compareError, "Offline")
     }
+
+    func testSelectionEditsClearStaleCompareError() {
+        let store = CompareSelectionStore()
+        store.add("Blue Dream")
+        store.add("OG Kush")
+        store.compareError = "Previous run failed"
+
+        store.remove("Blue Dream")
+        XCTAssertNil(store.compareError, "remove should clear stale error")
+
+        store.compareError = "Another failure"
+        store.toggle("OG Kush")
+        XCTAssertNil(store.compareError, "toggle should clear stale error")
+
+        store.compareError = "Yet another"
+        store.add("Gelato")
+        XCTAssertNil(store.compareError, "add should clear stale error")
+
+        store.compareError = "Still failing"
+        store.setNames(["Sour Diesel", "Northern Lights"])
+        XCTAssertNil(store.compareError, "setNames should clear stale error")
+
+        store.compareError = "Worse"
+        store.clear()
+        XCTAssertNil(store.compareError, "clear should clear stale error")
+    }
 }
 
 private struct StubCompareAPI: StrainServicing {
@@ -140,4 +166,35 @@ private struct CompareFailure: LocalizedError {
     let message: String
 
     var errorDescription: String? { message }
+}
+
+final class LiveStrainAPIFriendlyMessageTests: XCTestCase {
+    func testPrefersFirebaseFunctionsServerMessage() {
+        // Mimic the shape Firebase Functions v2 NSErrors carry: the actual
+        // server text lives in userInfo["message"]. The generic
+        // NSLocalizedDescription is "The operation couldn't be completed (…)"
+        // and is useless to end users.
+        let error = NSError(
+            domain: "FIRFunctionsErrorDomain",
+            code: 5,
+            userInfo: [
+                "NSLocalizedDescription": "The operation couldn't be completed (FIRFunctionsErrorDomain code 5.)",
+                "message": "Select 2–3 strains to compare.",
+            ]
+        )
+
+        XCTAssertEqual(LiveStrainAPI.friendlyMessage(from: error), "Select 2–3 strains to compare.")
+    }
+
+    func testFallsBackToNSLocalizedDescription() {
+        let error = NSError(
+            domain: "SomeDomain",
+            code: 1,
+            userInfo: [
+                "NSLocalizedDescription": "Couldn't reach Leafly.",
+            ]
+        )
+
+        XCTAssertEqual(LiveStrainAPI.friendlyMessage(from: error), "Couldn't reach Leafly.")
+    }
 }

@@ -106,6 +106,13 @@ struct CompareTrayBar: View {
                 .padding(.vertical, 2)
             }
 
+            // Surface the same `compareError` that drives the haptic so the
+            // user actually sees what's wrong. `.sensoryFeedback(.error,
+            // trigger:)` by itself only buzzes, easy to miss entirely.
+            if let error = store.compareError {
+                SWErrorBanner(message: error)
+            }
+
             Button {
                 Task {
                     await store.runCompare(

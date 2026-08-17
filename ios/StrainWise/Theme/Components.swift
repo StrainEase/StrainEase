@@ -220,6 +220,33 @@ struct TypeBadge: View {
     }
 }
 
+/// Inline error banner. Same surface style as the original
+/// `errorBanner` helper that used to live inside `FindView`, promoted
+/// to a shared component so the floating `CompareTrayBar` and the
+/// inline Find compare tray can both surface their `compareError`
+/// instead of firing only an invisible error haptic.
+struct SWErrorBanner: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Palette.destructive)
+            Text(message)
+                .font(.system(size: 14))
+                .foregroundStyle(Palette.foreground)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.destructive.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Palette.destructive.opacity(0.25), lineWidth: 1)
+        )
+    }
+}
+
 struct Eyebrow: View {
     let text: String
 

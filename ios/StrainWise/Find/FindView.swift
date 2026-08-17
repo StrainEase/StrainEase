@@ -442,6 +442,9 @@ struct FindView: View {
             }
             .disabled(!canRun)
             .opacity(canRun || compareStore.isComparing ? 1 : 0.55)
+            if let error = compareStore.compareError {
+                SWErrorBanner(message: error)
+            }
         }
     }
 
@@ -619,21 +622,7 @@ struct FindView: View {
     }
 
     private func errorBanner(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(Palette.destructive)
-            Text(text)
-                .font(.system(size: 14))
-                .foregroundStyle(Palette.foreground)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.destructive.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Palette.destructive.opacity(0.25), lineWidth: 1)
-        )
+        SWErrorBanner(message: text)
     }
 
     private func lookup() async {
