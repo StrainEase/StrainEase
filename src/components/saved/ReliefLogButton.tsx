@@ -15,9 +15,13 @@ const FITS: { value: ReliefFit; label: string }[] = [
 export function ReliefLogButton({
   strainName,
   conditions = [],
+  variant = "link",
 }: {
   strainName: string;
   conditions?: string[];
+  /** "link" is the inline trigger used in lists; "button" is the full-width
+   * trigger used on the strain detail page (matches iOS ReliefLogForm). */
+  variant?: "link" | "button";
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -56,13 +60,24 @@ export function ReliefLogButton({
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="cursor-pointer text-xs font-medium text-primary hover:underline"
-      >
-        {open ? "Cancel" : "How did this go?"}
-      </button>
+      {variant === "button" ? (
+        <Button
+          type="button"
+          variant={open ? "outline" : "default"}
+          onClick={() => setOpen((v) => !v)}
+          className="w-full cursor-pointer rounded-full"
+        >
+          {open ? "Cancel" : "How did this go?"}
+        </Button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="cursor-pointer text-xs font-medium text-primary hover:underline"
+        >
+          {open ? "Cancel" : "How did this go?"}
+        </button>
+      )}
       {open && (
         <div className="mt-3 space-y-3 rounded-xl border border-border/70 bg-background p-3">
           <div className="flex flex-wrap gap-1.5">

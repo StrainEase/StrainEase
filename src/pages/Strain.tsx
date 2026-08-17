@@ -287,9 +287,9 @@ export default function Strain() {
               <>
                 <div className="rounded-2xl border border-border/70 bg-card p-6">
                   <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    How did this go?
+                    Relief log
                   </p>
-                  <ReliefLogButton strainName={profile.name} />
+                  <ReliefLogButton strainName={profile.name} variant="button" />
                   {logs.filter(
                     (log) =>
                       log.strainName.trim().toLowerCase() ===
