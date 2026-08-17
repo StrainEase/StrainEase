@@ -267,6 +267,23 @@ function toProfile(entry: CatalogEntry): StrainProfile {
 
 export const CATALOG: StrainProfile[] = ENTRIES.map(toProfile);
 
+/** Six strains pinned to the homescreen rail. Pulled from `CATALOG` so the
+ *  photos, types, THC ranges, and medical uses stay in sync with the curated
+ *  set. Picking by name (not index) keeps the list stable even if `CATALOG`
+ *  is reordered. Order here is the order users see on the home page. */
+const HOME_FEATURED_NAMES = [
+  "Blue Dream",
+  "Granddaddy Purple",
+  "Sour Diesel",
+  "Jack Herer",
+  "Gelato",
+  "Northern Lights",
+] as const;
+
+export const HOME_FEATURED_STRAINS: StrainProfile[] = HOME_FEATURED_NAMES.flatMap(
+  (name) => CATALOG.filter((profile) => profile.name === name),
+);
+
 // Leafly popular-list names that don't match our catalog slugs, plus a few
 // current popular strains we don't keep in the browse set. Used so homepage
 // cards can show medical uses instead of recreational effects.
