@@ -201,15 +201,42 @@ struct StrainDetailView: View {
                             .tracking(1.0)
                             .textCase(.uppercase)
                             .foregroundStyle(Palette.mutedForeground)
-                        Text(section.body)
-                            .font(.system(size: 15))
-                            .foregroundStyle(Palette.foreground)
-                            .fixedSize(horizontal: false, vertical: true)
+                        tailoredDescriptionBody(section.body)
                     }
                 }
             }
         }
         .accessibilityIdentifier("strain.tailored-description")
+    }
+
+    /// Render the section body as a stack of short paragraphs so the
+    /// description reads with breathing room on a phone instead of as a
+    /// wall of text. The model separates paragraphs with blank lines
+    /// ("\n\n"); we trim each chunk and drop empties so a stray blank
+    /// doesn't add a phantom paragraph.
+    @ViewBuilder
+    private func tailoredDescriptionBody(_ body: String) -> some View {
+        let paragraphs = body
+            .components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if paragraphs.isEmpty {
+            // Model returned no blank lines. Fall back to the raw body
+            // so we never render an empty section silently.
+            Text(body)
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.foreground)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, paragraph in
+                    Text(paragraph)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Palette.foreground)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
     }
 
     /// Fetch the patient-tailored description. Skipped entirely when

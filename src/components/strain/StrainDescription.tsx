@@ -33,14 +33,35 @@ export function StrainDescriptionView({
 }
 
 function DescriptionSection({ section }: { section: StrainDescriptionSection }) {
+  // Each section body is 2-4 short paragraphs separated by blank lines
+  // ("\n\n"). Render them as their own <p> so the description breathes
+  // on a phone instead of running together as one wall of text. If the
+  // model skipped the breaks, fall back to a single paragraph so we
+  // never silently drop content.
+  const paragraphs = section.body
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
   return (
     <div className="rounded-xl border border-border/60 bg-background px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {section.heading}
       </p>
-      <p className="mt-1.5 text-sm leading-6 text-foreground/85">
-        {section.body}
-      </p>
+      {paragraphs.length === 0 ? (
+        <p className="mt-1.5 text-sm leading-6 text-foreground/85">
+          {section.body}
+        </p>
+      ) : (
+        paragraphs.map((paragraph, idx) => (
+          <p
+            key={idx}
+            className={`text-sm leading-6 text-foreground/85 ${idx === 0 ? "mt-1.5" : "mt-3"}`}
+          >
+            {paragraph}
+          </p>
+        ))
+      )}
     </div>
   );
 }

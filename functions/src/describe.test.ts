@@ -151,3 +151,27 @@ describe("describePrompt", () => {
     expect(prompt).toContain("Atorvastatin");
   });
 });
+
+describe("DESCRIBE_SYSTEM_PROMPT", () => {
+  const { DESCRIBE_SYSTEM_PROMPT: prompt } = __testing;
+
+  test("requires honest per-ailment evaluation, including calling out mismatches", () => {
+    // Pin the honesty clause so future edits cannot soften it back into
+    // "skew positive" framing. The model must be free to say "this strain
+    // is not a typical match for X" rather than fabricate a connection
+    // when the strain's profile does not line up with a saved ailment.
+    expect(prompt).toContain("honestly evaluate");
+    expect(prompt.toLowerCase()).toContain("does not fit");
+    expect(prompt.toLowerCase()).toContain("do not skew positive");
+  });
+
+  test("requires short paragraphs separated by blank lines so each section reads on a phone", () => {
+    // Pin the breathing-room clause: each section's body should be 2-4
+    // short paragraphs separated by blank lines, not a wall of text.
+    // The renderers split on "\n\n" so the model must use that exact
+    // delimiter.
+    expect(prompt.toLowerCase()).toContain("easy to skim");
+    expect(prompt).toContain("1-2 sentences");
+    expect(prompt).toContain("\\n\\n");
+  });
+});
