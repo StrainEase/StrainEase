@@ -34,24 +34,18 @@ struct NoteBadge: View {
 
     var body: some View {
         if count > 0 {
-            HStack(spacing: 3) {
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: size - 2, weight: .semibold))
-                if count > 1 {
-                    Text("\(count)")
-                        .font(.system(size: size - 3, weight: .semibold, design: .rounded))
-                }
-            }
-            .foregroundStyle(Palette.primary)
-            .padding(.horizontal, compact ? 6 : 8)
-            .padding(.vertical, compact ? 3 : 4)
-            .background(Palette.accent.opacity(0.85), in: Capsule())
-            .overlay(
-                Capsule().strokeBorder(Palette.primary.opacity(0.35), lineWidth: 0.5)
-            )
-            .padding(.leading, compact ? 2 : 4)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(NoteBadge.accessibilityLabel(for: profile, count: count))
+            Image(systemName: "square.and.pencil")
+                .font(.system(size: size - 2, weight: .semibold))
+                .foregroundStyle(Palette.primary)
+                .padding(.horizontal, compact ? 6 : 8)
+                .padding(.vertical, compact ? 3 : 4)
+                .background(Palette.accent.opacity(0.85), in: Capsule())
+                .overlay(
+                    Capsule().strokeBorder(Palette.primary.opacity(0.35), lineWidth: 0.5)
+                )
+                .padding(.leading, compact ? 2 : 4)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(NoteBadge.accessibilityLabel(for: profile, count: count))
         }
     }
 }

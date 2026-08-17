@@ -32,23 +32,17 @@ struct StrainPoster: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 if noteCount > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: compact ? 10 : 12, weight: .semibold))
-                        if noteCount > 1 {
-                            Text("\(noteCount)")
-                                .font(.system(size: compact ? 10 : 11, weight: .semibold, design: .rounded))
-                        }
-                    }
-                    .foregroundStyle(Palette.primary)
-                    .padding(.horizontal, compact ? 5 : 6)
-                    .padding(.vertical, compact ? 2 : 3)
-                    .background(Palette.accent.opacity(0.85), in: Capsule())
-                    .overlay(
-                        Capsule().strokeBorder(Palette.primary.opacity(0.35), lineWidth: 0.5)
-                    )
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(NoteBadge.accessibilityLabel(for: profile, count: noteCount))
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: compact ? 10 : 12, weight: .semibold))
+                        .foregroundStyle(Palette.primary)
+                        .padding(.horizontal, compact ? 5 : 6)
+                        .padding(.vertical, compact ? 2 : 3)
+                        .background(Palette.accent.opacity(0.85), in: Capsule())
+                        .overlay(
+                            Capsule().strokeBorder(Palette.primary.opacity(0.35), lineWidth: 0.5)
+                        )
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(NoteBadge.accessibilityLabel(for: profile, count: noteCount))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

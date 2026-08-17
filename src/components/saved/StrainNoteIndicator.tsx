@@ -66,9 +66,6 @@ export function StrainNoteIndicator({
       )}
     >
       <NotebookPen className="size-3" aria-hidden />
-      <span className="text-[11px] font-medium tabular-nums leading-none">
-        {noteCount}
-      </span>
     </span>
   );
 }
