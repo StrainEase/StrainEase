@@ -1,8 +1,8 @@
 // Merge Leafly + Weedmaps into one StrainProfile, attach Reddit quotes
-// for the patient's ailments, and ask MiniMax to fill any fields still
+// for the patient's ailments, and ask Groq to fill any fields still
 // missing — the same shape the old curated knowledge base carried.
 import { fetchProfile } from "./leafly";
-import { callMiniMax, extractJsonObject } from "./minimax";
+import { callGroq, extractJsonObject } from "./groq";
 import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
 import type {
   CommunityNote,
@@ -215,7 +215,7 @@ function asStringList(value: unknown): string[] | undefined {
   return out.length > 0 ? out : undefined;
 }
 
-const RESEARCH_SYSTEM = `You are StrainEase. Fill in a cannabis strain profile using only commonly reported public information (Leafly, Weedmaps, Reddit, dispensary menus).
+const RESEARCH_SYSTEM = `You are Dr. Kaya, StrainEase's AI cannabis care assistant. Fill in a cannabis strain profile using only commonly reported public information (Leafly, Weedmaps, Reddit, dispensary menus).
 
 Rules:
 - Return ONLY a JSON object. No markdown.
@@ -253,7 +253,7 @@ async function researchMissing(
   const map = new Map<string, StrainProfile>();
   if (missing.length === 0) return map;
 
-  const content = await callMiniMax(apiKey, [
+  const content = await callGroq(apiKey, [
     { role: "system", content: RESEARCH_SYSTEM },
     {
       role: "user",
