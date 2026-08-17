@@ -14,6 +14,11 @@ protocol StrainServicing {
     func popular() async throws -> [StrainProfile]
     func findDoctors(query: DoctorQuery) async throws -> DoctorResult
 
+    /// Record the signed-in caller's age attestation on the server. Sets
+    /// the matching custom claim so the AI / doctor callables can enforce
+    /// it. The caller must already be signed in.
+    func setAgeVerified(region: AgeRegion, birthDate: String, termsAccepted: Bool, privacyAccepted: Bool) async throws
+
     /// Generate a three-section, patient-tailored description for a
     /// single strain. The middle section is written around the user's
     /// saved ailments, with their medications and recent relief-log
@@ -128,6 +133,21 @@ struct LiveStrainAPI: StrainServicing {
         if let zip = query.zip, !zip.isEmpty { payload["zip"] = zip }
         if let radius = query.radiusMiles { payload["radiusMiles"] = radius }
         return try await call("findDoctors", data: payload)
+    }
+
+    func setAgeVerified(
+        region: AgeRegion,
+        birthDate: String,
+        termsAccepted: Bool,
+        privacyAccepted: Bool
+    ) async throws {
+        let payload: [String: Any] = [
+            "region": region.rawValue,
+            "birthDate": birthDate,
+            "termsAccepted": termsAccepted,
+            "privacyAccepted": privacyAccepted,
+        ]
+        _ = try await invoke(name: "setAgeVerified", data: payload)
     }
 
     func describe(
@@ -275,6 +295,10 @@ struct PreviewStrainAPI: StrainServicing {
         DoctorResult(doctors: [.sample], resolvedLocation: nil, source: "preview")
     }
 
+    func setAgeVerified(region: AgeRegion, birthDate: String, termsAccepted: Bool, privacyAccepted: Bool) async throws {
+        // No-op for previews — the gate is local-only in this path.
+    }
+
     func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> StrainComparison {
         StrainComparison.sample
     }
@@ -310,6 +334,10 @@ struct DelayedPreviewAPI: StrainServicing {
     func findDoctors(query: DoctorQuery) async throws -> DoctorResult {
         try await Task.sleep(for: .seconds(60))
         return DoctorResult(doctors: [.sample], resolvedLocation: nil, source: "preview")
+    }
+
+    func setAgeVerified(region: AgeRegion, birthDate: String, termsAccepted: Bool, privacyAccepted: Bool) async throws {
+        // No-op for previews.
     }
 
     func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> StrainComparison {

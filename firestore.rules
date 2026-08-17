@@ -103,5 +103,14 @@ service cloud.firestore {
         && request.resource.data.addedAt > 0;
       allow update: if false;
     }
+
+    // Age-verification audit log. Each user can write at most one doc per
+    // region they've attested for. Server (admin SDK) is the source of truth
+    // for the timestamps; client writes are rejected to keep users from
+    // back-dating their own attestation.
+    match /users/{uid}/ageVerification/{region} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
   }
 }

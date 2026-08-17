@@ -1,5 +1,6 @@
 import { HeroSpecimen } from "@/components/landing/HeroSpecimen";
 import { Seo } from "@/components/Seo";
+import { ComplianceFooter } from "@/components/compliance/ComplianceFooter";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -901,6 +902,26 @@ export default function Landing() {
                   {isAuthenticated ? "Dashboard" : "Find strains"}
                 </Link>
               </li>
+              <li>
+                <Link to="/legal" className="transition-colors hover:text-foreground">
+                  Age &amp; legal policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/legal/terms" className="transition-colors hover:text-foreground">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link to="/legal/privacy" className="transition-colors hover:text-foreground">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/legal/medical" className="transition-colors hover:text-foreground">
+                  Medical disclaimer
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -933,6 +954,7 @@ export default function Landing() {
             </Link>
           </div>
         </div>
+        <ComplianceFooter />
       </footer>
     </div>
   );

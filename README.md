@@ -79,8 +79,97 @@ The auth page is defined in `src/pages/Auth.tsx`. Redirect authenticated pages a
 
 Backend authorization lives in two places:
 
-- **Cloud Functions:** check `request.auth` at the top of every auth-gated callable and throw `HttpsError("unauthenticated", ...)` when missing. See `compareStrains` and `recommendStrainsForConditions` in `functions/src/index.ts` for the pattern.
+- **Cloud Functions:** check `request.auth` at the top of every auth-gated callable and throw `HttpsError("unauthenticated", ...)` when missing. See `compareStrains` and `recommendStrainsForConditions` in `functions/src/index.ts` for the pattern. **Signed-in callers must also hold a non-expired `ageVerified` custom claim** — see the Age restriction section below.
 - **Firestore:** security rules in `firestore.rules`. Saved strains are scoped to the requesting user's UID.
+
+# Age restriction (cannabis compliance)
+
+StrainEase is a research / information tool, not a dispensary, but cannabis is
+age-restricted in every legal jurisdiction, so the entire experience is gated
+behind a region-aware age verification step. This is enforced both client-side
+(on the web and on iOS) and server-side (Cloud Functions check a custom claim).
+
+## Minimum age by region
+
+| Region | Minimum age |
+| ------ | ----------- |
+| US (recreational & medical markets) | 21+ |
+| Canada (most provinces) | 19+ |
+| Canada (Alberta) | 18+ |
+| EU (Germany, Netherlands, Malta, etc.) | 18+ |
+| UK (medicinal only) | 18+ |
+| Australia (medicinal, ACT 18+ recreat.) | 18+ |
+| Other / not listed | 21+ (conservative default) |
+
+See `src/lib/age-policy.ts` and `functions/src/age.ts` for the canonical
+tables. Keep the two in sync.
+
+## Web flow
+
+1. First visit loads `<AgeGate>` (`src/components/compliance/AgeGate.tsx`) which
+   shows a region picker + date-of-birth input + Terms & Privacy checkboxes.
+2. On submit, the gate calls `useAgeVerification.verify(...)`. On success it
+   writes a record to `localStorage` under `strainease.ageVerification.v1`
+   with a 30-day TTL.
+3. When the user is signed in, the gate also fires the `setAgeVerified`
+   Cloud Function, which sets the matching `ageVerified`, `ageVerifiedRegion`,
+   `ageVerifiedAt`, and `ageVerifiedExpiresAt` custom claims on the user's
+   Firebase Auth record.
+4. Verification is checked at the top of every AI callable (`compareStrains`,
+   `recommendStrainsForConditions`, `describeStrainForUser`, `findDoctors`)
+   via `requireAgeVerified(...)` in `functions/src/age.ts`. Calls without a
+   fresh claim get `HttpsError("permission-denied", ...)`.
+5. The legal pages live at `/legal`, `/legal/terms`, `/legal/privacy`,
+   `/legal/medical`. The Compliance footer
+   (`src/components/compliance/ComplianceFooter.tsx`) is rendered on every
+   page and shows a "Reset age verification" link for shared devices.
+6. The landing footer and `<MedicalDisclaimer>` banner call out the
+   research-only nature of the app on every page that surfaces strain data.
+
+## iOS flow
+
+Mirrors the web flow exactly:
+
+- `ios/StrainWise/Services/AgeVerificationStore.swift` — `@Observable` store
+  with `UserDefaults` persistence.
+- `ios/StrainWise/App/AgeGateView.swift` — SwiftUI gate presented at
+  `RootView` until verified.
+- `StrainAPI.setAgeVerified(...)` mirrors the local attestation to the server.
+- `ios/StrainWise/Account/AccountView.swift` exposes a "Reset age verification"
+  option for shared devices.
+
+## Re-verification cadence
+
+Records expire after 30 days. Re-running the gate (or calling `verify` again)
+just refreshes the TTL on both the local record and the server-side claim. The
+user is never forced to re-confirm unless they sign out, switch regions, or 30
+days pass.
+
+## What is stored
+
+- Web: `{ region, birthDate, attestedAt, expiresAt, termsAcceptedAt, privacyAcceptedAt }` in `localStorage` under `strainease.ageVerification.v1`.
+- iOS: same shape, under `UserDefaults` key `strainease.ageVerification.v1`.
+- Firebase: a custom claim (`ageVerified: true`, `ageVerifiedRegion: "US"`,
+  `ageVerifiedAt: <ms>`, `ageVerifiedExpiresAt: <ms>`) on the signed-in user's
+  Auth record, plus a `users/{uid}/ageVerification/{region}` Firestore doc
+  containing the attested **birth year only** (no full DOB) for audit.
+
+## Legal pages
+
+| Page | Path | What's in it |
+| ---- | ---- | ------------ |
+| Age & legal policy | `/legal | Region table, link to docs, child-safety warning |
+| Terms of Service | `/legal/terms` | Acceptable use, no medical advice, liability |
+| Privacy Policy | `/legal/privacy` | What we collect, GDPR / CCPA / COPPA rights |
+| Medical Disclaimer | `/legal/medical` | Why information is not medical advice |
+
+## Adding a new region
+
+Edit **both** `src/lib/age-policy.ts` and `functions/src/age.ts`. The region
+list and minimum ages must stay in sync. The web test
+(`src/lib/age-policy.test.ts`) and the functions test
+(`functions/src/age.test.ts`) cover the canonical cases; add a test for your
+new region in both files.
 
 # Frontend Conventions
 

@@ -147,12 +147,40 @@ the `Setup Node.js` step in `firebase-functions-deploy.yml`.
 
 - Rules live in `firestore.rules`. Deploy them together with functions:
   `firebase deploy --only functions,firestore:rules`.
-- Data shape is small today: `users/{uid}` and `users/{uid}/savedStrains/{strainId}`.
-  See the rules file for the current shape; if you add a collection,
-  add the rule.
+- Data shape is small today: `users/{uid}`, `users/{uid}/savedStrains/{strainId}`,
+  `users/{uid}/ageVerification/{region}`. See the rules file for the current
+  shape; if you add a collection, add the rule.
 - Security review changes go through the `firebase-security-rules-auditor` skill.
 - Client reads/writes go through `src/lib/firebase.ts` (`db` export).
   Don't initialize Firestore anywhere else.
+
+## Age-restriction compliance
+
+Cannabis is age-restricted in every legal jurisdiction. StrainEase is a
+research / information site, not a dispensary, but we still gate the entire
+experience behind a region-aware date-of-birth self-attestation, plus a
+non-expired custom claim on the server side.
+
+- The age gate is `<AgeGate>` (`src/components/compliance/AgeGate.tsx`) on the
+  web and `AgeGateView` (`ios/StrainWise/App/AgeGateView.swift`) on iOS.
+  Both wrap the entire `<Routes>` / `RootView` so every page is gated.
+- Region list + minimum ages live in `src/lib/age-policy.ts` (web) and
+  `functions/src/age.ts` (server). **Keep them in sync.** Tests live in
+  `src/lib/age-policy.test.ts` and `functions/src/age.test.ts`.
+- When a signed-in user verifies, the client calls `setAgeVerified` (see
+  `src/lib/strain-api.ts` / `StrainAPI.setAgeVerified(...)` on iOS) which
+  sets the `ageVerified` / `ageVerifiedRegion` / `ageVerifiedAt` /
+  `ageVerifiedExpiresAt` custom claims and mirrors the attestation
+  (birth year, no DOB) to `users/{uid}/ageVerification/{region}`.
+- AI callables (`compareStrains`, `recommendStrainsForConditions`,
+  `describeStrainForUser`, `findDoctors`) call `requireAgeVerified(...)` at
+  the top and throw `HttpsError("permission-denied", ...)` if the claim is
+  missing or expired. New AI callables must do the same.
+- Verification records expire after 30 days (`AGE_VERIFICATION_TTL_MS` /
+  `AGE_CLAIM_TTL_MS`). The user re-prompts on the next session.
+- `<ComplianceFooter>` (`src/components/compliance/ComplianceFooter.tsx`)
+  renders on every legal page and includes a "Reset age verification"
+  action for shared devices. iOS has the equivalent in `AccountView`.
 
 ## Things agents should NOT do
 
@@ -165,6 +193,8 @@ the `Setup Node.js` step in `firebase-functions-deploy.yml`.
 - Do not add new env vars without documenting them in `README.md` and
   adding them to the Cloudflare Pages deploy workflow
   (`.github/workflows/cloudflare-pages.yml`).
+- Do not weaken the age gate or remove the `requireAgeVerified(...)` check
+  from AI / doctor callables. The whole experience depends on it.
 
 ## Working style for this codebase
 

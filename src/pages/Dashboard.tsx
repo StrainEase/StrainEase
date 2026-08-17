@@ -5,6 +5,7 @@ import { useMedications } from "@/hooks/use-medications";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { Seo } from "@/components/Seo";
+import { MedicalDisclaimer } from "@/components/compliance/MedicalDisclaimer";
 import {
   compareStrains as compareStrainsCall,
   popularStrains as popularStrainsCall,
@@ -327,6 +328,7 @@ export default function Dashboard() {
       />
 
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
+        <MedicalDisclaimer className="mb-6" />
         {/* Desktop keeps the full mode strip. Mobile uses the iOS-style
             bottom tabs for Find/Browse and the header heart for Saved. */}
         <div className="mb-8 hidden justify-center sm:flex">

@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct StrainEaseApp: App {
     @State private var session = AuthSession()
+    @State private var ageVerification = AgeVerificationStore()
     @State private var saved = SavedStrainsStore()
     @State private var ailments = SavedAilmentsStore()
     @State private var medications = SavedMedicationsStore()
@@ -19,6 +20,7 @@ struct StrainEaseApp: App {
         WindowGroup {
             RootView()
                 .environment(session)
+                .environment(ageVerification)
                 .environment(saved)
                 .environment(ailments)
                 .environment(medications)
