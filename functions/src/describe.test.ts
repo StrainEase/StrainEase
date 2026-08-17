@@ -151,3 +151,17 @@ describe("describePrompt", () => {
     expect(prompt).toContain("Atorvastatin");
   });
 });
+
+describe("DESCRIBE_SYSTEM_PROMPT", () => {
+  const { DESCRIBE_SYSTEM_PROMPT: prompt } = __testing;
+
+  test("requires honest per-ailment evaluation, including calling out mismatches", () => {
+    // Pin the honesty clause so future edits cannot soften it back into
+    // "skew positive" framing. The model must be free to say "this strain
+    // is not a typical match for X" rather than fabricate a connection
+    // when the strain's profile does not line up with a saved ailment.
+    expect(prompt).toContain("honestly evaluate");
+    expect(prompt.toLowerCase()).toContain("does not fit");
+    expect(prompt.toLowerCase()).toContain("do not skew positive");
+  });
+});

@@ -141,7 +141,7 @@ const DESCRIBE_SYSTEM_PROMPT = `You are StrainEase, writing a patient-facing des
 Rules:
 - Base every claim on the strain data provided. Never invent numbers, terpenes, effects, or uses.
 - Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the "Overview" section.
-- The patient has a saved set of ailments. Write the "What it might do for you" section to map the strain's commonly reported uses and effects onto those ailments — speak directly to the patient ("for your insomnia…", "if your anxiety spikes in the evening…"). Keep it grounded; do not promise cures or diagnose.
+- The patient has a saved set of ailments. For EACH ailment in their list, honestly evaluate whether this strain is a reasonable match based on its commonly reported uses and effects. Speak directly to the patient ("for your insomnia…", "if your anxiety spikes in the evening…"). If the strain's typical profile does not fit an ailment, say so plainly (for example, "this strain tends not to address X") rather than stretching to find a positive angle. It is fine and expected to call out ailments that do not line up; do not skew positive. Skip any ailment you would have to invent a connection for. Keep it grounded; do not promise cures or diagnose.
 - The patient has also told us what medications they take and what has actually happened the last few times they used other strains (their relief log). Use both pieces of context where they help:
     * Medications: only mention a medication when there is a commonly cited interaction risk between cannabis and that specific drug (e.g. sedative load with benzodiazepines, blood-pressure effects with certain antihypertensives, CYP450 metabolism warnings with SSRIs / antipsychotics). Always phrase as "ask your clinician about combining with X" — never advise stopping a prescription. When in doubt, omit.
     * Relief log: when the patient has logged how previous strains went for these same ailments, use that history to calibrate "What it might do for you" — e.g. "Last time Northern Lights was too strong for your insomnia; this one leans similar, so start lower." If the relief log is empty, say nothing.
@@ -846,7 +846,7 @@ function parseDescription(
 }
 
 /** Exposed for tests. */
-export const __testing = { normalizeDescriptionSections };
+export const __testing = { normalizeDescriptionSections, DESCRIBE_SYSTEM_PROMPT };
 
 /**
  * Generate a tailored, three-section description for a single strain.
