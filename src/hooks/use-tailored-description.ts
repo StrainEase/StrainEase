@@ -7,6 +7,8 @@ import {
   describeStrainForUser,
   type StrainDescription,
 } from "@/lib/strain-api";
+import { getFeaturedTailoredDescription } from "@/lib/featured-strain-details";
+import { slugify } from "@/lib/slug";
 import type { StrainProfile } from "@/lib/strain-profile";
 
 /**
@@ -50,7 +52,18 @@ export function useTailoredDescription(
     setIsLoading(false);
     cache.current.clear();
 
-    if (!strain || !isAuthenticated || ailments.length === 0) return;
+    if (!strain || !isAuthenticated) return;
+
+    // Featured rail strains ship a preloaded 3-section description so we
+    // can skip the MiniMax callable entirely. Mock is generic (not bound
+    // to the user's ailments) — same shape the live callable returns.
+    const featured = getFeaturedTailoredDescription(slugify(strain.name));
+    if (featured) {
+      setDescription(featured);
+      return;
+    }
+
+    if (ailments.length === 0) return;
 
     const key =
       `${ailmentsKey}::${medsKey}::${reliefHistory}::` +
