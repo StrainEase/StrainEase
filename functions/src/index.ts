@@ -45,7 +45,8 @@ export const searchStrain = onCall(
     const name =
       typeof request.data?.name === "string" ? request.data.name : "";
     if (name.trim() === "") return null;
-    return await lookupProfile(name);
+    const conditions = asStringArray(request.data?.conditions);
+    return await lookupProfile(name, conditions);
   },
 );
 

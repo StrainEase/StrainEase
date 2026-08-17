@@ -285,11 +285,97 @@ const MEDICAL_KEYWORDS: readonly string[] = [
 ];
 
 /**
+ * Aliases that link the canonical ailment names we save in the
+ * patient's profile to the natural-language words a Leafly reviewer
+ * uses. The first term is the patient's canonical label (so the
+ * matcher works even when the review uses the exact same word), the
+ * rest are common paraphrases. Kept here next to MEDICAL_KEYWORDS so
+ * they stay close to the rest of the medical-language vocabulary.
+ */
+const AILMENT_ALIASES: Record<string, string[]> = {
+  insomnia: ["insomnia", "sleep", "asleep", "sleeping", "sleepless", "restless"],
+  anxiety: ["anxiety", "anxious", "panic", "stress", "stressed", "tension"],
+  ocd: ["ocd", "obsessive", "anxious"],
+  adhd: ["adhd", "add", "focus"],
+  "chronic pain": ["chronic pain", "pain", "aching", "ache", "sore"],
+  depression: ["depression", "depressed", "mood"],
+  "nausea & appetite": ["nausea", "nauseous", "appetite", "hungry", "eating"],
+  inflammation: ["inflammation", "inflamed", "swelling", "swollen"],
+  migraine: ["migraine", "headache", "headaches"],
+  "muscle spasm": ["spasm", "spasms", "cramp", "cramps"],
+  ptsd: ["ptsd", "flashback", "trauma"],
+  fatigue: ["fatigue", "tired", "exhausted", "energy"],
+  arthritis: ["arthritis", "joint", "joints"],
+  stress: ["stress", "stressed", "tension"],
+};
+
+/**
+ * Hype / first-person celebration patterns that signal a recreational
+ * review rather than a patient-language report. We strip the noise
+ * characters first so "I GOT SO HIGH!!!" and "lmao cooked" both match.
+ * Reviews that consist almost entirely of these phrases are dropped
+ * before scoring.
+ */
+const HYPE_PHRASES: readonly string[] = [
+  "got so high",
+  "so high",
+  "got too high",
+  "way too high",
+  "got cooked",
+  "absolutely cooked",
+  "blazed",
+  "smacked",
+  "fucked up",
+  "messed up",
+  "ripped",
+  "zonked",
+  "knocked me on my ass",
+  "couldn't move",
+  "couldnt move",
+  "couldn't feel my",
+  "couldnt feel my",
+  "couldn't stop laughing",
+  "couldnt stop laughing",
+  "non stop laughing",
+];
+
+/** True when the text is dominated by hype / celebration phrasing. */
+function isHypeReview(text: string): boolean {
+  if (!text) return false;
+  const stripped = text
+    .toLowerCase()
+    .replace(/[!.?,;:*\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (stripped.length < 40) return false;
+  let hypeHits = 0;
+  for (const phrase of HYPE_PHRASES) {
+    if (stripped.includes(phrase)) hypeHits++;
+  }
+  // Two or more distinct hype signals — almost certainly a recreational
+  // report rather than a patient-language writeup.
+  return hypeHits >= 2;
+}
+
+/** Expand a canonical ailment name into the terms we look for in a review. */
+export function ailmentTerms(condition: string): string[] {
+  const key = condition.trim().toLowerCase();
+  if (!key) return [];
+  const aliases = AILMENT_ALIASES[key];
+  return aliases ? aliases : [key];
+}
+
+/**
  * Score a single review for medical relevance. Count keyword hits in
  * the lowercased text and bias toward longer reviews (which carry more
- * usable signal). Exposed for tests.
+ * usable signal). When `conditions` is supplied, any term that matches
+ * the patient's ailment aliases counts extra so the top of the list
+ * stays useful for them. Exposed for tests.
  */
-export function medicalScore(text: string): number {
+export function medicalScore(
+  text: string,
+  conditions: readonly string[] = [],
+): number {
   if (!text) return 0;
   const lower = text.toLowerCase();
   let hits = 0;
@@ -299,6 +385,22 @@ export function medicalScore(text: string): number {
     const matches = lower.match(re);
     if (matches) hits += matches.length;
   }
+  // Ailment-specific boost. We treat each ailment-alias hit as worth
+  // a full MEDICAL_KEYWORDS hit but only once per term so a single
+  // review doesn't get an outsized score for spamming one word.
+  const seen = new Set<string>();
+  for (const c of conditions) {
+    for (const term of ailmentTerms(c)) {
+      const t = term.trim().toLowerCase();
+      if (!t || seen.has(t)) continue;
+      seen.add(t);
+      const re = new RegExp(
+        `\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        "g",
+      );
+      if (re.test(lower)) hits += 1;
+    }
+  }
   // Slight preference for reviews in the 80–400 char sweet spot. Anything
   // shorter than the 40-char floor is filtered out before this runs.
   const len = text.length;
@@ -307,7 +409,10 @@ export function medicalScore(text: string): number {
 }
 
 /** Sort reviews by medical score desc, then by review rating desc, then by length desc. */
-function rankByMedical(reviews: RawRecord[]): RawRecord[] {
+function rankByMedical(
+  reviews: RawRecord[],
+  conditions: readonly string[] = [],
+): RawRecord[] {
   return reviews
     .map((r) => {
       const text = typeof r.text === "string" ? r.text : "";
@@ -317,7 +422,12 @@ function rankByMedical(reviews: RawRecord[]): RawRecord[] {
           : typeof r.averageRating === "number"
             ? r.averageRating
             : 0;
-      return { r, score: medicalScore(text), rating, length: text.length };
+      return {
+        r,
+        score: medicalScore(text, conditions),
+        rating,
+        length: text.length,
+      };
     })
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
@@ -335,16 +445,20 @@ function rankByMedical(reviews: RawRecord[]): RawRecord[] {
  * without the medical preference — patients still get the best of what
  * was written.
  */
-export function reviewNotesFrom(reviews: unknown): CommunityNote[] {
+export function reviewNotesFrom(
+  reviews: unknown,
+  conditions: readonly string[] = [],
+): CommunityNote[] {
   const cleaned: RawRecord[] = [];
   for (const raw of reviewsListFrom(reviews)) {
     if (!raw || typeof raw !== "object") continue;
     const r = raw as RawRecord;
     const text = reviewTextFrom(r);
     if (text.length < 40) continue;
+    if (isHypeReview(text)) continue;
     cleaned.push(r);
   }
-  const ranked = rankByMedical(cleaned);
+  const ranked = rankByMedical(cleaned, conditions);
   const out: CommunityNote[] = [];
   for (const r of ranked) {
     const text = typeof r.text === "string" ? r.text.trim() : "";
@@ -356,7 +470,7 @@ export function reviewNotesFrom(reviews: unknown): CommunityNote[] {
       source: `Leafly review · ${username}`,
       text: clipReview(text),
     });
-    if (out.length >= 8) break;
+    if (out.length >= 6) break;
   }
   return out;
 }
@@ -458,16 +572,17 @@ export async function fetchPopular(): Promise<StrainProfile[]> {
 
 export async function fetchProfile(
   name: string,
-  opts: { extraReviews?: boolean } = {},
+  opts: { extraReviews?: boolean; conditions?: readonly string[] } = {},
 ): Promise<StrainProfile | null> {
   const slug = slugify(name);
   if (!slug) return null;
+  const conditions = opts.conditions ?? [];
   // Distributed cache hit — reuse the parsed profile, only freshly fetch
   // the extra ailment reviews that were not part of the original scrape.
   const cached = await getCachedStrainProfile(slug);
   if (cached) {
     const extraReviews = opts.extraReviews
-      ? await fetchLeaflyReviews(name)
+      ? await fetchLeaflyReviews(name, conditions)
       : ([] as CommunityNote[]);
     return {
       ...cached.profile,
@@ -479,7 +594,7 @@ export async function fetchProfile(
   }
   try {
     const extraPromise = opts.extraReviews
-      ? fetchLeaflyReviews(name)
+      ? fetchLeaflyReviews(name, conditions)
       : Promise.resolve([] as CommunityNote[]);
     const [html, extra] = await Promise.all([
       fetchLeaflyHtml(`/strains/${slug}`),
@@ -492,6 +607,7 @@ export async function fetchProfile(
     if (!raw || typeof raw.name !== "string" || raw.name === "") return null;
     const pageReviews = reviewNotesFrom(
       (data as RawRecord)?.props?.pageProps?.reviews,
+      conditions,
     );
     const profile = {
       ...detailToProfile(raw),
@@ -508,6 +624,7 @@ export async function fetchProfile(
 /** Extra Leafly written reviews (used when we have a condition to match). */
 export async function fetchLeaflyReviews(
   name: string,
+  conditions: readonly string[] = [],
 ): Promise<CommunityNote[]> {
   const slug = slugify(name);
   if (!slug) return [];
@@ -515,7 +632,7 @@ export async function fetchLeaflyReviews(
     const html = await fetchLeaflyHtml(`/strains/${slug}/reviews`);
     const data = extractNextData(html);
     const reviews = (data as RawRecord)?.props?.pageProps?.reviews;
-    return reviewNotesFrom(reviews);
+    return reviewNotesFrom(reviews, conditions);
   } catch {
     return [];
   }

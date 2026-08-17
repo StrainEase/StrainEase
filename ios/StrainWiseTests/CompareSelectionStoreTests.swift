@@ -140,7 +140,7 @@ private struct StubCompareAPI: StrainServicing {
         try result.get()
     }
 
-    func search(name: String) async throws -> StrainProfile? {
+    func search(name: String, conditions: [String] = []) async throws -> StrainProfile? {
         .sampleGDP
     }
 

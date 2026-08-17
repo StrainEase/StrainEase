@@ -24,6 +24,37 @@ describe("medicalScore", () => {
     const tooLong = `${sweetSpot} ${"more text ".repeat(40)}`;
     expect(medicalScore(sweetSpot)).toBeGreaterThan(medicalScore(tooLong));
   });
+
+  test("boosts reviews that match the patient's ailments", () => {
+    // Two reviews with the same generic medical signal; the one that
+    // actually mentions the user's "insomnia" + "chronic pain" should
+    // rank higher once we tell medicalScore about those conditions.
+    const insomniaMatch =
+      "Honestly helps me sleep through the night when my chronic pain flares up.";
+    const generic =
+      "Solid flower, calming effect, good daytime dose for relaxing at home.";
+    const baseInsomnia = medicalScore(insomniaMatch);
+    const baseGeneric = medicalScore(generic);
+    const withConditionsInsomnia = medicalScore(insomniaMatch, [
+      "insomnia",
+      "chronic pain",
+    ]);
+    const withConditionsGeneric = medicalScore(generic, [
+      "insomnia",
+      "chronic pain",
+    ]);
+    expect(withConditionsInsomnia).toBeGreaterThan(baseInsomnia);
+    expect(withConditionsInsomnia).toBeGreaterThan(withConditionsGeneric);
+  });
+
+  test("unknown ailment names still get a small boost when mentioned", () => {
+    // A condition we don't have aliases for should still match its own
+    // exact phrase, so a custom-saved ailment isn't invisible.
+    const review = "This one works for my vestibular migraines like nothing else.";
+    const base = medicalScore(review);
+    const withCondition = medicalScore(review, ["vestibular migraines"]);
+    expect(withCondition).toBeGreaterThan(base);
+  });
 });
 
 describe("reviewNotesFrom", () => {
@@ -105,5 +136,54 @@ describe("reviewNotesFrom", () => {
       text: `Helps with chronic pain and anxiety. Review number ${i} with enough length to pass.`,
     }));
     expect(reviewNotesFrom(many).length).toBe(6);
+  });
+
+  test("drops hype-only reviews before ranking", () => {
+    const hype = [
+      {
+        username: "high_king",
+        rating: 5,
+        text: "I GOT SO HIGH!!! Absolutely cooked, lmao I got way too high and couldn't stop laughing",
+      },
+      {
+        username: "patient_three",
+        rating: 5,
+        text: "Relieves my anxiety and chronic back pain at night. I sleep through the night again.",
+      },
+    ];
+    const notes = reviewNotesFrom(hype);
+    expect(notes.length).toBe(1);
+    expect(notes[0].text).toContain("chronic back pain");
+  });
+
+  test("ailment-aware ranking puts the patient's match first", () => {
+    const reviews = [
+      {
+        username: "recreational_user",
+        rating: 5,
+        text: "Great taste, smooth smoke, awesome flavor. Smoke with friends on the weekend.",
+      },
+      {
+        username: "patient_one",
+        rating: 4,
+        text: "Really helps my chronic back pain and insomnia. I sleep through the night and the morning stiffness is gone.",
+      },
+      {
+        username: "patient_two",
+        rating: 5,
+        text: "Calms my anxiety and panic attacks without leaving me couch-locked. Great daytime dose for PTSD symptoms.",
+      },
+      {
+        username: "casual_user",
+        rating: 5,
+        text: "Love it. Good for movies and relaxing after work. Tasty.",
+      },
+    ];
+    // Patient focuses on insomnia + chronic pain: that review must
+    // surface first; the anxiety-focused one (still relevant, but
+    // lower priority) should follow before any recreational write-up.
+    const notes = reviewNotesFrom(reviews, ["insomnia", "chronic pain"]);
+    expect(notes[0].text).toMatch(/chronic back pain/);
+    expect(notes[1].text).toMatch(/anxiety/);
   });
 });

@@ -345,7 +345,11 @@ export async function enrichProfiles(
   if (unique.length === 0) return [];
 
   const [leaflyList, weedmapsList, redditMap] = await Promise.all([
-    Promise.all(unique.map((name) => fetchProfile(name, { extraReviews: true }))),
+    Promise.all(
+      unique.map((name) =>
+        fetchProfile(name, { extraReviews: true, conditions }),
+      ),
+    ),
     Promise.all(unique.map(fetchWeedmapsProfile)),
     fetchRedditQuotesFor(unique, conditions),
   ]);
@@ -393,20 +397,26 @@ export function redditNotesFor(
 /** Single-name lookup for search: Leafly + Weedmaps + Reddit, no AI. */
 export async function lookupProfile(
   name: string,
+  conditions: string[] = [],
 ): Promise<StrainProfile | null> {
   const trimmed = name.trim();
   if (!trimmed) return null;
+  const focus = conditions
+    .map((c) => c.trim())
+    .filter((c) => c !== "")
+    .slice(0, 16);
   const [leafly, weedmaps, reddit] = await Promise.all([
-    fetchProfile(trimmed, { extraReviews: true }),
+    fetchProfile(trimmed, { extraReviews: true, conditions: focus }),
     fetchWeedmapsProfile(trimmed),
-    fetchRedditQuotes(trimmed),
+    fetchRedditQuotes(trimmed, focus),
   ]);
   if (!leafly && !weedmaps) return null;
   const merged = mergeProfiles(trimmed, leafly, weedmaps);
   return {
     ...merged,
-    communityNotes: reTag(
-      uniqueNotes([...(merged.communityNotes ?? []), ...reddit]),
+    communityNotes: preferAilmentNotes(
+      reTag(uniqueNotes([...(merged.communityNotes ?? []), ...reddit])),
+      focus,
     ),
   };
 }

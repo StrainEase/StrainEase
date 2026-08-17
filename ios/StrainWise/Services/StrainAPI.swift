@@ -10,7 +10,7 @@ protocol StrainServicing {
     func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?) async throws -> RecommendationResult
     func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison
 
-    func search(name: String) async throws -> StrainProfile?
+    func search(name: String, conditions: [String]) async throws -> StrainProfile?
     func popular() async throws -> [StrainProfile]
     func findDoctors(query: DoctorQuery) async throws -> DoctorResult
 
@@ -77,10 +77,13 @@ struct LiveStrainAPI: StrainServicing {
     }
 
 
-    func search(name: String) async throws -> StrainProfile? {
+    func search(name: String, conditions: [String] = []) async throws -> StrainProfile? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        return try await callOptional("searchStrain", data: ["name": trimmed])
+        let payload: [String: Any] = conditions.isEmpty
+            ? ["name": trimmed]
+            : ["name": trimmed, "conditions": conditions]
+        return try await callOptional("searchStrain", data: payload)
     }
 
     func popular() async throws -> [StrainProfile] {
@@ -226,7 +229,7 @@ struct PreviewStrainAPI: StrainServicing {
         result
     }
 
-    func search(name: String) async throws -> StrainProfile? {
+    func search(name: String, conditions: [String] = []) async throws -> StrainProfile? {
         let key = name.lowercased()
         if key.contains("blue") { return .sampleBlueDream }
         if key.contains("granddaddy") || key.contains("purple") { return .sampleGDP }
@@ -263,7 +266,7 @@ struct DelayedPreviewAPI: StrainServicing {
         return .sample
     }
 
-    func search(name: String) async throws -> StrainProfile? {
+    func search(name: String, conditions: [String] = []) async throws -> StrainProfile? {
         try await Task.sleep(for: .seconds(60))
         return .sampleGDP
     }

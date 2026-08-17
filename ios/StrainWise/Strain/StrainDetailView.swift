@@ -270,7 +270,7 @@ struct StrainDetailView: View {
         isHydrating = !profile.pendingHydrationSections.isEmpty
         defer { isHydrating = false }
         do {
-            guard var full = try await api.search(name: profile.name) else { return }
+            guard var full = try await api.search(name: profile.name, conditions: ailments.ailments) else { return }
             // Backend often omits imageUrl. Keep the local nug shot, then
             // fill from the catalog so every Home rail (not just recents)
             // still shows a photo after hydrate.
@@ -527,42 +527,161 @@ private struct CommunityVoicesSection: View {
     let profile: StrainProfile
     var isHydrating = false
 
+    private enum Tab: String, Hashable {
+        case reddit
+        case sites
+    }
+
+    @State private var selected: Tab = .sites
+
     private var quotes: [CommunityNote] { profile.quoteNotes }
     private var rating: (stars: Double, count: Int?)? { profile.resolvedLeaflyRating }
 
+    private var redditNotes: [CommunityNote] {
+        quotes.filter { $0.resolvedKind == "reddit" }
+    }
+
+    /// Leafly written reviews + Weedmaps blurbs + anything else the
+    /// backend tagged as a non-Reddit community source. Patients get
+    /// one "Weed sites" tab instead of three.
+    private var siteNotes: [CommunityNote] {
+        quotes.filter { $0.resolvedKind != "reddit" }
+    }
+
+    private var hasReddit: Bool { !redditNotes.isEmpty }
+    private var hasSites: Bool { !siteNotes.isEmpty }
+
     var body: some View {
-        if rating != nil || !quotes.isEmpty || isHydrating {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionLabel("Community voices")
-                if let rating {
-                    LeaflyRatingCard(stars: rating.stars, count: rating.count)
-                }
-                if isHydrating && quotes.isEmpty {
-                    SWCard {
-                        HStack(spacing: 10) {
-                            ProgressView()
-                                .tint(Palette.primary)
-                            Text("Pulling Leafly reviews and Reddit comments…")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Palette.mutedForeground)
-                        }
-                    }
-                }
-                ForEach(quotes) { note in
-                    SWCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(note.source.uppercased())
-                                .font(.system(size: 10, weight: .semibold))
-                                .tracking(1.2)
-                                .foregroundStyle(Palette.primary)
-                            Text("“\(note.text)”")
-                                .font(.system(.body, design: .serif))
-                                .foregroundStyle(Palette.foreground)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+        Group {
+            if rating != nil || !quotes.isEmpty || isHydrating {
+                content
+            }
+        }
+        .onAppear {
+            // Auto-pick whichever tab actually has content so the user
+            // doesn't open the page to an empty pane. If only one tab
+            // exists, we don't render the picker at all.
+            if hasReddit && !hasSites { selected = .reddit }
+            else if !hasReddit && hasSites { selected = .sites }
+        }
+        .onChange(of: quotes) { _, newQuotes in
+            let reddit = newQuotes.filter { $0.resolvedKind == "reddit" }
+            let sites = newQuotes.filter { $0.resolvedKind != "reddit" }
+            if selected == .reddit && reddit.isEmpty && !sites.isEmpty {
+                selected = .sites
+            } else if selected == .sites && sites.isEmpty && !reddit.isEmpty {
+                selected = .reddit
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionLabel("Community voices")
+            if let rating {
+                LeaflyRatingCard(stars: rating.stars, count: rating.count)
+            }
+            if hasReddit && hasSites {
+                tabPicker
+            }
+            if isHydrating && quotes.isEmpty {
+                SWCard {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                            .tint(Palette.primary)
+                        Text("Pulling Leafly reviews and Reddit comments…")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.mutedForeground)
                     }
                 }
             }
+            notesForSelectedTab
+        }
+    }
+
+    private var tabPicker: some View {
+        HStack(spacing: 8) {
+            tabButton(.reddit, label: "Reddit", count: redditNotes.count)
+            tabButton(.sites, label: "Weed sites", count: siteNotes.count)
+        }
+    }
+
+    private func tabButton(_ tab: Tab, label: String, count: Int) -> some View {
+        let isActive = selected == tab
+        return Button {
+            selected = tab
+        } label: {
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(.system(size: 13, weight: .semibold))
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(isActive ? Palette.primaryForeground.opacity(0.7) : Palette.mutedForeground)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule().fill(
+                            isActive
+                                ? Palette.primaryForeground.opacity(0.18)
+                                : Palette.muted.opacity(0.6)
+                        )
+                    )
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .foregroundStyle(isActive ? Palette.primaryForeground : Palette.foreground)
+            .background(
+                Capsule().fill(isActive ? Palette.primary : Palette.card)
+            )
+            .overlay(
+                Capsule().strokeBorder(
+                    isActive ? Color.clear : Palette.border,
+                    lineWidth: 1
+                )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label) tab, \(count) quotes")
+        .accessibilityAddTraits(isActive ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private var notesForSelectedTab: some View {
+        let notes = selected == .reddit ? redditNotes : siteNotes
+        if notes.isEmpty {
+            // Auto-jump to whichever tab has content. With both empty
+            // we drop through and render the existing hydrating card.
+            if selected == .reddit && hasSites {
+                emptyTabPlaceholder(text: "No Reddit quotes yet.")
+            } else if selected == .sites && hasReddit {
+                emptyTabPlaceholder(text: "No weed-site reviews yet.")
+            } else {
+                EmptyView()
+            }
+        } else {
+            ForEach(notes) { note in
+                SWCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(note.source.uppercased())
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.2)
+                            .foregroundStyle(Palette.primary)
+                        Text("“\(note.text)”")
+                            .font(.system(.body, design: .serif))
+                            .foregroundStyle(Palette.foreground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private func emptyTabPlaceholder(text: String) -> some View {
+        SWCard {
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundStyle(Palette.mutedForeground)
         }
     }
 }
