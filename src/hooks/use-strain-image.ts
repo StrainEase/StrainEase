@@ -60,15 +60,20 @@ function shouldProxy(src: string): boolean {
  * localStorage so the browser and the function both agree the image is
  * good.
  *
- * Returns `undefined` while the proxy call is in flight, `null` if the
- * proxy rejected (e.g. Leafly 404), or the (possibly cached) signed URL.
- * Callers should treat `undefined` as "keep the skeleton" and `null` as
- * "swap to your fallback".
+ * If the proxy call rejects (e.g. Firebase isn't configured yet, or the
+ * upstream returned a non-image response) we hand the original URL back
+ * to the browser so the image still loads. The caller swaps to the leaf
+ * fallback only when both the proxy and the direct fetch fail.
+ *
+ * Returns `undefined` while the proxy call is in flight, or the URL the
+ * browser should load (proxy-served when available, otherwise the
+ * upstream URL). Callers should treat `undefined` as "keep the skeleton"
+ * and let their own `<img onError>` swap to the leaf when the URL fails.
  */
 export function useStrainImage(src: string | undefined): {
-  url: string | undefined | null;
+  url: string | undefined;
 } {
-  const [url, setUrl] = useState<string | undefined | null>(
+  const [url, setUrl] = useState<string | undefined>(
     src && !shouldProxy(src) ? src : undefined,
   );
 
@@ -106,8 +111,13 @@ export function useStrainImage(src: string | undefined): {
         setUrl(res.url);
       })
       .catch(() => {
+        // Proxy failed (Firebase not configured, function not deployed,
+        // or upstream returned a non-image response). Let the browser try
+        // the original Leafly URL directly — most catalog photos are
+        // still hosted there, and the <img onError> in StrainImage will
+        // swap to the leaf fallback when even that fails.
         if (cancelled) return;
-        setUrl(null);
+        setUrl(src);
       });
 
     return () => {

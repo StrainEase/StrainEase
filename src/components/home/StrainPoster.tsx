@@ -45,8 +45,8 @@ export function StrainPoster({
       )}
       <p
         className={cn(
-          "font-display leading-snug tracking-tight",
-          compact ? "min-h-8 text-[13px]" : "min-h-[38px] text-[15px]",
+          "font-display font-semibold leading-snug text-pretty",
+          compact ? "min-h-8 text-[14px]" : "min-h-[38px] text-[16px]",
         )}
       >
         {profile.name}
