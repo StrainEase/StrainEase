@@ -197,7 +197,18 @@ struct LiveStrainAPI: StrainServicing {
 
     static func friendlyMessage(from error: Error) -> String {
         let ns = error as NSError
-        if let message = ns.userInfo["NSLocalizedDescription"] as? String,
+        let info = ns.userInfo
+        // Firebase Functions v2 surfaces the server's HttpsError message
+        // (e.g. "Select 2–3 strains to compare.") under userInfo["message"].
+        // NSLocalizedDescription is just "The operation couldn't be completed
+        // (…)" which is useless for end users, so prefer the server text.
+        if let message = info["message"] as? String, !message.isEmpty {
+            return message
+        }
+        if let details = info["details"] as? String, !details.isEmpty {
+            return details
+        }
+        if let message = info["NSLocalizedDescription"] as? String,
            !message.isEmpty,
            message != ns.domain
         {

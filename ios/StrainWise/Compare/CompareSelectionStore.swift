@@ -20,6 +20,7 @@ final class CompareSelectionStore {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !atCap, !isIn(trimmed) else { return false }
         names.append(trimmed)
+        clearStaleErrorOnSelectionChange()
         return true
     }
 
@@ -27,6 +28,7 @@ final class CompareSelectionStore {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         names.removeAll { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
+        clearStaleErrorOnSelectionChange()
     }
 
     @discardableResult
@@ -38,6 +40,7 @@ final class CompareSelectionStore {
         } else if !atCap {
             add(trimmed)
         }
+        clearStaleErrorOnSelectionChange()
         return isIn(trimmed)
     }
 
@@ -49,10 +52,19 @@ final class CompareSelectionStore {
             guard !trimmed.isEmpty, !isIn(trimmed) else { continue }
             names.append(trimmed)
         }
+        clearStaleErrorOnSelectionChange()
     }
 
     func clear() {
         names = []
+        clearStaleErrorOnSelectionChange()
+    }
+
+    /// Whenever the user edits the selection, the previous `compareError`
+    /// no longer applies. Clearing it hides the inline banner and stops
+    /// the sensoryFeedback trigger from looking stale on the next render.
+    private func clearStaleErrorOnSelectionChange() {
+        if compareError != nil { compareError = nil }
     }
 
     func isIn(_ name: String) -> Bool {
