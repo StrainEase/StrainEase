@@ -52,9 +52,12 @@ struct CompareResultsView: View {
                     SWCard {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(profile.name)
-                                    .font(.system(.title3, design: .serif))
-                                    .foregroundStyle(Palette.foreground)
+                                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                    Text(profile.name)
+                                        .font(.system(.title3, design: .serif))
+                                        .foregroundStyle(Palette.foreground)
+                                    NoteBadge(profile: profile, size: 15)
+                                }
                                 if !profile.subtitle.isEmpty {
                                     Text(profile.subtitle)
                                         .font(.system(size: 13))

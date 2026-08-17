@@ -3,6 +3,7 @@ import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
+import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
 import { Button } from "@/components/ui/button";
@@ -263,6 +264,7 @@ export default function Strain() {
                       >
                         <GitCompareArrows className="size-3.5" />
                         vs {name}
+                        <StrainNoteIndicator strainName={name} />
                       </Link>
                     </Button>
                   ))}

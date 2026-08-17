@@ -8,6 +8,7 @@ import {
 import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
+import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -80,6 +81,7 @@ export function SaveStrainButton({
         <>
           <BookmarkCheck className="size-3.5" />
           Saved
+          <StrainNoteIndicator strainName={profile.name} />
         </>
       ) : (
         <>

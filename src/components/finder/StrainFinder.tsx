@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
+import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -492,13 +493,14 @@ export function StrainFinder({
                         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                           {i + 1}
                         </span>
-                        <h3 className="text-base font-semibold tracking-tight">
+                        <h3 className="flex items-center gap-1.5 text-base font-semibold tracking-tight">
                           <Link
                             to={`/strain/${slugify(r.strainName)}`}
                             className="hover:text-primary"
                           >
                             {r.strainName}
                           </Link>
+                          <StrainNoteIndicator strainName={r.strainName} />
                         </h3>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">

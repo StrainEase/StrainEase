@@ -36,6 +36,7 @@
 		74FC6536E1E7475A1589D942 /* ReliefHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A408909E10D3882449C9D57D /* ReliefHistoryView.swift */; };
 		7A99F739D8D6ECD453F8CB26 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A538477A9E8CEFA4C6479CB4 /* FirebaseFunctions */; };
 		8053DBA5884A96D65B056F36 /* PublicNotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648CF481E640E18F7B4B47E9 /* PublicNotesStore.swift */; };
+		80CBF96AB4C7D7FEC580712A /* NoteBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7098BC59FC02A03542800F97 /* NoteBadge.swift */; };
 		871662B9AD4A6CB7B07A9694 /* ResearchHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C785B00B5BE01F0F24F44D /* ResearchHistoryStore.swift */; };
 		8821927B929F07592A4871F8 /* StrainWiseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D58596872C36B0B71B8273B /* StrainWiseTests.swift */; };
 		8D86BCA471979175EFFA9706 /* CompareSelectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FE12866D738D41961C6AD59 /* CompareSelectionStore.swift */; };
@@ -112,6 +113,7 @@
 		6C6225EB42FD12C9DC2A14DA /* HomeHeadline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHeadline.swift; sourceTree = "<group>"; };
 		6D1D2CBF28E9A81F7C08E37A /* strain-directory.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "strain-directory.json"; sourceTree = "<group>"; };
 		6FE12866D738D41961C6AD59 /* CompareSelectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareSelectionStore.swift; sourceTree = "<group>"; };
+		7098BC59FC02A03542800F97 /* NoteBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteBadge.swift; sourceTree = "<group>"; };
 		73221765338B5CEE84DE1532 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
 		748271FF5F0426BB3D375F6F /* DirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryView.swift; sourceTree = "<group>"; };
 		76898A85BA225BC2C71DE809 /* ReliefLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogStore.swift; sourceTree = "<group>"; };
@@ -254,6 +256,7 @@
 		6DA15F6B3C96347A7A00E4F6 /* Strain */ = {
 			isa = PBXGroup;
 			children = (
+				7098BC59FC02A03542800F97 /* NoteBadge.swift */,
 				4FE633D8DF9FC60A6054EB28 /* ReliefLogForm.swift */,
 				2472C11CB87864EA4159E36C /* SharedNotesView.swift */,
 				F5CAC268CEFCE3A7E94CE87A /* ShopLinksView.swift */,
@@ -503,6 +506,7 @@
 				CE080395A96906E4FB258A95 /* LocationProvider.swift in Sources */,
 				F9D327C95F3A4FB2EEFC1BD0 /* MainTabView.swift in Sources */,
 				465BEB9E82732E2902791986 /* MeshBackground.swift in Sources */,
+				80CBF96AB4C7D7FEC580712A /* NoteBadge.swift in Sources */,
 				311EFD014FE938AF277B28E9 /* Palette.swift in Sources */,
 				35447C27AB56EA978EFEF102 /* PreviewData.swift in Sources */,
 				8053DBA5884A96D65B056F36 /* PublicNotesStore.swift in Sources */,

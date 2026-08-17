@@ -151,9 +151,13 @@ private struct TerpeneFamilyRow: View {
                         .foregroundStyle(Palette.primary)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(profile.name)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Palette.foreground)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(profile.name)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Palette.foreground)
+                            .lineLimit(2)
+                        NoteBadge(profile: profile, size: 13)
+                    }
                     if !profile.subtitle.isEmpty {
                         Text(profile.subtitle)
                             .font(.system(size: 12))

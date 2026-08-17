@@ -4,8 +4,17 @@ struct StrainPoster: View {
     let profile: StrainProfile
     var compact = false
     var photoHeight: CGFloat? = nil
-    /// Private notes on this saved strain. Home rails leave this at 0.
-    var noteCount = 0
+
+    /// Manual override for previews / tests. When `nil` the poster reads
+    /// from the shared `SavedStrainsStore` so the pencil badge lights up
+    /// automatically on Home rails, the Directory, and the Saved grid.
+    var noteCountOverride: Int? = nil
+
+    @Environment(SavedStrainsStore.self) private var saved
+
+    private var noteCount: Int {
+        noteCountOverride ?? saved.notes(for: profile.slug).count
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 6 : 8) {
@@ -44,9 +53,7 @@ struct StrainPoster: View {
     }
 
     private var accessibilityName: String {
-        guard noteCount > 0 else { return profile.name }
-        let noun = noteCount == 1 ? "note" : "notes"
-        return "\(profile.name), \(noteCount) \(noun)"
+        NoteBadge.accessibilityLabel(for: profile, count: noteCount)
     }
 }
 

@@ -31,6 +31,20 @@ struct StrainDetailView: View {
     private var pending: Set<StrainHydrationSection> {
         isHydrating ? profile.pendingHydrationSections : []
     }
+    /// Voiceover copy for the toolbar heart. When the strain has notes,
+    /// we surface the count so the user can confirm the saved-strain
+    /// badge from the toolbar without drilling into the body.
+    private var accessibilityLabelForLikeButton: String {
+        guard isLiked else {
+            return "Add to liked strains"
+        }
+        let noteCount = saved.notes(for: profile.slug).count
+        if noteCount > 0 {
+            let noun = noteCount == 1 ? "note" : "notes"
+            return "Remove from liked strains, \(noteCount) \(noun)"
+        }
+        return "Remove from liked strains"
+    }
     /// `true` only when the user has saved ailments AND the AI
     /// tailored-description endpoint should be invoked. Without saved
     /// ailments the static `profile.description` is the better surface.
@@ -103,11 +117,18 @@ struct StrainDetailView: View {
                 Button {
                     Task { await saved.toggle(profile) }
                 } label: {
-                    Image(systemName: isLiked ? "heart.fill" : "heart")
-                        .foregroundStyle(isLiked ? Palette.primary : Palette.mutedForeground)
-                        .symbolEffect(.bounce, value: isLiked)
+                    HStack(spacing: 4) {
+                        Image(systemName: isLiked ? "heart.fill" : "heart")
+                            .foregroundStyle(isLiked ? Palette.primary : Palette.mutedForeground)
+                            .symbolEffect(.bounce, value: isLiked)
+                        if isLiked && saved.notes(for: profile.slug).count > 0 {
+                            Image(systemName: "square.and.pencil")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Palette.primary)
+                        }
+                    }
                 }
-                .accessibilityLabel(isLiked ? "Remove from liked strains" : "Add to liked strains")
+                .accessibilityLabel(accessibilityLabelForLikeButton)
                 .disabled(saved.isBusy)
                 .sensoryFeedback(.selection, trigger: isLiked)
             }
@@ -359,9 +380,12 @@ struct StrainDetailView: View {
                         .background(Palette.accent, in: Capsule())
                 }
             }
-            Text(profile.name)
-                .font(.system(.largeTitle, design: .serif))
-                .foregroundStyle(Palette.foreground)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(profile.name)
+                    .font(.system(.largeTitle, design: .serif))
+                    .foregroundStyle(Palette.foreground)
+                NoteBadge(profile: profile, size: 22)
+            }
             if !profile.subtitle.isEmpty {
                 Text(profile.subtitle)
                     .font(.system(size: 15, weight: .medium))
