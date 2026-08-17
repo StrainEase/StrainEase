@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { cachedStrainImage } from "@/lib/strain-api";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const STORAGE_KEY = "strain-image-cache:v1";
+// v2: switch from signed URLs (which expired after 7 days and required
+// iam.serviceAccounts.signBlob on the runtime SA) to permanent public
+// storage URLs. Bumping the key invalidates any stale signed URLs left
+// over from before the deploy.
+const STORAGE_KEY = "strain-image-cache:v2";
 
 type CacheEntry = {
   url: string;

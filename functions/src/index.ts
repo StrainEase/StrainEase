@@ -650,10 +650,19 @@ export const recommendStrainsForConditions = onCall(
 
 /**
  * Cache + serve a strain image. The function fetches the upstream
- * bytes once via cachedFetchImage (in-memory then Storage), then
- * returns a signed URL pointing at the cached object so the browser
- * can fetch it directly with normal HTTP caching. Repeat calls within
- * the 7-day TTL hit the Storage copy without re-touching Leafly.
+ * bytes once via cachedFetchImage (in-memory then Storage), makes the
+ * stored object publicly readable, and returns a permanent public URL
+ * the browser can fetch directly with normal HTTP caching. Repeat
+ * calls within the 7-day TTL hit the Storage copy without re-touching
+ * Leafly, and the URL itself never expires — the cached bytes are the
+ * exact same Leafly images, so making them public is no wider than
+ * the source already is.
+ *
+ * If the Storage write can't land a publicly-readable object (e.g.
+ * the bucket has uniform bucket-level access enabled and rejects
+ * makePublic), we fall back to the original upstream URL so the image
+ * still loads. The browser's <img onError> handler swaps to a leaf
+ * fallback if even that 404s.
  */
 export const cachedStrainImage = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
@@ -670,18 +679,25 @@ export const cachedStrainImage = onCall(
     }
     const cached = await cachedFetchImage(url);
     const key = imageCacheKey(url);
-    // Generate a long-lived signed URL for the Storage copy so the
-    // browser caches the image across visits without a callable round-trip.
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const [signedUrl] = await getStorage()
-      .bucket()
-      .file(`strain-images/${key}`)
-      .getSignedUrl({
-        action: "read",
-        expires: expiresAt,
-      });
+    const bucketName = getStorage().bucket().name;
+    const file = getStorage().bucket().file(`strain-images/${key}`);
+    // Probe storage so we don't hand the browser a public URL that
+    // would 404. readFromStorage has already confirmed the object is
+    // within TTL; this just guards against the rare case where
+    // writeToStorage silently failed (uniform bucket-level access,
+    // quota, etc.).
+    const [exists] = await file.exists().catch(() => [false]);
+    if (exists) {
+      const publicUrl = `https://storage.googleapis.com/${bucketName}/strain-images/${key}`;
+      return {
+        url: publicUrl,
+        contentType: cached.contentType,
+        bytes: cached.bytes.length,
+        source: cached.source,
+      };
+    }
     return {
-      url: signedUrl,
+      url,
       contentType: cached.contentType,
       bytes: cached.bytes.length,
       source: cached.source,

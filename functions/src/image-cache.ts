@@ -5,8 +5,12 @@
 //   1. In-memory cache (Map<key, {bytes, contentType, fetchedAt}>).
 //      Resets when the instance is recycled, but covers the common
 //      case of repeated hits inside one warm window.
-//   2. Firebase Storage bucket at `strain-images/{sha256(url)}`.
-//      Survives cold starts and lets the AI rehydrate fast.
+//   2. Firebase Storage bucket at `strain-images/{sha256(url)}`,
+//      saved with public-read ACL so the browser can fetch the bytes
+//      directly via https://storage.googleapis.com/... without us
+//      having to mint a signed URL (which would require the runtime
+//      SA to hold iam.serviceAccounts.signBlob, which Firebase's
+//      default compute SA does not). Survives cold starts.
 //   3. The network. Only hit on cache miss.
 //
 // Coalescing: concurrent requests for the same URL share a single
@@ -75,6 +79,12 @@ async function readFromStorage(
     if (Date.now() - fetchedAt >= CACHE_TTL_MS) return null;
     const [bytes] = await file.download();
     const contentType = metadata.contentType ?? "image/jpeg";
+    // Heal the ACL on every storage hit so objects written before the
+    // public-URL switch (which left them private) flip to allUsers-read
+    // on next read. Best-effort: if makePublic throws (e.g. uniform
+    // bucket-level access is on), we still return the bytes and the
+    // caller will surface a sensible error to the browser.
+    void file.makePublic().catch(() => {});
     return { bytes, contentType, fetchedAt };
   } catch {
     return null;
@@ -84,7 +94,7 @@ async function readFromStorage(
 async function writeToStorage(
   key: string,
   entry: CacheEntry,
-): Promise<void> {
+): Promise<boolean> {
   try {
     const file = getStorage().bucket().file(`strain-images/${key}`);
     await file.save(entry.bytes, {
@@ -95,10 +105,21 @@ async function writeToStorage(
       },
       resumable: false,
     });
+    // Make the object publicly readable so the browser can fetch it
+    // directly via https://storage.googleapis.com/... without us having
+    // to mint a signed URL (which requires the runtime SA to hold
+    // iam.serviceAccounts.signBlob, and Firebase's default compute SA
+    // does not). Object-level ACLs only apply when uniform bucket-level
+    // access is OFF, which is the default for Firebase Storage buckets.
+    // If the bucket has uniform access on, makePublic throws — we let
+    // that bubble up to the catch so the caller knows the file isn't
+    // publicly readable and should fall back to the original URL.
+    await file.makePublic();
+    return true;
   } catch {
-    // Storage write is best-effort. The memory cache + a later retry
-    // will cover the caller; we don't want a transient storage blip
-    // to fail the whole image fetch.
+    // Storage write is best-effort. The memory cache already satisfies
+    // this request; a transient storage blip shouldn't break the image.
+    return false;
   }
 }
 
@@ -140,10 +161,13 @@ export async function cachedFetchImage(url: string): Promise<CachedImage> {
         fetchedAt: Date.now(),
       };
       memoryCache.set(key, entry);
-      // Fire-and-forget write to Storage. We don't want a transient
-      // bucket error to block the caller, and the in-memory copy
-      // already satisfies this request.
-      void writeToStorage(key, entry);
+      // Await the Storage write so the public URL we hand back to the
+      // caller is always backed by a real object. Concurrent callers
+      // share the same promise, so they wait once instead of all racing
+      // to upload the same bytes. writeToStorage is best-effort and
+      // returns false on failure; the caller decides whether to fall
+      // back to the original URL.
+      await writeToStorage(key, entry);
       return entry;
     })();
     inflight.set(key, pending);
