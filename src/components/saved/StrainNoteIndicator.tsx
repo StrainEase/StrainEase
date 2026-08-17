@@ -20,11 +20,9 @@ import { useEffect, useState } from "react";
 export function StrainNoteIndicator({
   strainName,
   className,
-  showCount = false,
 }: {
   strainName: string;
   className?: string;
-  showCount?: boolean;
 }) {
   const { user } = useAuth();
   const [noteCount, setNoteCount] = useState(0);
@@ -63,14 +61,14 @@ export function StrainNoteIndicator({
       title={tooltip}
       aria-label={tooltip}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 text-primary",
+        "inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-1.5 py-0.5 text-primary",
         className,
       )}
     >
-      <NotebookPen className="size-3.5" aria-hidden />
-      {showCount && (
-        <span className="text-xs font-medium tabular-nums">{noteCount}</span>
-      )}
+      <NotebookPen className="size-3" aria-hidden />
+      <span className="text-[11px] font-medium tabular-nums leading-none">
+        {noteCount}
+      </span>
     </span>
   );
 }
