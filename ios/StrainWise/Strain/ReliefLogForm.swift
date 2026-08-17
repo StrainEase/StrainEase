@@ -12,14 +12,22 @@ struct ReliefLogForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Button(open ? "Cancel" : "How did this go?") {
+            Button {
                 open.toggle()
+            } label: {
+                Text(open ? "Cancel" : "How did this go?")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(open ? Palette.mutedForeground : Palette.primaryForeground)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(open ? Palette.card.opacity(0.55) : Palette.primary, in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(open ? Palette.border : Palette.primary, lineWidth: 1)
+                    )
+                    .contentShape(Capsule())
             }
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(Palette.primaryForeground)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Palette.primary, in: Capsule())
+            .buttonStyle(.plain)
             .accessibilityLabel(open ? "Cancel relief log" : "Log how this strain went")
 
             if open {

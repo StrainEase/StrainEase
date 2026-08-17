@@ -85,8 +85,7 @@ final class AgeVerificationStore {
     }
 
     static func preview(_ record: AgeVerificationRecord? = nil) -> AgeVerificationStore {
-        let store = AgeVerificationStore.previewOnly(record: record)
-        return store
+        AgeVerificationStore(previewOnly: record)
     }
 
     private init(previewOnly record: AgeVerificationRecord?) {
