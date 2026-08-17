@@ -89,7 +89,8 @@ final class CompareSelectionStore {
                 strainNames: names,
                 conditions: conditions,
                 prefs: prefs,
-                reliefSummary: reliefSummary
+                reliefSummary: reliefSummary,
+                language: StrainAILanguage.preferred
             )
         } catch {
             compareError = error.localizedDescription

@@ -70,6 +70,8 @@ export function compareStrains(args: {
   strainNames: string[];
   condition?: string[];
   prefs?: ResearchPrefs;
+  /** Human-readable language name, e.g. "English". Defaults to English. */
+  language?: string;
 }): Promise<StrainComparison> {
   return call<typeof args, StrainComparison>("compareStrains", args);
 }
@@ -79,6 +81,8 @@ export function recommendStrains(args: {
   conditions: string[];
   potency?: "mild" | "balanced" | "strong";
   prefs?: ResearchPrefs;
+  /** Human-readable language name, e.g. "English". Defaults to English. */
+  language?: string;
 }): Promise<RecommendationResult> {
   return call<typeof args, RecommendationResult>(
     "recommendStrainsForConditions",
@@ -117,6 +121,8 @@ export function describeStrainForUser(args: {
   medications?: string[];
   /** Pre-summarized relief log prose, newest first. Backend caps at 800 chars. */
   reliefHistory?: string;
+  /** Human-readable language name, e.g. "English". Defaults to English. */
+  language?: string;
 }): Promise<StrainDescription> {
   return call<typeof args, StrainDescription>("describeStrainForUser", args);
 }

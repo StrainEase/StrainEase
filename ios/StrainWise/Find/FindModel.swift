@@ -95,7 +95,8 @@ final class FindModel {
                 conditions: ailments,
                 potency: potency,
                 prefs: prefs,
-                reliefSummary: reliefSummary
+                reliefSummary: reliefSummary,
+                language: StrainAILanguage.preferred
             )
         } catch {
             errorMessage = error.localizedDescription
