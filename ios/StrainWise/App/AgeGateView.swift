@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 /// Full-screen age-verification gate. Mirrors the web `AgeGate` component:
 /// region picker + date-of-birth + Terms & Privacy acceptance, then either
@@ -186,6 +187,11 @@ struct AgeGateView: View {
                             termsAccepted: true,
                             privacyAccepted: true,
                         )
+                        do {
+                            try await Auth.auth().currentUser?.getIDTokenForcingRefresh(true)
+                        } catch {
+                            print("[age-verification] Token refresh failed: \(error)")
+                        }
                     } catch {
                         // Surface as a soft warning — the local gate is the
                         // UI source of truth; signed-in AI features may

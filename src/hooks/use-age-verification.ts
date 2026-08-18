@@ -8,12 +8,14 @@
 // the AI synthesis / doctor callables from rejecting the user with
 // "permission-denied" right after they pass the gate.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { setAgeVerified } from "@/lib/strain-api";
+import { auth } from "@/lib/firebase";
 import {
   evaluateAge,
   getRegion,
+  isRecordValid,
   type AgeVerificationRecord,
   type AgeCheckFailure,
   type Region,
@@ -69,6 +71,26 @@ export function useAgeVerification(): {
     setRecord(readAgeVerification());
   }, []);
 
+  const prevAuthenticated = useRef(isAuthenticated);
+
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      !prevAuthenticated.current &&
+      record &&
+      isRecordValid(record) &&
+      hydrated
+    ) {
+      setAgeVerified({
+        region: record.region,
+        birthDate: record.birthDate,
+        termsAccepted: true,
+        privacyAccepted: true,
+      }).then(() => auth?.currentUser?.getIdToken(true)).catch(() => {});
+    }
+    prevAuthenticated.current = isAuthenticated;
+  }, [isAuthenticated, record, hydrated]);
+
   const verify = useCallback(
     async (input: VerifyInput) => {
       const evaluation = evaluateAge(input.birthDate, input.region);
@@ -98,6 +120,11 @@ export function useAgeVerification(): {
             termsAccepted: input.termsAccepted,
             privacyAccepted: input.privacyAccepted,
           });
+          try {
+            await auth?.currentUser?.getIdToken(true);
+          } catch {
+            // best-effort refresh; the next token cycle will pick up the claim
+          }
         } catch {
           // Surface a soft warning to the caller via console — the UI
           // shouldn't block on this, since the local gate is the source of
