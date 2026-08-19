@@ -256,6 +256,7 @@ export default function Strain() {
             <CommunityVoices
               notes={profile.communityNotes}
               strainName={profile.name}
+              redditSources={profile.redditSources}
             />
 
             {isAuthenticated && others.length > 0 && (

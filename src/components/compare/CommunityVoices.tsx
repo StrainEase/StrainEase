@@ -296,33 +296,66 @@ export function CommunityVoices({
   conditions = [],
   leaflyRating,
   leaflyReviewCount,
+  redditSources,
 }: {
   notes?: QuoteNote[];
   strainName: string;
   conditions?: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  redditSources?: {
+    subreddit: string;
+    title: string;
+    snippet?: string;
+  }[];
 }) {
-  const cannabis = notesForChannel(notes, "cannabis");
-  const reddit = notesForChannel(notes, "reddit");
+  const mergedNotes: QuoteNote[] = (() => {
+    const base = (notes ?? []).slice();
+    const seen = new Set(
+      base.map((n) => n.text.trim().toLowerCase()).filter(Boolean),
+    );
+    for (const src of redditSources ?? []) {
+      const text = (src.snippet?.trim() || src.title?.trim() || "").trim();
+      if (!text) continue;
+      const key = text.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      base.push({
+        source: `r/${src.subreddit}`,
+        text,
+        kind: "reddit",
+      });
+    }
+    return base;
+  })();
+
+  const cannabis = notesForChannel(mergedNotes, "cannabis");
+  const reddit = notesForChannel(mergedNotes, "reddit");
   const hasRating = typeof leaflyRating === "number";
   const hasAny = cannabis.length > 0 || reddit.length > 0 || hasRating;
   const [sort, setSort] = useState<ReviewSort>("relevance");
-  // Default to "All" so a reader landing on the page sees both Leafly /
-  // Weedmaps blurb-style reviews and Reddit patient quotes together. If
-  // a single source is empty the tab still renders — the ChannelPanel
-  // fills in the right empty-state copy.
   const [tab, setTab] = useState<NoteChannel>("all");
 
   if (!hasAny && conditions.length === 0) return null;
 
-  const cannabisCount = cannabis.length;
-  const redditCount = reddit.length;
-  const allCount = cannabisCount + redditCount;
-  // All (non-aggregate) notes combined for the default "All reviews"
-  // tab. Each note keeps its original `source` so the badge under each
-  // quote still reads "Leafly Community" / "Reddit" / etc.
-  const allNotes = (notes ?? []).slice();
+  const showCannabis = cannabis.length > 0 || hasRating;
+  const showReddit = reddit.length > 0;
+  const showAll = showCannabis && showReddit;
+  const visibleChannels: NoteChannel[] = [
+    ...(showAll ? (["all"] as const) : []),
+    ...(showCannabis ? (["cannabis"] as const) : []),
+    ...(showReddit ? (["reddit"] as const) : []),
+  ];
+  const activeTab: NoteChannel = visibleChannels.includes(tab)
+    ? tab
+    : (visibleChannels[0] ?? "all");
+  const allNotes = mergedNotes.slice();
+  const cols =
+    visibleChannels.length <= 1
+      ? "grid-cols-1"
+      : visibleChannels.length === 2
+        ? "grid-cols-2"
+        : "grid-cols-3";
 
   return (
     <div className="mt-auto space-y-3 border-t border-border/60 pt-4">
@@ -339,56 +372,55 @@ export function CommunityVoices({
       </div>
 
       <Tabs
-        value={tab}
+        value={activeTab}
         onValueChange={(value) => setTab(value as NoteChannel)}
         className="gap-3"
       >
-        <TabsList className="grid h-auto w-full grid-cols-3 p-1">
+        {visibleChannels.length > 1 ? (
+        <TabsList className={cn("grid h-auto w-full p-1", cols)}>
+          {showAll && (
           <TabsTrigger
             value="all"
-            className="min-h-10 gap-1 px-1.5 py-2 text-xs whitespace-normal shadow-none data-[state=active]:shadow-none sm:min-h-9 sm:gap-1.5 sm:px-2 sm:text-sm sm:whitespace-nowrap"
+            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
           >
             <ArrowDownUp className="size-3.5 shrink-0" />
-            <span className="text-center leading-tight">All reviews</span>
-            <span className="tabular-nums text-[10px] text-muted-foreground sm:text-xs">
-              {allCount}
-            </span>
+            <span className="leading-tight">All reviews</span>
           </TabsTrigger>
+          )}
+          {showCannabis && (
           <TabsTrigger
             value="cannabis"
-            className="min-h-10 gap-1 px-1.5 py-2 text-xs whitespace-normal shadow-none data-[state=active]:shadow-none sm:min-h-9 sm:gap-1.5 sm:px-2 sm:text-sm sm:whitespace-nowrap"
+            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
           >
             <Leaf className="size-3.5 shrink-0" />
-            <span className="text-center leading-tight">Cannabis Sites</span>
-            <span className="tabular-nums text-[10px] text-muted-foreground sm:text-xs">
-              {cannabisCount}
-            </span>
+            <span className="leading-tight">Cannabis Sites</span>
           </TabsTrigger>
+          )}
+          {showReddit && (
           <TabsTrigger
             value="reddit"
-            className="min-h-10 gap-1 px-1.5 py-2 text-xs whitespace-normal shadow-none data-[state=active]:shadow-none sm:min-h-9 sm:gap-1.5 sm:px-2 sm:text-sm sm:whitespace-nowrap"
+            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
           >
             <MessageCircle className="size-3.5 shrink-0" />
-            <span className="text-center leading-tight">Reddit</span>
-            <span className="tabular-nums text-[10px] text-muted-foreground sm:text-xs">
-              {redditCount}
-            </span>
+            <span className="leading-tight">Reddit</span>
           </TabsTrigger>
+          )}
         </TabsList>
+        ) : null}
 
         <motion.div
-          key={tab}
+          key={activeTab}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
         >
-          <TabsContent value={tab} forceMount className="mt-0 outline-none">
+          <TabsContent value={activeTab} forceMount className="mt-0 outline-none">
             <ChannelPanel
-              channel={tab}
+              channel={activeTab}
               notes={
-                tab === "reddit"
+                activeTab === "reddit"
                   ? reddit
-                  : tab === "cannabis"
+                  : activeTab === "cannabis"
                     ? cannabis
                     : allNotes
               }

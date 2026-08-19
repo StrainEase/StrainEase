@@ -307,6 +307,7 @@ export function StrainDetailCard({
         conditions={conditions}
         leaflyRating={strain.leaflyRating}
         leaflyReviewCount={strain.leaflyReviewCount}
+        redditSources={strain.redditSources}
       />
     </div>
   );

@@ -1,4 +1,9 @@
-export type QuoteNote = { source: string; text: string };
+export type QuoteNote = {
+  source: string;
+  text: string;
+  /** Optional origin tag from the backend / featured mocks. */
+  kind?: "leafly" | "weedmaps" | "reddit" | "other";
+};
 
 const AILMENT_ALIASES: Record<string, string[]> = {
   insomnia: ["insomnia", "sleep", "asleep", "sleeping"],
@@ -49,7 +54,13 @@ export type ChannelSummary = {
 };
 
 export function isRedditNote(note: QuoteNote): boolean {
-  return note.source.toLowerCase().includes("reddit");
+  if (note.kind === "reddit") return true;
+  if (note.kind === "leafly" || note.kind === "weedmaps") return false;
+  const src = note.source.toLowerCase().trim();
+  if (src.includes("reddit")) return true;
+  if (/^r\/[a-z0-9_]+/i.test(src)) return true;
+  if (src.includes("/r/")) return true;
+  return false;
 }
 
 export function notesForChannel(
@@ -373,8 +384,6 @@ export function summarizeChannel(
   conditions: string[] = [],
   explicitRating?: { leaflyRating?: number; leaflyReviewCount?: number },
 ): ChannelSummary {
-  // The Leafly star rating is a "cannabis-site" signal even when the
-  // active tab is "all", so we always parse it for the merged view.
   const rating =
     channel === "reddit" ? null : parseLeaflyRating(notes, explicitRating);
   if (notes.length === 0 && !rating) {
