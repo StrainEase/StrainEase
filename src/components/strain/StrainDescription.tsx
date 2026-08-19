@@ -75,7 +75,7 @@ function DescriptionSection({
   return (
     <article className="rounded-2xl border border-border/70 bg-card p-5">
       <header className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="text-base font-semibold tracking-tight text-foreground">
+        <h3 className="text-base font-bold tracking-tight text-foreground">
           {section.heading}
         </h3>
         <AskMayaButton
