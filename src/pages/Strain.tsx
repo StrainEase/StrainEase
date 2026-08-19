@@ -73,7 +73,10 @@ export default function Strain() {
     // Featured strains ship a preloaded profile — skip the Leafly scrape and
     // render the mock detail view immediately.
     if (featuredProfile) {
-      setProfile(featuredProfile);
+      // Featured profiles ship without imageUrl — fill from the curated
+      // catalog photo map so the hero bud shot matches the Home rail.
+      const [filled] = applyCatalogPhotos([featuredProfile]);
+      setProfile(filled ?? featuredProfile);
       setStatus("ready");
       return () => {
         cancelled = true;
@@ -288,13 +291,14 @@ function StrainHeader({ strain }: { strain: StrainProfile }) {
 
   return (
     <header className="space-y-4">
-      {strain.imageUrl && (
-        <StrainImage
-          src={strain.imageUrl}
-          alt={`${strain.name} flower`}
-          className="h-72 w-full rounded-2xl border border-border/70 bg-white sm:h-80"
-        />
-      )}
+      {/* Always mount the hero image slot so missing/404 URLs still show
+          the leaf fallback instead of leaving a blank gap above the title. */}
+      <StrainImage
+        src={strain.imageUrl}
+        alt={`${strain.name} flower`}
+        type={strain.type}
+        className="h-72 w-full rounded-2xl border border-border/70 bg-white sm:h-80"
+      />
       <div className="flex flex-wrap items-center gap-2">
         {strain.type && (
           <Badge className={cn(typeBadgeClass(strain.type), "capitalize")}>
