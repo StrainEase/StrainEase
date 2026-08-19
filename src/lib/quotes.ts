@@ -35,7 +35,7 @@ export function isPatientQuote(note: QuoteNote): boolean {
   return src.includes("reddit") || src.includes("review");
 }
 
-export type NoteChannel = "cannabis" | "reddit";
+export type NoteChannel = "cannabis" | "reddit" | "all";
 export type SentimentTone = "positive" | "mixed" | "cautious" | "insufficient";
 
 export type ChannelSummary = {
@@ -56,7 +56,9 @@ export function notesForChannel(
   notes: QuoteNote[] | undefined,
   channel: NoteChannel,
 ): QuoteNote[] {
-  return (notes ?? []).filter((n) =>
+  const list = notes ?? [];
+  if (channel === "all") return list.slice();
+  return list.filter((n) =>
     channel === "reddit" ? isRedditNote(n) : !isRedditNote(n),
   );
 }
@@ -350,7 +352,9 @@ function emptySummary(
       ? conditions.length > 0
         ? `No Reddit comments mention ${name} together with ${joinList(conditions.map((c) => c.toLowerCase()))} yet.`
         : `No Reddit comments were collected for ${name} yet.`
-      : `No Leafly or Weedmaps comments are in this profile for ${name} yet.`;
+      : channel === "cannabis"
+        ? `No Leafly or Weedmaps comments are in this profile for ${name} yet.`
+        : `No comments are in this profile for ${name} yet.`;
   return {
     tone: "insufficient",
     label: TONE_LABEL.insufficient,
@@ -369,8 +373,10 @@ export function summarizeChannel(
   conditions: string[] = [],
   explicitRating?: { leaflyRating?: number; leaflyReviewCount?: number },
 ): ChannelSummary {
+  // The Leafly star rating is a "cannabis-site" signal even when the
+  // active tab is "all", so we always parse it for the merged view.
   const rating =
-    channel === "cannabis" ? parseLeaflyRating(notes, explicitRating) : null;
+    channel === "reddit" ? null : parseLeaflyRating(notes, explicitRating);
   if (notes.length === 0 && !rating) {
     return emptySummary(channel, strainName, conditions);
   }
@@ -378,7 +384,8 @@ export function summarizeChannel(
   const reviews = individualReviews(notes);
   const texts = reviews.map((n) => n.text.toLowerCase());
   const blob = texts.join(" ");
-  const uses = channel === "cannabis" ? weedmapsUses(notes) : [];
+  const uses =
+    channel === "cannabis" || channel === "all" ? weedmapsUses(notes) : [];
   const positive = countHits(blob, POSITIVE_PHRASES);
   const negative = countHits(blob, NEGATIVE_PHRASES);
   const tone = toneFromSignals(positive, negative, rating);
@@ -397,7 +404,11 @@ export function summarizeChannel(
 
   if (reviews.length > 0) {
     const who =
-      channel === "reddit" ? "Reddit comments" : "Written comments";
+      channel === "reddit"
+        ? "Reddit comments"
+        : channel === "cannabis"
+          ? "Written comments"
+          : "Patient comments";
     const lean =
       tone === "positive"
         ? "lean positive"
@@ -409,7 +420,9 @@ export function summarizeChannel(
     const focus =
       channel === "reddit" && conditions.length > 0
         ? ` that mention ${name} and ${joinList(conditions.map((c) => c.toLowerCase()))}`
-        : "";
+        : channel === "all" && conditions.length > 0
+          ? ` mentioning ${joinList(conditions.map((c) => c.toLowerCase()))}`
+          : "";
     const themeBit =
       themes.length > 0 ? ` People often mention ${joinList(themes)}.` : "";
     parts.push(`${who}${focus} ${lean}.${themeBit}`);
@@ -417,7 +430,9 @@ export function summarizeChannel(
     parts.push(
       channel === "reddit"
         ? `A few Reddit notes mention ${name}, but there is not enough to judge sentiment.`
-        : `Cannabis-site notes mention ${name}, but there are no individual reviews to judge sentiment.`,
+        : channel === "cannabis"
+          ? `Cannabis-site notes mention ${name}, but there are no individual reviews to judge sentiment.`
+          : `There is not enough public reporting on ${name} yet to judge sentiment.`,
     );
   }
 

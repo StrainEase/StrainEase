@@ -6,6 +6,8 @@ import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
+import { StrainImage } from "@/components/strain/StrainImage";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
@@ -29,10 +31,12 @@ import {
 } from "@/lib/strain-meaning";
 import { terpeneProfile, terpeneSlug } from "@/lib/terpenes";
 import type { StrainProfile } from "@/lib/strain-profile";
-import { ArrowLeft, GitCompareArrows, Moon, Sun } from "lucide-react";
+import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
+import { ArrowLeft, GitCompareArrows, Moon, Sparkles, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { cn } from "@/lib/utils";
 
 export default function Strain() {
   const { slug = "" } = useParams();
@@ -188,7 +192,12 @@ export default function Strain() {
             transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
             className="space-y-8"
           >
-            <StrainDetailCard strain={profile} headingLevel="h1" />
+            <StrainHeader strain={profile} />
+            <StrainDetailCard
+              strain={profile}
+              headingLevel="h2"
+              hideHero
+            />
 
             <div className="rounded-2xl border border-border/70 bg-card p-6">
               <div className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -338,5 +347,62 @@ export default function Strain() {
       </div>
       <AppTabBar active="home" />
     </main>
+  );
+}
+
+/**
+ * iOS-style strain page header. The photo, type badge, name (serif),
+ * subtitle, and lineage all sit outside the description card so the
+ * card itself can focus on the three-section tailored description.
+ * Mirrors `StrainDetailView.header` on iOS.
+ */
+function StrainHeader({ strain }: { strain: StrainProfile }) {
+  const subtitle = [
+    strain.type ? TYPE_LABEL[strain.type] ?? strain.type : null,
+    strain.thcRange ? `THC ${strain.thcRange}` : null,
+    strain.thcRange && strain.cbdRange && strain.cbdRange !== "<1%"
+      ? `CBD ${strain.cbdRange}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <header className="space-y-4">
+      {strain.imageUrl && (
+        <StrainImage
+          src={strain.imageUrl}
+          alt={`${strain.name} flower`}
+          className="h-72 w-full rounded-2xl border border-border/70 bg-white sm:h-80"
+        />
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {strain.type && (
+          <Badge className={cn(typeBadgeClass(strain.type), "capitalize")}>
+            {TYPE_LABEL[strain.type] ?? strain.type}
+          </Badge>
+        )}
+        {!strain.inKnowledgeBase && (
+          <Badge
+            variant="outline"
+            className="gap-1 border-primary/30 text-primary"
+          >
+            <Sparkles className="size-3" />
+            AI researched
+          </Badge>
+        )}
+      </div>
+      <h1 className="font-serif text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
+        {strain.name}
+      </h1>
+      {subtitle && (
+        <p className="text-sm font-medium text-muted-foreground sm:text-base">
+          {subtitle}
+        </p>
+      )}
+      {strain.lineage && (
+        <p className="text-sm text-muted-foreground">{strain.lineage}</p>
+      )}
+    </header>
   );
 }
