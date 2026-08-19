@@ -104,7 +104,7 @@ export function useAgeVerification(): {
       if (!written) {
         return {
           ok: false as const,
-          reason: "invalid-birth-date" as AgeCheckFailure,
+          reason: "storage-unavailable" as AgeCheckFailure,
         };
       }
       setRecord(written);
@@ -140,18 +140,41 @@ export function useAgeVerification(): {
     [isAuthenticated],
   );
 
+  // Drop expired / no-longer-valid records so the gate reappears.
+  useEffect(() => {
+    if (!hydrated || !record) return;
+    if (record.expiresAt <= Date.now()) {
+      clearAgeVerification();
+      setRecord(null);
+      return;
+    }
+    const evaluation = evaluateAge(record.birthDate, record.region);
+    if (!evaluation.ok) {
+      clearAgeVerification();
+      setRecord(null);
+    }
+  }, [hydrated, record]);
+
   const state: AgeVerificationState = useMemo(() => {
     if (!hydrated) return { status: "loading" };
     if (!record) return { status: "unverified" };
     if (record.expiresAt <= Date.now()) {
       return { status: "unverified", reason: undefined, lastRecord: record };
     }
-    const region = getRegion(record.region);
-    const age = evaluateAge(record.birthDate, record.region).ok
-      ? (evaluateAge(record.birthDate, record.region) as { age: number }).age
-      : 0;
-    return { status: "verified", record, region, age };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const evaluation = evaluateAge(record.birthDate, record.region);
+    if (!evaluation.ok) {
+      return {
+        status: "unverified",
+        reason: evaluation.reason,
+        lastRecord: record,
+      };
+    }
+    return {
+      status: "verified",
+      record,
+      region: evaluation.region,
+      age: evaluation.age,
+    };
   }, [record, hydrated]);
 
   return { state, verify, reset, recheck };
