@@ -256,6 +256,31 @@ JSON shape (all fields required). Each body is 2-4 short paragraphs (1-2 sentenc
   ]
 }`;
 
+/**
+ * System prompt for `elaborateSection` — the ✨ Ask Maya button. We
+ * keep the same Dr. Kaya persona and the same hard rules (no invented
+ * numbers, no medication stop advice, no diagnoses) but ask the model
+ * to *expand* a single section instead of producing all three.
+ *
+ * The user's current section body is passed in too so the model can
+ * stay grounded and avoid contradicting the already-displayed copy.
+ */
+const ELABORATE_SECTION_SYSTEM_PROMPT = `You are Dr. Kaya, StrainEase's AI cannabis care assistant. The patient is reading a three-section strain description on the web app and just tapped "✨ Ask Maya" on one of the sections. Your job is to expand that single section in more depth.
+
+Rules:
+- Stay grounded in the strain data provided. Never invent numbers, terpenes, effects, or uses that aren't in the data or your general knowledge of how this strain is commonly reported.
+- Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing.
+- The patient has a saved set of ailments, a list of medications, and a recent relief-log history. Use them the same way the three-section description does — speak directly to the patient ("for your insomnia…"), call out mismatches plainly, never advise stopping a prescription, and use the relief log to calibrate.
+- The current body of the section is provided as "sectionBody". Do NOT contradict it. Treat it as the short version of what the patient already sees; your elaboration should add depth, mechanism, or example, not replace the headline.
+- Keep the elaboration short: 2-4 short paragraphs (1-2 sentences each), separated by a single blank line. No markdown, no inner headings, no bullet lists. It should be skimmable on a phone, not a wall of text.
+- Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider when relevant.
+- Respond with ONLY a single JSON object. No markdown, no text outside the JSON.
+
+JSON shape (all fields required):
+{
+  "elaboration": "2-4 short paragraphs (1-2 sentences each), separated by a single \\n\\n so the client can render them with paragraph spacing"
+}`;
+
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((x): x is string => typeof x === "string")
@@ -1030,7 +1055,9 @@ function withLanguageClause(base: string, language: string): string {
 export const __testing = {
   normalizeDescriptionSections,
   DESCRIBE_SYSTEM_PROMPT,
+  ELABORATE_SECTION_SYSTEM_PROMPT,
   parseOutputLanguage,
+  parseElaboration,
   withLanguageClause,
 };
 
@@ -1105,6 +1132,184 @@ export const describeStrainForUser = onCall(
     ]);
 
     return parseDescription(content, name);
+  },
+);
+
+/**
+ * Response shape for `elaborateSection`. A single short prose string
+ * (2-4 short paragraphs separated by a blank line).
+ */
+type ElaborateSectionResult = {
+  elaboration: string;
+};
+
+/**
+ * Pull the elaboration text out of a Groq response. The model is
+ * expected to return a single JSON object with one `elaboration` field.
+ * We tolerate a few failure modes the same way `parseDescription`
+ * does: a string body, an unparseable blob, or a missing field. When
+ * anything goes wrong we hand back a one-paragraph safe fallback so
+ * the web client never renders an empty elaboration card.
+ */
+function parseElaboration(
+  content: string,
+  fallbackName: string,
+  heading: string,
+): ElaborateSectionResult {
+  // First try the structured path — model returns
+  // `{ "elaboration": "..." }`.
+  const obj = extractJsonObject(content) as { elaboration?: unknown } | null;
+  if (obj && typeof obj.elaboration === "string") {
+    const text = obj.elaboration.trim();
+    if (text.length > 0) return { elaboration: text };
+  }
+  // Fall back to treating the whole body as the elaboration. The model
+  // sometimes returns a bare string instead of a JSON object, especially
+  // for the smaller elaboration surface.
+  const fallback = content.trim();
+  if (fallback.length > 0 && fallback.length <= 4000) {
+    return { elaboration: fallback };
+  }
+  return {
+    elaboration: `We don't have an expanded take for ${fallbackName} on "${heading}" right now. Tap again in a moment.`,
+  };
+}
+
+/**
+ * Build the user-message prompt for `elaborateSection`. Mirrors the
+ * structure of `describePrompt` so the model has the same context
+ * (ailments, medications, relief log, language) but asks it to focus
+ * on a single section.
+ */
+function elaborateSectionPrompt(
+  strain: StrainProfile,
+  sectionHeading: string,
+  sectionBody: string,
+  ailments: string[],
+  medications: string[],
+  reliefHistory: string,
+): string {
+  const payload = describeStrainPayload(strain);
+  const contextLines: string[] = [];
+  contextLines.push(
+    ailments.length > 0
+      ? `Patient's saved ailments (fold them into the elaboration where relevant): ${ailments.join(", ")}`
+      : "Patient's saved ailments: none — write a general expansion.",
+  );
+  contextLines.push(
+    medications.length > 0
+      ? `Patient's current medications (mention a specific drug only when there is a commonly cited cannabis interaction — always phrase as "ask your clinician about combining with X", never advise stopping): ${medications.join(", ")}`
+      : "Patient's current medications: none reported.",
+  );
+  contextLines.push(
+    reliefHistory.trim().length > 0
+      ? `Recent relief-log history (newest first; use to calibrate tone and depth — the patient has logged how previous strains went for similar symptoms):\n${reliefHistory}`
+      : "Recent relief-log history: none — write without calibrating to past sessions.",
+  );
+  return [
+    `Strain data (JSON):`,
+    JSON.stringify(payload, null, 2),
+    ``,
+    `Section to expand:`,
+    `Heading: ${sectionHeading}`,
+    `Current body (do NOT contradict — this is what the patient already sees):`,
+    sectionBody,
+    ``,
+    contextLines.join("\n"),
+    ``,
+    `Write a short elaboration that goes deeper on this section's focus. Keep it 2-4 short paragraphs, separated by a single blank line.`,
+  ].join("\n");
+}
+
+/**
+ * Ask the AI to elaborate on a single section of a strain's tailored
+ * description. Wired to the ✨ Ask Maya button on the web strain page.
+ * Auth + age-verification + rate-limit contract matches
+ * `describeStrainForUser`.
+ */
+export const elaborateSection = onCall(
+  AI_OPTIONS,
+  async (request): Promise<ElaborateSectionResult> => {
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
+    } else {
+      requireAgeVerified(request, HttpsError);
+    }
+
+    const data = (request.data ?? {}) as {
+      strain?: unknown;
+      sectionHeading?: unknown;
+      sectionBody?: unknown;
+      ailments?: unknown;
+      medications?: unknown;
+      reliefHistory?: unknown;
+      language?: unknown;
+    };
+    const strain = (data.strain ?? {}) as StrainProfile;
+    const name =
+      typeof strain.name === "string" && strain.name.trim()
+        ? strain.name.trim().slice(0, 120)
+        : "";
+    if (name === "") {
+      throw new HttpsError("invalid-argument", "Provide a strain to describe.");
+    }
+    const heading =
+      typeof data.sectionHeading === "string" && data.sectionHeading.trim()
+        ? data.sectionHeading.trim().slice(0, 80)
+        : "";
+    if (heading === "") {
+      throw new HttpsError("invalid-argument", "Provide a section heading.");
+    }
+    const body =
+      typeof data.sectionBody === "string"
+        ? data.sectionBody.trim().slice(0, 2000)
+        : "";
+    // Cap everything to the same lengths the rest of the describe
+    // surface uses so a malicious caller can't blow up the prompt.
+    const ailments = asStringArray(data.ailments)
+      .map((a) => a.trim())
+      .filter((a) => a !== "")
+      .slice(0, 16);
+    const medications = asStringArray(data.medications)
+      .map((m) => m.trim().slice(0, 80))
+      .filter((m) => m !== "")
+      .slice(0, 24);
+    const reliefHistory =
+      typeof data.reliefHistory === "string"
+        ? data.reliefHistory.trim().slice(0, 800)
+        : "";
+    const language = parseOutputLanguage(data.language);
+    const safeStrain: StrainProfile = { ...strain, name };
+
+    const content = await callGroq(GROQ_API_KEY.value(), [
+      {
+        role: "system",
+        content: withLanguageClause(
+          ELABORATE_SECTION_SYSTEM_PROMPT,
+          language,
+        ),
+      },
+      {
+        role: "user",
+        content: elaborateSectionPrompt(
+          safeStrain,
+          heading,
+          body,
+          ailments,
+          medications,
+          reliefHistory,
+        ),
+      },
+    ]);
+
+    return parseElaboration(content, name, heading);
   },
 );
 
