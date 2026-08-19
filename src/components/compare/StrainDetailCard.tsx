@@ -160,7 +160,11 @@ export function StrainDetailCard({
         )}
 
         {tailored ? (
-          <StrainDescriptionView description={tailored} />
+          <StrainDescriptionView
+            description={tailored}
+            strain={strain}
+            ailments={conditions}
+          />
         ) : (
           strain.description && (
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
