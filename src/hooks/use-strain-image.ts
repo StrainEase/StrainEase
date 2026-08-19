@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cachedStrainImage } from "@/lib/strain-api";
 import {
   getCachedImage,
@@ -22,58 +22,91 @@ import {
  * On every successful network response (proxy or direct) we also
  * hydrate the IndexedDB blob cache so the next visit is instant.
  *
- * Returns `undefined` while the first cache lookup is in flight (the
- * caller's `<img>` stays hidden), then either a blob URL, the
- * proxied URL, or the upstream URL. If every layer fails the caller
- * renders the leaf fallback.
+ * First successful result wins. Later results are ignored so a slow
+ * proxy cannot overwrite a fast blob hit (which previously caused a
+ * flash-to-skeleton and, when the blob URL was revoked, a missing
+ * image). The previous successful URL is kept across `src` changes
+ * until the new resolution finishes, so the caller can keep painting
+ * the old image instead of resetting to the gradient skeleton.
+ *
+ * Returns `undefined` only on the very first resolve for a given
+ * component mount (no prior image). After that the last good URL
+ * stays until a better one arrives or the component unmounts.
  */
 export function useStrainImage(src: string | undefined): {
   url: string | undefined;
 } {
   const [url, setUrl] = useState<string | undefined>(undefined);
+  // Track the blob URL we own so we can revoke it safely on unmount
+  // (or when we deliberately replace it). Never revoke while the
+  // published `url` still points at it.
+  const ownedBlobRef = useRef<string | undefined>(undefined);
+  // Once any layer has published a URL for the current `src`, later
+  // layers are ignored.
+  const resolvedForSrcRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!src) {
-      setUrl(undefined);
+      // Clear only when there is truly no source. Keep the previous
+      // image if the parent briefly passes undefined during a re-render.
       return;
     }
     if (!shouldProxy(src)) {
+      resolvedForSrcRef.current = src;
       setUrl(src);
       return;
     }
 
-    let cancelled = false;
-    let lastBlobUrl: string | undefined;
+    // New src → allow a fresh first-success for this key. Do NOT clear
+    // `url` so the previous image stays visible while we resolve.
+    if (resolvedForSrcRef.current !== src) {
+      resolvedForSrcRef.current = undefined;
+    }
 
-    const publish = (next: string | undefined) => {
+    let cancelled = false;
+
+    const publish = (next: string, isBlob: boolean) => {
       if (cancelled) return;
+      // First successful result wins for this src.
+      if (resolvedForSrcRef.current === src) return;
+      resolvedForSrcRef.current = src;
+
+      const previousBlob = ownedBlobRef.current;
+      if (isBlob) {
+        ownedBlobRef.current = next;
+      } else {
+        ownedBlobRef.current = undefined;
+      }
+
       setUrl(next);
+
+      // Only revoke the previous blob after we've swapped the published
+      // URL away from it. A short delay lets the <img> pick up the new
+      // src before the old object URL is invalidated.
+      if (previousBlob && previousBlob !== next) {
+        requestAnimationFrame(() => {
+          releaseImage(previousBlob);
+        });
+      }
     };
 
-    // 1) On-device blob cache. Promise-based so we can fire it in
-    //    parallel with the proxy warmup below; whichever wins first
-    //    paints the image. A blob hit means zero network round-trips
-    //    for this render.
+    // 1) On-device blob cache — runs in parallel with the proxy.
     getCachedImage(src)
       .then((hit) => {
         if (cancelled || !hit) return;
-        lastBlobUrl = hit.url;
-        publish(hit.url);
+        publish(hit.url, true);
       })
       .catch(() => {
         // IndexedDB unavailable or errored — fall through to proxy.
       });
 
-    // 2) Proxy via the Firebase function. The proxy returns a public
-    //    Storage URL we hand to the <img> tag. We also fetch the
-    //    bytes once and stash them in IndexedDB so the next visit
-    //    lands in the cache above.
+    // 2) Proxy via the Firebase function.
     void cachedStrainImage(src)
       .then(async (res) => {
         if (cancelled) return;
-        publish(res.url);
-        // Hydrate the blob cache. Failures here are silent — the
-        // proxy URL is already in the caller's hand.
+        publish(res.url, false);
+        // Hydrate the blob cache in the background regardless of
+        // whether we won the race — next visit benefits either way.
         try {
           const r = await fetch(res.url, { cache: "force-cache" });
           if (!r.ok) return;
@@ -85,13 +118,9 @@ export function useStrainImage(src: string | undefined): {
       })
       .catch(() => {
         if (cancelled) return;
-        // 3) Last-resort fallback: let the browser hit the original
-        //    Leafly / Weedmaps URL directly. Most catalog photos are
-        //    still served from there, and <img onError> in StrainImage
-        //    will swap to the leaf fallback when even that fails.
-        publish(src);
-        // Also hydrate the blob cache from the direct URL so a
-        // second visit doesn't have to retry either.
+        // 3) Last-resort fallback: original Leafly / Weedmaps URL.
+        // Only publish if nothing has won yet.
+        publish(src, false);
         void fetch(src, { cache: "force-cache" })
           .then(async (r) => {
             if (!r.ok) return;
@@ -104,7 +133,19 @@ export function useStrainImage(src: string | undefined): {
 
     return () => {
       cancelled = true;
-      releaseImage(lastBlobUrl);
+      // On unmount (or src change that tears this effect down), revoke
+      // the blob we still own. The next effect run for a different src
+      // will publish its own URL; keeping the previous painted image
+      // during the brief overlap is handled by not clearing `url` state.
+      const blob = ownedBlobRef.current;
+      ownedBlobRef.current = undefined;
+      if (blob) {
+        // Defer so any in-flight <img> load from this same effect can
+        // finish painting before the object URL disappears.
+        requestAnimationFrame(() => {
+          releaseImage(blob);
+        });
+      }
     };
   }, [src]);
 
