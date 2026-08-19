@@ -14,9 +14,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Leaf, MessageCircle, Quote, Star } from "lucide-react";
+import { ArrowDownUp, Leaf, MessageCircle, Quote, Star } from "lucide-react";
 import { useState } from "react";
 
 const TONE_BADGE: Record<SentimentTone, string> = {
@@ -29,6 +36,28 @@ const TONE_BADGE: Record<SentimentTone, string> = {
   insufficient:
     "border-border/70 bg-secondary text-muted-foreground",
 };
+
+type ReviewSort = "relevance" | "date";
+const SORT_LABEL: Record<ReviewSort, string> = {
+  relevance: "Relevance",
+  date: "Date",
+};
+
+function sortReviews(
+  notes: QuoteNote[],
+  conditions: string[],
+  sort: ReviewSort,
+): QuoteNote[] {
+  if (sort === "relevance") {
+    return sortNotesForConditions(notes, conditions);
+  }
+  // "Date" — the backend returns notes roughly in collection order. The
+  // web side has no explicit date on each note today, so preserve the
+  // backend order; the per-source "Most recent" heading still lives in
+  // the surrounding copy. If we add a date field later, swap this for
+  // a real `newest first` comparator.
+  return notes;
+}
 
 function SentimentBar({
   positive,
@@ -135,6 +164,8 @@ function ChannelPanel({
   conditions,
   leaflyRating,
   leaflyReviewCount,
+  sort,
+  onSortChange,
 }: {
   channel: NoteChannel;
   notes: QuoteNote[];
@@ -142,19 +173,22 @@ function ChannelPanel({
   conditions: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  sort: ReviewSort;
+  onSortChange: (next: ReviewSort) => void;
 }) {
   const summary = summarizeChannel(notes, channel, strainName, conditions, {
     leaflyRating,
     leaflyReviewCount,
   });
-  const reviews = sortNotesForConditions(
+  const reviews = sortReviews(
     individualReviews(notes),
     conditions,
+    sort,
   );
 
   return (
     <div className="space-y-4">
-      {channel === "cannabis" && summary.rating ? (
+      {channel !== "reddit" && summary.rating ? (
         <LeaflyRatingCard
           stars={summary.rating.stars}
           reviewCount={summary.rating.reviewCount}
@@ -167,7 +201,9 @@ function ChannelPanel({
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {channel === "reddit"
                 ? "Reddit sentiment"
-                : "Cannabis site sentiment"}
+                : channel === "cannabis"
+                  ? "Cannabis site sentiment"
+                  : "Combined sentiment"}
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
               <span className="text-base font-semibold tracking-tight">
@@ -199,9 +235,12 @@ function ChannelPanel({
 
       {reviews.length > 0 ? (
         <div>
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Individual reviews
-          </p>
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Individual reviews
+            </p>
+            <SortPicker sort={sort} onChange={onSortChange} />
+          </div>
           <div className="grid grid-cols-1 gap-2.5">
             {reviews.map((note, i) => (
               <ReviewQuote key={`${note.source}-${i}`} note={note} />
@@ -212,10 +251,42 @@ function ChannelPanel({
         <p className="text-xs leading-5 text-muted-foreground">
           {channel === "reddit"
             ? "No individual Reddit comments in this profile."
-            : "No individual Leafly or Weedmaps reviews in this profile."}
+            : channel === "cannabis"
+              ? "No individual Leafly or Weedmaps reviews in this profile."
+              : "No individual reviews in this profile."}
         </p>
       ) : null}
     </div>
+  );
+}
+
+function SortPicker({
+  sort,
+  onChange,
+}: {
+  sort: ReviewSort;
+  onChange: (next: ReviewSort) => void;
+}) {
+  return (
+    <Select
+      value={sort}
+      onValueChange={(v) => onChange(v as ReviewSort)}
+    >
+      <SelectTrigger
+        aria-label="Sort reviews"
+        className="h-7 w-auto min-w-[120px] gap-1.5 rounded-full border-border/70 bg-background px-2.5 text-[11px] font-medium"
+      >
+        <ArrowDownUp className="size-3 text-muted-foreground" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="end">
+        {(Object.keys(SORT_LABEL) as ReviewSort[]).map((value) => (
+          <SelectItem key={value} value={value} className="text-xs">
+            {SORT_LABEL[value]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -236,16 +307,22 @@ export function CommunityVoices({
   const reddit = notesForChannel(notes, "reddit");
   const hasRating = typeof leaflyRating === "number";
   const hasAny = cannabis.length > 0 || reddit.length > 0 || hasRating;
-  const [tab, setTab] = useState<NoteChannel>(
-    cannabis.length > 0 || reddit.length === 0 || hasRating
-      ? "cannabis"
-      : "reddit",
-  );
+  const [sort, setSort] = useState<ReviewSort>("relevance");
+  // Default to "All" so a reader landing on the page sees both Leafly /
+  // Weedmaps blurb-style reviews and Reddit patient quotes together. If
+  // a single source is empty the tab still renders — the ChannelPanel
+  // fills in the right empty-state copy.
+  const [tab, setTab] = useState<NoteChannel>("all");
 
   if (!hasAny && conditions.length === 0) return null;
 
   const cannabisCount = cannabis.length;
   const redditCount = reddit.length;
+  const allCount = cannabisCount + redditCount;
+  // All (non-aggregate) notes combined for the default "All reviews"
+  // tab. Each note keeps its original `source` so the badge under each
+  // quote still reads "Leafly Community" / "Reddit" / etc.
+  const allNotes = (notes ?? []).slice();
 
   return (
     <div className="mt-auto space-y-3 border-t border-border/60 pt-4">
@@ -266,7 +343,17 @@ export function CommunityVoices({
         onValueChange={(value) => setTab(value as NoteChannel)}
         className="gap-3"
       >
-        <TabsList className="grid h-auto w-full grid-cols-2 p-1">
+        <TabsList className="grid h-auto w-full grid-cols-3 p-1">
+          <TabsTrigger
+            value="all"
+            className="min-h-10 gap-1 px-1.5 py-2 text-xs whitespace-normal shadow-none data-[state=active]:shadow-none sm:min-h-9 sm:gap-1.5 sm:px-2 sm:text-sm sm:whitespace-nowrap"
+          >
+            <ArrowDownUp className="size-3.5 shrink-0" />
+            <span className="text-center leading-tight">All reviews</span>
+            <span className="tabular-nums text-[10px] text-muted-foreground sm:text-xs">
+              {allCount}
+            </span>
+          </TabsTrigger>
           <TabsTrigger
             value="cannabis"
             className="min-h-10 gap-1 px-1.5 py-2 text-xs whitespace-normal shadow-none data-[state=active]:shadow-none sm:min-h-9 sm:gap-1.5 sm:px-2 sm:text-sm sm:whitespace-nowrap"
@@ -298,11 +385,19 @@ export function CommunityVoices({
           <TabsContent value={tab} forceMount className="mt-0 outline-none">
             <ChannelPanel
               channel={tab}
-              notes={tab === "reddit" ? reddit : cannabis}
+              notes={
+                tab === "reddit"
+                  ? reddit
+                  : tab === "cannabis"
+                    ? cannabis
+                    : allNotes
+              }
               strainName={strainName}
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+              sort={sort}
+              onSortChange={setSort}
             />
           </TabsContent>
         </motion.div>

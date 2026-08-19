@@ -221,7 +221,7 @@ function Gate({
                 max={new Date().toISOString().slice(0, 10)}
                 min="1900-01-01"
                 required
-                className="w-full"
+                className="w-full min-w-0 max-w-full pr-2 [&::-webkit-datetime-edit-fields-wrapper]:min-w-0 [&::-webkit-calendar-picker-indicator]:ml-auto"
               />
             </Field>
 
@@ -337,12 +337,12 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
         {icon}
         <span>{label}</span>
       </Label>
-      {children}
+      <div className="min-w-0">{children}</div>
       <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
