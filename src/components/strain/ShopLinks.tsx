@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { SWCard } from "@/components/ui/sw-card";
 import { slugify } from "@/lib/saved-strains";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { ExternalLink, Leaf, MapPin } from "lucide-react";
@@ -15,7 +16,7 @@ export function ShopLinks({ strain }: { strain: StrainProfile }) {
   const leafly = `https://www.leafly.com/strains/${slug}`;
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-5">
+    <SWCard innerClassName="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -52,6 +53,6 @@ export function ShopLinks({ strain }: { strain: StrainProfile }) {
           </a>
         </Button>
       </div>
-    </div>
+    </SWCard>
   );
 }
