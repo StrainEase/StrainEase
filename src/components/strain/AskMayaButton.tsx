@@ -5,23 +5,18 @@ import { elaborateSection } from "@/lib/strain-api";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useAgeVerification } from "@/hooks/use-age-verification";
 
 /**
  * ✨ Ask Maya button. Sits to the right of a strain-description
- * section header and asks the AI to elaborate on that specific section
- * (e.g. expand "What it might do for you" into a fuller write-up tied
- * to this strain and the patient's saved ailments / medications /
- * relief-log history).
+ * section header and asks the AI to elaborate on that specific section.
  *
- * Behaviour:
- * - First click: fires the callable, swaps the button label to a
- *   spinner, and reveals the elaborated text under the original
- *   section body.
- * - Second click while open: hides the elaboration (button returns
- *   to its idle state — we don't burn a second call unless the user
- *   explicitly re-asks).
- * - Errors are swallowed and surfaced as a one-line note under the
- *   button so we never break the surrounding section.
+ * If the backend rejects with an age-verification error, we immediately
+ * mirror the local age gate to Firebase and retry once.
+ *
+ * Layout: control stays on the header row; elaboration is rendered via
+ * AskMayaElaboration below the section body when the parent wires
+ * onElaborationChange.
  */
 export function AskMayaButton({
   strain,
@@ -32,6 +27,8 @@ export function AskMayaButton({
   reliefHistory,
   isAuthenticated,
   className,
+  inlineElaboration = false,
+  onElaborationChange,
 }: {
   strain: StrainProfile;
   sectionHeading: string;
@@ -39,24 +36,33 @@ export function AskMayaButton({
   ailments?: string[];
   medications?: string[];
   reliefHistory?: string;
-  /** When false, the button renders as a no-op gentle nudge; signed-out
-   *  users still see the option but the call is rate-limited by the
-   *  backend the same way the rest of the guest surface is. */
   isAuthenticated?: boolean;
   className?: string;
+  inlineElaboration?: boolean;
+  onElaborationChange?: (payload: {
+    open: boolean;
+    text: string | null;
+    error: string | null;
+  }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { ensureBackendClaim } = useAgeVerification();
 
-  // Reset the elaboration if the strain or section changes — the
-  // previous answer doesn't apply any more.
   useEffect(() => {
     setOpen(false);
     setText(null);
     setError(null);
   }, [strain.name, sectionHeading]);
+
+  useEffect(() => {
+    onElaborationChange?.({ open, text, error });
+  }, [open, text, error, onElaborationChange]);
+
+  const isAgeGateError = (message: string) =>
+    /verify your age|age verification has expired|age.?verif/i.test(message);
 
   const handleClick = async () => {
     if (loading) return;
@@ -78,11 +84,39 @@ export function AskMayaButton({
       setText(result.elaboration);
       setOpen(true);
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
-          : "Maya couldn't expand on this right now.",
-      );
+          : "Maya couldn't expand on this right now.";
+
+      if (isAuthenticated && isAgeGateError(message)) {
+        const synced = await ensureBackendClaim();
+        if (synced) {
+          try {
+            const result = await elaborateSection({
+              strain,
+              sectionHeading,
+              sectionBody,
+              ailments,
+              medications,
+              reliefHistory,
+            });
+            setText(result.elaboration);
+            setOpen(true);
+            return;
+          } catch (retryErr) {
+            setError(
+              retryErr instanceof Error
+                ? retryErr.message
+                : "Maya couldn't expand on this right now.",
+            );
+            setOpen(true);
+            return;
+          }
+        }
+      }
+
+      setError(message);
       setOpen(true);
     } finally {
       setLoading(false);
@@ -90,7 +124,7 @@ export function AskMayaButton({
   };
 
   return (
-    <div className={cn("flex flex-col items-end gap-1.5", className)}>
+    <div className={cn("flex shrink-0 flex-col items-end gap-1.5", className)}>
       <Button
         type="button"
         variant="outline"
@@ -108,42 +142,60 @@ export function AskMayaButton({
         )}
         {loading ? "Asking Maya…" : open ? "Hide" : "Ask Maya"}
       </Button>
-      <AnimatePresence initial={false}>
-        {open && text ? (
-          <motion.aside
-            key="elaboration"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.2 }}
-            className="w-full max-w-md rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-2.5 text-[12px] leading-5 text-foreground/85"
-          >
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider text-primary uppercase">
-              <Sparkles className="size-3" />
-              Maya's take
-            </p>
-            <p className="mt-1 whitespace-pre-line">{text}</p>
-          </motion.aside>
-        ) : null}
-        {open && error ? (
-          <motion.p
-            key="error"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.2 }}
-            className="w-full max-w-md text-right text-[11px] text-muted-foreground"
-          >
-            {error}
-          </motion.p>
-        ) : null}
-      </AnimatePresence>
+      {inlineElaboration ? (
+        <AskMayaElaboration open={open} text={text} error={error} />
+      ) : null}
       {!isAuthenticated && !open ? (
         <p className="text-right text-[10px] text-muted-foreground">
           Sign in for a tailored take
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** Full-width Maya elaboration panel — place below the section body so the
+ *  header row (title + Ask Maya / Hide) never wraps. */
+export function AskMayaElaboration({
+  open,
+  text,
+  error,
+}: {
+  open: boolean;
+  text: string | null;
+  error: string | null;
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {open && text ? (
+        <motion.aside
+          key="elaboration"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 4 }}
+          transition={{ duration: 0.2 }}
+          className="w-full rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-2.5 text-[12px] leading-5 text-foreground/85"
+        >
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider text-primary uppercase">
+            <Sparkles className="size-3" />
+            Maya's take
+          </p>
+          <p className="mt-1 whitespace-pre-line">{text}</p>
+        </motion.aside>
+      ) : null}
+      {open && error ? (
+        <motion.p
+          key="error"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 4 }}
+          transition={{ duration: 0.2 }}
+          className="w-full text-[11px] text-muted-foreground"
+        >
+          {error}
+        </motion.p>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
