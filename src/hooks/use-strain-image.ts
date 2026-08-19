@@ -1,85 +1,36 @@
 import { useEffect, useState } from "react";
 import { cachedStrainImage } from "@/lib/strain-api";
-
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-// v2: switch from signed URLs (which expired after 7 days and required
-// iam.serviceAccounts.signBlob on the runtime SA) to permanent public
-// storage URLs. Bumping the key invalidates any stale signed URLs left
-// over from before the deploy.
-const STORAGE_KEY = "strain-image-cache:v2";
-
-type CacheEntry = {
-  url: string;
-  contentType?: string;
-  expiresAt: number;
-};
-
-type Cache = Record<string, CacheEntry>;
-
-function readCache(): Cache {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Cache;
-    const now = Date.now();
-    const fresh: Cache = {};
-    for (const [key, entry] of Object.entries(parsed)) {
-      if (entry.expiresAt > now) fresh[key] = entry;
-    }
-    return fresh;
-  } catch {
-    return {};
-  }
-}
-
-function writeCache(cache: Cache) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
-  } catch {
-    // Quota or private mode — fall back to per-request calls.
-  }
-}
-
-function shouldProxy(src: string): boolean {
-  // Already on Firebase Storage (from a previous proxy call) — fetch directly.
-  if (/^https?:\/\/storage\.googleapis\.com\//i.test(src)) return false;
-  // Firebase signed URLs from getSignedUrl — fetch directly.
-  if (src.includes("googleapis.com/")) return false;
-  // Data URIs and blobs — fetch directly.
-  if (src.startsWith("data:") || src.startsWith("blob:")) return false;
-  // Anything absolute http(s) — proxy through the cache callable.
-  return /^https?:\/\//i.test(src);
-}
+import {
+  getCachedImage,
+  putCachedImage,
+  releaseImage,
+} from "@/lib/image-blob-cache";
 
 /**
- * Proxy an external strain image through the cachedStrainImage Firebase
- * callable. The callable downloads the upstream bytes once, caches them
- * in Firebase Storage, and returns a signed URL the browser can hit
- * directly with normal HTTP caching.
+ * Resolve a strain image through three layered caches:
  *
- * Repeat calls within 24h hit the signed URL directly without another
- * callable round-trip — we stash the signed URL + content type in
- * localStorage so the browser and the function both agree the image is
- * good.
+ *   1. **IndexedDB blob cache** (`getCachedImage`) — on-device, instant
+ *      on repeat visits. Best path for the Home rail once a user has
+ *      scrolled through it once.
+ *   2. **Firebase `cachedStrainImage` proxy** — a public Storage URL
+ *      served from the same CDN as the rest of the app. Survives
+ *      cold starts and works across devices.
+ *   3. **Direct upstream URL** (Leafly / Weedmaps) — last-resort
+ *      fallback. Sometimes 404s, sometimes slow, but it's the source
+ *      of truth.
  *
- * If the proxy call rejects (e.g. Firebase isn't configured yet, or the
- * upstream returned a non-image response) we hand the original URL back
- * to the browser so the image still loads. The caller swaps to the leaf
- * fallback only when both the proxy and the direct fetch fail.
+ * On every successful network response (proxy or direct) we also
+ * hydrate the IndexedDB blob cache so the next visit is instant.
  *
- * Returns `undefined` while the proxy call is in flight, or the URL the
- * browser should load (proxy-served when available, otherwise the
- * upstream URL). Callers should treat `undefined` as "keep the skeleton"
- * and let their own `<img onError>` swap to the leaf when the URL fails.
+ * Returns `undefined` while the first cache lookup is in flight (the
+ * caller's `<img>` stays hidden), then either a blob URL, the
+ * proxied URL, or the upstream URL. If every layer fails the caller
+ * renders the leaf fallback.
  */
 export function useStrainImage(src: string | undefined): {
   url: string | undefined;
 } {
-  const [url, setUrl] = useState<string | undefined>(
-    src && !shouldProxy(src) ? src : undefined,
-  );
+  const [url, setUrl] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!src) {
@@ -92,42 +43,82 @@ export function useStrainImage(src: string | undefined): {
     }
 
     let cancelled = false;
-    const cache = readCache();
-    const cached = cache[src];
-    if (cached) {
-      setUrl(cached.url);
-      return () => {
-        cancelled = true;
-      };
-    }
+    let lastBlobUrl: string | undefined;
 
-    setUrl(undefined);
-    void cachedStrainImage(src)
-      .then((res) => {
-        if (cancelled) return;
-        const next: Cache = readCache();
-        next[src] = {
-          url: res.url,
-          contentType: res.contentType,
-          expiresAt: Date.now() + CACHE_TTL_MS,
-        };
-        writeCache(next);
-        setUrl(res.url);
+    const publish = (next: string | undefined) => {
+      if (cancelled) return;
+      setUrl(next);
+    };
+
+    // 1) On-device blob cache. Promise-based so we can fire it in
+    //    parallel with the proxy warmup below; whichever wins first
+    //    paints the image. A blob hit means zero network round-trips
+    //    for this render.
+    getCachedImage(src)
+      .then((hit) => {
+        if (cancelled || !hit) return;
+        lastBlobUrl = hit.url;
+        publish(hit.url);
       })
       .catch(() => {
-        // Proxy failed (Firebase not configured, function not deployed,
-        // or upstream returned a non-image response). Let the browser try
-        // the original Leafly URL directly — most catalog photos are
-        // still hosted there, and the <img onError> in StrainImage will
-        // swap to the leaf fallback when even that fails.
+        // IndexedDB unavailable or errored — fall through to proxy.
+      });
+
+    // 2) Proxy via the Firebase function. The proxy returns a public
+    //    Storage URL we hand to the <img> tag. We also fetch the
+    //    bytes once and stash them in IndexedDB so the next visit
+    //    lands in the cache above.
+    void cachedStrainImage(src)
+      .then(async (res) => {
         if (cancelled) return;
-        setUrl(src);
+        publish(res.url);
+        // Hydrate the blob cache. Failures here are silent — the
+        // proxy URL is already in the caller's hand.
+        try {
+          const r = await fetch(res.url, { cache: "force-cache" });
+          if (!r.ok) return;
+          const blob = await r.blob();
+          await putCachedImage(src, blob, res.url, res.contentType);
+        } catch {
+          // Network blip or CORS — next visit will retry.
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // 3) Last-resort fallback: let the browser hit the original
+        //    Leafly / Weedmaps URL directly. Most catalog photos are
+        //    still served from there, and <img onError> in StrainImage
+        //    will swap to the leaf fallback when even that fails.
+        publish(src);
+        // Also hydrate the blob cache from the direct URL so a
+        // second visit doesn't have to retry either.
+        void fetch(src, { cache: "force-cache" })
+          .then(async (r) => {
+            if (!r.ok) return;
+            const blob = await r.blob();
+            const contentType = r.headers.get("content-type") ?? undefined;
+            await putCachedImage(src, blob, src, contentType);
+          })
+          .catch(() => {});
       });
 
     return () => {
       cancelled = true;
+      releaseImage(lastBlobUrl);
     };
   }, [src]);
 
   return { url };
+}
+
+function shouldProxy(src: string): boolean {
+  // Already on Firebase Storage (from a previous proxy call) — fetch
+  // directly. The browser's HTTP cache will pick these up on repeat
+  // visits, and the IndexedDB blob cache above will pick them up
+  // even faster.
+  if (/^https?:\/\/storage\.googleapis\.com\//i.test(src)) return false;
+  if (src.includes("googleapis.com/")) return false;
+  if (src.startsWith("data:")) return false;
+  if (src.startsWith("blob:")) return false;
+  return /^https?:\/\//i.test(src);
 }
