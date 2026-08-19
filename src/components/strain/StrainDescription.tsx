@@ -1,9 +1,13 @@
+import { useCallback, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type {
   StrainDescription,
   StrainDescriptionSection,
 } from "@/lib/strain-api";
-import { AskMayaButton } from "@/components/strain/AskMayaButton";
+import {
+  AskMayaButton,
+  AskMayaElaboration,
+} from "@/components/strain/AskMayaButton";
 import { SWCard } from "@/components/ui/sw-card";
 
 /**
@@ -73,11 +77,26 @@ function DescriptionSection({
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
 
+  // Keep elaboration out of the header flex row so the Hide control
+  // stays beside the section title instead of wrapping onto a new line.
+  const [maya, setMaya] = useState<{
+    open: boolean;
+    text: string | null;
+    error: string | null;
+  }>({ open: false, text: null, error: null });
+
+  const onElaborationChange = useCallback(
+    (payload: { open: boolean; text: string | null; error: string | null }) => {
+      setMaya(payload);
+    },
+    [],
+  );
+
   return (
     <SWCard innerClassName="p-5">
       <article>
-        <header className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="text-base font-bold tracking-tight text-foreground">
+        <header className="flex items-start justify-between gap-2">
+          <h3 className="min-w-0 flex-1 text-base font-bold tracking-tight text-foreground">
             {section.heading}
           </h3>
           <AskMayaButton
@@ -88,6 +107,7 @@ function DescriptionSection({
             medications={medications}
             reliefHistory={reliefHistory}
             isAuthenticated={isAuthenticated}
+            onElaborationChange={onElaborationChange}
           />
         </header>
         <div className="mt-3 space-y-3 text-sm leading-6 text-foreground/85">
@@ -96,6 +116,13 @@ function DescriptionSection({
           ) : (
             paragraphs.map((paragraph, idx) => <p key={idx}>{paragraph}</p>)
           )}
+        </div>
+        <div className="mt-3">
+          <AskMayaElaboration
+            open={maya.open}
+            text={maya.text}
+            error={maya.error}
+          />
         </div>
       </article>
     </SWCard>
