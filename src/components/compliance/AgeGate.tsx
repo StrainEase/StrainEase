@@ -141,8 +141,6 @@ function Gate({
     }
   };
 
-  const isLockedOut = rejected === "underage";
-
   return (
     <main className="relative min-h-[100dvh] overflow-hidden bg-background">
       <BackgroundOrbs />
@@ -172,10 +170,7 @@ function Gate({
           className="w-full rounded-2xl border border-border bg-card p-6 sm:p-8"
           noValidate
         >
-          <fieldset
-            disabled={isLockedOut}
-            className="flex flex-col gap-6 disabled:opacity-60"
-          >
+          <fieldset className="flex flex-col gap-6">
             <Field
               icon={<Globe2 className="size-4 text-muted-foreground" />}
               label="Where are you located?"
@@ -221,7 +216,7 @@ function Gate({
                 max={new Date().toISOString().slice(0, 10)}
                 min="1900-01-01"
                 required
-                className="w-full min-w-0 max-w-full pr-2 [&::-webkit-datetime-edit-fields-wrapper]:min-w-0 [&::-webkit-calendar-picker-indicator]:ml-auto"
+                className="w-auto max-w-[12.5rem] min-w-0 pr-1 text-base [&::-webkit-datetime-edit]:min-w-0 [&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-calendar-picker-indicator]:ml-1"
               />
             </Field>
 
@@ -266,7 +261,7 @@ function Gate({
               />
             </div>
 
-            {rejected && !isLockedOut && (
+            {rejected && (
               <RejectionBanner reason={rejected} nonce={rejectedAt} />
             )}
 
@@ -294,24 +289,6 @@ function Gate({
               cannabis. You may need to re-verify in 30 days.
             </p>
           </fieldset>
-
-          {isLockedOut && (
-            <div className="mt-6 flex flex-col items-center gap-2 text-center">
-              <p className="text-sm font-medium text-destructive">
-                {REJECTION_COPY.underage?.title}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {REJECTION_COPY.underage?.body}
-              </p>
-              <button
-                type="button"
-                onClick={onReset}
-                className="mt-2 text-xs text-muted-foreground underline-offset-4 hover:underline"
-              >
-                Reset and try a different region
-              </button>
-            </div>
-          )}
         </form>
 
         <p className="mt-6 max-w-md text-center text-xs text-muted-foreground">
@@ -415,6 +392,8 @@ function mapReason(
       return "tooOld";
     case "underage":
       return "underage";
+    case "storage-unavailable":
+      return "storage";
     default:
       return "storage";
   }
