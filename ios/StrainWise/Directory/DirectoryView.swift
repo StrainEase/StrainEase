@@ -23,7 +23,7 @@ struct DirectoryView: View {
                         hero
                         searchField
                         filterRow("Type") { typeChips }
-                        filterRow("Reported uses") { ailmentChips }
+                        filterRow("Commonly used for") { ailmentChips }
                         filterRow("THC") { thcChips }
                         filterRow("Effects") { effectChips }
                         if model.filtersActive {

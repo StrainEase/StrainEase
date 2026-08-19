@@ -31,10 +31,6 @@ struct StrainDetailView: View {
     private var pending: Set<StrainHydrationSection> {
         isHydrating ? profile.pendingHydrationSections : []
     }
-    /// `true` only when the user has saved ailments AND the AI
-    /// tailored-description endpoint should be invoked. Without saved
-    /// ailments the static `profile.description` is the better surface.
-    private var shouldFetchTailored: Bool { !ailments.ailments.isEmpty }
 
     var body: some View {
         ZStack {
@@ -49,7 +45,7 @@ struct StrainDetailView: View {
                         dayNight
                     }
                     if let uses = profile.medicalUses, !uses.isEmpty {
-                        chipSection("Reported uses", items: uses)
+                        chipSection("Commonly used for", items: uses)
                     } else if pending.contains(.uses) {
                         hydratingSection(.uses)
                     }
@@ -125,15 +121,17 @@ struct StrainDetailView: View {
     }
 
     /// The visible description block. Prefers the patient-tailored
-    /// three-section AI writeup when the user has saved ailments;
-    /// otherwise falls back to the static `profile.description`; while
-    /// the tailored fetch is in flight for the first time we keep
-    /// showing the static description so the section never blanks.
+    /// three-section AI writeup when one is available; while the
+    /// tailored fetch is in flight we show a rotating loading state so
+    /// the section never blanks; otherwise falls back to the static
+    /// `profile.description` if the fetch has settled and there is no
+    /// tailored copy. This matches the web's three-section surface for
+    /// every reader, not just the ones with saved ailments.
     @ViewBuilder
     private var descriptionSection: some View {
         if let tailored = tailoredDescription {
             tailoredDescriptionSection(tailored)
-        } else if shouldFetchTailored, isLoadingTailoredDescription {
+        } else if isLoadingTailoredDescription {
             tailoredDescriptionLoading
         } else if let description = profile.description, !description.isEmpty {
             SWCard {
@@ -239,15 +237,14 @@ struct StrainDetailView: View {
         }
     }
 
-    /// Fetch the patient-tailored description. Skipped entirely when
-    /// the user has no saved ailments. Aborts on input change so we
-    /// never paint stale text over a fresh strain.
+    /// Fetch the patient-tailored description. We always call the
+    /// endpoint on appear — the backend returns a general three-section
+    /// write-up when the user has no saved ailments, so this drives the
+    /// same three-card surface for every reader, not just patients with
+    /// stored ailments. The local feature stub short-circuits with
+    /// `nil` when ailments are empty (so we don't show a skeleton) but
+    /// the live call always runs.
     private func fetchTailoredDescription() async {
-        guard shouldFetchTailored else {
-            stopTailoredLoadingRotation()
-            tailoredDescription = nil
-            return
-        }
         isLoadingTailoredDescription = true
         startTailoredLoadingRotation()
         defer {
