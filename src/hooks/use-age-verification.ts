@@ -14,7 +14,6 @@ import { setAgeVerified } from "@/lib/strain-api";
 import { auth } from "@/lib/firebase";
 import {
   evaluateAge,
-  getRegion,
   isRecordValid,
   type AgeVerificationRecord,
   type AgeCheckFailure,
@@ -44,18 +43,58 @@ export type VerifyInput = {
   privacyAccepted: boolean;
 };
 
+// Deduplicate concurrent claim mirrors (e.g. three Ask Maya buttons on one
+// page all hitting ensureBackendClaim after a permission-denied response).
+let mirrorInFlight: Promise<boolean> | null = null;
+let mirrorSucceeded = false;
+
+async function mirrorClaimToBackend(record: AgeVerificationRecord): Promise<boolean> {
+  if (mirrorSucceeded) return true;
+  if (mirrorInFlight) return mirrorInFlight;
+
+  mirrorInFlight = (async () => {
+    try {
+      await setAgeVerified({
+        region: record.region,
+        birthDate: record.birthDate,
+        termsAccepted: true,
+        privacyAccepted: true,
+      });
+      try {
+        await auth?.currentUser?.getIdToken(true);
+      } catch {
+        // best-effort refresh; the next token cycle will pick up the claim
+      }
+      mirrorSucceeded = true;
+      return true;
+    } catch {
+      console.warn(
+        "[age-verification] Failed to mirror attestation to the backend; signed-in AI features may reject requests until the next verify.",
+      );
+      return false;
+    } finally {
+      mirrorInFlight = null;
+    }
+  })();
+
+  return mirrorInFlight;
+}
+
 export function useAgeVerification(): {
   state: AgeVerificationState;
   verify: (input: VerifyInput) => Promise<
     | { ok: true; record: AgeVerificationRecord }
     | { ok: false; reason: AgeCheckFailure }
   >;
+  /** Ensure the Firebase ageVerified claim is set from the local record. */
+  ensureBackendClaim: () => Promise<boolean>;
   reset: () => void;
   recheck: () => void;
 } {
   const { isAuthenticated } = useAuth();
   const [record, setRecord] = useState<AgeVerificationRecord | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const claimSyncedRef = useRef(false);
 
   useEffect(() => {
     setRecord(readAgeVerification());
@@ -65,31 +104,42 @@ export function useAgeVerification(): {
   const reset = useCallback(() => {
     clearAgeVerification();
     setRecord(null);
+    claimSyncedRef.current = false;
+    mirrorSucceeded = false;
   }, []);
 
   const recheck = useCallback(() => {
     setRecord(readAgeVerification());
   }, []);
 
-  const prevAuthenticated = useRef(isAuthenticated);
+  const ensureBackendClaim = useCallback(async (): Promise<boolean> => {
+    if (!isAuthenticated) return false;
+    const current = record && isRecordValid(record) ? record : readAgeVerification();
+    if (!current || !isRecordValid(current)) return false;
+    const ok = await mirrorClaimToBackend(current);
+    if (ok) claimSyncedRef.current = true;
+    return ok;
+  }, [isAuthenticated, record]);
 
+  // Sync local attestation → Firebase custom claim whenever the user is
+  // signed in with a valid local record. Previously this only ran on the
+  // signed-out → signed-in transition, so users who were already signed in
+  // when the page loaded (or who verified age while signed out, then signed
+  // in on a later session) kept hitting "Please verify your age…" on AI
+  // callables like Ask Maya.
   useEffect(() => {
-    if (
-      isAuthenticated &&
-      !prevAuthenticated.current &&
-      record &&
-      isRecordValid(record) &&
-      hydrated
-    ) {
-      setAgeVerified({
-        region: record.region,
-        birthDate: record.birthDate,
-        termsAccepted: true,
-        privacyAccepted: true,
-      }).then(() => auth?.currentUser?.getIdToken(true)).catch(() => {});
-    }
-    prevAuthenticated.current = isAuthenticated;
-  }, [isAuthenticated, record, hydrated]);
+    if (!hydrated || !isAuthenticated) return;
+    if (!record || !isRecordValid(record)) return;
+    if (claimSyncedRef.current) return;
+
+    let cancelled = false;
+    void mirrorClaimToBackend(record).then((ok) => {
+      if (!cancelled && ok) claimSyncedRef.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, isAuthenticated, record]);
 
   const verify = useCallback(
     async (input: VerifyInput) => {
@@ -108,31 +158,15 @@ export function useAgeVerification(): {
         };
       }
       setRecord(written);
+      claimSyncedRef.current = false;
+      mirrorSucceeded = false;
 
       // Sync to the backend when signed in. If Firebase isn't configured
       // (no env vars), the callable rejects — that's fine for local dev
       // without Firebase; the local gate still works.
       if (isAuthenticated) {
-        try {
-          await setAgeVerified({
-            region: input.region,
-            birthDate: input.birthDate,
-            termsAccepted: input.termsAccepted,
-            privacyAccepted: input.privacyAccepted,
-          });
-          try {
-            await auth?.currentUser?.getIdToken(true);
-          } catch {
-            // best-effort refresh; the next token cycle will pick up the claim
-          }
-        } catch {
-          // Surface a soft warning to the caller via console — the UI
-          // shouldn't block on this, since the local gate is the source of
-          // truth for the page-level experience.
-          console.warn(
-            "[age-verification] Failed to mirror attestation to the backend; signed-in AI features may reject requests until the next verify.",
-          );
-        }
+        const ok = await mirrorClaimToBackend(written);
+        if (ok) claimSyncedRef.current = true;
       }
 
       return { ok: true as const, record: written };
@@ -177,5 +211,5 @@ export function useAgeVerification(): {
     };
   }, [record, hydrated]);
 
-  return { state, verify, reset, recheck };
+  return { state, verify, ensureBackendClaim, reset, recheck };
 }

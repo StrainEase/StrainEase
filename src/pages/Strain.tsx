@@ -11,6 +11,7 @@ import { StrainDescriptionView } from "@/components/strain/StrainDescription";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
+import { SWCard } from "@/components/ui/sw-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
@@ -49,7 +50,7 @@ import {
   Sun,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { cn } from "@/lib/utils";
 
@@ -70,11 +71,7 @@ export default function Strain() {
 
   useEffect(() => {
     let cancelled = false;
-    // Featured strains ship a preloaded profile — skip the Leafly scrape and
-    // render the mock detail view immediately.
     if (featuredProfile) {
-      // Featured profiles ship without imageUrl — fill from the curated
-      // catalog photo map so the hero bud shot matches the Home rail.
       const [filled] = applyCatalogPhotos([featuredProfile]);
       setProfile(filled ?? featuredProfile);
       setStatus("ready");
@@ -273,12 +270,6 @@ export default function Strain() {
   );
 }
 
-/**
- * iOS-style strain page header. The photo, type badge, name (serif),
- * subtitle, and lineage all sit outside the description card so the
- * card itself can focus on the three-section tailored description.
- * Mirrors `StrainDetailView.header` on iOS.
- */
 function StrainHeader({ strain }: { strain: StrainProfile }) {
   const subtitle = [
     strain.type ? TYPE_LABEL[strain.type] ?? strain.type : null,
@@ -292,8 +283,6 @@ function StrainHeader({ strain }: { strain: StrainProfile }) {
 
   return (
     <header className="space-y-4">
-      {/* Always mount the hero image slot so missing/404 URLs still show
-          the leaf fallback instead of leaving a blank gap above the title. */}
       <StrainImage
         src={strain.imageUrl}
         alt={`${strain.name} flower`}
@@ -331,11 +320,6 @@ function StrainHeader({ strain }: { strain: StrainProfile }) {
   );
 }
 
-/**
- * Three-section tailored description. Each section renders as its own
- * card (matching iOS) with a bolded header and an ✨ Ask Maya button
- * on the right that asks the AI to elaborate on that section.
- */
 function DescriptionCards({ profile }: { profile: StrainProfile }) {
   const { isAuthenticated } = useAuth();
   const ailments = useSavedAilments();
@@ -357,11 +341,11 @@ function DescriptionCards({ profile }: { profile: StrainProfile }) {
   }
   if (profile.description && profile.description.trim().length > 0) {
     return (
-      <article className="rounded-2xl border border-border/70 bg-card p-5">
+      <SWCard innerClassName="p-5">
         <p className="text-sm leading-6 text-foreground/85">
           {profile.description}
         </p>
-      </article>
+      </SWCard>
     );
   }
   return null;
@@ -369,7 +353,7 @@ function DescriptionCards({ profile }: { profile: StrainProfile }) {
 
 function DayNightCard({ score }: { score: number }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-6">
+    <SWCard innerClassName="p-6">
       <div className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Sun className="size-3.5 text-primary" />
@@ -396,7 +380,7 @@ function DayNightCard({ score }: { score: number }) {
       <p className="mt-3 text-sm text-muted-foreground">
         {dayNightLabel(score)}
       </p>
-    </section>
+    </SWCard>
   );
 }
 
@@ -404,7 +388,7 @@ function SectionEyebrow({
   icon: Icon,
   label,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   label: string;
 }) {
   return (
@@ -415,21 +399,36 @@ function SectionEyebrow({
   );
 }
 
-function CommonlyUsedForSection({ items }: { items: string[] }) {
+/** iOS-style chip row: section label + pills, no outer card wrapper. */
+function ChipSection({
+  icon,
+  label,
+  items,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  items: string[];
+}) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-5">
-      <SectionEyebrow icon={HeartPulse} label="Commonly used for" />
-      <div className="flex flex-wrap gap-1.5">
-        {items.map((use) => (
+    <section>
+      <SectionEyebrow icon={icon} label={label} />
+      <div className="flex flex-wrap gap-2">
+        {items.map((item) => (
           <span
-            key={use}
-            className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary"
+            key={item}
+            className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground"
           >
-            {use}
+            {item}
           </span>
         ))}
       </div>
     </section>
+  );
+}
+
+function CommonlyUsedForSection({ items }: { items: string[] }) {
+  return (
+    <ChipSection icon={HeartPulse} label="Commonly used for" items={items} />
   );
 }
 
@@ -439,7 +438,7 @@ function EffectsSection({
   effects: NonNullable<StrainProfile["effects"]>;
 }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-5">
+    <SWCard innerClassName="p-5">
       <SectionEyebrow icon={Activity} label="Effects" />
       <div className="space-y-2">
         {effects.map((effect) => (
@@ -452,7 +451,7 @@ function EffectsSection({
           </div>
         ))}
       </div>
-    </section>
+    </SWCard>
   );
 }
 
@@ -478,7 +477,7 @@ function TerpenesSection({
   terpenes: NonNullable<StrainProfile["terpenes"]>;
 }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-5">
+    <SWCard innerClassName="p-5">
       <SectionEyebrow icon={Droplets} label="Terpenes" />
       <ul className="mt-3 space-y-3">
         {terpenes.map((t) => {
@@ -507,19 +506,12 @@ function TerpenesSection({
           );
         })}
       </ul>
-    </section>
+    </SWCard>
   );
 }
 
 function WatchForSection({ items }: { items: string[] }) {
-  return (
-    <section className="rounded-2xl border border-border/70 bg-card p-5">
-      <SectionEyebrow icon={Sparkles} label="Watch for" />
-      <p className="text-sm leading-6 text-foreground/85">
-        {items.join(" · ")}
-      </p>
-    </section>
-  );
+  return <ChipSection icon={Sparkles} label="Watch for" items={items} />;
 }
 
 function ReliefLogCard({
@@ -530,32 +522,31 @@ function ReliefLogCard({
   logs: ReliefLog[];
 }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-5">
+    <SWCard innerClassName="p-5">
       <SectionEyebrow icon={NotebookPen} label="Relief log" />
       <ReliefLogButton strainName={strainName} variant="button" />
       {logs.length > 0 && (
         <ul className="mt-4 space-y-2">
           {logs.slice(0, 6).map((log) => (
-            <li
-              key={log.id}
-              className="rounded-xl border border-border/60 bg-background px-4 py-3 text-sm"
-            >
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="font-medium capitalize">
-                  {log.fit.replace("-", " ")}
-                </span>
-                <span className="text-muted-foreground">
-                  {log.relief}/5 relief
-                </span>
-              </div>
-              {log.note ? (
-                <p className="mt-1.5 text-sm leading-6">{log.note}</p>
-              ) : null}
+            <li key={log.id}>
+              <SWCard innerClassName="px-4 py-3">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="font-medium capitalize">
+                    {log.fit.replace("-", " ")}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {log.relief}/5 relief
+                  </span>
+                </div>
+                {log.note ? (
+                  <p className="mt-1.5 text-sm leading-6">{log.note}</p>
+                ) : null}
+              </SWCard>
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </SWCard>
   );
 }
 
@@ -567,7 +558,7 @@ function CompareSuggestions({
   others: string[];
 }) {
   return (
-    <section className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
+    <SWCard emphasized innerClassName="p-5">
       <p className="text-sm font-semibold tracking-tight">
         Compare with what you saved
       </p>
@@ -590,6 +581,6 @@ function CompareSuggestions({
           </Button>
         ))}
       </div>
-    </section>
+    </SWCard>
   );
 }

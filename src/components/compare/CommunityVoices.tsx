@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SWCard } from "@/components/ui/sw-card";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ArrowDownUp, Leaf, MessageCircle, Quote, Star } from "lucide-react";
@@ -51,11 +52,6 @@ function sortReviews(
   if (sort === "relevance") {
     return sortNotesForConditions(notes, conditions);
   }
-  // "Date" — the backend returns notes roughly in collection order. The
-  // web side has no explicit date on each note today, so preserve the
-  // backend order; the per-source "Most recent" heading still lives in
-  // the surrounding copy. If we add a date field later, swap this for
-  // a real `newest first` comparator.
   return notes;
 }
 
@@ -127,7 +123,7 @@ function LeaflyRatingCard({
   reviewCount: number | null;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-border/70 bg-background px-4 py-3.5">
+    <SWCard innerClassName="flex items-center gap-4 px-4 py-3.5">
       <StarStrip value={stars} />
       <div className="min-w-0">
         <p className="text-xl font-semibold tabular-nums tracking-tight">
@@ -139,21 +135,23 @@ function LeaflyRatingCard({
             : "Average Leafly rating"}
         </p>
       </div>
-    </div>
+    </SWCard>
   );
 }
 
 function ReviewQuote({ note }: { note: QuoteNote }) {
   return (
-    <blockquote className="relative min-w-0 rounded-xl border border-border/60 bg-background px-3 py-3 sm:px-4">
-      <Quote className="absolute right-3 top-3 size-3.5 text-border" />
-      <p className="pr-6 text-xs leading-5 text-muted-foreground sm:text-[13px] sm:leading-6">
-        {note.text}
-      </p>
-      <p className="mt-2 break-words text-[11px] font-semibold uppercase tracking-wider text-primary">
-        {note.source}
-      </p>
-    </blockquote>
+    <SWCard innerClassName="relative min-w-0 px-3 py-3 sm:px-4">
+      <blockquote>
+        <Quote className="absolute right-3 top-3 size-3.5 text-border" />
+        <p className="pr-6 text-xs leading-5 text-muted-foreground sm:text-[13px] sm:leading-6">
+          {note.text}
+        </p>
+        <p className="mt-2 break-words text-[11px] font-semibold uppercase tracking-wider text-primary">
+          {note.source}
+        </p>
+      </blockquote>
+    </SWCard>
   );
 }
 
@@ -195,7 +193,7 @@ function ChannelPanel({
         />
       ) : null}
 
-      <div className="rounded-xl border border-border/70 bg-background px-4 py-4 sm:px-5">
+      <SWCard innerClassName="px-4 py-4 sm:px-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -231,7 +229,7 @@ function ChannelPanel({
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           {summary.summary}
         </p>
-      </div>
+      </SWCard>
 
       {reviews.length > 0 ? (
         <div>
