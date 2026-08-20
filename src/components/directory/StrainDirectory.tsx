@@ -226,7 +226,7 @@ export function StrainDirectory() {
         {/* Row 2: Ailment chips */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Reported uses
+            Commonly used for
           </span>
           {CONDITIONS.map((condition) => {
             const active = ailmentFilter.includes(condition);

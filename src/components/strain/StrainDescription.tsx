@@ -1,38 +1,72 @@
+import { useCallback, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type {
   StrainDescription,
   StrainDescriptionSection,
 } from "@/lib/strain-api";
+import {
+  AskMayaButton,
+  AskMayaElaboration,
+} from "@/components/strain/AskMayaButton";
+import { SWCard } from "@/components/ui/sw-card";
 
 /**
- * Three-section, patient-tailored strain description. Renders nothing
- * if `description` is missing or empty — callers should keep the
- * legacy single-paragraph fallback in that case.
+ * Three-section, patient-tailored strain description. Each section is
+ * its own card with a bolded header (matching the iOS layout — no
+ * "Tailored to your symptoms" outer wrapper, no nested-card-in-card).
+ * A ✨ Ask Maya button sits to the right of every section header and
+ * asks the AI to elaborate on that specific focus for this strain.
  *
- * Each section gets a small uppercase eyebrow label and a prose body.
- * Spacing is tight on purpose: three short blocks read faster than one
- * wall of text and the patient can scan only the section they care
- * about.
+ * Renders nothing if `description` is missing or empty — callers should
+ * keep the legacy single-paragraph fallback in that case.
  */
 export function StrainDescriptionView({
   description,
+  strain,
+  ailments,
+  medications,
+  reliefHistory,
+  isAuthenticated,
 }: {
   description: StrainDescription;
+  strain: import("@/lib/strain-profile").StrainProfile;
+  ailments?: string[];
+  medications?: string[];
+  reliefHistory?: string;
+  isAuthenticated?: boolean;
 }) {
   return (
-    <div className="mt-4 space-y-4" data-testid="strain-tailored-description">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
-        <Sparkles className="size-3.5" />
-        Tailored to your symptoms
-      </div>
+    <div className="space-y-3" data-testid="strain-tailored-description">
       {description.sections.map((section) => (
-        <DescriptionSection key={section.heading} section={section} />
+        <DescriptionSection
+          key={section.heading}
+          section={section}
+          strain={strain}
+          ailments={ailments}
+          medications={medications}
+          reliefHistory={reliefHistory}
+          isAuthenticated={isAuthenticated}
+        />
       ))}
     </div>
   );
 }
 
-function DescriptionSection({ section }: { section: StrainDescriptionSection }) {
+function DescriptionSection({
+  section,
+  strain,
+  ailments,
+  medications,
+  reliefHistory,
+  isAuthenticated,
+}: {
+  section: StrainDescriptionSection;
+  strain: import("@/lib/strain-profile").StrainProfile;
+  ailments?: string[];
+  medications?: string[];
+  reliefHistory?: string;
+  isAuthenticated?: boolean;
+}) {
   // Each section body is 2-4 short paragraphs separated by blank lines
   // ("\n\n"). Render them as their own <p> so the description breathes
   // on a phone instead of running together as one wall of text. If the
@@ -43,25 +77,58 @@ function DescriptionSection({ section }: { section: StrainDescriptionSection }) 
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
 
+  // Keep elaboration out of the header flex row so the Hide control
+  // stays beside the section title instead of wrapping onto a new line.
+  const [maya, setMaya] = useState<{
+    open: boolean;
+    text: string | null;
+    error: string | null;
+  }>({ open: false, text: null, error: null });
+
+  const onElaborationChange = useCallback(
+    (payload: { open: boolean; text: string | null; error: string | null }) => {
+      setMaya(payload);
+    },
+    [],
+  );
+
   return (
-    <div className="rounded-xl border border-border/60 bg-background px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {section.heading}
-      </p>
-      {paragraphs.length === 0 ? (
-        <p className="mt-1.5 text-sm leading-6 text-foreground/85">
-          {section.body}
-        </p>
-      ) : (
-        paragraphs.map((paragraph, idx) => (
-          <p
-            key={idx}
-            className={`text-sm leading-6 text-foreground/85 ${idx === 0 ? "mt-1.5" : "mt-3"}`}
-          >
-            {paragraph}
-          </p>
-        ))
-      )}
-    </div>
+    <SWCard innerClassName="p-5">
+      <article>
+        <header className="flex items-start justify-between gap-2">
+          <h3 className="min-w-0 flex-1 text-base font-bold tracking-tight text-foreground">
+            {section.heading}
+          </h3>
+          <AskMayaButton
+            strain={strain}
+            sectionHeading={section.heading}
+            sectionBody={section.body}
+            ailments={ailments}
+            medications={medications}
+            reliefHistory={reliefHistory}
+            isAuthenticated={isAuthenticated}
+            onElaborationChange={onElaborationChange}
+          />
+        </header>
+        <div className="mt-3 space-y-3 text-sm leading-6 text-foreground/85">
+          {paragraphs.length === 0 ? (
+            <p>{section.body}</p>
+          ) : (
+            paragraphs.map((paragraph, idx) => <p key={idx}>{paragraph}</p>)
+          )}
+        </div>
+        <div className="mt-3">
+          <AskMayaElaboration
+            open={maya.open}
+            text={maya.text}
+            error={maya.error}
+          />
+        </div>
+      </article>
+    </SWCard>
   );
 }
+
+// Re-export the sparkles icon so existing call sites that imported it
+// from this module keep working.
+export { Sparkles };

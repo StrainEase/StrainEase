@@ -1,6 +1,7 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { Seo } from "@/components/Seo";
 import { StrainGrid } from "@/components/home/StrainGrid";
+import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Button } from "@/components/ui/button";
 import { useAilments } from "@/hooks/use-ailments";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
@@ -24,17 +25,14 @@ export default function Browse() {
   const title = sectionTitle(parsed);
 
   return (
-    <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
+    <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
       <Seo
         title={documentTitle(title)}
         description={`Browse ${title.toLowerCase()} on StrainEase — strains patients commonly report for medical relief.`}
         path={`/browse/${section}${ailment ? `/${ailment}` : ""}`}
         noindex
       />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(55%_40%_at_80%_0%,oklch(0.86_0.07_158/0.38),transparent_62%),radial-gradient(40%_32%_at_8%_18%,oklch(0.9_0.04_140/0.28),transparent_70%)]"
-      />
+      <MeshBackground />
       <AppHeader active="home" />
       <div className="mx-auto w-full max-w-6xl px-6 py-8 sm:py-10">
         <Button

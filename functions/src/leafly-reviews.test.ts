@@ -129,13 +129,13 @@ describe("reviewNotesFrom", () => {
     expect(notes[0].text).toContain("chronic pain");
   });
 
-  test("caps output at six reviews", () => {
+  test("caps output at eight reviews", () => {
     const many = Array.from({ length: 20 }, (_, i) => ({
       username: `user_${i}`,
       rating: 5,
       text: `Helps with chronic pain and anxiety. Review number ${i} with enough length to pass.`,
     }));
-    expect(reviewNotesFrom(many).length).toBe(6);
+    expect(reviewNotesFrom(many).length).toBe(8);
   });
 
   test("drops hype-only reviews before ranking", () => {

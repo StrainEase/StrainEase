@@ -58,10 +58,10 @@ export function AilmentCarousel({
   return (
     <section className="space-y-3">
       <StrainSectionHeader title="For your symptoms" />
-      <div className="rounded-[22px] border border-border/70 bg-card p-3 sm:p-4">
+      <div className="overflow-hidden rounded-[22px] border border-border/70 bg-card p-3 sm:p-4">
         <div
           ref={scrollerRef}
-          className="-mx-3 flex snap-x snap-mandatory gap-0 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-4 sm:px-4"
+          className="-mx-3 flex snap-x snap-mandatory gap-0 overflow-x-auto px-3 [scrollbar-width:none] [scroll-padding-inline:12px] [mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [&::-webkit-scrollbar]:hidden sm:-mx-4 sm:px-4"
           aria-label="Symptom pages"
         >
           {ailments.map((name) => (
@@ -97,7 +97,9 @@ function AilmentPage({
 
   return (
     <article
-      className="flex w-full shrink-0 snap-start flex-col gap-3 px-3 sm:px-4"
+      // snap-always forces the browser to stop at every snap point, so a
+      // fast finger flick only advances one page instead of jumping several.
+      className="flex w-full shrink-0 snap-start snap-always flex-col gap-3 px-3 sm:px-4"
       data-ailment={name}
     >
       <header className="flex items-baseline justify-between gap-3">

@@ -5,6 +5,7 @@ import { useMedications } from "@/hooks/use-medications";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { Seo } from "@/components/Seo";
+import { MeshBackground } from "@/components/theme/MeshBackground";
 import { MedicalDisclaimer } from "@/components/compliance/MedicalDisclaimer";
 import {
   compareStrains as compareStrainsCall,
@@ -313,13 +314,14 @@ export default function Dashboard() {
   }, [query, popular]);
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-background pb-24 text-foreground sm:pb-0">
+    <main className="relative isolate min-h-screen overflow-x-clip bg-background pb-24 text-foreground sm:pb-0">
       <Seo
         title={documentTitle("Compare strains")}
         description="Find and compare cannabis strains for your symptoms. Sign in to save favorites and keep private notes."
         path="/dashboard"
         noindex
       />
+      <MeshBackground />
       <AppHeader
         active={dashboardTab(mode)}
         favorites={mode === "saved"}
