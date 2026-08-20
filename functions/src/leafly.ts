@@ -470,7 +470,7 @@ export function reviewNotesFrom(
       source: `Leafly review · ${username}`,
       text: clipReview(text),
     });
-    if (out.length >= 6) break;
+    if (out.length >= 8) break;
   }
   return out;
 }

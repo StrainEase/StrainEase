@@ -297,7 +297,7 @@ function pickQuotes(
 
   return scored
     .sort((a, b) => b.score - a.score)
-    .slice(0, 3)
+    .slice(0, 8)
     .map((s) => s.note);
 }
 

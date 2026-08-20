@@ -1,7 +1,7 @@
 import { useStrainImage } from "@/hooks/use-strain-image";
 import { Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function fallbackTone(type?: string) {
   switch (type) {
@@ -22,14 +22,13 @@ function fallbackTone(type?: string) {
 
 /**
  * Strain photo with graceful loading. Paints a skeleton block while the
- * image is in flight, falls back to a leaf icon when the source is
- * missing or fails to load. The URL is proxied through the
- * `cachedStrainImage` Firebase callable when available so repeat visits
- * load from Firebase Storage instead of re-hitting Leafly (which often
- * 404s for deprecated CDN paths); when the proxy fails, the browser
- * falls back to the original Leafly URL automatically. `key={src}` on
- * the img element bumps the loaded state back to false when the URL
- * changes (e.g. strain page navigates between two different strains).
+ * first image for this component is in flight, falls back to a leaf
+ * icon when the source is missing or fails to load.
+ *
+ * Once an image has successfully loaded we keep showing it while a new
+ * URL is resolving (src change or cache layer upgrade). That avoids the
+ * flash back to the gradient skeleton that previously happened when the
+ * proxy overwrote a blob-cache hit, or when navigating between strains.
  */
 export function StrainImage({
   src,
@@ -46,18 +45,29 @@ export function StrainImage({
 }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Last URL that successfully painted. Kept across URL changes so we
+  // can keep the previous image visible while the next one loads.
+  const [stableUrl, setStableUrl] = useState<string | undefined>(undefined);
   const { url } = useStrainImage(src);
-  const showFallback = !url || failedSrc === url;
-  const tone = fallbackTone(type);
+  const prevUrlRef = useRef<string | undefined>(undefined);
 
-  // Reset the loaded flag when the resolved URL changes so the new image
-  // gets its own skeleton frame instead of flashing in.
+  // When the resolved URL changes, mark the new candidate as not-yet-
+  // loaded, but do NOT clear stableUrl — the previous image stays up.
   useEffect(() => {
+    if (url === prevUrlRef.current) return;
+    prevUrlRef.current = url;
     setLoaded(false);
     setFailedSrc(null);
   }, [url]);
 
-  if (showFallback) {
+  const showFallback = (!url && !stableUrl) || (url != null && failedSrc === url);
+  const tone = fallbackTone(type);
+
+  // Prefer the newly resolved URL once it has loaded; otherwise keep
+  // painting the last successful image.
+  const displayUrl = loaded && url ? url : stableUrl ?? url;
+
+  if (showFallback && !displayUrl) {
     return (
       <div
         className={cn(
@@ -79,25 +89,40 @@ export function StrainImage({
         className,
       )}
     >
-      {!loaded && (
+      {/* Skeleton only on the very first load when we have nothing to show. */}
+      {!displayUrl && (
         <span
           aria-hidden
           className="skeleton-line absolute inset-0"
         />
       )}
-      <img
-        key={url ?? src}
-        src={url}
-        alt={alt}
-        className={cn(
-          "h-full w-full object-contain transition-opacity duration-300",
-          loaded ? "opacity-100" : "opacity-0",
-        )}
-        onLoad={() => setLoaded(true)}
-        onError={() => {
-          if (url) setFailedSrc(url);
-        }}
-      />
+      {/* Keep the stable (previous) image under the new one while it loads. */}
+      {stableUrl && stableUrl !== url && (
+        <img
+          src={stableUrl}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+      )}
+      {url && (
+        <img
+          key={url}
+          src={url}
+          alt={alt}
+          className={cn(
+            "relative h-full w-full object-contain transition-opacity duration-300",
+            loaded || !stableUrl ? "opacity-100" : "opacity-0",
+          )}
+          onLoad={() => {
+            setLoaded(true);
+            setStableUrl(url);
+          }}
+          onError={() => {
+            if (url) setFailedSrc(url);
+          }}
+        />
+      )}
     </div>
   );
 }
