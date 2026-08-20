@@ -467,8 +467,15 @@ function DayNightCard({ score }: { score: number }) {
           <Moon className="size-3.5 text-primary" />
         </span>
       </div>
+      {/* 5-stop oklch gradient (sky -> primary green -> deep indigo)
+       * matches the iOS day/night meter exactly. The original Tailwind
+       * `via-sky-500` produced a hard middle band on 8-bit displays
+       * because there was no smooth transition between the sky half and
+       * the indigo half. Interpolating through the primary green at
+       * 50% with intermediate stops at 22% and 78% keeps the slider
+       * reading as one continuous color ramp. */}
       <div
-        className="relative h-2 rounded-full bg-gradient-to-r from-sky-300 via-sky-500 to-indigo-900 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]"
+        className="relative h-2 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] [background:linear-gradient(90deg,oklch(0.78_0.08_230)_0%,oklch(0.7_0.1_220)_22%,oklch(0.43_0.1_158)_50%,oklch(0.4_0.12_240)_78%,oklch(0.32_0.13_280)_100%)]"
         role="meter"
         aria-valuenow={score}
         aria-valuemin={0}
@@ -476,7 +483,7 @@ function DayNightCard({ score }: { score: number }) {
         aria-label="Day-to-night rating"
       >
         <span
-          className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-indigo-900 shadow ring-1 ring-black/10"
+          className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow ring-1 ring-black/10 [background:oklch(0.32_0.13_280)]"
           style={{ left: `${100 - score}%` }}
         />
       </div>
