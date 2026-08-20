@@ -188,24 +188,25 @@
    * ios/StrainWise/Theme/MeshBackground.swift: a soft mint glow from the
    * top-right (glowMint) and a deep forest glow from the bottom-left
    * (glowDeep), painted over the theme's --background. Dark mode adds a
-   * bottom fade for legibility, matching the iOS overlay. */
+   * bottom fade for legibility, matching the iOS overlay.
+   *
+   * Sizing is viewport-relative so the gradient always covers the full
+   * viewport — the previous fixed-pixel boxes left a visible horizontal
+   * seam on tall screens because the box ended mid-screen and the body
+   * color showed through. */
   .mesh-bg {
     background-color: var(--background);
     background-image:
       radial-gradient(
-        circle at 0% 100%,
-        rgba(25, 92, 61, 0.14),
-        transparent 100%
+        120% 90% at 100% 0%,
+        rgba(140, 209, 168, 0.42),
+        transparent 60%
       ),
       radial-gradient(
-        circle at 100% 0%,
-        rgba(140, 209, 168, 0.42),
-        transparent 100%
+        100% 90% at 0% 100%,
+        rgba(25, 92, 61, 0.14),
+        transparent 60%
       );
-    background-size: 760px 760px, 840px 840px;
-    background-position:
-      calc(0% - 30px) calc(100% + 120px),
-      calc(100% + 40px) calc(0% - 80px);
     background-repeat: no-repeat;
   }
   .dark .mesh-bg {
@@ -216,20 +217,15 @@
         rgba(11, 17, 14, 0.55) 100%
       ),
       radial-gradient(
-        circle at 0% 100%,
-        rgba(25, 140, 82, 0.22),
-        transparent 100%
+        120% 90% at 100% 0%,
+        rgba(71, 158, 112, 0.28),
+        transparent 60%
       ),
       radial-gradient(
-        circle at 100% 0%,
-        rgba(71, 158, 112, 0.28),
-        transparent 100%
+        100% 90% at 0% 100%,
+        rgba(25, 140, 82, 0.22),
+        transparent 60%
       );
-    background-size: 100% 100%, 760px 760px, 840px 840px;
-    background-position:
-      0 0,
-      calc(0% - 30px) calc(100% + 120px),
-      calc(100% + 40px) calc(0% - 80px);
     background-repeat: no-repeat;
   }
 }

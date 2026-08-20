@@ -1127,8 +1127,11 @@ function elaborateSectionPrompt(
 /**
  * Ask the AI to elaborate on a single section of a strain's tailored
  * description. Wired to the ✨ Ask Maya button on the web strain page.
- * Auth + age-verification + rate-limit contract matches
- * `describeStrainForUser`.
+ * Auth-gated: the caller must be signed in so we can pull their saved
+ * ailments without exposing them to guest traffic. Guests hit the
+ * rate-limited fallback in `clientIp`/`guestRateLimit` instead.
+ * The client already gates the page behind the local age gate, so the
+ * callable trusts the caller's auth without re-checking any custom claim.
  */
 export const elaborateSection = onCall(
   AI_OPTIONS,
@@ -1142,8 +1145,6 @@ export const elaborateSection = onCall(
           err instanceof Error ? err.message : "Too many guest searches.",
         );
       }
-    } else {
-      requireAgeVerified(request, HttpsError);
     }
 
     const data = (request.data ?? {}) as {
