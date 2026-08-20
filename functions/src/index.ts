@@ -7,8 +7,6 @@
 //   without `request.auth`.
 import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } from "./doctors";
@@ -17,12 +15,6 @@ import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callGroq, extractJsonObject } from "./groq";
 import { matchRedditSeeds } from "./reddit-seed";
 import { clientIp, guestRateLimit, persistResult } from "./results";
-import {
-  AGE_CLAIM_TTL_MS,
-  evaluateAge,
-  requireAgeVerified,
-  type RegionCode,
-} from "./age";
 import type {
   RecommendationResult,
   RedditSource,
@@ -56,93 +48,6 @@ export const searchStrain = onCall(
     if (name.trim() === "") return null;
     const conditions = asStringArray(request.data?.conditions);
     return await lookupProfile(name, conditions);
-  },
-);
-
-/* ── Age verification ─────────────────────────────────────────────── */
-
-/**
- * Records that the signed-in caller has attested to being of legal age in
- * their jurisdiction. Sets the matching custom claim so server-side gates on
- * the AI callables can enforce it, and mirrors the attestation to Firestore
- * for audit / refresh.
- *
- * Re-runs are safe: this callable is idempotent — calling it again with a
- * different region or after expiry simply refreshes the claim TTL.
- */
-export const setAgeVerified = onCall(
-  { timeoutSeconds: 30 },
-  async (
-    request,
-  ): Promise<{ ok: true; region: RegionCode; expiresAt: number }> => {
-    if (!request.auth?.uid) {
-      throw new HttpsError("unauthenticated", "Sign in first.");
-    }
-
-    const data = (request.data ?? {}) as {
-      region?: unknown;
-      birthDate?: unknown;
-      termsAccepted?: unknown;
-      privacyAccepted?: unknown;
-    };
-
-    if (data.termsAccepted !== true) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Please accept the Terms of Service first.",
-      );
-    }
-    if (data.privacyAccepted !== true) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Please accept the Privacy Policy first.",
-      );
-    }
-
-    const evaluation = evaluateAge(data.region, data.birthDate);
-    if (!evaluation.ok) {
-      throw new HttpsError(
-        "failed-precondition",
-        evaluation.reason === "underage"
-          ? "You must be of legal age in your jurisdiction to use StrainEase."
-          : `Invalid age attestation: ${evaluation.reason}.`,
-      );
-    }
-
-    const uid = request.auth.uid;
-    const now = Date.now();
-    const expiresAt = now + AGE_CLAIM_TTL_MS;
-
-    // Custom claim gates the AI / doctor callables.
-    await getAuth().setCustomUserClaims(uid, {
-      ageVerified: true,
-      ageVerifiedRegion: evaluation.region,
-      ageVerifiedAt: now,
-      ageVerifiedExpiresAt: expiresAt,
-    });
-
-    // Firestore mirror for audit. Birth year only — we don't want full DOB
-    // on the server, just enough to confirm the caller attested.
-    const db = getFirestore();
-    await db
-      .collection("users")
-      .doc(uid)
-      .collection("ageVerification")
-      .doc(evaluation.region)
-      .set(
-        {
-          region: evaluation.region,
-          birthYear: new Date(`${data.birthDate}T00:00:00Z`).getUTCFullYear(),
-          age: evaluation.age,
-          attestedAt: FieldValue.serverTimestamp(),
-          expiresAt,
-          termsAcceptedAt: FieldValue.serverTimestamp(),
-          privacyAcceptedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
-
-    return { ok: true, region: evaluation.region, expiresAt };
   },
 );
 
@@ -614,9 +519,10 @@ function normalizeRecommendations(value: unknown): StrainRecommendation[] {
 
 /**
  * Compare 2-3 strains side by side. Auth required: the caller must be signed
- * in (request.auth is populated by Firebase from the client's ID token). When
- * signed in, they must also have a non-expired `ageVerified` custom claim —
- * guest callers go through the IP rate limit instead.
+ * in (request.auth is populated by Firebase from the client's ID token).
+ * Guest callers (no auth) go through the IP rate limit instead. The client
+ * already gates everything behind the local age gate, so the AI callable
+ * trusts the caller's auth and doesn't re-check the custom claim.
  */
 export const compareStrains = onCall(
   AI_OPTIONS,
@@ -630,8 +536,6 @@ export const compareStrains = onCall(
           err instanceof Error ? err.message : "Too many guest searches.",
         );
       }
-    } else {
-      requireAgeVerified(request, HttpsError);
     }
 
     const data = (request.data ?? {}) as {
@@ -682,8 +586,10 @@ export const compareStrains = onCall(
 );
 
 /**
- * Find the best strains for a patient's symptoms. Auth required, and signed-in
- * callers must have an unexpired age-verified custom claim.
+ * Find the best strains for a patient's symptoms. Auth required. Guest
+ * callers go through the IP rate limit. The client already gates the page
+ * behind the local age gate, so the callable trusts the caller's auth and
+ * does not re-check the (now removed) age-verified custom claim.
  */
 export const recommendStrainsForConditions = onCall(
   AI_OPTIONS,
@@ -697,8 +603,6 @@ export const recommendStrainsForConditions = onCall(
           err instanceof Error ? err.message : "Too many guest searches.",
         );
       }
-    } else {
-      requireAgeVerified(request, HttpsError);
     }
 
     const data = (request.data ?? {}) as {
@@ -834,15 +738,14 @@ export const cachedStrainImage = onCall(
  * public doctors directory (the page embedded `__NEXT_DATA__` blob
  * carries the structured listings) and reverse-geocodes the caller's
  * coordinates via OpenStreetMap Nominatim when only lat/lon is given.
- * Public — guest callers go through IP rate limiting; signed-in callers
- * must also hold an unexpired age-verified custom claim.
+ * Public — guest callers go through IP rate limiting. The client gates
+ * the page behind the local age gate, so the callable trusts the caller's
+ * auth and does not re-check the (now removed) age-verified custom claim.
  */
 export const findDoctors = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
   async (request): Promise<DoctorResult> => {
-    if (request.auth) {
-      requireAgeVerified(request, HttpsError);
-    } else {
+    if (!request.auth) {
       try {
         guestRateLimit(clientIp(request));
       } catch (err) {
@@ -1066,6 +969,8 @@ export const __testing = {
  * Auth-gated: the caller must be signed in so we can pull their saved
  * ailments without exposing them to guest traffic. Guests hit the
  * rate-limited fallback in `clientIp`/`guestRateLimit` instead.
+ * The client already gates the page behind the local age gate, so the
+ * callable trusts the caller's auth without re-checking any custom claim.
  */
 export const describeStrainForUser = onCall(
   AI_OPTIONS,
@@ -1079,8 +984,6 @@ export const describeStrainForUser = onCall(
           err instanceof Error ? err.message : "Too many guest searches.",
         );
       }
-    } else {
-      requireAgeVerified(request, HttpsError);
     }
 
     const data = (request.data ?? {}) as {

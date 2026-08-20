@@ -1,17 +1,11 @@
 import SwiftUI
-import FirebaseAuth
 
 /// Full-screen age-verification gate. Mirrors the web `AgeGate` component:
 /// region picker + date-of-birth + Terms & Privacy acceptance, then either
 /// enters the app or locks the user out.
 ///
-/// The local gate is the source of truth for the UI. When Firebase is
-/// configured AND the caller is signed in, we also fire `setAgeVerified`
-/// so the matching server-side custom claim is set.
+/// Local gate is the source of truth. No server-side custom claim enforcement.
 struct AgeGateView: View {
-    @Environment(AuthSession.self) private var session
-    @Environment(\.strainAPI) private var strainAPI
-
     let store: AgeVerificationStore
 
     @State private var region: AgeRegion = .us
@@ -202,29 +196,8 @@ struct AgeGateView: View {
                     // value in place. The banner stays visible above.
                     birthDate = Self.defaultBirthDate
                 }
-            case .success(let record):
-                // Mirror to backend when Firebase is ready.
-                if FirebaseBootstrap.isConfigured, session.isSignedIn {
-                    do {
-                        try await strainAPI.setAgeVerified(
-                            region: record.region,
-                            birthDate: record.birthDate,
-                            termsAccepted: true,
-                            privacyAccepted: true,
-                        )
-                        do {
-                            try await Auth.auth().currentUser?.getIDTokenForcingRefresh(true)
-                        } catch {
-                            print("[age-verification] Token refresh failed: \(error)")
-                        }
-                    } catch {
-                        // Surface as a soft warning — the local gate is the
-                        // UI source of truth; signed-in AI features may
-                        // surface a permission-denied error until the next
-                        // verify call.
-                        print("[age-verification] Failed to mirror attestation: \(error)")
-                    }
-                }
+            case .success:
+                break
             }
         }
     }
@@ -252,5 +225,4 @@ private struct SWCheckboxStyle: ToggleStyle {
 #Preview("Unverified") {
     AgeGateView(store: AgeVerificationStore())
         .environment(AuthSession.previewSignedOut)
-        .environment(\.strainAPI, PreviewStrainAPI())
 }

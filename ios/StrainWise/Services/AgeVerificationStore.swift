@@ -67,9 +67,8 @@ struct AgeVerificationRecord: Codable, Equatable, Sendable {
 }
 
 /// Mirrors `useAgeVerification` on the web. Persists to UserDefaults with a
-/// 30-day TTL; the server-side `setAgeVerified` callable is called by
-/// `AgeGateView` after a successful local attestation when Firebase is
-/// configured.
+/// 30-day TTL. Local gate is the source of truth; no server-side custom claim
+/// enforcement.
 @Observable
 @MainActor
 final class AgeVerificationStore {

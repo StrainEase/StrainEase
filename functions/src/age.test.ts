@@ -1,11 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
-  AGE_CLAIM_TTL_MS,
   calculateAge,
   evaluateAge,
   isRegionCode,
   minimumAgeFor,
-  requireAgeVerified,
 } from "./age";
 
 const FIXED_NOW = new Date("2026-08-17T12:00:00Z");
@@ -86,80 +84,5 @@ describe("evaluateAge", () => {
       ok: false,
       reason: "invalid-birth-date",
     });
-  });
-});
-
-class FakeError extends Error {
-  constructor(public code: string, message: string) {
-    super(message);
-  }
-}
-
-describe("requireAgeVerified", () => {
-  test("rejects unauthenticated callers", () => {
-    expect(() =>
-      requireAgeVerified({ auth: null }, FakeError as never),
-    ).toThrow(/Sign in/);
-  });
-
-  test("rejects callers missing the ageVerified claim", () => {
-    expect(() =>
-      requireAgeVerified(
-        { auth: { uid: "u1", token: {} } },
-        FakeError as never,
-      ),
-    ).toThrow(/verify your age/);
-  });
-
-  test("rejects callers with an expired claim", () => {
-    expect(() =>
-      requireAgeVerified(
-        {
-          auth: {
-            uid: "u1",
-            token: {
-              ageVerified: true,
-              ageVerifiedExpiresAt: Date.now() - 1000,
-              ageVerifiedRegion: "US",
-            },
-          },
-        },
-        FakeError as never,
-      ),
-    ).toThrow(/expired/);
-  });
-
-  test("accepts a caller with a fresh claim and returns uid + region", () => {
-    const result = requireAgeVerified(
-      {
-        auth: {
-          uid: "u1",
-          token: {
-            ageVerified: true,
-            ageVerifiedExpiresAt: Date.now() + AGE_CLAIM_TTL_MS,
-            ageVerifiedRegion: "US",
-          },
-        },
-      },
-      FakeError as never,
-    );
-    expect(result.uid).toBe("u1");
-    expect(result.region).toBe("US");
-  });
-
-  test("falls back to OTHER when region claim is missing", () => {
-    const result = requireAgeVerified(
-      {
-        auth: {
-          uid: "u1",
-          token: {
-            ageVerified: true,
-            ageVerifiedExpiresAt: Date.now() + AGE_CLAIM_TTL_MS,
-          },
-        },
-      },
-      FakeError as never,
-    );
-    expect(result.region).toBe("OTHER");
   });
 });
