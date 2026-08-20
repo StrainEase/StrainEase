@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
+import { SWCard } from "@/components/ui/sw-card";
 import { cn } from "@/lib/utils";
 import { doc, onSnapshot, type Unsubscribe } from "firebase/firestore";
 import { Globe, Lock, Loader2, NotebookPen, Plus, Trash2 } from "lucide-react";
@@ -75,7 +76,7 @@ export function SavedStrainNotes({
 
   if (!notesLoaded && isSaved) {
     return (
-      <div className="rounded-2xl border border-border/70 bg-card p-6">
+      <SWCard innerClassName="p-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin text-primary" />
           Your notes
@@ -83,7 +84,7 @@ export function SavedStrainNotes({
         <div className="mt-4">
           <SkeletonLines variant="compact" />
         </div>
-      </div>
+      </SWCard>
     );
   }
 
@@ -111,7 +112,7 @@ export function SavedStrainNotes({
   };
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-6">
+    <SWCard innerClassName="p-6">
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         <NotebookPen className="size-3.5 text-primary" />
         Your notes
@@ -227,6 +228,6 @@ export function SavedStrainNotes({
           Save
         </Button>
       </div>
-    </div>
+    </SWCard>
   );
 }

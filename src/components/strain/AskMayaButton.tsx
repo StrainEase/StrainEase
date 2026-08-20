@@ -5,14 +5,15 @@ import { elaborateSection } from "@/lib/strain-api";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useAgeVerification } from "@/hooks/use-age-verification";
 
 /**
  * ✨ Ask Maya button. Sits to the right of a strain-description
  * section header and asks the AI to elaborate on that specific section.
  *
- * If the backend rejects with an age-verification error, we immediately
- * mirror the local age gate to Firebase and retry once.
+ * Age verification is purely client-side now (see PR #134), so there's no
+ * "re-mirror the claim" retry path on backend rejection — a permission-
+ * denied error here means the signed-in user is in good standing and the
+ * caller is just rate-limited or hitting a transient error.
  *
  * Layout: control stays on the header row; elaboration is rendered via
  * AskMayaElaboration below the section body when the parent wires
@@ -49,7 +50,6 @@ export function AskMayaButton({
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { ensureBackendClaim } = useAgeVerification();
 
   useEffect(() => {
     setOpen(false);
@@ -60,9 +60,6 @@ export function AskMayaButton({
   useEffect(() => {
     onElaborationChange?.({ open, text, error });
   }, [open, text, error, onElaborationChange]);
-
-  const isAgeGateError = (message: string) =>
-    /verify your age|age verification has expired|age.?verif/i.test(message);
 
   const handleClick = async () => {
     if (loading) return;
@@ -84,39 +81,11 @@ export function AskMayaButton({
       setText(result.elaboration);
       setOpen(true);
     } catch (err) {
-      const message =
+      setError(
         err instanceof Error
           ? err.message
-          : "Maya couldn't expand on this right now.";
-
-      if (isAuthenticated && isAgeGateError(message)) {
-        const synced = await ensureBackendClaim();
-        if (synced) {
-          try {
-            const result = await elaborateSection({
-              strain,
-              sectionHeading,
-              sectionBody,
-              ailments,
-              medications,
-              reliefHistory,
-            });
-            setText(result.elaboration);
-            setOpen(true);
-            return;
-          } catch (retryErr) {
-            setError(
-              retryErr instanceof Error
-                ? retryErr.message
-                : "Maya couldn't expand on this right now.",
-            );
-            setOpen(true);
-            return;
-          }
-        }
-      }
-
-      setError(message);
+          : "Maya couldn't expand on this right now.",
+      );
       setOpen(true);
     } finally {
       setLoading(false);
