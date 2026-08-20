@@ -170,7 +170,7 @@ export function mergeProfiles(
   const secondary = leafly && weedmaps ? weedmaps : null;
 
   return {
-    name: primary.name || name,
+    name,
     inKnowledgeBase: true,
     type: (primary.type ?? secondary?.type) as StrainType | undefined,
     thcRange: primary.thcRange ?? secondary?.thcRange,

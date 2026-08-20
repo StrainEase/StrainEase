@@ -1,25 +1,32 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
+import {
+  HYDRATING_SECTION_LABEL,
+  HydratingLine,
+  HydratingSection,
+  type StrainHydrationSection,
+} from "@/components/compare/HydratingSection";
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
-import { StrainImage } from "@/components/strain/StrainImage";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
+import { StrainImage } from "@/components/strain/StrainImage";
+import { TailoredDescriptionLoading } from "@/components/strain/TailoredDescriptionLoading";
 import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { SWCard } from "@/components/ui/sw-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
+import { useMedications } from "@/hooks/use-medications";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
 import { useSavedAilments } from "@/hooks/use-saved-ailments";
-import { useMedications } from "@/hooks/use-medications";
-import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
+import { useTailoredDescription } from "@/hooks/use-tailored-description";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
+import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
 import {
   strainDescription,
   strainDisplayName,
@@ -34,11 +41,11 @@ import {
   dayNightScore,
   terpeneMeaning,
 } from "@/lib/strain-meaning";
-import { terpeneProfile, terpeneSlug } from "@/lib/terpenes";
+import type { ReliefLog } from "@/lib/relief-log";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
-import { useTailoredDescription } from "@/hooks/use-tailored-description";
-import type { ReliefLog } from "@/lib/relief-log";
+import { terpeneProfile, terpeneSlug } from "@/lib/terpenes";
+import { toTitleCase } from "@/lib/title-case";
 import {
   Activity,
   ArrowLeft,
@@ -47,6 +54,7 @@ import {
   HeartPulse,
   Moon,
   NotebookPen,
+  Search,
   Sparkles,
   Sun,
 } from "lucide-react";
@@ -150,10 +158,60 @@ export default function Strain() {
     : false;
   const compareAtCap = compare.atCap;
 
-  const displayName = strainDisplayName(
-    status === "loading" ? null : profile,
-    slug,
+  // Always show the strain name right away — derive it from the slug
+  // while the profile is still hydrating so the header never blanks.
+  // Names are normalised to title case so AI-researched and lowercase
+  // catalog entries render the same way as curated ones, matching iOS.
+  const displayName = useMemo(
+    () => toTitleCase(strainDisplayName(profile, slug)),
+    [profile, slug],
   );
+
+  // Sections that still need the live lookup before they have content.
+  // Mirrors iOS `StrainProfile.pendingHydrationSections` so both surfaces
+  // hydrate in the same order and the user always sees the full layout
+  // with the right placeholder message.
+  const pending: Set<StrainHydrationSection> = useMemo(() => {
+    const p = new Set<StrainHydrationSection>();
+    if (!profile) {
+      // Cold start with no profile yet — every section is still hydrating.
+      return new Set<StrainHydrationSection>([
+        "lineage",
+        "description",
+        "dayNight",
+        "uses",
+        "effects",
+        "terpenes",
+        "sideEffects",
+        "community",
+      ]);
+    }
+    if (!profile.description) p.add("description");
+    if (!profile.lineage) p.add("lineage");
+    if (!profile.medicalUses || profile.medicalUses.length === 0)
+      p.add("uses");
+    if (!profile.effects || profile.effects.length === 0) {
+      p.add("effects");
+      p.add("dayNight");
+    }
+    if (!profile.terpenes || profile.terpenes.length === 0)
+      p.add("terpenes");
+    if (!profile.sideEffects || profile.sideEffects.length === 0)
+      p.add("sideEffects");
+    if (
+      (!profile.communityNotes || profile.communityNotes.length === 0) &&
+      !profile.leaflyRating
+    ) {
+      p.add("community");
+    }
+    return p;
+  }, [profile]);
+
+  // Used for the description loading state: when the profile is loaded
+  // but the AI-tailored fetch is in flight (auth'd user, no static
+  // description), show the dedicated loading card instead of the
+  // generic "Researching this strain…" placeholder.
+  const { isLoading: tailoredLoading } = useTailoredDescription(profile);
 
   return (
     <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
@@ -183,142 +241,185 @@ export default function Strain() {
             <ArrowLeft className="size-4" />
             Back
           </button>
-          {profile && (
+          {profile ? (
             <CompareToggleButton
               isInSelection={isInCompareSelection}
               isFull={compareAtCap}
               onToggle={() => compare.toggle(profile.name)}
             />
+          ) : (
+            // Match the visible button footprint so the top bar doesn't
+            // reflow when the profile lands.
+            <span aria-hidden className="h-8 w-[7.5rem] rounded-full" />
           )}
         </div>
 
-        {status === "loading" && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-          >
-            <SkeletonLines variant="strain-page" />
-          </motion.div>
-        )}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+          className="space-y-6"
+        >
+          {/* Header — image, name, subtitle, lineage. The name is always
+              rendered (sourced from the slug while the profile is still
+              loading) so the page never opens to a blank title. */}
+          <header className="space-y-4">
+            <StrainImage
+              src={profile?.imageUrl}
+              alt={`${displayName} flower`}
+              type={profile?.type}
+              className="h-72 w-full rounded-2xl border border-border/70 bg-white sm:h-80"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              {profile?.type ? (
+                <Badge className={cn(typeBadgeClass(profile.type), "capitalize")}>
+                  {TYPE_LABEL[profile.type] ?? profile.type}
+                </Badge>
+              ) : null}
+              {profile && !profile.inKnowledgeBase ? (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-primary/30 text-primary"
+                >
+                  <Sparkles className="size-3" />
+                  AI researched
+                </Badge>
+              ) : null}
+            </div>
+            <h1 className="font-serif text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
+              {displayName}
+              {profile ? (
+                <StrainNoteIndicator strainName={profile.name} />
+              ) : null}
+            </h1>
+            {profile ? (
+              <p className="text-sm font-medium text-muted-foreground sm:text-base">
+                {[
+                  profile.type ? TYPE_LABEL[profile.type] ?? profile.type : null,
+                  profile.thcRange ? `THC ${profile.thcRange}` : null,
+                  profile.thcRange && profile.cbdRange && profile.cbdRange !== "<1%"
+                    ? `CBD ${profile.cbdRange}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            ) : null}
+            {pending.has("lineage") ? (
+              <HydratingLine section="lineage" />
+            ) : profile?.lineage ? (
+              <p className="text-sm text-muted-foreground">{profile.lineage}</p>
+            ) : null}
+          </header>
 
-        {status !== "loading" && profile && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
-            className="space-y-8"
-          >
-            <StrainHeader strain={profile} />
-
+          {/* Description — generic placeholder while the profile is still
+              hydrating, dedicated tailored-loading card for signed-in users
+              waiting on the AI rewrite, then the real cards once content
+              lands. */}
+          {pending.has("description") ? (
+            tailoredLoading && isAuthenticated ? (
+              <TailoredDescriptionLoading />
+            ) : (
+              <HydratingSection section="description" />
+            )
+          ) : profile ? (
             <DescriptionCards profile={profile} />
+          ) : null}
 
+          {/* Day to night */}
+          {pending.has("dayNight") ? (
+            <HydratingSection section="dayNight" />
+          ) : profile ? (
             <DayNightCard score={score} />
+          ) : null}
 
-            {profile.medicalUses && profile.medicalUses.length > 0 && (
-              <CommonlyUsedForSection items={profile.medicalUses} />
-            )}
+          {/* Reported uses */}
+          {pending.has("uses") ? (
+            <HydratingSection section="uses" />
+          ) : profile?.medicalUses && profile.medicalUses.length > 0 ? (
+            <CommonlyUsedForSection items={profile.medicalUses} />
+          ) : null}
 
-            {profile.effects && profile.effects.length > 0 && (
-              <EffectsSection effects={profile.effects} />
-            )}
+          {/* Effects */}
+          {pending.has("effects") ? (
+            <HydratingSection section="effects" />
+          ) : profile?.effects && profile.effects.length > 0 ? (
+            <EffectsSection effects={profile.effects} />
+          ) : null}
 
-            {profile.terpenes && profile.terpenes.length > 0 && (
-              <TerpenesSection terpenes={profile.terpenes} />
-            )}
+          {/* Terpenes */}
+          {pending.has("terpenes") ? (
+            <HydratingSection section="terpenes" />
+          ) : profile?.terpenes && profile.terpenes.length > 0 ? (
+            <TerpenesSection terpenes={profile.terpenes} />
+          ) : null}
 
-            <ShopLinks strain={profile} />
+          {/* Watch for */}
+          {pending.has("sideEffects") ? (
+            <HydratingSection section="sideEffects" />
+          ) : profile?.sideEffects && profile.sideEffects.length > 0 ? (
+            <WatchForSection items={profile.sideEffects} />
+          ) : null}
 
-            {profile.sideEffects && profile.sideEffects.length > 0 && (
-              <WatchForSection items={profile.sideEffects} />
-            )}
+          {/* Shop links — only meaningful once we have a real profile. */}
+          {profile ? <ShopLinks strain={profile} /> : null}
 
-            {isAuthenticated && (
-              <SavedStrainNotes
-                slug={slugify(profile.name)}
-                strainName={profile.name}
-                isSaved={isSaved}
-              />
-            )}
-
-            {isAuthenticated && profile && (
-              <ReliefLogCard
-                strainName={profile.name}
-                logs={logs.filter(
-                  (log) =>
-                    log.strainName.trim().toLowerCase() ===
-                    profile.name.trim().toLowerCase(),
-                )}
-              />
-            )}
-
+          {/* Community voices */}
+          {pending.has("community") ? (
+            <HydratingSection section="community" />
+          ) : profile &&
+            (profile.communityNotes?.length || profile.leaflyRating) ? (
             <CommunityVoices
               notes={profile.communityNotes}
               strainName={profile.name}
-              redditSources={profile.redditSources}
+              leaflyRating={profile.leaflyRating}
+              leaflyReviewCount={profile.leaflyReviewCount}
             />
+          ) : null}
 
-            {isAuthenticated && others.length > 0 && (
-              <CompareSuggestions
-                profileName={profile.name}
-                others={others}
-              />
-            )}
-          </motion.div>
-        )}
+          {/* AI-researched missing-state callout. Only shown once the
+              lookup has settled so it doesn't flash on every page. */}
+          {profile && !profile.inKnowledgeBase && status !== "loading" ? (
+            <div className="flex items-start gap-2.5 rounded-2xl border border-primary/25 bg-primary/5 p-5">
+              <Search className="mt-0.5 size-4 shrink-0 text-primary" />
+              <p className="text-xs leading-5 text-muted-foreground">
+                Not listed on Leafly or Weedmaps — this profile is researched
+                by the AI from public sources. Reddit quotes appear below
+                when patients mention your symptoms.
+              </p>
+            </div>
+          ) : null}
+
+          {/* Auth-gated compare suggestions + log + notes. */}
+          {isAuthenticated && others.length > 0 && profile ? (
+            <CompareSuggestions
+              profileName={profile.name}
+              others={others}
+            />
+          ) : null}
+
+          {isAuthenticated && profile ? (
+            <ReliefLogCard
+              strainName={profile.name}
+              logs={logs.filter(
+                (log) =>
+                  log.strainName.trim().toLowerCase() ===
+                  profile.name.trim().toLowerCase(),
+              )}
+            />
+          ) : null}
+
+          {isAuthenticated && profile ? (
+            <SavedStrainNotes
+              slug={slugify(profile.name)}
+              strainName={profile.name}
+              isSaved={isSaved}
+            />
+          ) : null}
+        </motion.div>
       </div>
       <AppTabBar active="home" />
     </main>
-  );
-}
-
-function StrainHeader({ strain }: { strain: StrainProfile }) {
-  const subtitle = [
-    strain.type ? TYPE_LABEL[strain.type] ?? strain.type : null,
-    strain.thcRange ? `THC ${strain.thcRange}` : null,
-    strain.thcRange && strain.cbdRange && strain.cbdRange !== "<1%"
-      ? `CBD ${strain.cbdRange}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-  return (
-    <header className="space-y-4">
-      <StrainImage
-        src={strain.imageUrl}
-        alt={`${strain.name} flower`}
-        type={strain.type}
-        className="h-72 w-full rounded-2xl border border-border/70 bg-white sm:h-80"
-      />
-      <div className="flex flex-wrap items-center gap-2">
-        {strain.type && (
-          <Badge className={cn(typeBadgeClass(strain.type), "capitalize")}>
-            {TYPE_LABEL[strain.type] ?? strain.type}
-          </Badge>
-        )}
-        {!strain.inKnowledgeBase && (
-          <Badge
-            variant="outline"
-            className="gap-1 border-primary/30 text-primary"
-          >
-            <Sparkles className="size-3" />
-            AI researched
-          </Badge>
-        )}
-      </div>
-      <h1 className="font-serif text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
-        {strain.name}
-      </h1>
-      {subtitle && (
-        <p className="text-sm font-medium text-muted-foreground sm:text-base">
-          {subtitle}
-        </p>
-      )}
-      {strain.lineage && (
-        <p className="text-sm text-muted-foreground">{strain.lineage}</p>
-      )}
-    </header>
   );
 }
 
