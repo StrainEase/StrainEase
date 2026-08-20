@@ -6,18 +6,14 @@ import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
+import { StrainSectionHydrating } from "@/components/strain/StrainSectionHydrating";
 import { Button } from "@/components/ui/button";
-import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
 import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
-import {
-  strainDescription,
-  strainDisplayName,
-  strainJsonLd,
-} from "@/lib/seo";
+import { strainDescription, strainDisplayName, strainJsonLd } from "@/lib/seo";
 import { documentTitle } from "@/lib/site";
 import { searchStrain } from "@/lib/strain-api";
 import { applyCatalogPhotos, CATALOG } from "@/lib/strain-catalog";
@@ -40,14 +36,39 @@ export default function Strain() {
   const { isAuthenticated, user } = useAuth();
   const compare = useCompareSelection();
   const { logs } = useReliefSummary();
-  const [profile, setProfile] = useState<StrainProfile | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "missing">(
-    "loading",
-  );
-  const [savedNames, setSavedNames] = useState<string[]>([]);
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
   const featuredProfile = getFeaturedStrainProfile(slug);
+
+  // Seed the profile from the catalog so the page can render its header
+  // (image, name, type, thc range) right away instead of waiting for the
+  // network call. iOS does the same thing in `StrainDetailView` — it
+  // renders the catalog stub and then "hydrates" the missing sections
+  // one by one. Without a stub the patient would stare at a blank
+  // card until the searchStrain call returns. Featured strains ship
+  // a full preloaded profile so we use it verbatim and skip the
+  // network call entirely.
+  const stubName = catalogHit?.name ?? slug.replace(/-/g, " ");
+  const stubProfile = (() => {
+    if (featuredProfile) return featuredProfile;
+    const stubSource =
+      catalogHit ??
+      ({
+        name: stubName,
+        inKnowledgeBase: false,
+      } satisfies StrainProfile);
+    const [stub] = applyCatalogPhotos([stubSource]);
+    return (
+      stub ??
+      ({ name: stubName, inKnowledgeBase: false } satisfies StrainProfile)
+    );
+  })();
+
+  const [profile, setProfile] = useState<StrainProfile | null>(stubProfile);
+  const [status, setStatus] = useState<"loading" | "ready" | "missing">(
+    featuredProfile ? "ready" : "loading",
+  );
+  const [savedNames, setSavedNames] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,8 +82,7 @@ export default function Strain() {
       };
     }
     setStatus("loading");
-    const name = catalogHit?.name ?? slug.replace(/-/g, " ");
-    void searchStrain(name)
+    void searchStrain(stubName)
       .then((found) => {
         if (cancelled) return;
         if (found) {
@@ -74,10 +94,7 @@ export default function Strain() {
           setProfile(filled ?? catalogHit);
           setStatus("ready");
         } else {
-          const [filled] = applyCatalogPhotos([
-            { name, inKnowledgeBase: false },
-          ]);
-          setProfile(filled ?? { name, inKnowledgeBase: false });
+          setProfile({ name: stubName, inKnowledgeBase: false });
           setStatus("missing");
         }
       })
@@ -89,16 +106,13 @@ export default function Strain() {
           setStatus("ready");
           return;
         }
-        const [filled] = applyCatalogPhotos([
-          { name, inKnowledgeBase: false },
-        ]);
-        setProfile(filled ?? { name, inKnowledgeBase: false });
+        setProfile({ name: stubName, inKnowledgeBase: false });
         setStatus("missing");
       });
     return () => {
       cancelled = true;
     };
-  }, [slug, catalogHit, featuredProfile]);
+  }, [slug, catalogHit, featuredProfile, stubName]);
 
   useEffect(() => {
     if (!isAuthenticated || status !== "ready" || !profile) return;
@@ -125,10 +139,22 @@ export default function Strain() {
     return savedNames.some((n) => n.trim().toLowerCase() === target);
   }, [profile, savedNames]);
 
-  const isInCompareSelection = profile
-    ? compare.isIn(profile.name)
-    : false;
+  const isInCompareSelection = profile ? compare.isIn(profile.name) : false;
   const compareAtCap = compare.atCap;
+
+  // True while the live profile is still being fetched but the catalog
+  // stub is already on screen. The detail card treats empty fields as
+  // "pending" in this state, so the patient sees the iOS-style
+  // "analyzing your data" cards for every section that hasn't
+  // arrived yet.
+  const isHydrating = status === "loading" && profile !== null;
+  // True when the search has finished and we have nothing to show —
+  // either the strain isn't in the knowledge base or the network
+  // call failed and we don't even have a catalog stub. The detail
+  // card in this case renders the header (name + image) but skips
+  // every section-level loading card so it doesn't flash fake
+  // "analyzing" placeholders that will never resolve.
+  const isMissing = status === "missing";
 
   const displayName = strainDisplayName(
     status === "loading" ? null : profile,
@@ -137,6 +163,17 @@ export default function Strain() {
 
   return (
     <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
+      {/* Soft two-orb mesh — mirrors the iOS StrainDetailView
+       * MeshBackground. Two simple radial gradients (mint top-right,
+       * deep teal bottom-left) that fade to transparent. The iOS app
+       * uses the same two-stop [color, .clear] shape and reads as a
+       * smooth glow there; we keep the same shape so the web matches
+       * the iOS visual without introducing extra stops that show as
+       * banding on 8-bit displays. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(55%_42%_at_82%_-4%,oklch(0.84_0.1_158/0.42),transparent),radial-gradient(46%_36%_at_6%_22%,oklch(0.42_0.07_158/0.14),transparent)]"
+      />
       <Seo
         title={documentTitle(displayName)}
         description={strainDescription(profile, displayName)}
@@ -171,53 +208,67 @@ export default function Strain() {
           )}
         </div>
 
-        {status === "loading" && (
+        {status === "loading" && !profile && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+            className="flex items-center justify-center py-16 text-sm text-muted-foreground"
           >
-            <SkeletonLines variant="strain-page" />
+            Looking up this strain…
           </motion.div>
         )}
 
-        {status !== "loading" && profile && (
+        {profile && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
             className="space-y-8"
           >
-            <StrainDetailCard strain={profile} headingLevel="h1" />
+            <StrainDetailCard
+              strain={profile}
+              headingLevel="h1"
+              isHydrating={isHydrating && !isMissing}
+            />
 
-            <div className="rounded-2xl border border-border/70 bg-card p-6">
-              <div className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Sun className="size-3.5 text-primary" />
-                  Day
-                </span>
-                <span className="flex items-center gap-1.5">
-                  Night
-                  <Moon className="size-3.5 text-primary" />
-                </span>
+            {/* Day-to-night card. iOS keeps this in a dedicated card
+             * because it uses the score to pick an "evening strain"
+             * blurb; on web the same logic drives the slider position
+             * and the caption below it. We render a hydrating card
+             * while the effects data is still on the wire. */}
+            {profile.effects && profile.effects.length > 0 ? (
+              <div className="rounded-2xl border border-border/70 bg-card p-6">
+                <div className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Sun className="size-3.5 text-primary" />
+                    Day
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    Night
+                    <Moon className="size-3.5 text-primary" />
+                  </span>
+                </div>
+                <div
+                  className="relative h-2 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] [background:linear-gradient(90deg,oklch(0.78_0.08_230)_0%,oklch(0.7_0.1_220)_22%,oklch(0.43_0.1_158)_50%,oklch(0.4_0.12_240)_78%,oklch(0.32_0.13_280)_100%)]"
+                  role="meter"
+                  aria-valuenow={score}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Day-to-night rating"
+                >
+                  <span
+                    className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow ring-1 ring-black/10 [background:oklch(0.32_0.13_280)]"
+                    style={{ left: `${100 - score}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {dayNightLabel(score)}
+                </p>
               </div>
-              <div
-                className="relative h-2 rounded-full bg-gradient-to-r from-sky-300 via-sky-500 to-indigo-900 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]"
-                role="meter"
-                aria-valuenow={score}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="Day-to-night rating"
-              >
-                <span
-                  className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-indigo-900 shadow ring-1 ring-black/10"
-                  style={{ left: `${100 - score}%` }}
-                />
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                {dayNightLabel(score)}
-              </p>
-            </div>
+            ) : isHydrating && !isMissing ? (
+              <StrainSectionHydrating section="dayNight" />
+            ) : null}
 
             {profile.terpenes && profile.terpenes.length > 0 && (
               <div className="rounded-2xl border border-border/70 bg-card p-6">

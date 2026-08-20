@@ -1,7 +1,10 @@
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
+import { StrainSectionHydrating } from "@/components/strain/StrainSectionHydrating";
+import { TailoredDescriptionLoading } from "@/components/strain/TailoredDescriptionLoading";
 import { useTailoredDescription } from "@/hooks/use-tailored-description";
+import { useSavedAilments } from "@/hooks/use-saved-ailments";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
@@ -20,6 +23,7 @@ import {
   Crown,
   Droplets,
   HeartPulse,
+  Loader2,
   MessageCircle,
   Search,
   Sparkles,
@@ -44,20 +48,47 @@ function IntensityBar({ value }: { value: number }) {
   );
 }
 
+/**
+ * Strain detail card with iOS-parity loading states. Mirrors the iOS
+ * `StrainDetailView` flow:
+ *
+ *  1. The card renders immediately with whatever data is on the
+ *     `strain` prop (typically a catalog stub with name + image only).
+ *  2. Sections that the stub doesn't have yet — description, lineage,
+ *     terpenes, effects, common uses, side effects, community quotes —
+ *     each render an `StrainSectionHydrating` card with the same caption
+ *     the iOS app shows while it hydrates that section.
+ *  3. When the live profile arrives, the empty sections swap in real
+ *     content and the loading cards disappear.
+ *  4. If the user has saved ailments, the description section then
+ *     swaps to `TailoredDescriptionLoading` (rotating messages) while
+ *     the patient-tailored write-up is in flight, then to
+ *     `StrainDescriptionView` once it lands.
+ *
+ * `isHydrating` is the parent page's signal that the live profile is
+ * still on the wire. The card treats the absence of a field as
+ * "pending" only while hydrating, so a strain that simply lacks a
+ * field (e.g. no documented lineage) doesn't render a loading card
+ * forever after the live profile arrives.
+ */
 export function StrainDetailCard({
   strain,
   badge,
   conditions = [],
   headingLevel = "h3",
+  isHydrating = false,
 }: {
   strain: StrainProfile;
   badge?: "best" | "runnerUp" | null;
   conditions?: string[];
   headingLevel?: "h1" | "h3";
+  isHydrating?: boolean;
 }) {
   const Heading = headingLevel;
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
-  const { description: tailored } = useTailoredDescription(strain);
+  const ailments = useSavedAilments();
+  const { description: tailored, isLoading: isLoadingTailored } =
+    useTailoredDescription(strain);
 
   useEffect(() => {
     if (!db) {
@@ -68,7 +99,7 @@ export function StrainDetailCard({
   }, [strain.name]);
 
   const subtitle = [
-    strain.type ? TYPE_LABEL[strain.type] ?? strain.type : null,
+    strain.type ? (TYPE_LABEL[strain.type] ?? strain.type) : null,
     strain.thcRange ? `THC ${strain.thcRange}` : null,
     strain.thcRange && strain.cbdRange && strain.cbdRange !== "<1%"
       ? `CBD ${strain.cbdRange}`
@@ -76,6 +107,12 @@ export function StrainDetailCard({
   ]
     .filter(Boolean)
     .join(" · ");
+
+  // Tailored description only fires when the user has saved ailments,
+  // matching the iOS `shouldFetchTailored` gate. Without ailments, the
+  // static `strain.description` is the better surface and we skip the
+  // loading affordance entirely.
+  const canTailor = ailments.length > 0;
 
   return (
     <div
@@ -136,10 +173,7 @@ export function StrainDetailCard({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <SaveStrainButton profile={strain} />
-            <ReliefLogButton
-              strainName={strain.name}
-              conditions={conditions}
-            />
+            <ReliefLogButton strainName={strain.name} conditions={conditions} />
             {strain.type && (
               <Badge className={typeBadgeClass(strain.type)}>
                 {TYPE_LABEL[strain.type] ?? strain.type}
@@ -152,8 +186,8 @@ export function StrainDetailCard({
           <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
             <Search className="mt-0.5 size-4 shrink-0 text-primary" />
             <p className="text-xs leading-5 text-muted-foreground">
-              Not listed on Leafly or Weedmaps — this profile is researched
-              by the AI from public sources. Reddit quotes appear below when
+              Not listed on Leafly or Weedmaps — this profile is researched by
+              the AI from public sources. Reddit quotes appear below when
               patients mention your symptoms.
             </p>
           </div>
@@ -161,27 +195,37 @@ export function StrainDetailCard({
 
         {tailored ? (
           <StrainDescriptionView description={tailored} />
-        ) : (
-          strain.description && (
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {strain.description}
-            </p>
-          )
-        )}
+        ) : isLoadingTailored && canTailor ? (
+          <TailoredDescriptionLoading />
+        ) : strain.description ? (
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            {strain.description}
+          </p>
+        ) : isHydrating ? (
+          <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2
+              className="size-3.5 shrink-0 animate-spin text-primary"
+              aria-hidden
+            />
+            <span className="shimmer-text">Researching this strain…</span>
+          </p>
+        ) : null}
       </div>
 
       {/* Lineage */}
-      {strain.lineage && (
+      {strain.lineage ? (
         <div className="rounded-xl border border-border/60 bg-background px-4 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Lineage
           </p>
           <p className="mt-1 text-sm">{strain.lineage}</p>
         </div>
-      )}
+      ) : isHydrating ? (
+        <StrainSectionHydrating section="lineage" />
+      ) : null}
 
       {/* Terpenes */}
-      {strain.terpenes && strain.terpenes.length > 0 && (
+      {strain.terpenes && strain.terpenes.length > 0 ? (
         <div>
           <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <Droplets className="size-3.5 text-primary" />
@@ -199,10 +243,12 @@ export function StrainDetailCard({
             ))}
           </div>
         </div>
-      )}
+      ) : isHydrating ? (
+        <StrainSectionHydrating section="terpenes" />
+      ) : null}
 
       {/* Medical uses */}
-      {strain.medicalUses && strain.medicalUses.length > 0 && (
+      {strain.medicalUses && strain.medicalUses.length > 0 ? (
         <div>
           <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <HeartPulse className="size-3.5 text-primary" />
@@ -219,10 +265,12 @@ export function StrainDetailCard({
             ))}
           </div>
         </div>
-      )}
+      ) : isHydrating ? (
+        <StrainSectionHydrating section="uses" />
+      ) : null}
 
       {/* Effects */}
-      {strain.effects && strain.effects.length > 0 && (
+      {strain.effects && strain.effects.length > 0 ? (
         <div>
           <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <Activity className="size-3.5 text-primary" />
@@ -240,10 +288,12 @@ export function StrainDetailCard({
             ))}
           </div>
         </div>
-      )}
+      ) : isHydrating ? (
+        <StrainSectionHydrating section="effects" />
+      ) : null}
 
       {/* Side effects */}
-      {strain.sideEffects && strain.sideEffects.length > 0 && (
+      {strain.sideEffects && strain.sideEffects.length > 0 ? (
         <div>
           <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <Sparkles className="size-3.5 text-primary" />
@@ -253,10 +303,12 @@ export function StrainDetailCard({
             {strain.sideEffects.join(" · ")}
           </p>
         </div>
-      )}
+      ) : isHydrating ? (
+        <StrainSectionHydrating section="sideEffects" />
+      ) : null}
 
       {/* Patient community notes (public notes saved by other users) */}
-      {patientNotes.length > 0 && (
+      {patientNotes.length > 0 ? (
         <div>
           <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <MessageCircle className="size-3.5 text-primary" />
@@ -278,7 +330,9 @@ export function StrainDetailCard({
             ))}
           </div>
         </div>
-      )}
+      ) : isHydrating ? (
+        <StrainSectionHydrating section="community" />
+      ) : null}
 
       <CommunityVoices
         notes={strain.communityNotes}
