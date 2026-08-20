@@ -177,6 +177,51 @@
     transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
       opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1);
   }
+
+  /* Two-orb mesh used across the app. Mirrors
+   * ios/StrainWise/Theme/MeshBackground.swift: a soft mint glow from the
+   * top-right (glowMint) and a deep forest glow from the bottom-left
+   * (glowDeep), painted over the theme's --background. Dark mode adds a
+   * bottom fade for legibility, matching the iOS overlay.
+   *
+   * Sizing is viewport-relative so the gradient always covers the full
+   * viewport — the previous fixed-pixel boxes left a visible horizontal
+   * seam on tall screens because the box ended mid-screen and the body
+   * color showed through. */
+  .mesh-bg {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(
+        120% 90% at 100% 0%,
+        rgba(140, 209, 168, 0.42),
+        transparent 60%
+      ),
+      radial-gradient(
+        100% 90% at 0% 100%,
+        rgba(25, 92, 61, 0.14),
+        transparent 60%
+      );
+    background-repeat: no-repeat;
+  }
+  .dark .mesh-bg {
+    background-image:
+      linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(11, 17, 14, 0.55) 100%
+      ),
+      radial-gradient(
+        120% 90% at 100% 0%,
+        rgba(71, 158, 112, 0.28),
+        transparent 60%
+      ),
+      radial-gradient(
+        100% 90% at 0% 100%,
+        rgba(25, 140, 82, 0.22),
+        transparent 60%
+      );
+    background-repeat: no-repeat;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

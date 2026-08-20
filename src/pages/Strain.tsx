@@ -6,6 +6,7 @@ import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
+import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
@@ -136,7 +137,8 @@ export default function Strain() {
   );
 
   return (
-    <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
+    <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
+      <MeshBackground />
       <Seo
         title={documentTitle(displayName)}
         description={strainDescription(profile, displayName)}
@@ -257,8 +259,8 @@ export default function Strain() {
             <ShopLinks strain={profile} />
 
             {isAuthenticated && others.length > 0 && (
-              <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
-                <p className="text-sm font-semibold tracking-tight">
+              <div className="rounded-2xl border border-border/70 bg-card p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Compare with what you saved
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">

@@ -36,6 +36,10 @@ export function isPatientQuote(note: QuoteNote): boolean {
 }
 
 export type NoteChannel = "cannabis" | "reddit";
+// "all" is a UI-only aggregation tab in CommunityVoices. It is not a real
+// source channel — it just rolls both real channels into a single list so a
+// reader landing on the page can scan every voice in one pass.
+export type ChannelTab = NoteChannel | "all";
 export type SentimentTone = "positive" | "mixed" | "cautious" | "insufficient";
 
 export type ChannelSummary = {

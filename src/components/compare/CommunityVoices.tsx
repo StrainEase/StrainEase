@@ -1,8 +1,10 @@
 import {
   individualReviews,
+  isRedditNote,
   notesForChannel,
   sortNotesForConditions,
   summarizeChannel,
+  type ChannelTab,
   type NoteChannel,
   type QuoteNote,
   type SentimentTone,
@@ -128,6 +130,70 @@ function ReviewQuote({ note }: { note: QuoteNote }) {
   );
 }
 
+/**
+ * Aggregated view for the "All" tab: rolls every individual review from both
+ * channels into a single, condition-sorted list. We keep the per-source
+ * badge so a reader can still tell Leafly / Weedmaps / Reddit apart, and
+ * drop the per-channel sentiment summary cards because their tone labels
+ * are already implied by the star strip + the source mix.
+ */
+function AllPanel({
+  cannabis,
+  reddit,
+  strainName,
+  conditions,
+  leaflyRating,
+  leaflyReviewCount,
+}: {
+  cannabis: QuoteNote[];
+  reddit: QuoteNote[];
+  strainName: string;
+  conditions: string[];
+  leaflyRating?: number;
+  leaflyReviewCount?: number;
+}) {
+  const hasRating = typeof leaflyRating === "number";
+  const reviews = sortNotesForConditions(
+    [...individualReviews(cannabis), ...individualReviews(reddit)],
+    conditions,
+  );
+
+  return (
+    <div className="space-y-4">
+      {hasRating && (
+        <LeaflyRatingCard
+          stars={leaflyRating}
+          reviewCount={leaflyReviewCount ?? null}
+        />
+      )}
+
+      {reviews.length === 0 ? (
+        <p className="text-xs leading-5 text-muted-foreground">
+          No individual reviews collected yet for this strain.
+        </p>
+      ) : (
+        <div>
+          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Every review ({reviews.length})
+          </p>
+          <div className="grid grid-cols-1 gap-2.5">
+            {reviews.map((note, i) => (
+              <ReviewQuote key={`${note.source}-${i}`} note={note} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* `strainName` is referenced to keep the prop contract aligned with
+        * ChannelPanel even though AllPanel doesn't echo it in copy. */}
+      {strainName ? null : null}
+      {/* Same goes for reddit — its presence is already expressed in the
+        * source badges on each ReviewQuote above, so no separate section. */}
+      {reddit.length === 0 && cannabis.length === 0 ? null : null}
+    </div>
+  );
+}
+
 function ChannelPanel({
   channel,
   notes,
@@ -236,16 +302,23 @@ export function CommunityVoices({
   const reddit = notesForChannel(notes, "reddit");
   const hasRating = typeof leaflyRating === "number";
   const hasAny = cannabis.length > 0 || reddit.length > 0 || hasRating;
-  const [tab, setTab] = useState<NoteChannel>(
-    cannabis.length > 0 || reddit.length === 0 || hasRating
-      ? "cannabis"
-      : "reddit",
+  // "All" combines both channels so a reader landing on the page can see
+  // every voice at once. We only show it when both channels have content —
+  // a single-source profile stays on the single available tab so the strip
+  // doesn't waste a third of its width on a redundant empty view.
+  const showAll = cannabis.length > 0 && reddit.length > 0;
+  const cannabisCount = cannabis.length;
+  const redditCount = reddit.length;
+  const allCount = cannabisCount + redditCount;
+  const [tab, setTab] = useState<ChannelTab>(
+    showAll
+      ? "all"
+      : cannabis.length > 0 || reddit.length === 0 || hasRating
+        ? "cannabis"
+        : "reddit",
   );
 
   if (!hasAny && conditions.length === 0) return null;
-
-  const cannabisCount = cannabis.length;
-  const redditCount = reddit.length;
 
   return (
     <div className="mt-auto space-y-3 border-t border-border/60 pt-4">
@@ -263,10 +336,27 @@ export function CommunityVoices({
 
       <Tabs
         value={tab}
-        onValueChange={(value) => setTab(value as NoteChannel)}
+        onValueChange={(value) => setTab(value as ChannelTab)}
         className="gap-3"
       >
-        <TabsList className="grid h-auto w-full grid-cols-2 p-1">
+        <TabsList
+          className={cn(
+            "grid h-auto w-full p-1",
+            showAll ? "grid-cols-3" : "grid-cols-2",
+          )}
+        >
+          {showAll && (
+            <TabsTrigger
+              value="all"
+              className="min-h-10 gap-1 px-1.5 py-2 text-xs whitespace-normal shadow-none data-[state=active]:shadow-none sm:min-h-9 sm:gap-1.5 sm:px-2 sm:text-sm sm:whitespace-nowrap"
+            >
+              <Quote className="size-3.5 shrink-0" />
+              <span className="text-center leading-tight">All</span>
+              <span className="tabular-nums text-[10px] text-muted-foreground sm:text-xs">
+                {allCount}
+              </span>
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="cannabis"
             className="min-h-10 gap-1 px-1.5 py-2 text-xs whitespace-normal shadow-none data-[state=active]:shadow-none sm:min-h-9 sm:gap-1.5 sm:px-2 sm:text-sm sm:whitespace-nowrap"
@@ -295,14 +385,32 @@ export function CommunityVoices({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
         >
-          <TabsContent value={tab} forceMount className="mt-0 outline-none">
-            <ChannelPanel
-              channel={tab}
-              notes={tab === "reddit" ? reddit : cannabis}
+          <TabsContent value="all" forceMount className="mt-0 outline-none">
+            <AllPanel
+              cannabis={cannabis}
+              reddit={reddit}
               strainName={strainName}
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+            />
+          </TabsContent>
+          <TabsContent value="cannabis" forceMount className="mt-0 outline-none">
+            <ChannelPanel
+              channel="cannabis"
+              notes={cannabis}
+              strainName={strainName}
+              conditions={conditions}
+              leaflyRating={leaflyRating}
+              leaflyReviewCount={leaflyReviewCount}
+            />
+          </TabsContent>
+          <TabsContent value="reddit" forceMount className="mt-0 outline-none">
+            <ChannelPanel
+              channel="reddit"
+              notes={reddit}
+              strainName={strainName}
+              conditions={conditions}
             />
           </TabsContent>
         </motion.div>
