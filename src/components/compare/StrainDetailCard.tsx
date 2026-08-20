@@ -49,11 +49,20 @@ export function StrainDetailCard({
   badge,
   conditions = [],
   headingLevel = "h3",
+  /**
+   * When the parent (e.g. the standalone Strain page) already paints the
+   * strain photo as a hero above the card, pass `hideHero` to skip
+   * re-rendering it inside the card. Keeps the card from looking
+   * double-stacked on the dedicated strain page while preserving the
+   * image-in-card layout used by the compare dashboard.
+   */
+  hideHero = false,
 }: {
   strain: StrainProfile;
   badge?: "best" | "runnerUp" | null;
   conditions?: string[];
-  headingLevel?: "h1" | "h3";
+  headingLevel?: "h1" | "h2" | "h3";
+  hideHero?: boolean;
 }) {
   const Heading = headingLevel;
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
@@ -77,11 +86,19 @@ export function StrainDetailCard({
     .filter(Boolean)
     .join(" · ");
 
+  // When the parent has already painted the photo above the card, the
+  // card itself is just a content surface — no need to keep the white
+  // photo-background, the standard card surface is fine.
+  const showInlineHero = !!strain.imageUrl && !hideHero;
+  const surface = showInlineHero
+    ? "bg-white"
+    : "bg-card";
+
   return (
     <div
       className={cn(
         "flex min-w-0 flex-col gap-5 rounded-2xl border p-6",
-        strain.imageUrl ? "bg-white" : "bg-card",
+        surface,
         badge === "best"
           ? "border-primary/50 ring-1 ring-primary/20"
           : "border-border/70",
@@ -89,7 +106,7 @@ export function StrainDetailCard({
     >
       {/* Header */}
       <div>
-        {strain.imageUrl && (
+        {showInlineHero && (
           <StrainImage
             src={strain.imageUrl}
             alt={`${strain.name} flower`}
@@ -160,7 +177,11 @@ export function StrainDetailCard({
         )}
 
         {tailored ? (
-          <StrainDescriptionView description={tailored} />
+          <StrainDescriptionView
+            description={tailored}
+            strain={strain}
+            ailments={conditions}
+          />
         ) : (
           strain.description && (
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -286,6 +307,7 @@ export function StrainDetailCard({
         conditions={conditions}
         leaflyRating={strain.leaflyRating}
         leaflyReviewCount={strain.leaflyReviewCount}
+        redditSources={strain.redditSources}
       />
     </div>
   );

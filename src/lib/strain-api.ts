@@ -210,3 +210,36 @@ export function setAgeVerified(args: {
     args,
   );
 }
+
+/**
+ * Result for an `elaborateSection` request.
+ *
+ * `elaboration` is a short prose expansion of one of the three sections
+ * returned by `describeStrainForUser` (Overview / What it might do for
+ * you / What to expect). The body is 2-4 paragraphs separated by blank
+ * lines, written for this strain and the caller's saved ailments /
+ * medications / relief-log history.
+ */
+export type ElaboratedSection = {
+  elaboration: string;
+};
+
+/**
+ * Ask the AI to expand a single section of the tailored strain
+ * description. The web client surfaces this behind the ✨ Ask Maya
+ * button on each section header. Same age-verification + rate-limit
+ * contract as `describeStrainForUser`.
+ */
+export function elaborateSection(args: {
+  strain: StrainProfile;
+  /** The heading of the section to expand, e.g. "What it might do for you". */
+  sectionHeading: string;
+  /** The current body of the section, so the model can extend it. */
+  sectionBody: string;
+  ailments?: string[];
+  medications?: string[];
+  reliefHistory?: string;
+  language?: string;
+}): Promise<ElaboratedSection> {
+  return call<typeof args, ElaboratedSection>("elaborateSection", args);
+}

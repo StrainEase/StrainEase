@@ -134,7 +134,7 @@ export function SavedStrainNotes({
                   {formatDate(note.createdAt)}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -148,29 +148,31 @@ export function SavedStrainNotes({
                         strainName,
                       );
                   }}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors",
-                    note.isPublic
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border/70 text-muted-foreground hover:text-foreground",
-                  )}
+                  aria-label={
+                    note.isPublic ? "Make note private" : "Share note publicly"
+                  }
                   title={
                     note.isPublic
                       ? "Public — visible to everyone"
                       : "Private — only you can see this"
                   }
+                  className={cn(
+                    "flex size-8 cursor-pointer items-center justify-center rounded-full border transition-colors",
+                    note.isPublic
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border/70 text-muted-foreground hover:text-foreground",
+                  )}
                 >
                   {note.isPublic ? (
-                    <Globe className="size-3" />
+                    <Globe className="size-3.5" />
                   ) : (
-                    <Lock className="size-3" />
+                    <Lock className="size-3.5" />
                   )}
-                  {note.isPublic ? "Public" : "Private"}
                 </button>
                 <button
                   type="button"
                   aria-label="Delete note"
-                  className="cursor-pointer rounded-full p-1 text-muted-foreground transition-colors hover:text-destructive"
+                  className="flex size-8 cursor-pointer items-center justify-center rounded-full p-1 text-muted-foreground transition-colors hover:text-destructive"
                   onClick={() => {
                     if (db && user) void removeNote(user.uid, slug, note.id);
                   }}
@@ -199,16 +201,20 @@ export function SavedStrainNotes({
         <button
           type="button"
           onClick={() => setMakePublic((p) => !p)}
+          aria-label={makePublic ? "Make this note public" : "Keep this note private"}
+          title={
+            makePublic
+              ? "Public — visible to everyone"
+              : "Private — only you can see this"
+          }
           className={cn(
-            "flex shrink-0 cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+            "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
             makePublic
               ? "border-primary/40 bg-primary/10 text-primary"
               : "border-border/70 text-muted-foreground hover:text-foreground",
           )}
-          title="Share this note publicly"
         >
-          {makePublic ? <Globe className="size-3" /> : <Lock className="size-3" />}
-          {makePublic ? "Public" : "Private"}
+          {makePublic ? <Globe className="size-4" /> : <Lock className="size-4" />}
         </button>
         <Button
           type="button"
@@ -218,7 +224,7 @@ export function SavedStrainNotes({
           onClick={() => void submit()}
         >
           <Plus className="size-4" />
-          Add
+          Save
         </Button>
       </div>
     </div>
