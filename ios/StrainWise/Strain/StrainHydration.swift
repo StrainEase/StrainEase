@@ -17,7 +17,7 @@ enum StrainHydrationSection: String, CaseIterable, Sendable {
         case .description: "Overview"
         case .lineage: "Lineage"
         case .dayNight: "Day to night"
-        case .uses: "Reported uses"
+        case .uses: "Commonly used for"
         case .effects: "Effects"
         case .terpenes: "Terpenes"
         case .sideEffects: "Watch for"

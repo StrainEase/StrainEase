@@ -39,20 +39,25 @@ export function StrainPoster({
         iconClassName={compact ? "size-6" : "size-7"}
       />
       {type && (
-        <Badge className={cn(typeBadgeClass(type), "capitalize")}>
+        <Badge
+          className={cn(
+            typeBadgeClass(type),
+            "self-start px-2.5 py-0.5 text-[11px] font-semibold tracking-wide capitalize",
+          )}
+        >
           {TYPE_LABEL[type] ?? type}
         </Badge>
       )}
       <p
         className={cn(
-          "font-display font-semibold leading-snug text-pretty",
-          compact ? "min-h-8 text-[14px]" : "min-h-[38px] text-[16px]",
+          "font-display font-semibold leading-tight text-balance line-clamp-2",
+          compact ? "min-h-9 text-[14px]" : "min-h-[40px] text-[16px]",
         )}
       >
         {profile.name}
       </p>
       {profile.thcRange && (
-        <p className="text-[11px] font-medium text-muted-foreground">
+        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
           THC {profile.thcRange}
         </p>
       )}
