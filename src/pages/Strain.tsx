@@ -137,6 +137,7 @@ export default function Strain() {
 
   return (
     <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
+      <div aria-hidden className="page-bg" />
       <Seo
         title={documentTitle(displayName)}
         description={strainDescription(profile, displayName)}

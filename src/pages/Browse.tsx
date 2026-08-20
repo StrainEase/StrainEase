@@ -31,10 +31,7 @@ export default function Browse() {
         path={`/browse/${section}${ailment ? `/${ailment}` : ""}`}
         noindex
       />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(55%_40%_at_80%_0%,oklch(0.86_0.07_158/0.38),transparent_62%),radial-gradient(40%_32%_at_8%_18%,oklch(0.9_0.04_140/0.28),transparent_70%)]"
-      />
+      <div aria-hidden className="page-bg" />
       <AppHeader active="home" />
       <div className="mx-auto w-full max-w-6xl px-6 py-8 sm:py-10">
         <Button

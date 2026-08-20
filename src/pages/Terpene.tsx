@@ -87,10 +87,7 @@ export default function Terpene() {
         type="article"
         jsonLd={terpeneJsonLd(name, profile, slug)}
       />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(55%_40%_at_80%_0%,oklch(0.86_0.07_158/0.32),transparent_62%),radial-gradient(40%_32%_at_8%_18%,oklch(0.9_0.04_140/0.22),transparent_70%)]"
-      />
+      <div aria-hidden className="page-bg" />
       <AppHeader active="home" />
       <div className="mx-auto w-full max-w-3xl px-6 py-8 sm:py-10">
         <Link

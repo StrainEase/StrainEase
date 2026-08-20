@@ -82,6 +82,15 @@
   --sidebar-accent-foreground: oklch(0.3 0.04 158);
   --sidebar-border: oklch(0.905 0.01 160);
   --sidebar-ring: oklch(0.6 0.09 158);
+
+  /* Soft top-down mint wash for the page background. Mirrors the iOS
+   * `MeshBackground`: a vertical linear gradient (so there are no hard
+   * stops) plus a single diffuse top-trailing highlight. The alphas are
+   * deliberately low — the wash should be felt, not seen. */
+  --mesh-top: oklch(0.94 0.025 158 / 0.55);
+  --mesh-mid: oklch(0.965 0.012 158 / 0.28);
+  --mesh-low: oklch(0.985 0.005 158 / 0.08);
+  --mesh-glow: oklch(0.82 0.05 158 / 0.18);
 }
 
 .dark {
@@ -116,6 +125,11 @@
   --sidebar-accent-foreground: oklch(0.94 0.008 158);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.6 0.09 158);
+
+  --mesh-top: oklch(0.20 0.02 158 / 0.55);
+  --mesh-mid: oklch(0.19 0.015 158 / 0.32);
+  --mesh-low: oklch(0.18 0.01 158 / 0.12);
+  --mesh-glow: oklch(0.30 0.04 158 / 0.20);
 }
 
 @layer base {
@@ -148,6 +162,31 @@
 }
 
 @layer components {
+  /* Page background mesh — sits behind every screen. Use a vertical linear
+   * gradient (no hard stops) plus one broad radial highlight at the
+   * top-trailing corner to match the iOS `MeshBackground` feel. The
+   * transparent stops sit at 70%+ so the wash fades out smoothly. */
+  .page-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    pointer-events: none;
+    background-color: var(--background);
+    background-image:
+      radial-gradient(
+        80% 60% at 85% 0%,
+        var(--mesh-glow),
+        transparent 72%
+      ),
+      linear-gradient(
+        180deg,
+        var(--mesh-top) 0%,
+        var(--mesh-mid) 30%,
+        var(--mesh-low) 65%,
+        transparent 100%
+      );
+  }
+
   .landing-grain::before {
     content: "";
     position: fixed;

@@ -508,10 +508,7 @@ export default function Landing() {
         id="main"
         className="relative flex min-h-[100dvh] items-center overflow-x-clip pt-24"
       >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(55%_48%_at_78%_18%,oklch(0.86_0.07_158/0.45),transparent_62%),radial-gradient(40%_36%_at_12%_88%,oklch(0.9_0.04_140/0.35),transparent_70%)]"
-        />
+        <div aria-hidden className="page-bg" />
         <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pb-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:pb-16 lg:pt-6">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
