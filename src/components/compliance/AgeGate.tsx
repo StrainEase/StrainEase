@@ -14,7 +14,7 @@ import { REGIONS, type RegionCode as RegionCodeType } from "@/lib/age-policy";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { CalendarDays, Globe2, Leaf, ShieldCheck } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 const REJECTION_COPY: Record<string, { title: string; body: string }> = {
@@ -23,16 +23,16 @@ const REJECTION_COPY: Record<string, { title: string; body: string }> = {
     body: "Please enter your full date of birth so we can confirm you're of legal age in your jurisdiction.",
   },
   invalid: {
-    title: "That date doesn't look right",
-    body: "Please enter a valid date in the YYYY-MM-DD format, or use the date picker.",
+    title: "Let's try that again",
+    body: "Please re-enter a valid date in the YYYY-MM-DD format, or use the date picker.",
   },
   future: {
     title: "That date is in the future",
-    body: "Please double-check the date you entered — we can't accept a date that's still ahead of us.",
+    body: "Please re-enter your date of birth — we can't accept a date that's still ahead of us.",
   },
   tooOld: {
     title: "That date is too far back",
-    body: "Please enter a realistic date of birth.",
+    body: "Please re-enter a realistic date of birth.",
   },
   underage: {
     title: "Sorry — StrainEase is for adults only",
@@ -43,6 +43,16 @@ const REJECTION_COPY: Record<string, { title: string; body: string }> = {
     body: "We can't save your verification without browser storage. Enable cookies / localStorage and try again.",
   },
 };
+
+// Rejections that should re-prompt the user by clearing the date field and
+// refocusing it, so they can re-enter instead of editing the bad value in
+// place. Lockouts (underage) and browser-side issues (storage) are excluded.
+const REPROMPT_REASONS = new Set<import("@/lib/age-policy").AgeCheckFailure>([
+  "missing-birth-date",
+  "invalid-birth-date",
+  "birth-date-in-future",
+  "birth-date-too-old",
+]);
 
 export function AgeGate({ children }: { children: ReactNode }) {
   const { state, verify, reset } = useAgeVerification();
@@ -102,6 +112,10 @@ function Gate({
     import("@/lib/age-policy").AgeCheckFailure | undefined
   >(initialReason);
   const [rejectedAt, setRejectedAt] = useState<number>(Date.now());
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  // When true, the next "user edited an input" effect tick should NOT clear
+  // the rejection banner — the edit was made by us to re-prompt the user.
+  const suppressRejectClearRef = useRef(false);
 
   const minimumAge = useMemo(() => {
     const r = REGIONS.find((x) => x.code === region);
@@ -113,8 +127,26 @@ function Gate({
   }, [region]);
 
   useEffect(() => {
+    if (suppressRejectClearRef.current) {
+      suppressRejectClearRef.current = false;
+      return;
+    }
     setRejected(undefined);
   }, [region, birthDate]);
+
+  // Re-prompt the user when a rejection was about the input value: clear the
+  // date field and focus it so they can re-enter, rather than editing the
+  // bad value in place.
+  useEffect(() => {
+    if (!rejected) return;
+    if (!REPROMPT_REASONS.has(rejected)) return;
+    suppressRejectClearRef.current = true;
+    setBirthDate("");
+    // Defer focus until React has applied the cleared value to the DOM.
+    requestAnimationFrame(() => {
+      dateInputRef.current?.focus();
+    });
+  }, [rejected, rejectedAt]);
 
   const canSubmit = Boolean(
     birthDate && agreedTerms && agreedPrivacy,
@@ -210,6 +242,7 @@ function Gate({
             >
               <Input
                 id="age-birth"
+                ref={dateInputRef}
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
