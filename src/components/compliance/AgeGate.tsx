@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MeshBackground } from "@/components/theme/MeshBackground";
 import {
   Select,
   SelectContent,
@@ -78,7 +79,8 @@ export function AgeGate({ children }: { children: ReactNode }) {
 
 function LoadingScreen() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background">
+    <main className="relative isolate flex min-h-screen items-center justify-center bg-background">
+      <MeshBackground />
       <div className="size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
       <span className="sr-only">Checking age verification…</span>
     </main>
@@ -174,8 +176,8 @@ function Gate({
   };
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-background">
-      <BackgroundOrbs />
+    <main className="relative isolate min-h-[100dvh] overflow-hidden bg-background">
+      <MeshBackground />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -430,16 +432,4 @@ function mapReason(
     default:
       return "storage";
   }
-}
-
-function BackgroundOrbs() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-    >
-      <div className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/10 blur-3xl" />
-      <div className="absolute -bottom-40 -left-40 h-[520px] w-[520px] rounded-full bg-primary/5 blur-3xl" />
-    </div>
-  );
 }
