@@ -97,7 +97,7 @@ function AilmentPage({
 
   return (
     <article
-      className="flex w-full shrink-0 snap-start flex-col gap-3 px-3 sm:px-4"
+      className="flex w-full shrink-0 snap-start snap-always flex-col gap-3 px-3 sm:px-4"
       data-ailment={name}
     >
       <header className="flex items-baseline justify-between gap-3">
