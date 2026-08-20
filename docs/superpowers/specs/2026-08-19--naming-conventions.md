@@ -17,7 +17,7 @@ when naming things, and a reference for humans during code review.
 | Thing | Format | Example |
 | --- | --- | --- |
 | Branch | `<type>/<kebab-slug>` | `fix/ios-tailored-description-pr2` |
-| Auto branch (agent-generated) | `<type>/auto-YYYYMMDD-<id>` | `feat/auto-20260819-15661046` |
+| Auto branch (agent-generated, **placeholder only**) | `<type>/auto-YYYYMMDD-<id>` | `feat/auto-20260819-15661046` — rename before any work, see § 1 |
 | Worktree dir | `<type>-auto-YYYYMMDD-<id>` (slash → dash) | `feat-auto-20260819-15661046` |
 | Commit subject | `<type>(<scope>): <summary>` | `feat(auth): refresh firebase token after age verification` |
 | PR title | Same as commit subject (one PR = one logical change) | `fix(web): tighten spacing on the Compare / Saved nav pills` |
@@ -98,13 +98,64 @@ feat/apple-signin
   `feat/auto-20260819-15661046` lives at `.worktrees/feat-auto-20260819-15661046`. Keep this
   rule — bash/PowerShell/some Windows tools misbehave on `/` in paths.
 
-### AI agent behavior
+### AI agent behavior — auto branches are placeholders, always rename
 
-- When an AI agent opens a worktree, it should pick the branch name *before* running the work
-  and include the date + a short id (e.g. `fix-YYYYMMDD-<8-hex>`). Don't reuse yesterday's id
-  for today's work.
-- When an AI agent fixes a follow-up to an existing PR, branch from the existing PR branch and
-  bump the suffix: `fix/...-pr3` → `fix/...-pr4`.
+The Mavis / mavis runtime hands every AI session a worktree on a placeholder
+branch named `<type>/auto-YYYYMMDD-<id>`. That name is **not a real branch
+name** — it's a session handle. The first thing an AI agent must do on a new
+worktree is rename the branch to a spec-compliant name before doing any work:
+
+```bash
+# from inside the worktree, before the first commit
+git branch -m <current-auto-name> <type>/<scope>-<short-kebab-description>
+# then push the new name (and clean up the placeholder on origin if it was ever pushed)
+git push -u origin <new-name>
+```
+
+This rule is **unconditional** — every worktree, every session, every commit,
+every PR, every agent (Mavis, worker, explorer, anything that opens a
+worktree). Rationale:
+
+- The auto name is opaque in `git log --all`, in the GitHub branch list, in
+  the merge commit message, and in code review ("what does
+  `feat/auto-20260819-15661046` even do?").
+- Renaming locally costs zero work. Not renaming pays off as confusion on
+  every downstream surface.
+- There is **no "small enough to skip" exception**. A single typo fix is
+  still a real change worth a real name. A pure-docs housekeeping commit
+  (e.g. updating this spec) still goes on `docs/<slug>`, not on
+  `chore/auto-...`.
+- Even a no-op turn (the agent decides not to do the work) should leave the
+  branch in a renamed state, so the next session that picks it up sees a
+  meaningful name.
+
+When to rename:
+
+- **Before the first commit.** Renaming after a commit still works
+  (`git branch -m`), but it makes `git log` confusing if anyone else has
+  already pulled the auto name.
+- **Before the first push.** Pushing the auto name and then renaming on
+  origin is a 4-command dance (`-m` locally, `push --delete` on origin,
+  `push -u new`, update tracking). Renaming locally first is one command.
+
+How to pick the new name — same rules as § 1:
+
+- Match the type to the work: `feat` for new capability, `fix` for a bug,
+  `docs` for docs only, `chore` for tooling, `refactor` for restructuring,
+  `perf` for performance, `test` for tests, `build` for build, `ci` for CI.
+- Match the scope: `fix/ios-...`, `feat/web-...`, `docs/...`, etc. Web is
+  the default — no scope needed if the change is web-only and obvious from
+  the slug; iOS always gets the `ios-` prefix.
+- If the work spans more than one type, pick the dominant one and let the
+  commit subjects carry the rest.
+- Self-referential example: a commit that updates this very spec goes on
+  `docs/naming-conventions-spec`, not on `chore/auto-...`.
+
+Follow-up work:
+
+- When an AI agent fixes a follow-up to an existing PR, branch from the
+  existing PR branch and bump the suffix: `fix/...-pr3` → `fix/...-pr4`.
+  The auto-rename rule still applies to whatever new branch you create.
 
 ---
 
@@ -284,6 +335,12 @@ in some places; this is internal so follow whatever the file already does.
 ## 8. Things AI agents should NOT do
 
 - Do **not** use `main` as a working branch. Always branch first.
+- Do **not** commit to, push, or open a PR from an `<type>/auto-YYYYMMDD-<id>` branch. That name
+  is a placeholder handed to you by the Mavis runtime — rename it to a spec-compliant
+  `<type>/<scope>-<short-kebab-description>` branch *before the first commit* (see § 1 "AI
+  agent behavior"). Every session, every commit, every PR, no exceptions. The auto name is
+  opaque in `git log`, the GitHub branch list, and the merge commit message; the rename
+  costs nothing and pays off everywhere.
 - Do **not** name a branch `<type>/<UserName>/<thing>` or include an external ticket id in
   the slug (e.g. `JIRA-1234`). Project internal `pr<N>` is the only allowed suffix.
 - Do **not** invent new top-level types (`feature`, `bug`, `improvement`, `task`). Stick to
@@ -304,9 +361,14 @@ in some places; this is internal so follow whatever the file already does.
 
 When you need to pick a name, walk this list top to bottom and stop at the first matching rule:
 
-1. **Branch?** → § 1. Default `fix/<scope>-<short-description>` or
-   `feat/<scope>-<short-description>`. If you opened a worktree automatically, add
-   `-auto-YYYYMMDD-<id>`.
+0. **Are you on an `<type>/auto-YYYYMMDD-<id>` worktree?** → **Stop. Rename first.** Run
+   `git branch -m <current-auto-name> <type>/<scope>-<short-kebab-description>` from inside
+   the worktree, *before the first commit*. See § 1 "AI agent behavior — auto branches are
+   placeholders, always rename." The auto name is never a valid branch name for a commit or
+   a PR.
+1. **Picking a branch name for non-auto work?** → § 1. Default
+   `fix/<scope>-<short-description>` or `feat/<scope>-<short-description>`. Match the type
+   to the actual change, not the surrounding context.
 2. **Commit?** → § 2. Subject only, Conventional Commits, scope optional.
 3. **PR title?** → § 3. Identical to the commit subject it summarizes.
 4. **Worktree directory?** → § 4. Replace `/` with `-` in the branch name.
