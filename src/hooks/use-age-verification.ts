@@ -3,19 +3,13 @@
 // plus a `verify({ region, birthDate })` action and a `reset()` for shared
 // devices.
 //
-// When the caller is signed in, `verify` also notifies the Firebase backend
-// (`setAgeVerified` callable) so the matching custom claim is set. That keeps
-// the AI synthesis / doctor callables from rejecting the user with
-// "permission-denied" right after they pass the gate.
+// Local gate is the source of truth. No server-side custom claim enforcement
+// — the AI synthesis and doctor callables trust the client's gate implicitly.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { setAgeVerified } from "@/lib/strain-api";
-import { auth } from "@/lib/firebase";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   evaluateAge,
   getRegion,
-  isRecordValid,
   type AgeVerificationRecord,
   type AgeCheckFailure,
   type Region,
@@ -53,7 +47,6 @@ export function useAgeVerification(): {
   reset: () => void;
   recheck: () => void;
 } {
-  const { isAuthenticated } = useAuth();
   const [record, setRecord] = useState<AgeVerificationRecord | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -70,26 +63,6 @@ export function useAgeVerification(): {
   const recheck = useCallback(() => {
     setRecord(readAgeVerification());
   }, []);
-
-  const prevAuthenticated = useRef(isAuthenticated);
-
-  useEffect(() => {
-    if (
-      isAuthenticated &&
-      !prevAuthenticated.current &&
-      record &&
-      isRecordValid(record) &&
-      hydrated
-    ) {
-      setAgeVerified({
-        region: record.region,
-        birthDate: record.birthDate,
-        termsAccepted: true,
-        privacyAccepted: true,
-      }).then(() => auth?.currentUser?.getIdToken(true)).catch(() => {});
-    }
-    prevAuthenticated.current = isAuthenticated;
-  }, [isAuthenticated, record, hydrated]);
 
   const verify = useCallback(
     async (input: VerifyInput) => {
@@ -108,36 +81,9 @@ export function useAgeVerification(): {
         };
       }
       setRecord(written);
-
-      // Sync to the backend when signed in. If Firebase isn't configured
-      // (no env vars), the callable rejects — that's fine for local dev
-      // without Firebase; the local gate still works.
-      if (isAuthenticated) {
-        try {
-          await setAgeVerified({
-            region: input.region,
-            birthDate: input.birthDate,
-            termsAccepted: input.termsAccepted,
-            privacyAccepted: input.privacyAccepted,
-          });
-          try {
-            await auth?.currentUser?.getIdToken(true);
-          } catch {
-            // best-effort refresh; the next token cycle will pick up the claim
-          }
-        } catch {
-          // Surface a soft warning to the caller via console — the UI
-          // shouldn't block on this, since the local gate is the source of
-          // truth for the page-level experience.
-          console.warn(
-            "[age-verification] Failed to mirror attestation to the backend; signed-in AI features may reject requests until the next verify.",
-          );
-        }
-      }
-
       return { ok: true as const, record: written };
     },
-    [isAuthenticated],
+    [],
   );
 
   const state: AgeVerificationState = useMemo(() => {
