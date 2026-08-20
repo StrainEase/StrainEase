@@ -6,6 +6,7 @@ import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
+import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
@@ -136,7 +137,7 @@ export default function Strain() {
   );
 
   return (
-    <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
+    <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
       <Seo
         title={documentTitle(displayName)}
         description={strainDescription(profile, displayName)}
@@ -150,6 +151,7 @@ export default function Strain() {
             : undefined
         }
       />
+      <MeshBackground />
       <AppHeader active="home" />
 
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
