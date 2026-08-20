@@ -42,8 +42,14 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Instrument Serif", "Iowan Old Style", "Palatino Linotype",
-    Palatino, serif;
+  /* Lora is a humanist serif with a "medium" weight feel — closer to
+   * the iOS New York system serif than the very thin/condensed
+   * Instrument Serif it replaces. Used for page hero headlines, rail
+   * headers, and strain names on posters/grids. System serifs stay in
+   * the fallback chain so Apple/Win/Linux users still get a serif
+   * while Lora loads. */
+  --font-display: "Lora", "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
