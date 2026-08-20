@@ -155,6 +155,63 @@ function ReviewQuote({ note }: { note: QuoteNote }) {
   );
 }
 
+/**
+ * Aggregated view for the "All" tab: rolls every individual review from both
+ * channels into a single, condition-sorted list. The per-source badge on each
+ * review keeps the Leafly / Weedmaps / Reddit provenance visible, and we drop
+ * the per-channel sentiment summary card because the source mix + star strip
+ * already convey the tone — adding the same summary on top would be
+ * redundant copy.
+ */
+function AllPanel({
+  cannabis,
+  reddit,
+  leaflyRating,
+  leaflyReviewCount,
+  conditions,
+}: {
+  cannabis: QuoteNote[];
+  reddit: QuoteNote[];
+  strainName: string;
+  conditions: string[];
+  leaflyRating?: number;
+  leaflyReviewCount?: number;
+}) {
+  const hasRating = typeof leaflyRating === "number";
+  const reviews = sortNotesForConditions(
+    [...individualReviews(cannabis), ...individualReviews(reddit)],
+    conditions,
+  );
+
+  return (
+    <div className="space-y-4">
+      {hasRating ? (
+        <LeaflyRatingCard
+          stars={leaflyRating}
+          reviewCount={leaflyReviewCount ?? null}
+        />
+      ) : null}
+
+      {reviews.length === 0 ? (
+        <p className="text-xs leading-5 text-muted-foreground">
+          No individual reviews collected yet for this strain.
+        </p>
+      ) : (
+        <div>
+          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Every review ({reviews.length})
+          </p>
+          <div className="grid grid-cols-1 gap-2.5">
+            {reviews.map((note, i) => (
+              <ReviewQuote key={`${note.source}-${i}`} note={note} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ChannelPanel({
   channel,
   notes,
@@ -331,14 +388,25 @@ export function CommunityVoices({
   const reddit = notesForChannel(mergedNotes, "reddit");
   const hasRating = typeof leaflyRating === "number";
   const hasAny = cannabis.length > 0 || reddit.length > 0 || hasRating;
-  const [sort, setSort] = useState<ReviewSort>("relevance");
-  const [tab, setTab] = useState<NoteChannel>("all");
 
-  if (!hasAny && conditions.length === 0) return null;
-
+  // "All" combines both channels so a reader landing on the page can scan
+  // every voice at once. We only show the All tab when both channels have
+  // content — a single-source profile stays on its single available tab so
+  // the strip doesn't waste a third of its width on a redundant empty view.
   const showCannabis = cannabis.length > 0 || hasRating;
   const showReddit = reddit.length > 0;
   const showAll = showCannabis && showReddit;
+  const allCount = cannabis.length + reddit.length;
+  const [sort, setSort] = useState<ReviewSort>("relevance");
+  const initialTab: NoteChannel = showAll
+    ? "all"
+    : showCannabis
+      ? "cannabis"
+      : "reddit";
+  const [tab, setTab] = useState<NoteChannel>(initialTab);
+
+  if (!hasAny && conditions.length === 0) return null;
+
   const visibleChannels: NoteChannel[] = [
     ...(showAll ? (["all"] as const) : []),
     ...(showCannabis ? (["cannabis"] as const) : []),
@@ -347,7 +415,6 @@ export function CommunityVoices({
   const activeTab: NoteChannel = visibleChannels.includes(tab)
     ? tab
     : (visibleChannels[0] ?? "all");
-  const allNotes = mergedNotes.slice();
   const cols =
     visibleChannels.length <= 1
       ? "grid-cols-1"
@@ -381,8 +448,11 @@ export function CommunityVoices({
             value="all"
             className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
           >
-            <ArrowDownUp className="size-3.5 shrink-0" />
-            <span className="leading-tight">All reviews</span>
+            <Quote className="size-3.5 shrink-0" />
+            <span className="leading-tight">All</span>
+            <span className="tabular-nums text-[10px] font-medium text-muted-foreground sm:text-xs">
+              {allCount}
+            </span>
           </TabsTrigger>
           )}
           {showCannabis && (
@@ -412,20 +482,34 @@ export function CommunityVoices({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
         >
-          <TabsContent value={activeTab} forceMount className="mt-0 outline-none">
-            <ChannelPanel
-              channel={activeTab}
-              notes={
-                activeTab === "reddit"
-                  ? reddit
-                  : activeTab === "cannabis"
-                    ? cannabis
-                    : allNotes
-              }
+          <TabsContent value="all" forceMount className="mt-0 outline-none">
+            <AllPanel
+              cannabis={cannabis}
+              reddit={reddit}
               strainName={strainName}
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+            />
+          </TabsContent>
+          <TabsContent value="cannabis" forceMount className="mt-0 outline-none">
+            <ChannelPanel
+              channel="cannabis"
+              notes={cannabis}
+              strainName={strainName}
+              conditions={conditions}
+              leaflyRating={leaflyRating}
+              leaflyReviewCount={leaflyReviewCount}
+              sort={sort}
+              onSortChange={setSort}
+            />
+          </TabsContent>
+          <TabsContent value="reddit" forceMount className="mt-0 outline-none">
+            <ChannelPanel
+              channel="reddit"
+              notes={reddit}
+              strainName={strainName}
+              conditions={conditions}
               sort={sort}
               onSortChange={setSort}
             />

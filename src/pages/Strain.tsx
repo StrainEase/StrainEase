@@ -668,23 +668,26 @@ function CompareSuggestions({
   others: string[];
 }) {
   return (
-    <SWCard emphasized innerClassName="p-5">
-      <p className="text-sm font-semibold tracking-tight">
-        Compare with what you saved
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+    <SWCard innerClassName="p-5">
+      <SectionEyebrow icon={GitCompareArrows} label="Compare with what you saved" />
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <span
+          className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-semibold text-foreground"
+          aria-label={`Currently viewing ${profileName}`}
+        >
+          {profileName}
+        </span>
         {others.slice(0, 4).map((name) => (
           <Button
             key={name}
             asChild
             size="sm"
             variant="outline"
-            className="cursor-pointer rounded-full"
+            className="h-7 cursor-pointer rounded-full px-3 text-xs"
           >
             <Link
               to={`/dashboard?mode=compare&strains=${encodeURIComponent(`${profileName},${name}`)}`}
             >
-              <GitCompareArrows className="size-3.5" />
               vs {name}
               <StrainNoteIndicator strainName={name} />
             </Link>
