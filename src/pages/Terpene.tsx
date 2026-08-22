@@ -14,30 +14,22 @@ import {
   terpeneProfile,
   strainsWithTerpene,
 } from "@/lib/terpenes";
-import { slugify } from "@/lib/saved-strains";
-import type { StrainProfile } from "@/lib/strain-profile";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
+import { slugify } from "@/lib/saved-strains";
+import type { StrainProfile } from "@/lib/strain-profile";
 
 export default function Terpene() {
   const { slug = "" } = useParams();
   const { popular, isLoading } = usePopularStrains();
-  const [photoApplied, setPhotoApplied] = useState(false);
 
   const name = terpeneFromSlug(slug);
   const profile = name ? terpeneProfile(name) : undefined;
-
-  useEffect(() => {
-    if (!popular || photoApplied) return;
-    setPhotoApplied(true);
-  }, [popular, photoApplied]);
-
-  const matches = useMemo(() => {
-    if (!popular || !name) return [];
-    return applyCatalogPhotos(strainsWithTerpene(name, popular).withProfile);
-  }, [popular, name]);
+  const matches =
+    popular && name
+      ? applyCatalogPhotos(strainsWithTerpene(name, popular).withProfile)
+      : [];
 
   if (!name || !profile) {
     return (

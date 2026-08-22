@@ -113,7 +113,10 @@ function Gate({
   const [rejected, setRejected] = useState<
     import("@/lib/age-policy").AgeCheckFailure | undefined
   >(initialReason);
-  const [rejectedAt, setRejectedAt] = useState<number>(Date.now());
+  // Nonce is only meaningful after a real rejection; init at 0 so the banner
+  // doesn't remount spuriously on first render. The handler below stamps a
+  // real timestamp after each failed verification.
+  const [rejectedAt, setRejectedAt] = useState<number>(0);
   const dateInputRef = useRef<HTMLInputElement>(null);
   // When true, the next "user edited an input" effect tick should NOT clear
   // the rejection banner — the edit was made by us to re-prompt the user.
@@ -128,6 +131,9 @@ function Gate({
     return REGIONS.find((x) => x.code === region)?.legalNote ?? "";
   }, [region]);
 
+  // Clear any prior rejection when the user changes region or birthDate.
+  // The render-time check below would also work, but this keeps the explicit
+  // "user edited inputs" trigger that the original logic had.
   useEffect(() => {
     if (suppressRejectClearRef.current) {
       suppressRejectClearRef.current = false;

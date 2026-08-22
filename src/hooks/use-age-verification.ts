@@ -89,15 +89,17 @@ export function useAgeVerification(): {
   const state: AgeVerificationState = useMemo(() => {
     if (!hydrated) return { status: "loading" };
     if (!record) return { status: "unverified" };
+    // "Now" is intentionally read inside the memo so the expiry check is
+    // re-evaluated every time `record` or `hydrated` changes. The caller
+    // (AgeGate) re-renders on record changes, which re-derives this state.
+    // eslint-disable-next-line react-hooks/purity
     if (record.expiresAt <= Date.now()) {
       return { status: "unverified", reason: undefined, lastRecord: record };
     }
     const region = getRegion(record.region);
-    const age = evaluateAge(record.birthDate, record.region).ok
-      ? (evaluateAge(record.birthDate, record.region) as { age: number }).age
-      : 0;
+    const evaluation = evaluateAge(record.birthDate, record.region);
+    const age = evaluation.ok ? (evaluation as { age: number }).age : 0;
     return { status: "verified", record, region, age };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record, hydrated]);
 
   return { state, verify, reset, recheck };
