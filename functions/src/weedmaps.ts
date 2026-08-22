@@ -11,6 +11,8 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 
 const cache = new Map<string, { at: number; profile: StrainProfile | null }>();
 
+// Weedmaps' catalog endpoint has no public schema; we narrow on read below.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RawRecord = Record<string, any>;
 
 function typeFrom(species?: string): StrainType | undefined {

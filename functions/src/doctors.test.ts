@@ -4,20 +4,16 @@ import { __resetDoctorsCacheForTest, findDoctors, type Doctor } from "./doctors"
 type FetchMock = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> | Response;
 
 const originalFetch = globalThis.fetch;
-let mockFetch: FetchMock | null = null;
 
 function setFetch(fn: FetchMock) {
-  mockFetch = fn;
   globalThis.fetch = fn as unknown as typeof fetch;
 }
 
 function restoreFetch() {
-  mockFetch = null;
   globalThis.fetch = originalFetch;
 }
 
 beforeEach(() => {
-  mockFetch = null;
   __resetDoctorsCacheForTest();
 });
 
