@@ -34,7 +34,6 @@ describe("medicalScore", () => {
     const generic =
       "Solid flower, calming effect, good daytime dose for relaxing at home.";
     const baseInsomnia = medicalScore(insomniaMatch);
-    const baseGeneric = medicalScore(generic);
     const withConditionsInsomnia = medicalScore(insomniaMatch, [
       "insomnia",
       "chronic pain",

@@ -6,7 +6,6 @@ import {
   removeNote,
   removeSavedStrain,
   setNotePublic,
-  slugify,
   type PublicNote,
   type SavedStrain,
 } from "@/lib/saved-strains";

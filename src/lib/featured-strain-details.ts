@@ -32,12 +32,6 @@ type FeaturedDetail = {
 
 // ---- helpers --------------------------------------------------------------
 
-const note = (
-  source: string,
-  text: string,
-  kind?: CommunityNote["kind"],
-): CommunityNote => (kind ? { source, text, kind } : { source, text });
-
 const redditSource = (
   subreddit: string,
   title: string,

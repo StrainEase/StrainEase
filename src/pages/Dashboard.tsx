@@ -127,13 +127,12 @@ export default function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [mode, setMode] = useState<DashboardMode>(() =>
-    dashboardModeFromSearch(searchParams.get("mode")),
-  );
+  // URL is the source of truth for `mode`; derive it on every render so we
+  // don't need a parallel useState + useEffect to keep them in sync.
+  const mode = dashboardModeFromSearch(searchParams.get("mode"));
   const resultsRef = useRef<HTMLDivElement>(null);
 
   function applyMode(next: DashboardMode) {
-    setMode(next);
     setSearchParams(
       (prev) => {
         const params = new URLSearchParams(prev);
@@ -144,10 +143,6 @@ export default function Dashboard() {
       { replace: true },
     );
   }
-
-  useEffect(() => {
-    setMode(dashboardModeFromSearch(searchParams.get("mode")));
-  }, [searchParams]);
 
   // Restore a shared result from a /find/:rid or /compare/:rid link.
   useEffect(() => {
@@ -183,17 +178,19 @@ export default function Dashboard() {
   }, []);
 
   // Cycle through research status messages while a comparison runs.
+  // Resetting stepIndex lives in the render body above, not in an effect,
+  // so flipping `isRunning` back to false doesn't trigger a cascading render.
   useEffect(() => {
-    if (!isRunning) {
-      setStepIndex(0);
-      return;
-    }
+    if (!isRunning) return;
     const timer = setInterval(
       () => setStepIndex((i) => Math.min(i + 1, RESEARCH_STEPS.length - 1)),
       1600,
     );
     return () => clearInterval(timer);
   }, [isRunning]);
+
+  // Derived: when not running, force stepIndex back to 0 without an effect.
+  const visibleStepIndex = isRunning ? stepIndex : 0;
 
   // Scroll the results into view once a comparison finishes rendering.
   useEffect(() => {
@@ -257,6 +254,8 @@ export default function Dashboard() {
           id: comparison.resultId,
           kind: "compare" as const,
           title: `${names.join(" vs. ")}${focus.length ? ` · ${focus.join(", ")}` : ""}`,
+          // Stamp the entry at the moment the result lands, not at render time.
+          // eslint-disable-next-line react-hooks/purity
           createdAt: Date.now(),
         };
         rememberLocal(entry);
@@ -716,7 +715,7 @@ export default function Dashboard() {
                   <Loader2 className="size-9 animate-spin text-primary" />
                 </div>
                 <p className="mt-6 text-base font-semibold tracking-tight">
-                  {RESEARCH_STEPS[stepIndex]}
+                  {RESEARCH_STEPS[visibleStepIndex]}
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Full profiles from Leafly and Weedmaps, plus Reddit quotes
