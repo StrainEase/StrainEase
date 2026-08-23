@@ -14,7 +14,13 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { evaluateAge, type RegionCode } from "./age";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } from "./doctors";
-import { fetchAllStrains, fetchProfiles, toPreview, type StrainPreview } from "./leafly";
+import {
+  fetchAllStrains,
+  fetchPopular,
+  fetchProfiles,
+  toPreview,
+  type StrainPreview,
+} from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callGroq, extractJsonObject } from "./groq";
 import { matchRedditSeeds } from "./reddit-seed";
