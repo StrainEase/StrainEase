@@ -207,6 +207,12 @@ export default function Strain() {
     : false;
   const compareAtCap = compare.atCap;
 
+  // Used for the description loading state: when the profile is loaded
+  // but the AI-tailored fetch is in flight (auth'd user, no static
+  // description), show the dedicated loading card instead of the
+  // generic "Researching this strain…" placeholder.
+  const { isLoading: tailoredLoading } = useTailoredDescription(profile);
+
   // Always show the strain name right away — derive it from the slug
   // while the profile is still hydrating so the header never blanks.
   // Names are normalised to title case so AI-researched and lowercase
@@ -220,8 +226,12 @@ export default function Strain() {
   // Mirrors iOS `StrainProfile.pendingHydrationSections` so both surfaces
   // hydrate in the same order and the user always sees the full layout
   // with the right placeholder message.
+  //
+  // Once the profile is `ready`, sections whose data is missing are no
+  // longer "pending" — they render nothing instead of a stuck spinner.
+  // (The Cloud Function returns the full profile in one shot, so there's
+  // no separate fetch for terpenes or side effects to wait for.)
   const pending: Set<StrainHydrationSection> = useMemo(() => {
-    const p = new Set<StrainHydrationSection>();
     if (!profile) {
       // Cold start with no profile yet — every section is still hydrating.
       return new Set<StrainHydrationSection>([
@@ -235,32 +245,43 @@ export default function Strain() {
         "community",
       ]);
     }
-    if (!profile.description) p.add("description");
-    if (!profile.lineage) p.add("lineage");
-    if (!profile.medicalUses || profile.medicalUses.length === 0)
-      p.add("uses");
-    if (!profile.effects || profile.effects.length === 0) {
-      p.add("effects");
-      p.add("dayNight");
+    // Cold profile (still hydrating) shows every section as pending so
+    // the user sees the full layout with placeholders.
+    if (status !== "ready") {
+      return new Set<StrainHydrationSection>([
+        "description",
+        "lineage",
+        "uses",
+        "effects",
+        "dayNight",
+        "terpenes",
+        "sideEffects",
+        "community",
+      ]);
     }
-    if (!profile.terpenes || profile.terpenes.length === 0)
-      p.add("terpenes");
-    if (!profile.sideEffects || profile.sideEffects.length === 0)
-      p.add("sideEffects");
+    // Profile is ready. Only flag a section as pending if its data is
+    // expected to arrive separately (e.g. tailored description while the
+    // AI call is still in flight). For terpenes / side effects, the
+    // Cloud Function returns them in the same payload as the rest of
+    // the profile, so a missing value means "we don't have it" — drop
+    // the section from pending so the page doesn't sit on a spinner.
+    const p = new Set<StrainHydrationSection>();
+    if (tailoredLoading && isAuthenticated) {
+      // TailoredDescription is fetched by useTailoredDescription on its
+      // own schedule; keep the description slot pending while that's
+      // still in flight.
+      p.add("description");
+    }
     if (
       (!profile.communityNotes || profile.communityNotes.length === 0) &&
       !profile.leaflyRating
     ) {
+      // Community has its own Firestore subscription; mark it pending
+      // only until the listener delivers the first snapshot.
       p.add("community");
     }
     return p;
-  }, [profile]);
-
-  // Used for the description loading state: when the profile is loaded
-  // but the AI-tailored fetch is in flight (auth'd user, no static
-  // description), show the dedicated loading card instead of the
-  // generic "Researching this strain…" placeholder.
-  const { isLoading: tailoredLoading } = useTailoredDescription(profile);
+  }, [profile, status, tailoredLoading, isAuthenticated]);
 
   return (
     <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
