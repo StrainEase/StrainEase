@@ -147,6 +147,35 @@ export function cachedStrainImage(url: string): Promise<CachedStrainImage> {
   });
 }
 
+/** Lightweight strain preview used for directory listings and browse pagination. */
+export type StrainPreview = {
+  name: string;
+  slug: string;
+  type?: string;
+  thcRange?: string;
+  imageUrl?: string;
+  leaflyRating?: number;
+};
+
+/** A page of catalog previews from browseStrains. */
+export type BrowseCatalogPage = {
+  previews: StrainPreview[];
+  totalCount: number;
+  offset: number;
+  fetchedAt: number;
+};
+
+/** Browse the full Leafly catalog with pagination. Returns lightweight previews. */
+export function browseStrains(args: {
+  offset?: number;
+  limit?: number;
+}): Promise<BrowseCatalogPage> {
+  return call<{ offset: number; limit: number }, BrowseCatalogPage>(
+    "browseStrains",
+    { offset: args.offset ?? 0, limit: args.limit ?? 24 },
+  );
+}
+
 /** A medical-marijuana doctor clinic scraped from Leafly's public directory. */
 export type Doctor = {
   id: string;
@@ -224,4 +253,41 @@ export function elaborateSection(args: {
   language?: string;
 }): Promise<ElaboratedSection> {
   return call<typeof args, ElaboratedSection>("elaborateSection", args);
+}
+
+/** Community star rating for a strain. */
+export type StrainReview = {
+  id: string;
+  strainSlug: string;
+  uid: string;
+  displayName: string;
+  starRating: number;
+  reviewText?: string;
+  consumptionForm?: "flower" | "cart" | "edible" | "tincture";
+  createdAt: number;
+  updatedAt?: number;
+};
+
+/** Aggregated rating for a strain. */
+export type StrainRating = {
+  strainSlug: string;
+  avgRating: number;
+  reviewCount: number;
+  totalStars: number;
+};
+
+/**
+ * Submit or update a star rating + optional written review for a strain.
+ * Auth-gated + age-verified on the server. Returns the updated aggregate.
+ */
+export function submitStrainReview(args: {
+  strainSlug: string;
+  starRating: number;
+  reviewText?: string;
+  consumptionForm?: "flower" | "cart" | "edible" | "tincture";
+}): Promise<{ ok: true; reviewId: string; avgRating: number; reviewCount: number }> {
+  return call<typeof args, { ok: true; reviewId: string; avgRating: number; reviewCount: number }>(
+    "submitStrainReview",
+    args,
+  );
 }

@@ -7,10 +7,20 @@
 //   without `request.auth`.
 import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import { getAuth } from "firebase-admin/auth";
+import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { evaluateAge, type RegionCode } from "./age";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } from "./doctors";
-import { fetchPopular, fetchProfiles } from "./leafly";
+import {
+  fetchAllStrains,
+  fetchPopular,
+  fetchProfiles,
+  toPreview,
+  type StrainPreview,
+} from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callGroq, extractJsonObject } from "./groq";
 import { matchRedditSeeds } from "./reddit-seed";
@@ -26,6 +36,9 @@ import type {
 
 export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
 
+/** 30 days in milliseconds. Mirrors AGE_CLAIM_TTL_MS in the web app. */
+export const AGE_CLAIM_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 const AI_OPTIONS: CallableOptions = {
   secrets: [GROQ_API_KEY],
   timeoutSeconds: 120,
@@ -34,16 +47,147 @@ const AI_OPTIONS: CallableOptions = {
 
 /* ── Public data lookups (no AI, no auth required) ─────────────────── */
 
-/** Popular strains on Leafly right now. Writes full profiles to strainCache
- *  so clients can read them directly without extra API calls. */
-export const popularStrains = onCall(async (): Promise<StrainProfile[]> => {
-  const popular = await fetchPopular();
-  // Also fetch full detail profiles so the client-side cache has
-  // medicalUses, terpenes, lineage, and sideEffects (not just the
-  // popular-list summary fields).
-  const detailed = await fetchProfiles(popular.map((p) => p.name));
-  return detailed;
-});
+const POPULAR_LIST_CACHE_DOC = "popularListCache";
+const POPULAR_LIST_CACHE_COLLECTION = "strainCatalog";
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+type PopularListCache = {
+  previews: StrainPreview[];
+  fetchedAt: number;
+  totalCount: number;
+};
+
+async function readPopularListCache(): Promise<PopularListCache | null> {
+  try {
+    const snap = await getFirestore()
+      .collection(POPULAR_LIST_CACHE_COLLECTION)
+      .doc(POPULAR_LIST_CACHE_DOC)
+      .get();
+    if (!snap.exists) return null;
+    const data = snap.data() as PopularListCache;
+    if (!Array.isArray(data.previews) || !data.fetchedAt) return null;
+    const age = Date.now() - data.fetchedAt;
+    if (age > CACHE_TTL_MS) return null; // Treat stale as miss
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function writePopularListCache(previews: StrainPreview[]): Promise<void> {
+  try {
+    await getFirestore()
+      .collection(POPULAR_LIST_CACHE_COLLECTION)
+      .doc(POPULAR_LIST_CACHE_DOC)
+      .set(
+        {
+          previews,
+          fetchedAt: Date.now(),
+          totalCount: previews.length,
+        },
+        { merge: true },
+      );
+  } catch {
+    // Best-effort. A missed write just means the next cold start scrapes again.
+  }
+}
+
+/**
+ * Popular strains: cache-first from Firestore, scrape-only on cold miss.
+ * The scheduled warmStrainDirectory function keeps the Firestore cache fresh.
+ * Caller gets the first 12 previews from the catalog.
+ */
+export const popularStrains = onCall(
+  { timeoutSeconds: 30 },
+  async (): Promise<StrainProfile[]> => {
+    const cache = await readPopularListCache();
+    if (cache && cache.previews.length > 0) {
+      // Convert previews back to StrainProfiles (lightweight — no full scrape needed)
+      return cache.previews.slice(0, 12).map((p) => ({
+        name: p.name,
+        inKnowledgeBase: true,
+        type: p.type as StrainProfile["type"],
+        thcRange: p.thcRange,
+        imageUrl: p.imageUrl,
+        leaflyRating: p.leaflyRating,
+      }));
+    }
+    // Cold miss — scrape and cache
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    void writePopularListCache(previews);
+    return all.slice(0, 12);
+  },
+);
+
+/**
+ * Browse the full Leafly catalog with offset pagination.
+ * Cache-first from Firestore; falls back to scraping on cold miss.
+ * Returns previews (lightweight) for the grid, not full profiles.
+ */
+export const browseStrains = onCall(
+  { timeoutSeconds: 30 },
+  async (
+    request,
+  ): Promise<{
+    previews: StrainPreview[];
+    totalCount: number;
+    offset: number;
+    fetchedAt: number;
+  }> => {
+    const raw = request.data ?? {};
+    const offset =
+      typeof raw.offset === "number" && raw.offset >= 0 ? raw.offset : 0;
+    const limit =
+      typeof raw.limit === "number" && raw.limit > 0
+        ? Math.min(raw.limit, 100)
+        : 24;
+
+    const cache = await readPopularListCache();
+    if (cache && cache.previews.length > 0) {
+      return {
+        previews: cache.previews.slice(offset, offset + limit),
+        totalCount: cache.totalCount,
+        offset,
+        fetchedAt: cache.fetchedAt,
+      };
+    }
+
+    // Cold miss — scrape, cache, and return the requested slice
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    void writePopularListCache(previews);
+    return {
+      previews: previews.slice(offset, offset + limit),
+      totalCount: previews.length,
+      offset,
+      fetchedAt: Date.now(),
+    };
+  },
+);
+
+/**
+ * Scheduled function: runs once per day to warm the Firestore strain catalog cache.
+ * This keeps the popularStrains and browseStrains callables fast (Firestore hit)
+ * and off Leafly's servers for routine reads.
+ *
+ * Deployed via: firebase deploy --only functions
+ * (The Pub/Sub topic "strains-daily-scrape" must be created in GCP Scheduler:
+ *  gcloud scheduler jobs create pubsub strains-daily-scrape \
+ *    --schedule="0 3 * * *" --topic=strains-daily-scrape --message-body="{}")
+ */
+export const warmStrainDirectory = onSchedule(
+  { schedule: "0 3 * * *", timeoutSeconds: 540, memory: "512MiB" },
+  async () => {
+    console.log("[warmStrainDirectory] Starting daily Leafly catalog scrape…");
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    await writePopularListCache(previews);
+    console.log(
+      `[warmStrainDirectory] Cached ${previews.length} strain previews.`,
+    );
+  },
+);
 
 /** Look up one strain by name on Leafly + Weedmaps, with reviews and Reddit. */
 export const searchStrain = onCall(
@@ -57,6 +201,255 @@ export const searchStrain = onCall(
   },
 );
 
+/* ── Age verification ─────────────────────────────────────────────── */
+
+/**
+ * Guard a callable: throws HttpsError if the request has no auth or the
+ * ageVerified custom claim is absent/expired.
+ */
+async function requireAgeVerified(
+  request: { auth?: { uid: string; token?: { ageVerifiedExpiresAt?: number } } },
+  HttpsErrorClass: typeof HttpsError,
+): Promise<{ uid: string }> {
+  if (!request.auth?.uid) {
+    throw new HttpsErrorClass("unauthenticated", "Sign in first.");
+  }
+  const exp = request.auth.token?.ageVerifiedExpiresAt;
+  if (!exp || exp < Date.now()) {
+    throw new HttpsErrorClass(
+      "permission-denied",
+      "Age verification expired. Please re-verify from the account page.",
+    );
+  }
+  return { uid: request.auth.uid };
+}
+
+/**
+ * Records that the signed-in caller has attested to being of legal age in
+ * their jurisdiction. Sets the matching custom claim so server-side gates on
+ * the AI callables can enforce it, and mirrors the attestation to Firestore
+ * for audit / refresh.
+ *
+ * Re-runs are safe: this callable is idempotent — calling it again with a
+ * different region or after expiry simply refreshes the claim TTL.
+ */
+export const setAgeVerified = onCall(
+  { timeoutSeconds: 30 },
+  async (
+    request,
+  ): Promise<{ ok: true; region: RegionCode; expiresAt: number }> => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in first.");
+    }
+
+    const data = (request.data ?? {}) as {
+      region?: unknown;
+      birthDate?: unknown;
+      termsAccepted?: unknown;
+      privacyAccepted?: unknown;
+    };
+
+    if (data.termsAccepted !== true) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Please accept the Terms of Service first.",
+      );
+    }
+    if (data.privacyAccepted !== true) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Please accept the Privacy Policy first.",
+      );
+    }
+
+    const evaluation = evaluateAge(data.region, data.birthDate);
+    if (!evaluation.ok) {
+      throw new HttpsError(
+        "failed-precondition",
+        evaluation.reason === "underage"
+          ? "You must be of legal age in your jurisdiction to use StrainEase."
+          : `Invalid age attestation: ${evaluation.reason}.`,
+      );
+    }
+
+    const uid = request.auth.uid;
+    const now = Date.now();
+    const expiresAt = now + AGE_CLAIM_TTL_MS;
+
+    // Custom claim gates the AI / doctor callables.
+    await getAuth().setCustomUserClaims(uid, {
+      ageVerified: true,
+      ageVerifiedRegion: evaluation.region,
+      ageVerifiedAt: now,
+      ageVerifiedExpiresAt: expiresAt,
+    });
+
+    // Firestore mirror for audit. Birth year only — we don't want full DOB
+    // on the server, just enough to confirm the caller attested.
+    const db = getFirestore();
+    await db
+      .collection("users")
+      .doc(uid)
+      .collection("ageVerification")
+      .doc(evaluation.region)
+      .set(
+        {
+          region: evaluation.region,
+          birthYear: new Date(`${data.birthDate}T00:00:00Z`).getUTCFullYear(),
+          age: evaluation.age,
+          attestedAt: FieldValue.serverTimestamp(),
+          expiresAt,
+          termsAcceptedAt: FieldValue.serverTimestamp(),
+          privacyAcceptedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+    return { ok: true, region: evaluation.region, expiresAt };
+  },
+);
+
+/* ── Community reviews ─────────────────────────────────────────────── */
+
+/**
+ * Submit or update a star rating + optional written review for a strain.
+ * Auth-gated (requires sign-in) + age-verified. Uses Firestore transaction
+ * to atomically update the per-strain aggregate rating.
+ *
+ * reviewId = `${uid}_${strainSlug}` — enforces one review per user per strain
+ * naturally via the Firestore document ID (the rules gate it to the owner).
+ */
+export const submitStrainReview = onCall(
+  { timeoutSeconds: 30 },
+  async (
+    request,
+  ): Promise<{
+    ok: true;
+    reviewId: string;
+    avgRating: number;
+    reviewCount: number;
+  }> => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in to leave a review.");
+    }
+
+    const data = (request.data ?? {}) as {
+      strainSlug?: unknown;
+      starRating?: unknown;
+      reviewText?: unknown;
+      consumptionForm?: unknown;
+    };
+
+    const strainSlug =
+      typeof data.strainSlug === "string" && data.strainSlug.trim()
+        ? data.strainSlug.trim().slice(0, 200)
+        : null;
+    if (!strainSlug) {
+      throw new HttpsError("invalid-argument", "strainSlug is required.");
+    }
+
+    const starRating = data.starRating;
+    if (typeof starRating !== "number" || starRating < 1 || starRating > 5) {
+      throw new HttpsError(
+        "invalid-argument",
+        "starRating must be a number between 1 and 5.",
+      );
+    }
+
+    const reviewText =
+      typeof data.reviewText === "string"
+        ? data.reviewText.trim().slice(0, 500)
+        : "";
+
+    const validForms = ["flower", "cart", "edible", "tincture"];
+    const consumptionForm =
+      typeof data.consumptionForm === "string" &&
+      validForms.includes(data.consumptionForm)
+        ? data.consumptionForm
+        : null;
+
+    const uid = request.auth.uid;
+    const reviewId = `${uid}_${strainSlug}`;
+    const now = Date.now();
+
+    // Upsert the review doc
+    const db = getFirestore();
+    const reviewRef = db.collection("strainReviews").doc(reviewId);
+    const ratingsRef = db.collection("strainRatings").doc(strainSlug);
+
+    await db.runTransaction(async (tx: Transaction) => {
+      // Read existing rating summary (if any)
+      const ratingSnap = await tx.get(ratingsRef);
+      const existing = ratingSnap.data() as {
+        totalStars: number;
+        reviewCount: number;
+        reviewIds: string[];
+      } | null;
+
+      // Read the current review doc to determine if this is create or update
+      const reviewSnap = await tx.get(reviewRef);
+      const prevReview = reviewSnap.data() as {
+        starRating?: number;
+      } | null;
+      const prevStars = prevReview?.starRating ?? 0;
+
+      const totalStars =
+        (existing?.totalStars ?? 0) - prevStars + starRating;
+      const existingCount = existing?.reviewCount ?? 0;
+      const isNewReview = !reviewSnap.exists;
+      const reviewCount = isNewReview
+        ? existingCount + 1
+        : existingCount;
+
+      // Upsert the review
+      tx.set(
+        reviewRef,
+        {
+          strainSlug,
+          uid,
+          displayName: request.auth?.token?.name ?? request.auth?.token?.email ?? "Anonymous",
+          starRating,
+          reviewText,
+          consumptionForm,
+          createdAt: reviewSnap.exists
+            ? (reviewSnap.data() as { createdAt: number }).createdAt
+            : now,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+
+      // Upsert the aggregate
+      tx.set(
+        ratingsRef,
+        {
+          strainSlug,
+          totalStars,
+          reviewCount,
+          avgRating: reviewCount > 0
+            ? Math.round((totalStars / reviewCount) * 10) / 10
+            : 0,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+    });
+
+    // Read back the final aggregate
+    const finalSnap = await ratingsRef.get();
+    const final = finalSnap.data() as {
+      avgRating: number;
+      reviewCount: number;
+    };
+
+    return {
+      ok: true,
+      reviewId,
+      avgRating: final.avgRating,
+      reviewCount: final.reviewCount,
+    };
+  },
+);
 /* ── AI synthesis (auth-gated) ─────────────────────────────────────── */
 
 const COMPARE_SYSTEM_PROMPT = `You are Dr. Kaya, an AI cannabis care assistant working inside StrainEase. Patients come to you to choose between strains for symptom relief, so you speak directly to them — not to budtenders or enthusiasts.

@@ -18,6 +18,10 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 // don't re-hit Leafly. Resets when the instance is recycled, which is fine.
 const htmlCache = new Map<string, { at: number; html: string }>();
 
+// Leafly's response shape is documented only by their rendered HTML; we don't
+// have a schema to type against. `any` is intentional — every consumer below
+// narrows the fields it reads with explicit type checks.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RawRecord = Record<string, any>;
 
 export async function fetchLeaflyHtml(path: string): Promise<string> {
@@ -62,13 +66,19 @@ function topScored(
   limit: number,
 ): { name: string; score: number; extra?: string }[] {
   if (!obj || typeof obj !== "object") return [];
+  type Scored = { name?: unknown; score: number; description?: unknown };
   const entries = Object.values(obj as RawRecord)
-    .filter((v) => v && typeof v === "object" && typeof v.score === "number")
+    .filter(
+      (v): v is Scored =>
+        !!v &&
+        typeof v === "object" &&
+        typeof (v as Scored).score === "number",
+    )
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
   return entries.map((v) => ({
     name: typeof v.name === "string" ? v.name : "",
-    score: v.score as number,
+    score: v.score,
     extra: typeof v.description === "string" ? v.description : undefined,
   }));
 }
@@ -559,15 +569,90 @@ export function slugify(name: string): string {
 
 const POPULAR_SLUG = "__popular__";
 
+/** Pause for `ms` milliseconds. Used between Leafly page fetches to stay polite. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch ALL strains from Leafly's public directory, scraping paginated pages
+ * until no new strains are returned. Deduplicates by normalized name.
+ *
+ * Leafly's directory at /strains uses ?page=N query params (1-indexed).
+ * We stop when a page returns fewer than 3 new strains or after 50 pages (safety cap).
+ * A 200ms delay between pages keeps the scraping polite.
+ *
+ * For production: call this once as a scheduled Cloud Function to populate
+ * the strainCache collection, then serve from there instead of scraping live.
+ */
+export async function fetchAllStrains(): Promise<StrainProfile[]> {
+  const seen = new Set<string>();
+  const out: StrainProfile[] = [];
+  const MAX_PAGES = 50;
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    // 200ms pause between requests — polite to Leafly's servers
+    if (page > 0) await delay(200);
+
+    const path = page === 0 ? "/strains" : `/strains?page=${page + 1}`;
+    let html: string;
+    try {
+      html = await fetchLeaflyHtml(path);
+    } catch {
+      break; // No more pages available
+    }
+
+    const data = extractNextData(html);
+    const list = (data as RawRecord)?.props?.pageProps?.data?.strains;
+    if (!Array.isArray(list) || list.length === 0) break;
+
+    let newCount = 0;
+    for (const raw of list) {
+      const p = popularToProfile(raw);
+      if (!p.name) continue;
+      const key = p.name.toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(p);
+        newCount++;
+      }
+    }
+
+    // Fewer than 3 new strains on this page → likely the last page
+    if (newCount < 3) break;
+  }
+
+  return out;
+}
+
+/**
+ * Lightweight strain preview stored in Firestore for the directory listing.
+ * Omits large fields (description, communityNotes) to keep doc size small.
+ */
+export type StrainPreview = {
+  name: string;
+  slug: string;
+  type?: string;
+  thcRange?: string;
+  imageUrl?: string;
+  leaflyRating?: number;
+};
+
+export function toPreview(p: StrainProfile): StrainPreview {
+  return {
+    name: p.name,
+    slug: slugify(p.name),
+    type: p.type,
+    thcRange: p.thcRange,
+    imageUrl: p.imageUrl,
+    leaflyRating: p.leaflyRating,
+  };
+}
+
+/** Popular strains — first page of the Leafly directory (up to 12). */
 export async function fetchPopular(): Promise<StrainProfile[]> {
-  const html = await fetchLeaflyHtml("/strains");
-  const data = extractNextData(html);
-  const list = (data as RawRecord)?.props?.pageProps?.data?.strains;
-  if (!Array.isArray(list)) return [];
-  return list
-    .map(popularToProfile)
-    .filter((p) => p.name !== "")
-    .slice(0, 12);
+  const all = await fetchAllStrains();
+  return all.slice(0, 12);
 }
 
 export async function fetchProfile(
