@@ -1,10 +1,10 @@
 import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
+import { CATALOG } from "@/lib/strain-catalog";
 import { slugify } from "@/lib/saved-strains";
 import { CONDITIONS, TYPE_LABEL, matchesCondition, typeBadgeClass } from "@/lib/strain-ui";
 import type { StrainProfile, StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { Loader2, Search, Sparkles, X } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -83,7 +83,7 @@ function strainMatchesBucket(
  * the popular list is a discovery surface, not a clinical search.
  */
 export function StrainDirectory() {
-  const [popular, setPopular] = useState<StrainProfile[] | null>(null);
+  const [popular, setPopular] = useState<StrainProfile[]>(CATALOG);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [thcBand, setThcBand] = useState<ThcBand>("any");
@@ -94,10 +94,10 @@ export function StrainDirectory() {
     let cancelled = false;
     void popularStrainsCall()
       .then((list) => {
-        if (!cancelled) setPopular(list);
+        if (!cancelled && list.length > 0) setPopular(list);
       })
       .catch(() => {
-        // Leafly unreachable — leave the directory empty.
+        // Leafly unreachable — keep the catalog strains.
       });
     return () => {
       cancelled = true;
@@ -157,13 +157,7 @@ export function StrainDirectory() {
     );
   };
 
-  if (popular === null) {
-    return (
-      <div className="rounded-2xl border border-border/70 bg-card p-6">
-        <SkeletonLines variant="strain-card" />
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">
