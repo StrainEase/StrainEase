@@ -58,27 +58,28 @@ export function AilmentCarousel({
   return (
     <section className="space-y-3">
       <StrainSectionHeader title="For your symptoms" />
-      <div className="overflow-hidden rounded-[22px] border border-border/70 bg-card p-3 sm:p-4">
-        <div
-          ref={scrollerRef}
-          className="-mx-3 flex snap-x snap-mandatory gap-0 overflow-x-auto px-3 [scrollbar-width:none] [scroll-padding-inline:12px] [mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [&::-webkit-scrollbar]:hidden sm:-mx-4 sm:px-4"
-          aria-label="Symptom pages"
-        >
-          {ailments.map((name) => (
-            <AilmentPage
-              key={name}
-              name={name}
-              strains={preview(name).slice(0, AILMENT_PREVIEW)}
-              seeMoreHref={seeMoreHref(name)}
-            />
-          ))}
-        </div>
-        <PageDots
-          active={activeIndex}
-          onSelect={(index) => scrollToPage(scrollerRef, index)}
-          labels={ailments}
-        />
+      {/* No card wrapper — the posters sit straight on the page like the
+          iOS carousel. The scroller bleeds through the page padding so
+          pages slide under the edges while the mask fades them out. */}
+      <div
+        ref={scrollerRef}
+        className="-mx-6 flex snap-x snap-mandatory gap-0 overflow-x-auto px-6 [scrollbar-width:none] [scroll-padding-inline:24px] [mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [&::-webkit-scrollbar]:hidden"
+        aria-label="Symptom pages"
+      >
+        {ailments.map((name) => (
+          <AilmentPage
+            key={name}
+            name={name}
+            strains={preview(name).slice(0, AILMENT_PREVIEW)}
+            seeMoreHref={seeMoreHref(name)}
+          />
+        ))}
       </div>
+      <PageDots
+        active={activeIndex}
+        onSelect={(index) => scrollToPage(scrollerRef, index)}
+        labels={ailments}
+      />
     </section>
   );
 }
@@ -99,7 +100,9 @@ function AilmentPage({
     <article
       // snap-always forces the browser to stop at every snap point, so a
       // fast finger flick only advances one page instead of jumping several.
-      className="flex w-full shrink-0 snap-start snap-always flex-col gap-3 px-3 sm:px-4"
+      // The right-side padding is the gutter between adjacent pages; the
+      // scroller's px-6 keeps page edges flush with the section header.
+      className="flex w-full shrink-0 snap-start snap-always flex-col gap-3 pr-4"
       data-ailment={name}
     >
       <header className="flex items-baseline justify-between gap-3">
@@ -124,7 +127,7 @@ function PosterRow({ strains }: { strains: StrainProfile[] }) {
         {Array.from({ length: ROW_SIZE }).map((_, index) => (
           <div
             key={index}
-            className="aspect-[3/4] rounded-2xl border border-dashed border-border/60 bg-background/40"
+            className="aspect-[4/3] rounded-2xl border border-dashed border-border/60 bg-background/40"
           />
         ))}
       </div>
@@ -137,10 +140,6 @@ function PosterRow({ strains }: { strains: StrainProfile[] }) {
           key={profileSlug(profile)}
           profile={profile}
           compact
-          // The page already filters by the ailment, so the medical-use
-          // chips are redundant; the Leafly footer fights the green star
-          // chip we surface next to the THC range instead.
-          showAilmentChips={false}
           className="min-w-0"
         />
       ))}
