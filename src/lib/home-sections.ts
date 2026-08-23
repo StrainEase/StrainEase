@@ -100,7 +100,10 @@ export function strainsFor(
         return matchAilments(ailments, popular);
     }
   })();
-  return applyCatalogPhotos(list);
+  // Ensure every strain shown has a photo. Strains with imageUrl come
+  // first so grids and rails never open with a blank leaf icon.
+  const applied = applyCatalogPhotos(list);
+  return [...applied.filter((s) => Boolean(s.imageUrl)), ...applied.filter((s) => !s.imageUrl)];
 }
 
 export function previewFor(

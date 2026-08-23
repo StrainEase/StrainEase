@@ -6,16 +6,20 @@ import { Button } from "@/components/ui/button";
 import { useAilments } from "@/hooks/use-ailments";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
+import { CATALOG } from "@/lib/strain-catalog";
 import { parseBrowseParams, sectionTitle, strainsFor } from "@/lib/home-sections";
 import { documentTitle } from "@/lib/site";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router";
 
 export default function Browse() {
   const { section, ailment } = useParams();
   const parsed = parseBrowseParams(section, ailment);
-  const { popular, isLoading } = usePopularStrains();
+  const { popular: apiPopular, isLoading } = usePopularStrains();
+  // Start with the curated catalog so the grid renders instantly while the
+  // Leafly scrape finishes in the background.
+  const popular = apiPopular.length > 0 ? apiPopular : CATALOG;
   const recents = useRecentlyViewed();
   const { names: ailments } = useAilments();
 
@@ -58,10 +62,6 @@ export default function Browse() {
               Pick symptoms from your profile to see strains patients commonly
               report for them.
             </p>
-          </div>
-        ) : isLoading && strains.length === 0 ? (
-          <div className="flex justify-center py-24">
-            <Loader2 className="size-8 animate-spin text-primary" />
           </div>
         ) : (
           <motion.div

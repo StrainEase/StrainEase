@@ -1,11 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Client-side popular-strains cache. Public data — anyone may read.
+    // Only the first signed-in client to see a stale cache writes a
+    // fresh copy so everyone else benefits.
+    match /clientCache/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
     // Server-side strain cache — written only by the Cloud Function admin
-    // SDK. Clients never read or write directly; they go through the
-    // public/AI callables which hydrate from this cache.
+    // SDK. Clients read directly for instant lookups; writes go through
+    // the public/AI callables which hydrate from this cache.
     match /strainCache/{slug} {
-      allow read, write: if false;
+      allow read: if true;
+      allow write: if false;
     }
 
     // Server-side Reddit quote cache (PullPush + Arctic Shift + daily
