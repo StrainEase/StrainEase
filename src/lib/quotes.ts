@@ -2,7 +2,7 @@ export type QuoteNote = {
   source: string;
   text: string;
   /** Optional origin tag from the backend / featured mocks. */
-  kind?: "leafly" | "weedmaps" | "reddit" | "other";
+  kind?: "leafly" | "weedmaps" | "allbud" | "reddit" | "other";
 };
 
 const AILMENT_ALIASES: Record<string, string[]> = {
