@@ -35,9 +35,12 @@ const AI_OPTIONS: CallableOptions = {
 /* ── Public data lookups (no AI, no auth required) ─────────────────── */
 
 /** Popular strains on Leafly right now. */
-export const popularStrains = onCall(async (): Promise<StrainProfile[]> => {
-  return await fetchPopular();
-});
+export const popularStrains = onCall(
+  { timeoutSeconds: 30 },
+  async (): Promise<StrainProfile[]> => {
+    return await fetchPopular();
+  },
+);
 
 /** Look up one strain by name on Leafly + Weedmaps, with reviews and Reddit. */
 export const searchStrain = onCall(
@@ -51,6 +54,237 @@ export const searchStrain = onCall(
   },
 );
 
+/* ── Age verification ─────────────────────────────────────────────── */
+
+/**
+ * Records that the signed-in caller has attested to being of legal age in
+ * their jurisdiction. Sets the matching custom claim so server-side gates on
+ * the AI callables can enforce it, and mirrors the attestation to Firestore
+ * for audit / refresh.
+ *
+ * Re-runs are safe: this callable is idempotent — calling it again with a
+ * different region or after expiry simply refreshes the claim TTL.
+ */
+export const setAgeVerified = onCall(
+  { timeoutSeconds: 30 },
+  async (
+    request,
+  ): Promise<{ ok: true; region: RegionCode; expiresAt: number }> => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in first.");
+    }
+
+    const data = (request.data ?? {}) as {
+      region?: unknown;
+      birthDate?: unknown;
+      termsAccepted?: unknown;
+      privacyAccepted?: unknown;
+    };
+
+    if (data.termsAccepted !== true) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Please accept the Terms of Service first.",
+      );
+    }
+    if (data.privacyAccepted !== true) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Please accept the Privacy Policy first.",
+      );
+    }
+
+    const evaluation = evaluateAge(data.region, data.birthDate);
+    if (!evaluation.ok) {
+      throw new HttpsError(
+        "failed-precondition",
+        evaluation.reason === "underage"
+          ? "You must be of legal age in your jurisdiction to use StrainEase."
+          : `Invalid age attestation: ${evaluation.reason}.`,
+      );
+    }
+
+    const uid = request.auth.uid;
+    const now = Date.now();
+    const expiresAt = now + AGE_CLAIM_TTL_MS;
+
+    // Custom claim gates the AI / doctor callables.
+    await getAuth().setCustomUserClaims(uid, {
+      ageVerified: true,
+      ageVerifiedRegion: evaluation.region,
+      ageVerifiedAt: now,
+      ageVerifiedExpiresAt: expiresAt,
+    });
+
+    // Firestore mirror for audit. Birth year only — we don't want full DOB
+    // on the server, just enough to confirm the caller attested.
+    const db = getFirestore();
+    await db
+      .collection("users")
+      .doc(uid)
+      .collection("ageVerification")
+      .doc(evaluation.region)
+      .set(
+        {
+          region: evaluation.region,
+          birthYear: new Date(`${data.birthDate}T00:00:00Z`).getUTCFullYear(),
+          age: evaluation.age,
+          attestedAt: FieldValue.serverTimestamp(),
+          expiresAt,
+          termsAcceptedAt: FieldValue.serverTimestamp(),
+          privacyAcceptedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+    return { ok: true, region: evaluation.region, expiresAt };
+  },
+);
+
+/* ── Community reviews ─────────────────────────────────────────────── */
+
+/**
+ * Submit or update a star rating + optional written review for a strain.
+ * Auth-gated (requires sign-in) + age-verified. Uses Firestore transaction
+ * to atomically update the per-strain aggregate rating.
+ *
+ * reviewId = `${uid}_${strainSlug}` — enforces one review per user per strain
+ * naturally via the Firestore document ID (the rules gate it to the owner).
+ */
+export const submitStrainReview = onCall(
+  { timeoutSeconds: 30 },
+  async (
+    request,
+  ): Promise<{
+    ok: true;
+    reviewId: string;
+    avgRating: number;
+    reviewCount: number;
+  }> => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in to leave a review.");
+    }
+
+    // Age verification gate
+    const { uid: _uid } = await requireAgeVerified(request, HttpsError);
+
+    const data = (request.data ?? {}) as {
+      strainSlug?: unknown;
+      starRating?: unknown;
+      reviewText?: unknown;
+      consumptionForm?: unknown;
+    };
+
+    const strainSlug =
+      typeof data.strainSlug === "string" && data.strainSlug.trim()
+        ? data.strainSlug.trim().slice(0, 200)
+        : null;
+    if (!strainSlug) {
+      throw new HttpsError("invalid-argument", "strainSlug is required.");
+    }
+
+    const starRating = data.starRating;
+    if (typeof starRating !== "number" || starRating < 1 || starRating > 5) {
+      throw new HttpsError(
+        "invalid-argument",
+        "starRating must be a number between 1 and 5.",
+      );
+    }
+
+    const reviewText =
+      typeof data.reviewText === "string"
+        ? data.reviewText.trim().slice(0, 500)
+        : "";
+
+    const validForms = ["flower", "cart", "edible", "tincture"];
+    const consumptionForm =
+      typeof data.consumptionForm === "string" &&
+      validForms.includes(data.consumptionForm)
+        ? data.consumptionForm
+        : null;
+
+    const uid = request.auth.uid;
+    const reviewId = `${uid}_${strainSlug}`;
+    const now = Date.now();
+
+    // Upsert the review doc
+    const db = getFirestore();
+    const reviewRef = db.collection("strainReviews").doc(reviewId);
+    const ratingsRef = db.collection("strainRatings").doc(strainSlug);
+
+    await db.runTransaction(async (tx) => {
+      // Read existing rating summary (if any)
+      const ratingSnap = await tx.get(ratingsRef);
+      const existing = ratingSnap.data() as {
+        totalStars: number;
+        reviewCount: number;
+        reviewIds: string[];
+      } | null;
+
+      // Read the current review doc to determine if this is create or update
+      const reviewSnap = await tx.get(reviewRef);
+      const prevReview = reviewSnap.data() as {
+        starRating?: number;
+      } | null;
+      const prevStars = prevReview?.starRating ?? 0;
+
+      const totalStars =
+        (existing?.totalStars ?? 0) - prevStars + starRating;
+      const existingCount = existing?.reviewCount ?? 0;
+      const isNewReview = !reviewSnap.exists;
+      const reviewCount = isNewReview
+        ? existingCount + 1
+        : existingCount;
+
+      // Upsert the review
+      tx.set(
+        reviewRef,
+        {
+          strainSlug,
+          uid,
+          displayName: request.auth?.token?.name ?? request.auth?.token?.email ?? "Anonymous",
+          starRating,
+          reviewText,
+          consumptionForm,
+          createdAt: reviewSnap.exists
+            ? (reviewSnap.data() as { createdAt: number }).createdAt
+            : now,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+
+      // Upsert the aggregate
+      tx.set(
+        ratingsRef,
+        {
+          strainSlug,
+          totalStars,
+          reviewCount,
+          avgRating: reviewCount > 0
+            ? Math.round((totalStars / reviewCount) * 10) / 10
+            : 0,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+    });
+
+    // Read back the final aggregate
+    const finalSnap = await ratingsRef.get();
+    const final = finalSnap.data() as {
+      avgRating: number;
+      reviewCount: number;
+    };
+
+    return {
+      ok: true,
+      reviewId,
+      avgRating: final.avgRating,
+      reviewCount: final.reviewCount,
+    };
+  },
+);
 /* ── AI synthesis (auth-gated) ─────────────────────────────────────── */
 
 const COMPARE_SYSTEM_PROMPT = `You are Dr. Kaya, an AI cannabis care assistant working inside StrainEase. Patients come to you to choose between strains for symptom relief, so you speak directly to them — not to budtenders or enthusiasts.

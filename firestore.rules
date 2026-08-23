@@ -104,5 +104,55 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Age-verification audit log. Each user can write at most one doc per
+    // region they've attested for. Server (admin SDK) is the source of truth
+    // for the timestamps; client writes are rejected to keep users from
+    // back-dating their own attestation.
+    match /users/{uid}/ageVerification/{region} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Community strain reviews: anyone can read; signed-in users write their own.
+    // One review per strain per user (upsert via reviewId = `${uid}_${strainSlug}`).
+    // starRating is required (1-5); reviewText and consumptionForm are optional.
+    match /strainReviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.strainSlug is string
+        && request.resource.data.strainSlug.size() > 0
+        && request.resource.data.strainSlug.size() < 200
+        && request.resource.data.starRating is number
+        && request.resource.data.starRating >= 1
+        && request.resource.data.starRating <= 5
+        && request.resource.data.reviewText.size() < 500
+        && request.resource.data.createdAt is number
+        && request.resource.data.createdAt > 0
+        && (
+          request.resource.data.consumptionForm == null
+          || request.resource.data.consumptionForm in ['flower', 'cart', 'edible', 'tincture']
+        );
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['starRating', 'reviewText', 'consumptionForm', 'updatedAt'])
+        && request.resource.data.starRating is number
+        && request.resource.data.starRating >= 1
+        && request.resource.data.starRating <= 5
+        && request.resource.data.reviewText.size() < 500
+        && (
+          request.resource.data.consumptionForm == null
+          || request.resource.data.consumptionForm in ['flower', 'cart', 'edible', 'tincture']
+        );
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+
+    // Aggregated rating summary per strain. Written only by the Cloud Function
+    // admin SDK (the submitStrainReview callable). Clients read freely.
+    match /strainRatings/{strainSlug} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

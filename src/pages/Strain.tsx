@@ -12,11 +12,13 @@ import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
+import { ReviewSection } from "@/components/strain/ReviewSection";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { TailoredDescriptionLoading } from "@/components/strain/TailoredDescriptionLoading";
 import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Badge } from "@/components/ui/badge";
+import { WriteReviewDialog } from "@/components/strain/WriteReviewDialog";
 import { Button } from "@/components/ui/button";
 import { SWCard } from "@/components/ui/sw-card";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,7 +35,7 @@ import {
   strainJsonLd,
 } from "@/lib/seo";
 import { documentTitle } from "@/lib/site";
-import { searchStrain } from "@/lib/strain-api";
+import { searchStrain, type StrainReview } from "@/lib/strain-api";
 import { applyCatalogPhotos, CATALOG } from "@/lib/strain-catalog";
 import { getFeaturedStrainProfile } from "@/lib/featured-strain-details";
 import {
@@ -52,8 +54,10 @@ import {
   Droplets,
   GitCompareArrows,
   HeartPulse,
+  MessageCircle,
   Moon,
   NotebookPen,
+  Pencil,
   Search,
   Sparkles,
   Sun,
@@ -61,6 +65,15 @@ import {
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  where,
+  type Unsubscribe,
+} from "firebase/firestore";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 
 export default function Strain() {
@@ -142,6 +155,24 @@ export default function Strain() {
       setSavedNames(list.map((s) => s.name)),
     );
   }, [user]);
+
+  // Review dialog state
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [myReview, setMyReview] = useState<StrainReview | null>(null);
+
+  useEffect(() => {
+    if (!db || !user || status !== "ready" || !profile) return;
+    const reviewId = `${user.uid}_${slug}`;
+    const reviewRef = doc(db, "strainReviews", reviewId);
+    const unsub: Unsubscribe = onSnapshot(reviewRef, (snap) => {
+      if (snap.exists()) {
+        setMyReview({ id: snap.id, ...snap.data() } as StrainReview);
+      } else {
+        setMyReview(null);
+      }
+    });
+    return unsub;
+  }, [user, slug, status, profile]);
 
   const score = profile ? dayNightScore(profile) : 50;
   const others = savedNames.filter(
@@ -409,14 +440,122 @@ export default function Strain() {
             />
           ) : null}
 
-          {isAuthenticated && profile ? (
-            <SavedStrainNotes
-              slug={slugify(profile.name)}
-              strainName={profile.name}
-              isSaved={isSaved}
-            />
-          ) : null}
-        </motion.div>
+            {isAuthenticated && others.length > 0 && (
+              <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
+                <p className="text-sm font-semibold tracking-tight">
+                  Compare with what you saved
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {others.slice(0, 4).map((name) => (
+                    <Button
+                      key={name}
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="cursor-pointer rounded-full"
+                    >
+                      <Link
+                        to={`/dashboard?mode=compare&strains=${encodeURIComponent(`${profile.name},${name}`)}`}
+                      >
+                        <GitCompareArrows className="size-3.5" />
+                        vs {name}
+                        <StrainNoteIndicator strainName={name} />
+                      </Link>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isAuthenticated && profile && (
+              <>
+                <div className="rounded-2xl border border-border/70 bg-card p-6">
+                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Relief log
+                  </p>
+                  <ReliefLogButton strainName={profile.name} variant="button" />
+                  {logs.filter(
+                    (log) =>
+                      log.strainName.trim().toLowerCase() ===
+                      profile.name.trim().toLowerCase(),
+                  ).length > 0 && (
+                    <ul className="mt-4 space-y-2">
+                      {logs
+                        .filter(
+                          (log) =>
+                            log.strainName.trim().toLowerCase() ===
+                            profile.name.trim().toLowerCase(),
+                        )
+                        .slice(0, 6)
+                        .map((log) => (
+                          <li
+                            key={log.id}
+                            className="rounded-xl border border-border/60 bg-background px-4 py-3 text-sm"
+                          >
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="font-medium capitalize">
+                                {log.fit.replace("-", " ")}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {log.relief}/5 relief
+                              </span>
+                            </div>
+                            {log.note ? (
+                              <p className="mt-1.5 text-sm leading-6">
+                                {log.note}
+                              </p>
+                            ) : null}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
+                <SavedStrainNotes
+                  slug={slugify(profile.name)}
+                  strainName={profile.name}
+                  isSaved={isSaved}
+                />
+
+                {/* Community reviews */}
+                <div className="rounded-2xl border border-border/70 bg-card p-6">
+                  <ReviewSection
+                    strainSlug={slug}
+                    strainName={profile.name}
+                    currentUid={user?.uid}
+                  />
+                  <div className="mt-4">
+                    <Button
+                      variant={myReview ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => setReviewDialogOpen(true)}
+                      className="gap-1.5"
+                    >
+                      {myReview ? (
+                        <>
+                          <Pencil className="size-3.5" />
+                          Edit your review
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="size-3.5" />
+                          Write a review
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <WriteReviewDialog
+                  open={reviewDialogOpen}
+                  onOpenChange={setReviewDialogOpen}
+                  strainSlug={slug}
+                  strainName={profile.name}
+                  existingReview={myReview}
+                />
+              </>
+            )}
+          </motion.div>
+        )}
       </div>
       <AppTabBar active="home" />
     </main>
