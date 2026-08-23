@@ -16,7 +16,7 @@ const originalRandomUUID = globalThis.crypto?.randomUUID;
 
 function stubNetwork(bytes: ArrayBuffer, contentType: string) {
   let calls = 0;
-  globalThis.fetch = (async (_input: unknown) => {
+  globalThis.fetch = (async () => {
     calls += 1;
     return new Response(bytes, {
       status: 200,

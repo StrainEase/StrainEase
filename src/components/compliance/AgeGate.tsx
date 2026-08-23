@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MeshBackground } from "@/components/theme/MeshBackground";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import { REGIONS, type RegionCode as RegionCodeType } from "@/lib/age-policy";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { CalendarDays, Globe2, Leaf, ShieldCheck } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 const REJECTION_COPY: Record<string, { title: string; body: string }> = {
@@ -23,16 +24,16 @@ const REJECTION_COPY: Record<string, { title: string; body: string }> = {
     body: "Please enter your full date of birth so we can confirm you're of legal age in your jurisdiction.",
   },
   invalid: {
-    title: "That date doesn't look right",
-    body: "Please enter a valid date in the YYYY-MM-DD format, or use the date picker.",
+    title: "Let's try that again",
+    body: "Please re-enter a valid date in the YYYY-MM-DD format, or use the date picker.",
   },
   future: {
     title: "That date is in the future",
-    body: "Please double-check the date you entered — we can't accept a date that's still ahead of us.",
+    body: "Please re-enter your date of birth — we can't accept a date that's still ahead of us.",
   },
   tooOld: {
     title: "That date is too far back",
-    body: "Please enter a realistic date of birth.",
+    body: "Please re-enter a realistic date of birth.",
   },
   underage: {
     title: "Sorry — StrainEase is for adults only",
@@ -43,6 +44,16 @@ const REJECTION_COPY: Record<string, { title: string; body: string }> = {
     body: "We can't save your verification without browser storage. Enable cookies / localStorage and try again.",
   },
 };
+
+// Rejections that should re-prompt the user by clearing the date field and
+// refocusing it, so they can re-enter instead of editing the bad value in
+// place. Lockouts (underage) and browser-side issues (storage) are excluded.
+const REPROMPT_REASONS = new Set<import("@/lib/age-policy").AgeCheckFailure>([
+  "missing-birth-date",
+  "invalid-birth-date",
+  "birth-date-in-future",
+  "birth-date-too-old",
+]);
 
 export function AgeGate({ children }: { children: ReactNode }) {
   const { state, verify, reset } = useAgeVerification();
@@ -68,7 +79,8 @@ export function AgeGate({ children }: { children: ReactNode }) {
 
 function LoadingScreen() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background">
+    <main className="relative isolate flex min-h-screen items-center justify-center bg-background">
+      <MeshBackground />
       <div className="size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
       <span className="sr-only">Checking age verification…</span>
     </main>
@@ -101,7 +113,14 @@ function Gate({
   const [rejected, setRejected] = useState<
     import("@/lib/age-policy").AgeCheckFailure | undefined
   >(initialReason);
-  const [rejectedAt, setRejectedAt] = useState<number>(Date.now());
+  // Nonce is only meaningful after a real rejection; init at 0 so the banner
+  // doesn't remount spuriously on first render. The handler below stamps a
+  // real timestamp after each failed verification.
+  const [rejectedAt, setRejectedAt] = useState<number>(0);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  // When true, the next "user edited an input" effect tick should NOT clear
+  // the rejection banner — the edit was made by us to re-prompt the user.
+  const suppressRejectClearRef = useRef(false);
 
   const minimumAge = useMemo(() => {
     const r = REGIONS.find((x) => x.code === region);
@@ -112,9 +131,30 @@ function Gate({
     return REGIONS.find((x) => x.code === region)?.legalNote ?? "";
   }, [region]);
 
+  // Clear any prior rejection when the user changes region or birthDate.
+  // The render-time check below would also work, but this keeps the explicit
+  // "user edited inputs" trigger that the original logic had.
   useEffect(() => {
+    if (suppressRejectClearRef.current) {
+      suppressRejectClearRef.current = false;
+      return;
+    }
     setRejected(undefined);
   }, [region, birthDate]);
+
+  // Re-prompt the user when a rejection was about the input value: clear the
+  // date field and focus it so they can re-enter, rather than editing the
+  // bad value in place.
+  useEffect(() => {
+    if (!rejected) return;
+    if (!REPROMPT_REASONS.has(rejected)) return;
+    suppressRejectClearRef.current = true;
+    setBirthDate("");
+    // Defer focus until React has applied the cleared value to the DOM.
+    requestAnimationFrame(() => {
+      dateInputRef.current?.focus();
+    });
+  }, [rejected, rejectedAt]);
 
   const canSubmit = Boolean(
     birthDate && agreedTerms && agreedPrivacy,
@@ -141,11 +181,9 @@ function Gate({
     }
   };
 
-  const isLockedOut = rejected === "underage";
-
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-background">
-      <BackgroundOrbs />
+    <main className="relative isolate min-h-[100dvh] overflow-hidden bg-background">
+      <MeshBackground />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -172,10 +210,7 @@ function Gate({
           className="w-full rounded-2xl border border-border bg-card p-6 sm:p-8"
           noValidate
         >
-          <fieldset
-            disabled={isLockedOut}
-            className="flex flex-col gap-6 disabled:opacity-60"
-          >
+          <fieldset className="flex flex-col gap-6">
             <Field
               icon={<Globe2 className="size-4 text-muted-foreground" />}
               label="Where are you located?"
@@ -215,13 +250,14 @@ function Gate({
             >
               <Input
                 id="age-birth"
+                ref={dateInputRef}
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
                 max={new Date().toISOString().slice(0, 10)}
                 min="1900-01-01"
                 required
-                className="w-full"
+                className="w-auto max-w-[12.5rem] min-w-0 pr-1 text-base [&::-webkit-datetime-edit]:min-w-0 [&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-calendar-picker-indicator]:ml-1"
               />
             </Field>
 
@@ -266,7 +302,7 @@ function Gate({
               />
             </div>
 
-            {rejected && !isLockedOut && (
+            {rejected && (
               <RejectionBanner reason={rejected} nonce={rejectedAt} />
             )}
 
@@ -294,24 +330,6 @@ function Gate({
               cannabis. You may need to re-verify in 30 days.
             </p>
           </fieldset>
-
-          {isLockedOut && (
-            <div className="mt-6 flex flex-col items-center gap-2 text-center">
-              <p className="text-sm font-medium text-destructive">
-                {REJECTION_COPY.underage?.title}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {REJECTION_COPY.underage?.body}
-              </p>
-              <button
-                type="button"
-                onClick={onReset}
-                className="mt-2 text-xs text-muted-foreground underline-offset-4 hover:underline"
-              >
-                Reset and try a different region
-              </button>
-            </div>
-          )}
         </form>
 
         <p className="mt-6 max-w-md text-center text-xs text-muted-foreground">
@@ -337,12 +355,12 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
         {icon}
         <span>{label}</span>
       </Label>
-      {children}
+      <div className="min-w-0">{children}</div>
       <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
@@ -415,19 +433,9 @@ function mapReason(
       return "tooOld";
     case "underage":
       return "underage";
+    case "storage-unavailable":
+      return "storage";
     default:
       return "storage";
   }
-}
-
-function BackgroundOrbs() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-    >
-      <div className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/10 blur-3xl" />
-      <div className="absolute -bottom-40 -left-40 h-[520px] w-[520px] rounded-full bg-primary/5 blur-3xl" />
-    </div>
-  );
 }

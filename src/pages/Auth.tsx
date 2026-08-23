@@ -1,4 +1,5 @@
 import { Seo } from "@/components/Seo";
+import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -206,11 +207,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   }
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(50%_40%_at_50%_0%,oklch(0.86_0.07_158/0.35),transparent_70%)]"
-      />
+    <div className="relative isolate flex min-h-[100dvh] flex-col">
+      <MeshBackground />
       <div className="flex flex-1 items-center justify-center px-6 py-12">
         <div className="flex h-full w-full max-w-md flex-col items-center justify-center">
           <Card className="w-full border pb-0">

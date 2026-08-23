@@ -1,21 +1,15 @@
 import SwiftUI
-import FirebaseAuth
 
 /// Full-screen age-verification gate. Mirrors the web `AgeGate` component:
 /// region picker + date-of-birth + Terms & Privacy acceptance, then either
 /// enters the app or locks the user out.
 ///
-/// The local gate is the source of truth for the UI. When Firebase is
-/// configured AND the caller is signed in, we also fire `setAgeVerified`
-/// so the matching server-side custom claim is set.
+/// Local gate is the source of truth. No server-side custom claim enforcement.
 struct AgeGateView: View {
-    @Environment(AuthSession.self) private var session
-    @Environment(\.strainAPI) private var strainAPI
-
     let store: AgeVerificationStore
 
     @State private var region: AgeRegion = .us
-    @State private var birthDate: Date = Calendar.current.date(byAdding: .year, value: -25, to: Date()) ?? Date()
+    @State private var birthDate: Date = Self.defaultBirthDate
     @State private var termsAccepted = false
     @State private var privacyAccepted = false
     @State private var failure: AgeFailure?
@@ -23,6 +17,25 @@ struct AgeGateView: View {
 
     private var canSubmit: Bool {
         !submitting && termsAccepted && privacyAccepted
+    }
+
+    /// Default seed date used to reset the picker after an input-correction
+    /// rejection. Centralized so submit() and the @State initializer agree.
+    private static var defaultBirthDate: Date {
+        Calendar.current.date(byAdding: .year, value: -25, to: Date()) ?? Date()
+    }
+
+    /// Failures that mean the typed value was bad and we should re-prompt
+    /// the user by clearing the date picker. `underage` is a lockout and
+    /// leaves the date as-is.
+    private var shouldReprompt: Bool {
+        guard let failure else { return false }
+        switch failure {
+        case .missingBirthDate, .invalid, .future:
+            return true
+        case .underage:
+            return false
+        }
     }
 
     var body: some View {
@@ -153,13 +166,13 @@ struct AgeGateView: View {
         switch failure {
         case .missingBirthDate:
             title = "We need your date of birth"
-            body = "Please enter your full date of birth."
+            body = "Please enter your full date of birth so we can confirm you're of legal age in your jurisdiction."
         case .invalid:
-            title = "That date doesn't look right"
-            body = "Please enter a valid date of birth."
+            title = "Let's try that again"
+            body = "Please re-enter a valid date of birth."
         case .future:
             title = "That date is in the future"
-            body = "Please double-check the date you entered."
+            body = "Please re-enter your date of birth — that one is still ahead of us."
         case .underage:
             title = "Sorry — StrainEase is for adults only"
             body = "If you are under the legal age for your region, please don't continue."
@@ -177,29 +190,14 @@ struct AgeGateView: View {
             switch result {
             case .failure(let why):
                 failure = why
-            case .success(let record):
-                // Mirror to backend when Firebase is ready.
-                if FirebaseBootstrap.isConfigured, session.isSignedIn {
-                    do {
-                        try await strainAPI.setAgeVerified(
-                            region: record.region,
-                            birthDate: record.birthDate,
-                            termsAccepted: true,
-                            privacyAccepted: true,
-                        )
-                        do {
-                            try await Auth.auth().currentUser?.getIDTokenForcingRefresh(true)
-                        } catch {
-                            print("[age-verification] Token refresh failed: \(error)")
-                        }
-                    } catch {
-                        // Surface as a soft warning — the local gate is the
-                        // UI source of truth; signed-in AI features may
-                        // surface a permission-denied error until the next
-                        // verify call.
-                        print("[age-verification] Failed to mirror attestation: \(error)")
-                    }
+                if shouldReprompt {
+                    // Re-prompt: clear the date picker back to the default
+                    // so the user re-enters instead of editing the bad
+                    // value in place. The banner stays visible above.
+                    birthDate = Self.defaultBirthDate
                 }
+            case .success:
+                break
             }
         }
     }
@@ -227,5 +225,4 @@ private struct SWCheckboxStyle: ToggleStyle {
 #Preview("Unverified") {
     AgeGateView(store: AgeVerificationStore())
         .environment(AuthSession.previewSignedOut)
-        .environment(\.strainAPI, PreviewStrainAPI())
 }

@@ -1,6 +1,7 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
+import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Badge } from "@/components/ui/badge";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
@@ -13,40 +14,33 @@ import {
   terpeneProfile,
   strainsWithTerpene,
 } from "@/lib/terpenes";
-import { slugify } from "@/lib/saved-strains";
-import type { StrainProfile } from "@/lib/strain-profile";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
+import { slugify } from "@/lib/saved-strains";
+import type { StrainProfile } from "@/lib/strain-profile";
 
 export default function Terpene() {
   const { slug = "" } = useParams();
   const { popular, isLoading } = usePopularStrains();
-  const [photoApplied, setPhotoApplied] = useState(false);
 
   const name = terpeneFromSlug(slug);
   const profile = name ? terpeneProfile(name) : undefined;
-
-  useEffect(() => {
-    if (!popular || photoApplied) return;
-    setPhotoApplied(true);
-  }, [popular, photoApplied]);
-
-  const matches = useMemo(() => {
-    if (!popular || !name) return [];
-    return applyCatalogPhotos(strainsWithTerpene(name, popular).withProfile);
-  }, [popular, name]);
+  const matches =
+    popular && name
+      ? applyCatalogPhotos(strainsWithTerpene(name, popular).withProfile)
+      : [];
 
   if (!name || !profile) {
     return (
-      <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
+      <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
         <Seo
           title={documentTitle("Terpene not found")}
           description="That terpene is not in the StrainEase guide yet. Browse myrcene, limonene, or linalool instead."
           path={`/terpene/${slug}`}
           noindex
         />
+        <MeshBackground />
         <AppHeader active="home" />
         <div className="mx-auto w-full max-w-3xl px-6 py-10">
           <Link
@@ -79,7 +73,7 @@ export default function Terpene() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
+    <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
       <Seo
         title={documentTitle(name.charAt(0).toUpperCase() + name.slice(1))}
         description={terpeneDescription(name, profile)}
@@ -87,10 +81,7 @@ export default function Terpene() {
         type="article"
         jsonLd={terpeneJsonLd(name, profile, slug)}
       />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(55%_40%_at_80%_0%,oklch(0.86_0.07_158/0.32),transparent_62%),radial-gradient(40%_32%_at_8%_18%,oklch(0.9_0.04_140/0.22),transparent_70%)]"
-      />
+      <MeshBackground />
       <AppHeader active="home" />
       <div className="mx-auto w-full max-w-3xl px-6 py-8 sm:py-10">
         <Link

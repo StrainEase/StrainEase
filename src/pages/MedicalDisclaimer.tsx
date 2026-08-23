@@ -2,7 +2,7 @@ import { ComplianceFooter } from "@/components/compliance/ComplianceFooter";
 import { Seo } from "@/components/Seo";
 import { VerificationBadge } from "@/components/compliance/VerificationBadge";
 import { Card } from "@/components/ui/card";
-import { ShieldCheck, Stethoscope } from "lucide-react";
+import { AlertTriangle, ShieldCheck, Stethoscope } from "lucide-react";
 import { Link } from "react-router";
 
 const LAST_UPDATED = "August 17, 2026";
@@ -48,6 +48,30 @@ export default function MedicalDisclaimer() {
             Last updated {LAST_UPDATED}.
           </p>
         </header>
+
+        <aside
+          role="alert"
+          aria-label="Medical warning"
+          className="mb-8 flex items-start gap-3 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 p-4 sm:p-5"
+        >
+          <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-500/50 bg-amber-500/20 text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="size-5" />
+          </span>
+          <div>
+            <p className="text-base font-semibold tracking-tight text-amber-800 dark:text-amber-200">
+              Warning — read before using StrainEase for any health decision
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-amber-900/90 dark:text-amber-100/90">
+              StrainEase is a research tool, not a clinician. Nothing on
+              this site is medical advice, a diagnosis, or a recommendation
+              to start, stop, or change any treatment. Cannabis can interact
+              with medications, worsen some conditions, and is unsafe during
+              pregnancy or while breastfeeding. Always talk to a licensed
+              healthcare provider before using cannabis for any health
+              reason, and follow the laws where you live.
+            </p>
+          </div>
+        </aside>
 
         <Card className="mb-6 p-6">
           <h2 className="text-base font-semibold tracking-tight">

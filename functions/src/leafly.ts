@@ -18,6 +18,10 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 // don't re-hit Leafly. Resets when the instance is recycled, which is fine.
 const htmlCache = new Map<string, { at: number; html: string }>();
 
+// Leafly's response shape is documented only by their rendered HTML; we don't
+// have a schema to type against. `any` is intentional — every consumer below
+// narrows the fields it reads with explicit type checks.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RawRecord = Record<string, any>;
 
 export async function fetchLeaflyHtml(path: string): Promise<string> {
@@ -62,13 +66,19 @@ function topScored(
   limit: number,
 ): { name: string; score: number; extra?: string }[] {
   if (!obj || typeof obj !== "object") return [];
+  type Scored = { name?: unknown; score: number; description?: unknown };
   const entries = Object.values(obj as RawRecord)
-    .filter((v) => v && typeof v === "object" && typeof v.score === "number")
+    .filter(
+      (v): v is Scored =>
+        !!v &&
+        typeof v === "object" &&
+        typeof (v as Scored).score === "number",
+    )
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
   return entries.map((v) => ({
     name: typeof v.name === "string" ? v.name : "",
-    score: v.score as number,
+    score: v.score,
     extra: typeof v.description === "string" ? v.description : undefined,
   }));
 }
@@ -470,7 +480,7 @@ export function reviewNotesFrom(
       source: `Leafly review · ${username}`,
       text: clipReview(text),
     });
-    if (out.length >= 6) break;
+    if (out.length >= 8) break;
   }
   return out;
 }

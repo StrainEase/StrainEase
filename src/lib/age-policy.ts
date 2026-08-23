@@ -82,38 +82,40 @@ export const REGIONS: Region[] = [
     label: "Other / not listed",
     minimumAge: 21,
     legalNote:
-      "When no specific rule applies we default to 21+, the strictest common standard. StrainEase is a research tool, not a retailer.",
+      "When we can't match your region we apply the strictest common standard (21+). StrainEase is research-only.",
   },
 ];
 
-export function getRegion(code: RegionCode | null | undefined): Region {
-  if (!code) return REGIONS[REGIONS.length - 1];
-  return REGIONS.find((r) => r.code === code) ?? REGIONS[REGIONS.length - 1];
-}
-
 export function isRegionCode(value: unknown): value is RegionCode {
-  return typeof value === "string" && REGIONS.some((r) => r.code === value);
+  return (
+    typeof value === "string" &&
+    REGIONS.some((region) => region.code === value)
+  );
 }
 
-// 30 days — standard cannabis-industry re-verification window.
-export const AGE_VERIFICATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export function getRegion(code: RegionCode | null | undefined): Region {
+  return REGIONS.find((r) => r.code === code) ?? REGIONS[REGIONS.length - 1]!;
+}
 
+/** How long a successful attestation is considered valid. */
+export const AGE_VERIFICATION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+/** Earliest birth year we accept (guards against absurd values). */
 export const MIN_BIRTH_YEAR = 1900;
 
 export type AgeVerificationRecord = {
   region: RegionCode;
-  birthDate: string; // ISO 8601 date (YYYY-MM-DD)
-  attestedAt: number; // ms epoch when the user attested
-  expiresAt: number; // ms epoch when this record expires
-  termsAcceptedAt: number; // ms epoch when ToS were accepted
-  privacyAcceptedAt: number; // ms epoch when Privacy Policy was accepted
-  version: 1; // schema version, bump if shape changes
+  /** ISO date string YYYY-MM-DD (UTC calendar date of birth). */
+  birthDate: string;
+  /** Epoch ms when the user attested. */
+  attestedAt: number;
+  /** Epoch ms when the attestation expires and must be repeated. */
+  expiresAt: number;
+  termsAcceptedAt: number;
+  privacyAcceptedAt: number;
+  version: 1;
 };
 
-/**
- * Age in completed years as of `now`, given an ISO birth date.
- * Handles timezones correctly by anchoring on UTC.
- */
 export function ageInYears(birthDate: string, now: Date = new Date()): number {
   const parsed = new Date(`${birthDate}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return 0;
@@ -140,7 +142,8 @@ export type AgeCheckFailure =
   | "invalid-birth-date"
   | "birth-date-in-future"
   | "birth-date-too-old"
-  | "underage";
+  | "underage"
+  | "storage-unavailable";
 
 export function evaluateAge(
   birthDate: string,

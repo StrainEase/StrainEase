@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { FIND_HREF, HISTORY_HREF } from "@/lib/app-nav";
+import { ailmentsEqual } from "@/lib/ailments";
 import { CONDITIONS } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import { Clock, LogOut, ShieldCheck, User } from "lucide-react";
@@ -31,30 +32,65 @@ export function AccountSettingsDialog({
   const { user, signOut } = useAuth();
   const ailments = useAilments();
   const [draftName, setDraftName] = useState("");
+  const [draftAilments, setDraftAilments] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
+  // Seed drafts when the dialog opens, and re-sync name/ailments from
+  // live sources while the dialog is open and the user hasn't edited yet.
   useEffect(() => {
-    if (open && user) setDraftName(user.name);
-  }, [open, user]);
+    if (!open || !user) return;
+    setDraftName(user.name);
+    setDraftAilments(ailments.names.slice());
+    setSavedAt(null);
+  }, [open, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep draft ailments aligned with remote updates only when the user
+  // hasn't made local changes (avoids clobbering an in-progress edit).
+  useEffect(() => {
+    if (!open) return;
+    setDraftAilments((prev) =>
+      ailmentsEqual(prev, ailments.names) ? ailments.names.slice() : prev,
+    );
+  }, [open, ailments.names]);
 
   if (!user) return null;
 
-  const dirty = draftName.trim() !== user.name.trim();
+  const nameDirty =
+    draftName.trim() !== "" && draftName.trim() !== user.name.trim();
+  const ailmentsDirty = !ailmentsEqual(draftAilments, ailments.names);
+  const dirty = nameDirty || ailmentsDirty;
+
+  const toggleDraftAilment = (name: string) => {
+    const key = name.trim().toLowerCase();
+    setDraftAilments((prev) => {
+      const on = prev.some((item) => item.toLowerCase() === key);
+      return on
+        ? prev.filter((item) => item.toLowerCase() !== key)
+        : [...prev, name.trim()];
+    });
+    setSavedAt(null);
+  };
+
   const save = async () => {
+    if (!dirty) return;
     const name = draftName.trim();
-    if (!name || name === user.name) return;
+    if (nameDirty && !name) return;
     setSaving(true);
     try {
-      const { updateProfile } = await import("firebase/auth");
-      const { auth } = await import("@/lib/firebase");
-      if (auth?.currentUser) {
-        await updateProfile(auth.currentUser, { displayName: name });
+      if (nameDirty) {
+        const { updateProfile } = await import("firebase/auth");
+        const { auth } = await import("@/lib/firebase");
+        if (auth?.currentUser) {
+          await updateProfile(auth.currentUser, { displayName: name });
+        }
+      }
+      if (ailmentsDirty) {
+        await ailments.save(draftAilments);
       }
       setSavedAt(Date.now());
     } catch (err) {
-      // Surface as a dialog-level error if we ever wire toasts.
-      console.error("Failed to update display name", err);
+      console.error("Failed to save account settings", err);
     } finally {
       setSaving(false);
     }
@@ -105,8 +141,8 @@ export function AccountSettingsDialog({
             </p>
           </div>
 
-          {savedAt !== null && (
-            <p className="text-xs text-primary">Display name updated.</p>
+          {savedAt !== null && !dirty && (
+            <p className="text-xs text-primary">Settings saved.</p>
           )}
 
           <div>
@@ -114,7 +150,7 @@ export function AccountSettingsDialog({
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Your ailments
               </p>
-              {ailments.names.length > 0 && (
+              {draftAilments.length > 0 && (
                 <Link
                   to={FIND_HREF}
                   onClick={() => onOpenChange(false)}
@@ -129,14 +165,14 @@ export function AccountSettingsDialog({
             </p>
             <div className="flex flex-wrap gap-2">
               {CONDITIONS.map((name) => {
-                const on = ailments.names.some(
+                const on = draftAilments.some(
                   (item) => item.toLowerCase() === name.toLowerCase(),
                 );
                 return (
                   <button
                     key={name}
                     type="button"
-                    onClick={() => void ailments.toggle(name)}
+                    onClick={() => toggleDraftAilment(name)}
                     className={cn(
                       "cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium",
                       on
@@ -195,8 +231,13 @@ export function AccountSettingsDialog({
             <Button
               type="button"
               size="sm"
-              className="cursor-pointer rounded-full"
-              disabled={!dirty || saving || draftName.trim() === ""}
+              className={cn(
+                "cursor-pointer rounded-full transition-opacity",
+                dirty && !saving
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "opacity-60",
+              )}
+              disabled={!dirty || saving || (nameDirty && draftName.trim() === "")}
               onClick={() => void save()}
             >
               {saving ? "Saving…" : "Save"}
