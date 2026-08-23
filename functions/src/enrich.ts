@@ -292,7 +292,7 @@ Return ONLY a JSON object of the form:
   }
 }`;
 
-  const raw = await callGroq(prompt, apiKey);
+  const raw = await callGroq(apiKey, [{ role: "user", content: prompt }]);
   const obj = extractJsonObject(raw);
   const map = new Map<string, Partial<StrainProfile>>();
   if (!obj || typeof obj !== "object") return map;
