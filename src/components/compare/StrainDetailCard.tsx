@@ -21,7 +21,6 @@ import {
   Crown,
   Droplets,
   HeartPulse,
-  MessageCircle,
   Search,
   Sparkles,
 } from "lucide-react";
@@ -277,31 +276,9 @@ export function StrainDetailCard({
         </div>
       )}
 
-      {/* Patient community notes (public notes saved by other users) */}
-      {patientNotes.length > 0 && (
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            <MessageCircle className="size-3.5 text-primary" />
-            Patient community notes
-          </div>
-          <div className="space-y-2.5">
-            {patientNotes.map((note) => (
-              <blockquote
-                key={note.id}
-                className="rounded-xl bg-background px-4 py-3"
-              >
-                <p className="text-xs leading-5 text-muted-foreground">
-                  {note.note}
-                </p>
-                <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                  {note.authorName}
-                </p>
-              </blockquote>
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* App reviews are public notes left by other StrainEase users on
+          this strain. Rendered inside the tabbed CommunityVoices below
+          so the page only shows one set of reviews. */}
       <CommunityVoices
         notes={strain.communityNotes}
         strainName={strain.name}
@@ -309,6 +286,7 @@ export function StrainDetailCard({
         leaflyRating={strain.leaflyRating}
         leaflyReviewCount={strain.leaflyReviewCount}
         redditSources={strain.redditSources}
+        appReviews={patientNotes}
       />
     </div>
   );

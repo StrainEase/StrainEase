@@ -40,7 +40,7 @@ export function isPatientQuote(note: QuoteNote): boolean {
   return src.includes("reddit") || src.includes("review");
 }
 
-export type NoteChannel = "cannabis" | "reddit" | "all";
+export type NoteChannel = "cannabis" | "reddit" | "app" | "all";
 export type SentimentTone = "positive" | "mixed" | "cautious" | "insufficient";
 
 export type ChannelSummary = {

@@ -22,9 +22,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SWCard } from "@/components/ui/sw-card";
+import type { PublicNote } from "@/lib/saved-strains";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { ArrowDownUp, Leaf, MessageCircle, Quote, Star } from "lucide-react";
+import {
+  ArrowDownUp,
+  Leaf,
+  MessageCircle,
+  NotebookPen,
+  Quote,
+  Star,
+} from "lucide-react";
 import { useState } from "react";
 
 const TONE_BADGE: Record<SentimentTone, string> = {
@@ -156,22 +164,24 @@ function ReviewQuote({ note }: { note: QuoteNote }) {
 }
 
 /**
- * Aggregated view for the "All" tab: rolls every individual review from both
- * channels into a single, condition-sorted list. The per-source badge on each
- * review keeps the Leafly / Weedmaps / Reddit provenance visible, and we drop
- * the per-channel sentiment summary card because the source mix + star strip
- * already convey the tone — adding the same summary on top would be
- * redundant copy.
+ * Aggregated view for the "All" tab: rolls every individual review from
+ * every channel into a single, condition-sorted list. The per-source
+ * attribution on each review keeps the Leafly / Weedmaps / Reddit / App
+ * provenance visible, and we drop the per-channel sentiment summary card
+ * because the source mix + star strip already convey the tone — adding
+ * the same summary on top would be redundant copy.
  */
 function AllPanel({
   cannabis,
   reddit,
+  appNotes,
   leaflyRating,
   leaflyReviewCount,
   conditions,
 }: {
   cannabis: QuoteNote[];
   reddit: QuoteNote[];
+  appNotes: QuoteNote[];
   strainName: string;
   conditions: string[];
   leaflyRating?: number;
@@ -179,7 +189,11 @@ function AllPanel({
 }) {
   const hasRating = typeof leaflyRating === "number";
   const reviews = sortNotesForConditions(
-    [...individualReviews(cannabis), ...individualReviews(reddit)],
+    [
+      ...individualReviews(cannabis),
+      ...individualReviews(reddit),
+      ...individualReviews(appNotes),
+    ],
     conditions,
   );
 
@@ -208,6 +222,34 @@ function AllPanel({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The App Reviews tab: notes left by other StrainEase users on this
+ * strain. Shown in chronological order (newest first) because the
+ * sentiment sort / Leafly star strip don't apply to first-party notes.
+ */
+function AppReviewsPanel({ appNotes }: { appNotes: QuoteNote[] }) {
+  if (appNotes.length === 0) {
+    return (
+      <p className="text-xs leading-5 text-muted-foreground">
+        No public notes have been shared for this strain yet. Sign in to
+        leave one from the strain page.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Notes from the community ({appNotes.length})
+      </p>
+      <div className="grid grid-cols-1 gap-2.5">
+        {appNotes.map((note, i) => (
+          <ReviewQuote key={`${note.source}-${i}`} note={note} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -352,6 +394,7 @@ export function CommunityVoices({
   leaflyRating,
   leaflyReviewCount,
   redditSources,
+  appReviews,
 }: {
   notes?: QuoteNote[];
   strainName: string;
@@ -363,6 +406,12 @@ export function CommunityVoices({
     title: string;
     snippet?: string;
   }[];
+  /**
+   * App reviews — public notes left by other StrainEase users on this
+   * strain. Rendered in their own tab so the reviews set has one place
+   * to read every source side-by-side instead of two stacked sections.
+   */
+  appReviews?: PublicNote[];
 }) {
   const mergedNotes: QuoteNote[] = (() => {
     const base = (notes ?? []).slice();
@@ -384,25 +433,43 @@ export function CommunityVoices({
     return base;
   })();
 
+  const appNotes: QuoteNote[] = (appReviews ?? []).map((n) => ({
+    // Use the author name as the source so the existing ReviewQuote renders
+    // the same per-review attribution as the other channels.
+    source: n.authorName,
+    text: n.note,
+    kind: "other",
+  }));
+
   const cannabis = notesForChannel(mergedNotes, "cannabis");
   const reddit = notesForChannel(mergedNotes, "reddit");
   const hasRating = typeof leaflyRating === "number";
-  const hasAny = cannabis.length > 0 || reddit.length > 0 || hasRating;
+  const hasAny =
+    cannabis.length > 0 ||
+    reddit.length > 0 ||
+    appNotes.length > 0 ||
+    hasRating;
 
-  // "All" combines both channels so a reader landing on the page can scan
-  // every voice at once. We only show the All tab when both channels have
-  // content — a single-source profile stays on its single available tab so
-  // the strip doesn't waste a third of its width on a redundant empty view.
+  // "All" combines every channel so a reader landing on the page can scan
+  // every voice at once. We only show the All tab when at least two
+  // channels have content — a single-source profile stays on its single
+  // available tab so the strip doesn't waste width on a redundant view.
   const showCannabis = cannabis.length > 0 || hasRating;
   const showReddit = reddit.length > 0;
-  const showAll = showCannabis && showReddit;
-  const allCount = cannabis.length + reddit.length;
+  const showApp = appNotes.length > 0;
+  const visibleSourceCount = [showCannabis, showReddit, showApp].filter(
+    Boolean,
+  ).length;
+  const showAll = visibleSourceCount >= 2;
+  const allCount = cannabis.length + reddit.length + appNotes.length;
   const [sort, setSort] = useState<ReviewSort>("relevance");
   const initialTab: NoteChannel = showAll
     ? "all"
     : showCannabis
       ? "cannabis"
-      : "reddit";
+      : showReddit
+        ? "reddit"
+        : "app";
   const [tab, setTab] = useState<NoteChannel>(initialTab);
 
   if (!hasAny && conditions.length === 0) return null;
@@ -411,6 +478,7 @@ export function CommunityVoices({
     ...(showAll ? (["all"] as const) : []),
     ...(showCannabis ? (["cannabis"] as const) : []),
     ...(showReddit ? (["reddit"] as const) : []),
+    ...(showApp ? (["app"] as const) : []),
   ];
   const activeTab: NoteChannel = visibleChannels.includes(tab)
     ? tab
@@ -421,6 +489,9 @@ export function CommunityVoices({
       : visibleChannels.length === 2
         ? "grid-cols-2"
         : "grid-cols-3";
+  // 4 tabs (all + 3 sources) overflows a 3-col grid; bump to 4 cols so
+  // labels stay on one line.
+  const tabCols = visibleChannels.length >= 4 ? "grid-cols-4" : cols;
 
   return (
     <div className="mt-auto space-y-3 border-t border-border/60 pt-4">
@@ -441,8 +512,8 @@ export function CommunityVoices({
         onValueChange={(value) => setTab(value as NoteChannel)}
         className="gap-3"
       >
-        {visibleChannels.length > 1 ? (
-        <TabsList className={cn("grid h-auto w-full p-1", cols)}>
+        {visibleChannels.length > 0 ? (
+        <TabsList className={cn("grid h-auto w-full p-1", tabCols)}>
           {showAll && (
           <TabsTrigger
             value="all"
@@ -473,6 +544,15 @@ export function CommunityVoices({
             <span className="leading-tight">Reddit</span>
           </TabsTrigger>
           )}
+          {showApp && (
+          <TabsTrigger
+            value="app"
+            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+          >
+            <NotebookPen className="size-3.5 shrink-0" />
+            <span className="leading-tight">App Reviews</span>
+          </TabsTrigger>
+          )}
         </TabsList>
         ) : null}
 
@@ -486,6 +566,7 @@ export function CommunityVoices({
             <AllPanel
               cannabis={cannabis}
               reddit={reddit}
+              appNotes={appNotes}
               strainName={strainName}
               conditions={conditions}
               leaflyRating={leaflyRating}
@@ -513,6 +594,9 @@ export function CommunityVoices({
               sort={sort}
               onSortChange={setSort}
             />
+          </TabsContent>
+          <TabsContent value="app" forceMount className="mt-0 outline-none">
+            <AppReviewsPanel appNotes={appNotes} />
           </TabsContent>
         </motion.div>
       </Tabs>
