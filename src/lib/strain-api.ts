@@ -210,3 +210,40 @@ export function setAgeVerified(args: {
     args,
   );
 }
+
+/** Community star rating for a strain. */
+export type StrainReview = {
+  id: string;
+  strainSlug: string;
+  uid: string;
+  displayName: string;
+  starRating: number;
+  reviewText?: string;
+  consumptionForm?: "flower" | "cart" | "edible" | "tincture";
+  createdAt: number;
+  updatedAt?: number;
+};
+
+/** Aggregated rating for a strain. */
+export type StrainRating = {
+  strainSlug: string;
+  avgRating: number;
+  reviewCount: number;
+  totalStars: number;
+};
+
+/**
+ * Submit or update a star rating + optional written review for a strain.
+ * Auth-gated + age-verified on the server. Returns the updated aggregate.
+ */
+export function submitStrainReview(args: {
+  strainSlug: string;
+  starRating: number;
+  reviewText?: string;
+  consumptionForm?: "flower" | "cart" | "edible" | "tincture";
+}): Promise<{ ok: true; reviewId: string; avgRating: number; reviewCount: number }> {
+  return call<typeof args, { ok: true; reviewId: string; avgRating: number; reviewCount: number }>(
+    "submitStrainReview",
+    args,
+  );
+}

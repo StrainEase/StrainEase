@@ -559,15 +559,57 @@ export function slugify(name: string): string {
 
 const POPULAR_SLUG = "__popular__";
 
+/**
+ * Fetch ALL strains from Leafly's public directory, scraping paginated pages
+ * until no new strains are returned. Deduplicates by normalized name.
+ *
+ * Leafly's directory at /strains uses ?page=N query params (0-indexed).
+ * We stop when a page returns ≤ 2 strains or after 50 pages (safety cap).
+ *
+ * For production: call this once as a scheduled Cloud Function to populate
+ * the strainCache collection, then serve from there instead of scraping live.
+ */
+export async function fetchAllStrains(): Promise<StrainProfile[]> {
+  const seen = new Set<string>();
+  const out: StrainProfile[] = [];
+  const MAX_PAGES = 50;
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const path = page === 0 ? "/strains" : `/strains?page=${page + 1}`;
+    let html: string;
+    try {
+      html = await fetchLeaflyHtml(path);
+    } catch {
+      break; // No more pages available
+    }
+
+    const data = extractNextData(html);
+    const list = (data as RawRecord)?.props?.pageProps?.data?.strains;
+    if (!Array.isArray(list) || list.length === 0) break;
+
+    let newCount = 0;
+    for (const raw of list) {
+      const p = popularToProfile(raw);
+      if (!p.name) continue;
+      const key = p.name.toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(p);
+        newCount++;
+      }
+    }
+
+    // Fewer than 3 new strains on this page → likely the last page
+    if (newCount < 3) break;
+  }
+
+  return out;
+}
+
+/** Popular strains — first page of the Leafly directory (up to 12). */
 export async function fetchPopular(): Promise<StrainProfile[]> {
-  const html = await fetchLeaflyHtml("/strains");
-  const data = extractNextData(html);
-  const list = (data as RawRecord)?.props?.pageProps?.data?.strains;
-  if (!Array.isArray(list)) return [];
-  return list
-    .map(popularToProfile)
-    .filter((p) => p.name !== "")
-    .slice(0, 12);
+  const all = await fetchAllStrains();
+  return all.slice(0, 12);
 }
 
 export async function fetchProfile(

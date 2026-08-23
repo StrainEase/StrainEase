@@ -6,6 +6,8 @@ import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
+import { ReviewSection } from "@/components/strain/ReviewSection";
+import { WriteReviewDialog } from "@/components/strain/WriteReviewDialog";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,7 +21,7 @@ import {
   strainJsonLd,
 } from "@/lib/seo";
 import { documentTitle } from "@/lib/site";
-import { searchStrain } from "@/lib/strain-api";
+import { searchStrain, type StrainReview } from "@/lib/strain-api";
 import { applyCatalogPhotos, CATALOG } from "@/lib/strain-catalog";
 import { getFeaturedStrainProfile } from "@/lib/featured-strain-details";
 import {
@@ -29,10 +31,26 @@ import {
 } from "@/lib/strain-meaning";
 import { terpeneProfile, terpeneSlug } from "@/lib/terpenes";
 import type { StrainProfile } from "@/lib/strain-profile";
-import { ArrowLeft, GitCompareArrows, Moon, Sun } from "lucide-react";
+import {
+  ArrowLeft,
+  GitCompareArrows,
+  MessageCircle,
+  Moon,
+  Pencil,
+  Sun,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  where,
+  type Unsubscribe,
+} from "firebase/firestore";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
 
 export default function Strain() {
   const { slug = "" } = useParams();
@@ -114,6 +132,24 @@ export default function Strain() {
       setSavedNames(list.map((s) => s.name)),
     );
   }, [user]);
+
+  // Review dialog state
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [myReview, setMyReview] = useState<StrainReview | null>(null);
+
+  useEffect(() => {
+    if (!db || !user || status !== "ready" || !profile) return;
+    const reviewId = `${user.uid}_${slug}`;
+    const reviewRef = doc(db, "strainReviews", reviewId);
+    const unsub: Unsubscribe = onSnapshot(reviewRef, (snap) => {
+      if (snap.exists()) {
+        setMyReview({ id: snap.id, ...snap.data() } as StrainReview);
+      } else {
+        setMyReview(null);
+      }
+    });
+    return unsub;
+  }, [user, slug, status, profile]);
 
   const score = profile ? dayNightScore(profile) : 50;
   const others = savedNames.filter(
@@ -330,6 +366,43 @@ export default function Strain() {
                   slug={slugify(profile.name)}
                   strainName={profile.name}
                   isSaved={isSaved}
+                />
+
+                {/* Community reviews */}
+                <div className="rounded-2xl border border-border/70 bg-card p-6">
+                  <ReviewSection
+                    strainSlug={slug}
+                    strainName={profile.name}
+                    currentUid={user?.uid}
+                  />
+                  <div className="mt-4">
+                    <Button
+                      variant={myReview ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => setReviewDialogOpen(true)}
+                      className="gap-1.5"
+                    >
+                      {myReview ? (
+                        <>
+                          <Pencil className="size-3.5" />
+                          Edit your review
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="size-3.5" />
+                          Write a review
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <WriteReviewDialog
+                  open={reviewDialogOpen}
+                  onOpenChange={setReviewDialogOpen}
+                  strainSlug={slug}
+                  strainName={profile.name}
+                  existingReview={myReview}
                 />
               </>
             )}
