@@ -5,6 +5,7 @@ import type { StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
+import { StrainImage } from "@/components/strain/StrainImage";
 import { Loader2, Search, Sparkles, X } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -171,14 +172,6 @@ export function StrainDirectory() {
     );
   };
 
-  if (allPreviews === null) {
-    return (
-      <div className="rounded-2xl border border-border/70 bg-card p-6">
-        <SkeletonLines variant="strain-card" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div>
@@ -313,7 +306,12 @@ export function StrainDirectory() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {allPreviews === null ? (
+        // Filters paint immediately; the grid hydrates with a skeleton
+        // that matches the eventual card shape so the layout doesn't
+        // jump when the first batch of previews lands.
+        <DirectoryGridSkeleton count={PAGE_SIZE} />
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card px-6 py-12 text-center">
           <Sparkles className="size-6 text-muted-foreground" />
           <p className="mt-3 text-sm font-semibold tracking-tight">
@@ -343,6 +341,13 @@ export function StrainDirectory() {
               key={p.name}
               className="flex flex-col rounded-2xl border border-border/70 bg-card p-5"
             >
+              <StrainImage
+                src={p.imageUrl}
+                alt={`${p.name} flower`}
+                type={p.type}
+                className="mb-4 h-32 w-full rounded-xl border border-border/70"
+                iconClassName="size-7"
+              />
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-base font-semibold tracking-tight">
                   <Link
@@ -383,7 +388,7 @@ export function StrainDirectory() {
         </div>
       )}
 
-      {allPreviews.length > 0 && (
+      {allPreviews !== null && allPreviews.length > 0 && (
         <p className="text-xs text-muted-foreground">
           Showing {filtered.length}
           {filtersActive ? " filtered" : ""} of {totalCount.toLocaleString()} strains.
@@ -391,7 +396,7 @@ export function StrainDirectory() {
       )}
 
       {/* Load more */}
-      {hasMore && (
+      {hasMore && allPreviews !== null && (
         <div className="flex justify-center pt-2">
           <Button
             variant="outline"
@@ -415,11 +420,37 @@ export function StrainDirectory() {
   );
 }
 
-/** Re-export so other PRs can wrap the directory with extra filter chips. */
-export function DirectoryGridSkeleton() {
+/**
+ * Skeleton that mirrors the directory card shape: a photo block, a
+ * title bar, and a couple of meta lines. Renders `count` cards in the
+ * same 1-2-3 column grid the populated state uses, so the page
+ * doesn't jump when the first batch of previews lands.
+ */
+export function DirectoryGridSkeleton({
+  count = 6,
+}: {
+  count?: number;
+}) {
   return (
-    <div className="flex justify-center py-16">
-      <Loader2 className="size-6 animate-spin text-muted-foreground" />
+    <div
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      aria-busy="true"
+      aria-live="polite"
+      data-testid="directory-grid-skeleton"
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="flex flex-col rounded-2xl border border-border/70 bg-card p-5"
+        >
+          <div className="skeleton-line mb-4 h-32 w-full rounded-xl" />
+          <div className="skeleton-line h-4 w-2/3 rounded-full" />
+          <div className="skeleton-line mt-2 h-3 w-1/3 rounded-full" />
+          <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
+            <div className="skeleton-line h-8 w-16 rounded-full" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
