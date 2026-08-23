@@ -28,7 +28,12 @@ import { useReliefSummary } from "@/hooks/use-relief-summary";
 import { useSavedAilments } from "@/hooks/use-saved-ailments";
 import { useTailoredDescription } from "@/hooks/use-tailored-description";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
-import { listenToSavedStrains, slugify } from "@/lib/saved-strains";
+import {
+  listenToPublicNotes,
+  listenToSavedStrains,
+  slugify,
+  type PublicNote,
+} from "@/lib/saved-strains";
 import {
   strainDescription,
   strainDisplayName,
@@ -87,6 +92,7 @@ export default function Strain() {
     "loading",
   );
   const [savedNames, setSavedNames] = useState<string[]>([]);
+  const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
   const featuredProfile = getFeaturedStrainProfile(slug);
@@ -155,6 +161,18 @@ export default function Strain() {
       setSavedNames(list.map((s) => s.name)),
     );
   }, [user]);
+
+  // App reviews — public notes left by other StrainEase users on this
+  // strain. The strain page hydrates these as a separate stream from the
+  // profile (which comes from Leafly/Weedmaps) so the App Reviews tab can
+  // appear independently.
+  useEffect(() => {
+    if (!db) {
+      setPatientNotes([]);
+      return;
+    }
+    return listenToPublicNotes(slug, setPatientNotes);
+  }, [slug]);
 
   // Review dialog state
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -399,12 +417,15 @@ export default function Strain() {
           {pending.has("community") ? (
             <HydratingSection section="community" />
           ) : profile &&
-            (profile.communityNotes?.length || profile.leaflyRating) ? (
+            (profile.communityNotes?.length ||
+              profile.leaflyRating ||
+              patientNotes.length > 0) ? (
             <CommunityVoices
               notes={profile.communityNotes}
               strainName={profile.name}
               leaflyRating={profile.leaflyRating}
               leaflyReviewCount={profile.leaflyReviewCount}
+              appReviews={patientNotes}
             />
           ) : null}
 
