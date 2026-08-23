@@ -7,7 +7,10 @@
 //   without `request.auth`.
 import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import { getAuth } from "firebase-admin/auth";
+import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { evaluateAge, type RegionCode } from "./age";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } from "./doctors";
 import { fetchPopular, fetchProfiles } from "./leafly";
@@ -25,6 +28,9 @@ import type {
 } from "./types";
 
 export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
+
+/** 30 days in milliseconds. Mirrors AGE_CLAIM_TTL_MS in the web app. */
+export const AGE_CLAIM_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const AI_OPTIONS: CallableOptions = {
   secrets: [GROQ_API_KEY],
@@ -55,6 +61,27 @@ export const searchStrain = onCall(
 );
 
 /* ── Age verification ─────────────────────────────────────────────── */
+
+/**
+ * Guard a callable: throws HttpsError if the request has no auth or the
+ * ageVerified custom claim is absent/expired.
+ */
+async function requireAgeVerified(
+  request: { auth?: { uid: string; token?: { ageVerifiedExpiresAt?: number } } },
+  HttpsErrorClass: typeof HttpsError,
+): Promise<{ uid: string }> {
+  if (!request.auth?.uid) {
+    throw new HttpsErrorClass("unauthenticated", "Sign in first.");
+  }
+  const exp = request.auth.token?.ageVerifiedExpiresAt;
+  if (!exp || exp < Date.now()) {
+    throw new HttpsErrorClass(
+      "permission-denied",
+      "Age verification expired. Please re-verify from the account page.",
+    );
+  }
+  return { uid: request.auth.uid };
+}
 
 /**
  * Records that the signed-in caller has attested to being of legal age in
@@ -165,9 +192,6 @@ export const submitStrainReview = onCall(
       throw new HttpsError("unauthenticated", "Sign in to leave a review.");
     }
 
-    // Age verification gate
-    const { uid: _uid } = await requireAgeVerified(request, HttpsError);
-
     const data = (request.data ?? {}) as {
       strainSlug?: unknown;
       starRating?: unknown;
@@ -212,7 +236,7 @@ export const submitStrainReview = onCall(
     const reviewRef = db.collection("strainReviews").doc(reviewId);
     const ratingsRef = db.collection("strainRatings").doc(strainSlug);
 
-    await db.runTransaction(async (tx) => {
+    await db.runTransaction(async (tx: Transaction) => {
       // Read existing rating summary (if any)
       const ratingSnap = await tx.get(ratingsRef);
       const existing = ratingSnap.data() as {
