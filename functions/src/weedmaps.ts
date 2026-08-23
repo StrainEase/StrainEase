@@ -1,13 +1,24 @@
 // Weedmaps has no documented public strain API, but their catalog endpoint
 // is served to the public site without a key. Same posture as the Leafly
 // scrape: read-only, defensive, return null/partial rather than throw.
+//
+// Cloudflare sits in front of api-g.weedmaps.com and challenges calls
+// that look like a server-side desktop browser — a plain "curl/8.0" UA
+// sails through, a long Chrome desktop UA on a non-browser connection
+// gets 406. The retry-with-backoff below absorbs the occasional
+// challenge that slips through when the WAF ratchets up.
 import type { CommunityNote, StrainProfile, StrainType } from "./types";
 import { slugify } from "./leafly";
 
 const BASE = "https://api-g.weedmaps.com/wm/v1/strains";
-const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
-const CACHE_TTL_MS = 15 * 60 * 1000;
+// Plain curl-style UA — Cloudflare's WAF challenges full desktop Chrome
+// UAs that arrive on a non-browser connection. curl/8.0 returned 200
+// in repeated probes where the prior Chrome desktop UA returned 406.
+const UA = "curl/8.0";
+const CACHE_TTL_MS = 30 * 60 * 1000;
+// Negative cache TTL — short enough that a transient WAF block doesn't
+// stick for long, but long enough to avoid hot-looping on rate limits.
+const NEG_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const cache = new Map<string, { at: number; profile: StrainProfile | null }>();
 
@@ -164,20 +175,35 @@ function imageFrom(raw: RawRecord): string | undefined {
 }
 
 async function getJson(url: string): Promise<RawRecord | null> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 8000);
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": UA, Accept: "application/json" },
-      signal: ctrl.signal,
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as RawRecord;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
+  // One retry on the WAF challenge statuses (403/406/429) with a short
+  // backoff. Anything else is a hard fail — we don't burn budget on
+  // real 4xx (the slug doesn't exist) or 5xx storms.
+  const statuses = [403, 406, 429];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": UA, Accept: "application/json" },
+        signal: ctrl.signal,
+      });
+      if (res.ok) {
+        return (await res.json()) as RawRecord;
+      }
+      if (!statuses.includes(res.status) || attempt === 1) {
+        return null;
+      }
+    } catch {
+      if (attempt === 1) return null;
+    } finally {
+      clearTimeout(timer);
+    }
+    // 200ms → 600ms before the retry. Keeps total wait under a second
+    // even when both attempts fail, so a single stuck strain doesn't
+    // blow the callable's 60s budget.
+    await new Promise((r) => setTimeout(r, 200 + attempt * 400));
   }
+  return null;
 }
 
 async function fetchBySlug(slug: string): Promise<StrainProfile | null> {
@@ -217,7 +243,13 @@ export async function fetchWeedmapsProfile(
   const key = name.trim().toLowerCase();
   if (!key) return null;
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.profile;
+  if (hit) {
+    // Positive hits stick for the full TTL. Negative hits expire
+    // sooner so a transient WAF block doesn't keep us off a strain
+    // for half an hour.
+    const ttl = hit.profile ? CACHE_TTL_MS : NEG_CACHE_TTL_MS;
+    if (Date.now() - hit.at < ttl) return hit.profile;
+  }
 
   const slug = slugify(name);
   let profile = slug ? await fetchBySlug(slug) : null;

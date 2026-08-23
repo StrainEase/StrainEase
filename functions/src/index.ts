@@ -189,7 +189,7 @@ export const warmStrainDirectory = onSchedule(
   },
 );
 
-/** Look up one strain by name on Leafly + Weedmaps, with reviews and Reddit. */
+/** Look up one strain by name on Leafly + Weedmaps + Allbud, with reviews and Reddit. */
 export const searchStrain = onCall(
   { timeoutSeconds: 60 },
   async (request): Promise<StrainProfile | null> => {
@@ -456,8 +456,9 @@ const COMPARE_SYSTEM_PROMPT = `You are Dr. Kaya, an AI cannabis care assistant w
 
 Rules:
 - Base every claim on the strain data provided. Never invent numbers, terpenes, effects, or uses.
+- The strain object may include a sourceAttribution block. When present, the 'value' field is the consolidated number/type the server picked (averaged across Leafly, Weedmaps, and Allbud when multiple sources returned values) and 'sources' is what each source actually said. Use the attribution to sanity-check the consolidated value when it matters for the patient — e.g. when one source claims 30% THC and the others say 20%, prefer the lower end for an anxious patient. Do not surface the source names in the patient-facing JSON; this is internal QA. If the value differs from any single source's raw input, treat it as a careful estimate and either round conservatively or note the range in your prose.
 - Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the summary.
-- communityNotes may include Leafly reviews, Weedmaps tags, and real Reddit comments about the patient's ailments. Use them. Do not invent additional first-person quotes.
+- communityNotes may include Leafly reviews, Weedmaps tags, Allbud tags, and real Reddit comments about the patient's ailments. Use them. Do not invent additional first-person quotes.
 - Always surface Reddit community threads for every strain in the comparison. You will be given a vetted list of real Reddit threads (verified out-of-band) at the bottom of the user message — pick from that list exclusively. Do not invent URLs; only return threads whose "url" you can copy verbatim from the list. Reuse the same "url", "subreddit", and "title" exactly as provided; you may rewrite "snippet" in your own words and set "score" to null. Include 1–3 threads per strain in the top-level "redditSources" array, deduplicated across strains. Prefer threads that match the patient's condition focus when one is given.
 - Write for the patient: precise, calm, practical, and low-jargon. Lead with symptom relief and day-to-day usability. If you use a technical term, define it in one short phrase.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
@@ -488,7 +489,8 @@ Reddit sourcing rules:
 const RECOMMEND_SYSTEM_PROMPT = `You are Dr. Kaya, StrainEase's AI cannabis care assistant. A patient tells you which symptoms or conditions they are treating, and you recommend the strains most commonly reported to help with those symptoms.
 
 Rules:
-- Base recommendations on the strain data provided (Leafly detail pages plus Weedmaps when available). You may also recommend well-known strains that are NOT in the list, based on your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, and dispensary menus — but only recommend strains you are confident really exist and are commonly reported for the symptoms.
+- Base recommendations on the strain data provided (Leafly detail pages, Weedmaps, and Allbud when available). You may also recommend well-known strains that are NOT in the list, based on your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, and dispensary menus — but only recommend strains you are confident really exist and are commonly reported for the symptoms.
+- When a strain object includes a sourceAttribution block, the 'value' is the consolidated number/type the server picked (averaged across Leafly, Weedmaps, and Allbud when multiple sources returned values) and 'sources' is what each catalog actually said. Use it to sanity-check the consolidated value — e.g. when one source claims 30% THC and the others say 20%, prefer the lower end for an anxious patient. Do not surface the source names in the patient-facing JSON; this is internal QA.
 - Recommend 3-5 distinct strains, ordered from best overall fit to least.
 - Every recommendation needs a concrete reason tied to the patient's symptoms, a note on who it suits best (e.g. daytime vs evening use, anxiety-sensitive patients), and one practical caution.
 - Respect the potency preference if one is given.
@@ -541,6 +543,7 @@ const DESCRIBE_SYSTEM_PROMPT = `You are Dr. Kaya, StrainEase's AI cannabis care 
 
 Rules:
 - Base every claim on the strain data provided. Never invent numbers, terpenes, effects, or uses.
+- When the strain object includes a sourceAttribution block, the 'value' is the consolidated number/type the server picked (averaged across Leafly, Weedmaps, and Allbud when multiple sources returned values) and 'sources' is what each catalog actually said. Use it to sanity-check the consolidated value — e.g. when one source claims 30% THC and the others say 20%, prefer the lower end for an anxious patient. Do not surface the source names in the patient-facing JSON; this is internal QA. If the value differs from any single source's raw input, treat it as a careful estimate and either round conservatively or note the range in your prose.
 - Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing. If a name does not appear to be a real, known strain, say so plainly in the "Overview" section.
 - The patient has a saved set of ailments. For EACH ailment in their list, honestly evaluate whether this strain is a reasonable match based on its commonly reported uses and effects. Speak directly to the patient ("for your insomnia…", "if your anxiety spikes in the evening…"). If the strain's typical profile does not fit an ailment, say so plainly (for example, "this strain tends not to address X") rather than stretching to find a positive angle. It is fine and expected to call out ailments that do not line up; do not skew positive. Skip any ailment you would have to invent a connection for. Keep it grounded; do not promise cures or diagnose.
 - The patient has also told us what medications they take and what has actually happened the last few times they used other strains (their relief log). Use both pieces of context where they help:
@@ -721,6 +724,11 @@ export function compareStrainPayload(s: StrainProfile) {
     effects: s.effects,
     description: s.description,
     communityNotes: s.communityNotes,
+    // Per-source attribution — Maya can audit any number she wants
+    // to second-guess. Omitted entirely when every field was a clean
+    // single-source copy.
+    sourceAttribution: s.sourceAttribution,
+    sources: s.sources,
     noCuratedProfile: !s.inKnowledgeBase,
   };
 }
