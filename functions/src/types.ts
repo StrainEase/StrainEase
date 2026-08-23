@@ -4,10 +4,15 @@
 
 export type StrainType = "indica" | "sativa" | "hybrid";
 
-// Source note origin. Lets the UI distinguish Leafly/Weedmaps/RD threads
-// without re-parsing the human-readable `source` string. New values are
-// additive — older clients ignore unknown `kind`s.
-export type CommunityNoteKind = "leafly" | "weedmaps" | "reddit" | "other";
+// Source note origin. Lets the UI distinguish Leafly/Weedmaps/Allbud/RD
+// threads without re-parsing the human-readable `source` string. New
+// values are additive — older clients ignore unknown `kind`s.
+export type CommunityNoteKind =
+  | "leafly"
+  | "weedmaps"
+  | "allbud"
+  | "reddit"
+  | "other";
 
 export type CommunityNote = {
   source: string;

@@ -1,6 +1,7 @@
-// Merge Leafly + Weedmaps into one StrainProfile, attach Reddit quotes
-// for the patient's ailments, and ask Groq to fill any fields still
-// missing — the same shape the old curated knowledge base carried.
+// Merge Leafly + Weedmaps + Allbud into one StrainProfile, attach
+// Reddit quotes for the patient's ailments, and ask Groq to fill any
+// fields still missing — the same shape the old curated knowledge
+// base carried.
 import { fetchProfile } from "./leafly";
 import { callGroq, extractJsonObject } from "./groq";
 import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
@@ -11,6 +12,7 @@ import type {
   StrainType,
 } from "./types";
 import { fetchWeedmapsProfile } from "./weedmaps";
+import { fetchAllbudProfile } from "./allbud";
 
 const AILMENT_ALIASES: Record<string, string[]> = {
   insomnia: ["insomnia", "sleep", "asleep", "sleeping"],
@@ -47,6 +49,7 @@ function kindFromSource(source: string): CommunityNoteKind {
   const s = source.toLowerCase();
   if (s.includes("leafly")) return "leafly";
   if (s.includes("weedmaps")) return "weedmaps";
+  if (s.includes("allbud")) return "allbud";
   if (s.includes("reddit")) return "reddit";
   return "other";
 }
@@ -113,37 +116,48 @@ export function mergeProfiles(
   name: string,
   leafly: StrainProfile | null,
   weedmaps: StrainProfile | null,
+  allbud: StrainProfile | null = null,
 ): StrainProfile {
-  if (!leafly && !weedmaps) {
+  if (!leafly && !weedmaps && !allbud) {
     return { name, inKnowledgeBase: false };
   }
-  const primary = leafly ?? weedmaps!;
-  const secondary = leafly ? weedmaps : null;
+  // Primary is the first non-null source; the rest are merged in
+  // for fields the primary lacks. Leafly wins for rating fields
+  // specifically, but everything else falls through the chain.
+  const sources = [leafly, weedmaps, allbud].filter(
+    (s): s is StrainProfile => s !== null,
+  );
+  const primary = sources[0]!;
+  const rest = sources.slice(1);
+  const fallback = <K extends keyof StrainProfile>(key: K): StrainProfile[K] | undefined => {
+    if (primary[key] !== undefined && primary[key] !== null) {
+      return primary[key] as StrainProfile[K];
+    }
+    for (const s of rest) {
+      if (s[key] !== undefined && s[key] !== null) {
+        return s[key] as StrainProfile[K];
+      }
+    }
+    return undefined;
+  };
+  const union = <K extends "medicalUses" | "sideEffects">(key: K): string[] | undefined =>
+    unionStrings(...sources.map((s) => s[key]));
   return {
     name,
     inKnowledgeBase: true,
-    type: primary.type ?? secondary?.type,
-    thcRange: primary.thcRange ?? secondary?.thcRange,
-    cbdRange: primary.cbdRange ?? secondary?.cbdRange,
-    lineage: primary.lineage ?? secondary?.lineage,
-    terpenes:
-      primary.terpenes && primary.terpenes.length > 0
-        ? primary.terpenes
-        : secondary?.terpenes,
-    medicalUses: unionStrings(primary.medicalUses, secondary?.medicalUses),
-    effects:
-      primary.effects && primary.effects.length > 0
-        ? primary.effects
-        : secondary?.effects,
-    sideEffects: unionStrings(primary.sideEffects, secondary?.sideEffects),
-    description: primary.description ?? secondary?.description,
+    type: fallback("type"),
+    thcRange: fallback("thcRange"),
+    cbdRange: fallback("cbdRange"),
+    lineage: fallback("lineage"),
+    terpenes: fallback("terpenes"),
+    medicalUses: union("medicalUses"),
+    effects: fallback("effects"),
+    sideEffects: union("sideEffects"),
+    description: fallback("description"),
     communityNotes: reTag(
-      uniqueNotes([
-        ...(primary.communityNotes ?? []),
-        ...(secondary?.communityNotes ?? []),
-      ]),
+      uniqueNotes(sources.flatMap((s) => s.communityNotes ?? [])),
     ),
-    imageUrl: primary.imageUrl ?? secondary?.imageUrl,
+    imageUrl: fallback("imageUrl"),
     leaflyRating: leafly?.leaflyRating,
     leaflyReviewCount: leafly?.leaflyReviewCount,
   };
@@ -346,18 +360,19 @@ export async function enrichProfiles(
   ];
   if (unique.length === 0) return [];
 
-  const [leaflyList, weedmapsList, redditMap] = await Promise.all([
+  const [leaflyList, weedmapsList, allbudList, redditMap] = await Promise.all([
     Promise.all(
       unique.map((name) =>
         fetchProfile(name, { extraReviews: true, conditions }),
       ),
     ),
     Promise.all(unique.map(fetchWeedmapsProfile)),
+    Promise.all(unique.map(fetchAllbudProfile)),
     fetchRedditQuotesFor(unique, conditions),
   ]);
 
   let merged = unique.map((name, i) =>
-    mergeProfiles(name, leaflyList[i], weedmapsList[i]),
+    mergeProfiles(name, leaflyList[i], weedmapsList[i], allbudList[i]),
   );
 
   if (apiKey && merged.some(needsResearch)) {
@@ -396,7 +411,7 @@ export function redditNotesFor(
   );
 }
 
-/** Single-name lookup for search: Leafly + Weedmaps + Reddit, no AI. */
+/** Single-name lookup for search: Leafly + Weedmaps + Allbud + Reddit, no AI. */
 export async function lookupProfile(
   name: string,
   conditions: string[] = [],
@@ -407,13 +422,14 @@ export async function lookupProfile(
     .map((c) => c.trim())
     .filter((c) => c !== "")
     .slice(0, 16);
-  const [leafly, weedmaps, reddit] = await Promise.all([
+  const [leafly, weedmaps, allbud, reddit] = await Promise.all([
     fetchProfile(trimmed, { extraReviews: true, conditions: focus }),
     fetchWeedmapsProfile(trimmed),
+    fetchAllbudProfile(trimmed),
     fetchRedditQuotes(trimmed, focus),
   ]);
-  if (!leafly && !weedmaps) return null;
-  const merged = mergeProfiles(trimmed, leafly, weedmaps);
+  if (!leafly && !weedmaps && !allbud) return null;
+  const merged = mergeProfiles(trimmed, leafly, weedmaps, allbud);
   return {
     ...merged,
     communityNotes: preferAilmentNotes(

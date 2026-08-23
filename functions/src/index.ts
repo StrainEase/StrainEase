@@ -47,7 +47,7 @@ export const popularStrains = onCall(async (): Promise<StrainProfile[]> => {
   return await fetchPopular();
 });
 
-/** Look up one strain by name on Leafly + Weedmaps, with reviews and Reddit. */
+/** Look up one strain by name on Leafly + Weedmaps + Allbud, with reviews and Reddit. */
 export const searchStrain = onCall(
   { timeoutSeconds: 60 },
   async (request): Promise<StrainProfile | null> => {

@@ -67,7 +67,9 @@ export function isAggregateNote(note: QuoteNote): boolean {
   if (
     src === "leafly community" ||
     src === "weedmaps" ||
-    src === "weedmaps listing"
+    src === "weedmaps listing" ||
+    src === "allbud" ||
+    src === "allbud listing"
   ) {
     return true;
   }
@@ -269,9 +271,15 @@ export function formatLeaflyRatingLine(
 }
 
 function weedmapsUses(notes: QuoteNote[]): string[] {
+  // Pulls the patient-tag use list from a "Patients most often tag it
+  // for X, Y, Z." (Weedmaps) or "Commonly used for X, Y, Z." (Allbud)
+  // aggregate note. Both shapes end the same way — comma list, no
+  // trailing colon — so a single regex covers them.
+  const tagRegex = /(?:tag it for|commonly used for)\s+(.+?)\.?$/i;
   for (const note of notes) {
-    if (note.source.toLowerCase() !== "weedmaps") continue;
-    const match = note.text.match(/tag it for (.+?)\.?$/i);
+    const src = note.source.toLowerCase();
+    if (src !== "weedmaps" && src !== "allbud") continue;
+    const match = note.text.match(tagRegex);
     if (!match) continue;
     return match[1]
       .split(/,\s*/)
