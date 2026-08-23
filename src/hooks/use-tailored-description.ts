@@ -14,9 +14,10 @@ import type { StrainProfile } from "@/lib/strain-profile";
 /**
  * Fetch the patient-tailored three-section description for a strain.
  *
- * - Only fires when the user has saved ailments. Without ailments the
- *   static `strain.description` is the better surface, so we return
- *   `null` and let the caller fall back.
+ * - Always fires for signed-in users (including those with no saved
+ *   ailments) — the backend returns a general three-section writeup
+ *   when there are no ailments, so the same 3-card surface is shown
+ *   to every reader.
  * - Reads the user's medications and recent relief-log summary so the
  *   model can flag interactions (caution only, never "stop your
  *   prescription") and calibrate against what has actually worked for
@@ -62,8 +63,6 @@ export function useTailoredDescription(
       setDescription(featured);
       return;
     }
-
-    if (ailments.length === 0) return;
 
     const key =
       `${ailmentsKey}::${medsKey}::${reliefHistory}::` +
