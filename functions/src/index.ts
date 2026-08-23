@@ -34,9 +34,15 @@ const AI_OPTIONS: CallableOptions = {
 
 /* ── Public data lookups (no AI, no auth required) ─────────────────── */
 
-/** Popular strains on Leafly right now. */
+/** Popular strains on Leafly right now. Writes full profiles to strainCache
+ *  so clients can read them directly without extra API calls. */
 export const popularStrains = onCall(async (): Promise<StrainProfile[]> => {
-  return await fetchPopular();
+  const popular = await fetchPopular();
+  // Also fetch full detail profiles so the client-side cache has
+  // medicalUses, terpenes, lineage, and sideEffects (not just the
+  // popular-list summary fields).
+  const detailed = await fetchProfiles(popular.map((p) => p.name));
+  return detailed;
 });
 
 /** Look up one strain by name on Leafly + Weedmaps, with reviews and Reddit. */

@@ -13,10 +13,15 @@
  */
 
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   setDoc,
   serverTimestamp,
+  where,
+  limit as fsLimit,
   type Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -76,4 +81,78 @@ export async function writePopularCache(
     // Quota, permissions, or offline — the caller still has the data
     // in memory; next visit will retry.
   }
+}
+
+/* ── Individual strain profile cache (strainCache/{slug}) ────────── */
+
+const STRAIN_CACHE_COLLECTION = "strainCache";
+const STRAIN_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Read a single strain profile from the server-side `strainCache`
+ * collection. The Cloud Functions admin SDK writes these when scraping
+ * Leafly / Weedmaps; the Firestore rules now allow public read.
+ *
+ * Returns `null` on miss, stale data, or any Firestore error.
+ */
+export async function readStrainCache(
+  slug: string,
+): Promise<StrainProfile | null> {
+  if (!db || !slug) return null;
+  try {
+    const snap = await getDoc(doc(db, STRAIN_CACHE_COLLECTION, slug));
+    if (!snap.exists()) return null;
+    const data = snap.data() as {
+      profile?: StrainProfile;
+      fetchedAt?: number;
+    };
+    if (!data.profile || typeof data.fetchedAt !== "number") return null;
+    if (Date.now() - data.fetchedAt > STRAIN_CACHE_TTL_MS) return null;
+    return data.profile;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Read multiple strain profiles from `strainCache` in a single batch.
+ * Returns a Map of slug → StrainProfile for all cache hits. Useful for
+ * hydrating the browse grid with full profiles (medicalUses, terpenes,
+ * lineage, etc.) without per-strain round-trips.
+ */
+export async function readStrainCacheBatch(
+  slugs: string[],
+): Promise<Map<string, StrainProfile>> {
+  if (!db || slugs.length === 0) return new Map();
+  const result = new Map<string, StrainProfile>();
+  // Firestore `in` queries support up to 30 items per call.
+  const batches: string[][] = [];
+  for (let i = 0; i < slugs.length; i += 30) {
+    batches.push(slugs.slice(i, i + 30));
+  }
+  try {
+    for (const batch of batches) {
+      const q = query(
+        collection(db, STRAIN_CACHE_COLLECTION),
+        where("__name__", "in", batch),
+      );
+      const snap = await getDocs(q);
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data() as {
+          profile?: StrainProfile;
+          fetchedAt?: number;
+        };
+        if (
+          data.profile &&
+          typeof data.fetchedAt === "number" &&
+          Date.now() - data.fetchedAt <= STRAIN_CACHE_TTL_MS
+        ) {
+          result.set(docSnap.id, data.profile);
+        }
+      }
+    }
+  } catch {
+    // Partial results are fine — callers merge what they get.
+  }
+  return result;
 }

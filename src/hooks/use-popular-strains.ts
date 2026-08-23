@@ -1,9 +1,14 @@
 import { popularStrains } from "@/lib/strain-api";
 import {
   applyCatalogPhotos,
+  profileSlug,
   uniqueProfiles,
 } from "@/lib/strain-catalog";
-import { readPopularCache, writePopularCache } from "@/lib/strain-cache";
+import {
+  readPopularCache,
+  readStrainCacheBatch,
+  writePopularCache,
+} from "@/lib/strain-cache";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { useEffect, useState } from "react";
 
@@ -28,21 +33,36 @@ function loadPopular(): Promise<StrainProfile[]> {
   if (inflight) return inflight;
 
   inflight = (async () => {
-    // 1) Firestore cache — public data, no auth needed to read.
+    // 1) Firestore client cache — public data, no auth needed to read.
     const firestoreHit = await readPopularCache();
+    let list: StrainProfile[];
     if (firestoreHit && firestoreHit.length > 0) {
-      cached = applyCatalogPhotos(uniqueProfiles(firestoreHit));
-      return cached;
+      list = firestoreHit;
+    } else {
+      // 2) Leafly scrape via Cloud Function.
+      list = await popularStrains();
+      // 3) Write back to Firestore so the next reader skips the scrape.
+      void writePopularCache(list);
     }
 
-    // 2) Leafly scrape via Cloud Function.
-    const list = await popularStrains();
+    // 4) Hydrate each strain from the server-side strainCache so the
+    //    browse cards get full medicalUses, terpenes, lineage, etc.
+    const slugs = list.map((p) => profileSlug(p));
+    const fullProfiles = await readStrainCacheBatch(slugs);
+    if (fullProfiles.size > 0) {
+      list = list.map((p) => {
+        const full = fullProfiles.get(profileSlug(p));
+        if (!full) return p;
+        return {
+          ...full,
+          // Keep the popular-list image if the cache one is missing.
+          imageUrl: full.imageUrl ?? p.imageUrl,
+        };
+      });
+    }
+
     const result = applyCatalogPhotos(uniqueProfiles(list));
     cached = result;
-
-    // 3) Write back to Firestore so the next reader skips the scrape.
-    void writePopularCache(result);
-
     return result;
   })().finally(() => {
     inflight = null;

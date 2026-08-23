@@ -10,10 +10,11 @@ service cloud.firestore {
     }
 
     // Server-side strain cache — written only by the Cloud Function admin
-    // SDK. Clients never read or write directly; they go through the
-    // public/AI callables which hydrate from this cache.
+    // SDK. Clients read directly for instant lookups; writes go through
+    // the public/AI callables which hydrate from this cache.
     match /strainCache/{slug} {
-      allow read, write: if false;
+      allow read: if true;
+      allow write: if false;
     }
 
     // Server-side Reddit quote cache (PullPush + Arctic Shift + daily
