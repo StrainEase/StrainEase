@@ -1092,11 +1092,28 @@ export const recommendStrainsForConditions = onCall(
 /* ── Image proxy (public, no auth) ────────────────────────────────────── */
 
 /**
+ * Build the public Storage URL for a cached image. The image-cache
+ * module stores the object with public-read ACL (via `makePublic()`),
+ * so the browser can fetch it directly via the public
+ * `https://storage.googleapis.com/...` URL without a signed URL —
+ * which would require the runtime SA to hold
+ * `iam.serviceAccounts.signBlob`, a permission Firebase's default
+ * compute SA does not have. A previous version of this function used
+ * `getSignedUrl` and the missing permission turned every call into
+ * an opaque `INTERNAL` error from Cloud Functions, with the browser
+ * never seeing a working URL.
+ */
+export function publicStrainImageUrl(bucket: string, key: string): string {
+  return `https://storage.googleapis.com/${bucket}/strain-images/${key}`;
+}
+
+/**
  * Cache + serve a strain image. The function fetches the upstream
  * bytes once via cachedFetchImage (in-memory then Storage), then
- * returns a signed URL pointing at the cached object so the browser
- * can fetch it directly with normal HTTP caching. Repeat calls within
- * the 7-day TTL hit the Storage copy without re-touching Leafly.
+ * returns a permanent public Storage URL pointing at the cached
+ * object so the browser can fetch it directly with normal HTTP
+ * caching. Repeat calls within the 7-day TTL hit the Storage copy
+ * without re-touching Leafly.
  */
 export const cachedStrainImage = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
@@ -1113,18 +1130,9 @@ export const cachedStrainImage = onCall(
     }
     const cached = await cachedFetchImage(url);
     const key = imageCacheKey(url);
-    // Generate a long-lived signed URL for the Storage copy so the
-    // browser caches the image across visits without a callable round-trip.
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const [signedUrl] = await getStorage()
-      .bucket()
-      .file(`strain-images/${key}`)
-      .getSignedUrl({
-        action: "read",
-        expires: expiresAt,
-      });
+    const bucket = getStorage().bucket().name;
     return {
-      url: signedUrl,
+      url: publicStrainImageUrl(bucket, key),
       contentType: cached.contentType,
       bytes: cached.bytes.length,
       source: cached.source,
