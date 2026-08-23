@@ -569,12 +569,18 @@ export function slugify(name: string): string {
 
 const POPULAR_SLUG = "__popular__";
 
+/** Pause for `ms` milliseconds. Used between Leafly page fetches to stay polite. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Fetch ALL strains from Leafly's public directory, scraping paginated pages
  * until no new strains are returned. Deduplicates by normalized name.
  *
- * Leafly's directory at /strains uses ?page=N query params (0-indexed).
- * We stop when a page returns ≤ 2 strains or after 50 pages (safety cap).
+ * Leafly's directory at /strains uses ?page=N query params (1-indexed).
+ * We stop when a page returns fewer than 3 new strains or after 50 pages (safety cap).
+ * A 200ms delay between pages keeps the scraping polite.
  *
  * For production: call this once as a scheduled Cloud Function to populate
  * the strainCache collection, then serve from there instead of scraping live.
@@ -585,6 +591,9 @@ export async function fetchAllStrains(): Promise<StrainProfile[]> {
   const MAX_PAGES = 50;
 
   for (let page = 0; page < MAX_PAGES; page++) {
+    // 200ms pause between requests — polite to Leafly's servers
+    if (page > 0) await delay(200);
+
     const path = page === 0 ? "/strains" : `/strains?page=${page + 1}`;
     let html: string;
     try {
@@ -614,6 +623,30 @@ export async function fetchAllStrains(): Promise<StrainProfile[]> {
   }
 
   return out;
+}
+
+/**
+ * Lightweight strain preview stored in Firestore for the directory listing.
+ * Omits large fields (description, communityNotes) to keep doc size small.
+ */
+export type StrainPreview = {
+  name: string;
+  slug: string;
+  type?: string;
+  thcRange?: string;
+  imageUrl?: string;
+  leaflyRating?: number;
+};
+
+export function toPreview(p: StrainProfile): StrainPreview {
+  return {
+    name: p.name,
+    slug: slugify(p.name),
+    type: p.type,
+    thcRange: p.thcRange,
+    imageUrl: p.imageUrl,
+    leaflyRating: p.leaflyRating,
+  };
 }
 
 /** Popular strains — first page of the Leafly directory (up to 12). */

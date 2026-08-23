@@ -440,7 +440,7 @@ export default function Strain() {
             />
           ) : null}
 
-            {isAuthenticated && others.length > 0 && (
+            {isAuthenticated && profile && others.length > 0 && (
               <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
                 <p className="text-sm font-semibold tracking-tight">
                   Compare with what you saved
@@ -555,7 +555,6 @@ export default function Strain() {
               </>
             )}
           </motion.div>
-        )}
       </div>
       <AppTabBar active="home" />
     </main>

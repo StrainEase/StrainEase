@@ -15,6 +15,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Strain catalog cache: the full Leafly directory stored as lightweight previews.
+    // Written by the warmStrainDirectory scheduled function (admin SDK only).
+    // Read by the popularStrains + browseStrains callables; clients see the
+    // callable output, not Firestore directly.
+    match /strainCatalog/{docId} {
+      allow read, write: if false;
+    }
+
     // Saved strains + notes are private to each user.
     match /users/{uid}/savedStrains/{slug} {
       allow read, write: if request.auth != null && request.auth.uid == uid;

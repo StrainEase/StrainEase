@@ -147,6 +147,35 @@ export function cachedStrainImage(url: string): Promise<CachedStrainImage> {
   });
 }
 
+/** Lightweight strain preview used for directory listings and browse pagination. */
+export type StrainPreview = {
+  name: string;
+  slug: string;
+  type?: string;
+  thcRange?: string;
+  imageUrl?: string;
+  leaflyRating?: number;
+};
+
+/** A page of catalog previews from browseStrains. */
+export type BrowseCatalogPage = {
+  previews: StrainPreview[];
+  totalCount: number;
+  offset: number;
+  fetchedAt: number;
+};
+
+/** Browse the full Leafly catalog with pagination. Returns lightweight previews. */
+export function browseStrains(args: {
+  offset?: number;
+  limit?: number;
+}): Promise<BrowseCatalogPage> {
+  return call<{ offset: number; limit: number }, BrowseCatalogPage>(
+    "browseStrains",
+    { offset: args.offset ?? 0, limit: args.limit ?? 24 },
+  );
+}
+
 /** A medical-marijuana doctor clinic scraped from Leafly's public directory. */
 export type Doctor = {
   id: string;
