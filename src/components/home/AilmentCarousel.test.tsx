@@ -84,6 +84,29 @@ describe("AilmentCarousel", () => {
     expect(screen.queryByText("For your symptoms")).toBeNull();
   });
 
+  test("forces one page per swipe via scroll-snap-stop: always", () => {
+    // snap-mandatory on the scroller + snap-always on each page keeps a
+    // fast finger flick from skipping past multiple ailment pages.
+    render(
+      <MemoryRouter>
+        <AilmentCarousel
+          ailments={["Insomnia", "Anxiety", "Stress"]}
+          preview={() => strains}
+          seeMoreHref={(name) => `/browse/ailment/${name.toLowerCase()}`}
+        />
+      </MemoryRouter>,
+    );
+
+    const pages = screen.getAllByRole("article");
+    const scroller = pages[0]?.parentElement;
+    expect(scroller?.className ?? "").toContain("snap-mandatory");
+
+    for (const page of pages) {
+      expect(page.className).toContain("snap-start");
+      expect(page.className).toContain("snap-always");
+    }
+  });
+
   test("renders a dot for each ailment page", () => {
     render(
       <MemoryRouter>

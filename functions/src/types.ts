@@ -42,6 +42,7 @@ export type StrainProfile = {
   terpenes?: { name: string; profile: string }[];
   medicalUses?: string[];
   effects?: { name: string; intensity: number }[];
+  flavors?: string[];
   sideEffects?: string[];
   description?: string;
   communityNotes?: CommunityNote[];

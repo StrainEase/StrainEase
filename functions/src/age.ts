@@ -2,8 +2,6 @@
 // because the functions package uses a separate node_modules from the web
 // app. Keep the two in sync if you change the region list.
 
-export const AGE_CLAIM_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-
 export type RegionCode =
   | "US"
   | "CA"
@@ -89,58 +87,4 @@ export function evaluateAge(
   }
 
   return { ok: true, age, region };
-}
-
-type CallableTokenLike = Record<string, unknown>;
-
-type CallableAuthLike = {
-  uid?: string;
-  token?: CallableTokenLike;
-};
-
-export type CallableRequestLike = {
-  auth?: CallableAuthLike | null;
-};
-
-/**
- * Throws HttpsError if the request is unauthenticated or the caller does not
- * have a non-expired age-verified custom claim.
- */
-export function requireAgeVerified(
-  request: CallableRequestLike,
-  HttpsErrorCtor: new (
-    code:
-      | "unauthenticated"
-      | "permission-denied"
-      | "failed-precondition"
-      | "invalid-argument",
-    message: string,
-  ) => Error,
-): { uid: string; region: string } {
-  const auth = request.auth;
-  if (!auth || !auth.uid) {
-    throw new HttpsErrorCtor("unauthenticated", "Sign in to use this feature.");
-  }
-  const token = auth.token ?? {};
-  if (token.ageVerified !== true) {
-    throw new HttpsErrorCtor(
-      "permission-denied",
-      "Please verify your age before using this feature.",
-    );
-  }
-  const expiresAt =
-    typeof token.ageVerifiedExpiresAt === "number"
-      ? token.ageVerifiedExpiresAt
-      : 0;
-  if (expiresAt <= Date.now()) {
-    throw new HttpsErrorCtor(
-      "permission-denied",
-      "Your age verification has expired. Please verify again.",
-    );
-  }
-  const region =
-    typeof token.ageVerifiedRegion === "string"
-      ? token.ageVerifiedRegion
-      : "OTHER";
-  return { uid: auth.uid, region };
 }

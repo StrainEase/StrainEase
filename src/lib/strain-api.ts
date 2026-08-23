@@ -147,6 +147,35 @@ export function cachedStrainImage(url: string): Promise<CachedStrainImage> {
   });
 }
 
+/** Lightweight strain preview used for directory listings and browse pagination. */
+export type StrainPreview = {
+  name: string;
+  slug: string;
+  type?: string;
+  thcRange?: string;
+  imageUrl?: string;
+  leaflyRating?: number;
+};
+
+/** A page of catalog previews from browseStrains. */
+export type BrowseCatalogPage = {
+  previews: StrainPreview[];
+  totalCount: number;
+  offset: number;
+  fetchedAt: number;
+};
+
+/** Browse the full Leafly catalog with pagination. Returns lightweight previews. */
+export function browseStrains(args: {
+  offset?: number;
+  limit?: number;
+}): Promise<BrowseCatalogPage> {
+  return call<{ offset: number; limit: number }, BrowseCatalogPage>(
+    "browseStrains",
+    { offset: args.offset ?? 0, limit: args.limit ?? 24 },
+  );
+}
+
 /** A medical-marijuana doctor clinic scraped from Leafly's public directory. */
 export type Doctor = {
   id: string;
@@ -194,19 +223,71 @@ export function findDoctors(args: DoctorQuery): Promise<DoctorResult> {
 }
 
 /**
- * Record the signed-in caller's age attestation on the server. Sets the
- * matching custom claim so the AI callables can enforce it, and mirrors
- * the attestation to Firestore for audit. Requires the caller to be
- * signed in.
+ * Result for an `elaborateSection` request.
+ *
+ * `elaboration` is a short prose expansion of one of the three sections
+ * returned by `describeStrainForUser` (Overview / What it might do for
+ * you / What to expect). The body is 2-4 paragraphs separated by blank
+ * lines, written for this strain and the caller's saved ailments /
+ * medications / relief-log history.
  */
-export function setAgeVerified(args: {
-  region: string;
-  birthDate: string;
-  termsAccepted: boolean;
-  privacyAccepted: boolean;
-}): Promise<{ ok: true; region: string; expiresAt: number }> {
-  return call<typeof args, { ok: true; region: string; expiresAt: number }>(
-    "setAgeVerified",
+export type ElaboratedSection = {
+  elaboration: string;
+};
+
+/**
+ * Ask the AI to expand a single section of the tailored strain
+ * description. The web client surfaces this behind the ✨ Ask Maya
+ * button on each section header. Same age-verification + rate-limit
+ * contract as `describeStrainForUser`.
+ */
+export function elaborateSection(args: {
+  strain: StrainProfile;
+  /** The heading of the section to expand, e.g. "What it might do for you". */
+  sectionHeading: string;
+  /** The current body of the section, so the model can extend it. */
+  sectionBody: string;
+  ailments?: string[];
+  medications?: string[];
+  reliefHistory?: string;
+  language?: string;
+}): Promise<ElaboratedSection> {
+  return call<typeof args, ElaboratedSection>("elaborateSection", args);
+}
+
+/** Community star rating for a strain. */
+export type StrainReview = {
+  id: string;
+  strainSlug: string;
+  uid: string;
+  displayName: string;
+  starRating: number;
+  reviewText?: string;
+  consumptionForm?: "flower" | "cart" | "edible" | "tincture";
+  createdAt: number;
+  updatedAt?: number;
+};
+
+/** Aggregated rating for a strain. */
+export type StrainRating = {
+  strainSlug: string;
+  avgRating: number;
+  reviewCount: number;
+  totalStars: number;
+};
+
+/**
+ * Submit or update a star rating + optional written review for a strain.
+ * Auth-gated + age-verified on the server. Returns the updated aggregate.
+ */
+export function submitStrainReview(args: {
+  strainSlug: string;
+  starRating: number;
+  reviewText?: string;
+  consumptionForm?: "flower" | "cart" | "edible" | "tincture";
+}): Promise<{ ok: true; reviewId: string; avgRating: number; reviewCount: number }> {
+  return call<typeof args, { ok: true; reviewId: string; avgRating: number; reviewCount: number }>(
+    "submitStrainReview",
     args,
   );
 }

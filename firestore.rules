@@ -1,17 +1,34 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Client-side popular-strains cache. Public data — anyone may read.
+    // Only the first signed-in client to see a stale cache writes a
+    // fresh copy so everyone else benefits.
+    match /clientCache/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
     // Server-side strain cache — written only by the Cloud Function admin
-    // SDK. Clients never read or write directly; they go through the
-    // public/AI callables which hydrate from this cache.
+    // SDK. Clients read directly for instant lookups; writes go through
+    // the public/AI callables which hydrate from this cache.
     match /strainCache/{slug} {
-      allow read, write: if false;
+      allow read: if true;
+      allow write: if false;
     }
 
     // Server-side Reddit quote cache (PullPush + Arctic Shift + daily
     // refresh). Same shape as strainCache: admin-SDK-only, clients
     // route through the AI/public callables.
     match /redditQuoteCache/{key} {
+      allow read, write: if false;
+    }
+
+    // Strain catalog cache: the full Leafly directory stored as lightweight previews.
+    // Written by the warmStrainDirectory scheduled function (admin SDK only).
+    // Read by the popularStrains + browseStrains callables; clients see the
+    // callable output, not Firestore directly.
+    match /strainCatalog/{docId} {
       allow read, write: if false;
     }
 
@@ -110,6 +127,48 @@ service cloud.firestore {
     // back-dating their own attestation.
     match /users/{uid}/ageVerification/{region} {
       allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Community strain reviews: anyone can read; signed-in users write their own.
+    // One review per strain per user (upsert via reviewId = `${uid}_${strainSlug}`).
+    // starRating is required (1-5); reviewText and consumptionForm are optional.
+    match /strainReviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.strainSlug is string
+        && request.resource.data.strainSlug.size() > 0
+        && request.resource.data.strainSlug.size() < 200
+        && request.resource.data.starRating is number
+        && request.resource.data.starRating >= 1
+        && request.resource.data.starRating <= 5
+        && request.resource.data.reviewText.size() < 500
+        && request.resource.data.createdAt is number
+        && request.resource.data.createdAt > 0
+        && (
+          request.resource.data.consumptionForm == null
+          || request.resource.data.consumptionForm in ['flower', 'cart', 'edible', 'tincture']
+        );
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['starRating', 'reviewText', 'consumptionForm', 'updatedAt'])
+        && request.resource.data.starRating is number
+        && request.resource.data.starRating >= 1
+        && request.resource.data.starRating <= 5
+        && request.resource.data.reviewText.size() < 500
+        && (
+          request.resource.data.consumptionForm == null
+          || request.resource.data.consumptionForm in ['flower', 'cart', 'edible', 'tincture']
+        );
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+
+    // Aggregated rating summary per strain. Written only by the Cloud Function
+    // admin SDK (the submitStrainReview callable). Clients read freely.
+    match /strainRatings/{strainSlug} {
+      allow read: if true;
       allow write: if false;
     }
   }

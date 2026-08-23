@@ -50,7 +50,10 @@ export function HomeScreen() {
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
           Browse
         </p>
-        <h1 className="mt-2 font-display text-4xl leading-[1.05] tracking-tight text-balance sm:text-5xl">
+        {/* iOS uses system largeTitle + serif design, regular weight.
+            Instrument Serif at regular reads thin on web; medium + a
+            touch more size matches the iOS optical weight. */}
+        <h1 className="mt-2 font-display text-[2.25rem] font-medium leading-[1.05] tracking-tight text-balance sm:text-5xl">
           {headline}
         </h1>
         <p className="mt-3 max-w-xl text-[15px] leading-6 text-muted-foreground">

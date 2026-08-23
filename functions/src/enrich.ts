@@ -79,28 +79,77 @@ function preferAilmentNotes(
   notes: CommunityNote[],
   conditions: string[],
 ): CommunityNote[] {
-  if (conditions.length === 0 || notes.length === 0) return notes;
+  if (notes.length === 0) return notes;
 
-  // Ailment-matched first — that's the slice the patient actually cares
-  // about. Anything left over fills with the rest (Leafly rating, then
-  // Reddit, then other). Cap is 5 per strain to stay under the AI
-  // provider's per-request token budget; the compare + recommend
-  // system prompts only surface 1-3 reddit sources per strain anyway.
-  const matched = notes.filter((n) => mentionsAilment(n.text, conditions));
-  if (matched.length >= 5) return matched.slice(0, 5);
+  // Target at least 8 community notes total, preferring a balance of
+  // cannabis-site (Leafly / Weedmaps) and Reddit sources (min ~4 each
+  // when available). Ailment-matched notes still rank first. Non-helpful
+  // / hype reviews are already filtered upstream in leafly.ts + reddit.ts.
+  const TARGET = 8;
+  const MIN_PER_PLATFORM = 4;
 
-  const rest = notes.filter((n) => !mentionsAilment(n.text, conditions));
-  const ranking = rest.filter(
-    (n) => (n.kind ?? kindFromSource(n.source)) === "leafly",
-  );
-  const reddit = rest.filter(
-    (n) => (n.kind ?? kindFromSource(n.source)) === "reddit",
-  );
-  const other = rest.filter((n) => {
-    const k = n.kind ?? kindFromSource(n.source);
-    return k !== "leafly" && k !== "reddit";
-  });
-  return [...matched, ...ranking, ...reddit, ...other].slice(0, 5);
+  const kindOf = (n: CommunityNote) => n.kind ?? kindFromSource(n.source);
+  const isSite = (n: CommunityNote) => {
+    const k = kindOf(n);
+    return k === "leafly" || k === "weedmaps";
+  };
+  const isReddit = (n: CommunityNote) => kindOf(n) === "reddit";
+
+  const matched =
+    conditions.length > 0
+      ? notes.filter((n) => mentionsAilment(n.text, conditions))
+      : [];
+  const rest =
+    conditions.length > 0
+      ? notes.filter((n) => !mentionsAilment(n.text, conditions))
+      : notes;
+
+  // Prefer ailment matches, then fill from the rest while balancing platforms.
+  const ordered = [...matched, ...rest];
+  const sitePool = ordered.filter(isSite);
+  const redditPool = ordered.filter(isReddit);
+  const otherPool = ordered.filter((n) => !isSite(n) && !isReddit(n));
+
+  const picked: CommunityNote[] = [];
+  const seen = new Set<string>();
+  const add = (n: CommunityNote) => {
+    const key = `${n.source}|${n.text.slice(0, 80)}`.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    picked.push(n);
+    return true;
+  };
+
+  // First pass: take up to MIN_PER_PLATFORM from each platform (ailment-first order).
+  let siteTaken = 0;
+  let redditTaken = 0;
+  for (const n of sitePool) {
+    if (siteTaken >= MIN_PER_PLATFORM) break;
+    if (add(n)) siteTaken++;
+  }
+  for (const n of redditPool) {
+    if (redditTaken >= MIN_PER_PLATFORM) break;
+    if (add(n)) redditTaken++;
+  }
+
+  // Second pass: fill to TARGET from remaining (sites, then reddit, then other).
+  for (const pool of [sitePool, redditPool, otherPool]) {
+    for (const n of pool) {
+      if (picked.length >= TARGET) break;
+      add(n);
+    }
+    if (picked.length >= TARGET) break;
+  }
+
+  // If still short (one platform had almost nothing), just take whatever is left.
+  if (picked.length < TARGET) {
+    for (const n of ordered) {
+      if (picked.length >= TARGET) break;
+      add(n);
+    }
+  }
+
+  return picked;
 }
 
 function unionStrings(a?: string[], b?: string[]): string[] | undefined {
@@ -157,6 +206,7 @@ export function mergeProfiles(
     effects: fallback("effects"),
     sideEffects: union("sideEffects"),
     description: fallback("description"),
+    flavors: fallback("flavors"),
     communityNotes: reTag(
       uniqueNotes(sources.flatMap((s) => s.communityNotes ?? [])),
     ),
@@ -166,153 +216,121 @@ export function mergeProfiles(
   };
 }
 
-function needsResearch(profile: StrainProfile): boolean {
+function needsResearch(p: StrainProfile): boolean {
   return (
-    !profile.inKnowledgeBase ||
-    (!profile.type && !profile.description && !profile.thcRange)
+    !p.description ||
+    !p.medicalUses ||
+    p.medicalUses.length === 0 ||
+    !p.effects ||
+    p.effects.length === 0
   );
 }
 
-function asStrainType(value: unknown): StrainType | undefined {
-  return value === "indica" || value === "sativa" || value === "hybrid"
-    ? value
-    : undefined;
-}
-
-function asNotes(value: unknown): CommunityNote[] {
-  if (!Array.isArray(value)) return [];
-  const out: CommunityNote[] = [];
-  for (const item of value) {
-    const n = (item ?? {}) as Record<string, unknown>;
-    const source = typeof n.source === "string" ? n.source.trim() : "";
-    const text = typeof n.text === "string" ? n.text.trim() : "";
-    if (!source || !text) continue;
-    out.push({ source, text });
-  }
-  return out;
-}
-
-function asTerpenes(
-  value: unknown,
-): StrainProfile["terpenes"] | undefined {
-  if (!Array.isArray(value)) return undefined;
-  const out: { name: string; profile: string }[] = [];
-  for (const item of value) {
-    const t = (item ?? {}) as Record<string, unknown>;
-    const name = typeof t.name === "string" ? t.name.trim() : "";
-    if (!name) continue;
-    out.push({
-      name,
-      profile: typeof t.profile === "string" ? t.profile.trim() : "",
-    });
-  }
-  return out.length > 0 ? out.slice(0, 4) : undefined;
-}
-
-function asEffects(value: unknown): StrainProfile["effects"] | undefined {
-  if (!Array.isArray(value)) return undefined;
-  const out: { name: string; intensity: number }[] = [];
-  for (const item of value) {
-    const e = (item ?? {}) as Record<string, unknown>;
-    const name = typeof e.name === "string" ? e.name.trim() : "";
-    if (!name) continue;
-    const intensity =
-      typeof e.intensity === "number" && Number.isFinite(e.intensity)
-        ? Math.max(1, Math.min(5, Math.round(e.intensity)))
-        : 3;
-    out.push({ name, intensity });
-  }
-  return out.length > 0 ? out.slice(0, 5) : undefined;
-}
-
-function asStringList(value: unknown): string[] | undefined {
+function asStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const out = value
     .filter((x): x is string => typeof x === "string")
     .map((s) => s.trim())
     .filter((s) => s !== "");
-  return out.length > 0 ? out : undefined;
+  return out.length > 0 ? out.slice(0, 4) : undefined;
 }
 
-const RESEARCH_SYSTEM = `You are Dr. Kaya, StrainEase's AI cannabis care assistant. Fill in a cannabis strain profile using only commonly reported public information (Leafly, Weedmaps, Reddit, dispensary menus).
+function asEffects(
+  value: unknown,
+): { name: string; intensity: number }[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out: { name: string; intensity: number }[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    const name = typeof rec.name === "string" ? rec.name.trim() : "";
+    const intensity =
+      typeof rec.intensity === "number" && Number.isFinite(rec.intensity)
+        ? Math.max(1, Math.min(5, Math.round(rec.intensity)))
+        : 3;
+    if (name) out.push({ name, intensity });
+  }
+  return out.length > 0 ? out.slice(0, 5) : undefined;
+}
 
-Rules:
-- Return ONLY a JSON object. No markdown.
-- Only include fields you are reasonably confident about. Omit anything unverified.
-- Never invent lab numbers. Ranges should be commonly reported figures, phrased like "17–23%" or "~20%".
-- communityNotes must be paraphrases of commonly reported patient comments, not fabricated first-person quotes. Prefer notes tied to the patient's conditions when those are given.
-- If a name does not appear to be a real, known strain, return { "name": "...", "unknown": true }.
-
-JSON shape:
-{
-  "profiles": [
-    {
-      "name": "string",
-      "type": "indica" | "sativa" | "hybrid",
-      "thcRange": "string",
-      "cbdRange": "string",
-      "lineage": "string",
-      "terpenes": [{"name":"string","profile":"string"}],
-      "medicalUses": ["string"],
-      "effects": [{"name":"string","intensity":1}],
-      "sideEffects": ["string"],
-      "description": "string",
-      "communityNotes": [{"source":"string","text":"string"}],
-      "unknown": false
-    }
-  ]
-}`;
+function asNotes(value: unknown): CommunityNote[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out: CommunityNote[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    const source = typeof rec.source === "string" ? rec.source.trim() : "";
+    const text = typeof rec.text === "string" ? rec.text.trim() : "";
+    if (source && text) out.push({ source, text });
+  }
+  return out.length > 0 ? out : undefined;
+}
 
 async function researchMissing(
   profiles: StrainProfile[],
   conditions: string[],
   apiKey: string,
-): Promise<Map<string, StrainProfile>> {
+): Promise<Map<string, Partial<StrainProfile>>> {
   const missing = profiles.filter(needsResearch);
-  const map = new Map<string, StrainProfile>();
-  if (missing.length === 0) return map;
+  if (missing.length === 0) return new Map();
 
-  const content = await callGroq(apiKey, [
-    { role: "system", content: RESEARCH_SYSTEM },
-    {
-      role: "user",
-      content: [
-        "Research these strain names and fill the profile fields.",
-        conditions.length > 0
-          ? `Patient condition focus: ${conditions.join(", ")}`
-          : "No condition focus.",
-        "",
-        JSON.stringify(
-          missing.map((s) => s.name),
-          null,
-          2,
-        ),
-      ].join("\n"),
-    },
-  ]);
+  const prompt = `You are filling gaps in cannabis strain profiles for a patient-facing medical app.
+For each strain below, return a JSON object keyed by the exact strain name.
+Only invent fields that are missing or empty; leave others alone.
+Rules:
+- communityNotes must be paraphrases of commonly reported patient comments, not fabricated first-person quotes. Prefer notes tied to the patient's conditions when those are given.
+- medicalUses should be short symptom/condition names.
+- effects intensity is 1-5.
+- Keep descriptions under 2 sentences.
 
-  const parsed = extractJsonObject(content) as
-    | { profiles?: unknown }
-    | null;
-  const list = Array.isArray(parsed?.profiles) ? parsed.profiles : [];
-  for (const item of list) {
-    const r = (item ?? {}) as Record<string, unknown>;
-    const name = typeof r.name === "string" ? r.name.trim() : "";
-    if (!name || r.unknown === true) continue;
+Patient conditions: ${conditions.length ? conditions.join(", ") : "(none given)"}
+
+Strains needing research:
+${JSON.stringify(
+    missing.map((p) => ({
+      name: p.name,
+      type: p.type,
+      thcRange: p.thcRange,
+      cbdRange: p.cbdRange,
+      lineage: p.lineage,
+      medicalUses: p.medicalUses,
+      effects: p.effects,
+      description: p.description,
+      communityNotes: p.communityNotes,
+    })),
+    null,
+    2,
+  )}
+
+Return ONLY a JSON object of the form:
+{
+  "Strain Name": {
+    "description": "string",
+    "medicalUses": ["string"],
+    "effects": [{"name":"string","intensity":3}],
+    "communityNotes": [{"source":"string","text":"string"}],
+    "lineage": "string",
+    "thcRange": "string",
+    "cbdRange": "string"
+  }
+}`;
+
+  const raw = await callGroq(apiKey, [{ role: "user", content: prompt }]);
+  const obj = extractJsonObject(raw);
+  const map = new Map<string, Partial<StrainProfile>>();
+  if (!obj || typeof obj !== "object") return map;
+
+  for (const [name, value] of Object.entries(obj)) {
+    if (!value || typeof value !== "object") continue;
+    const r = value as Record<string, unknown>;
     map.set(name.toLowerCase(), {
-      name,
-      inKnowledgeBase: false,
-      type: asStrainType(r.type),
+      description: typeof r.description === "string" ? r.description : undefined,
+      medicalUses: asStringArray(r.medicalUses),
+      effects: asEffects(r.effects),
+      communityNotes: asNotes(r.communityNotes),
+      lineage: typeof r.lineage === "string" ? r.lineage : undefined,
       thcRange: typeof r.thcRange === "string" ? r.thcRange : undefined,
       cbdRange: typeof r.cbdRange === "string" ? r.cbdRange : undefined,
-      lineage: typeof r.lineage === "string" ? r.lineage : undefined,
-      terpenes: asTerpenes(r.terpenes),
-      medicalUses: asStringList(r.medicalUses),
-      effects: asEffects(r.effects),
-      sideEffects: asStringList(r.sideEffects),
-      description:
-        typeof r.description === "string" ? r.description : undefined,
-      communityNotes: asNotes(r.communityNotes),
     });
   }
   return map;
@@ -320,34 +338,23 @@ async function researchMissing(
 
 function applyResearch(
   base: StrainProfile,
-  researched: StrainProfile | undefined,
+  researched?: Partial<StrainProfile>,
 ): StrainProfile {
   if (!researched) return base;
   return {
-    name: base.name,
-    inKnowledgeBase: base.inKnowledgeBase,
-    type: base.type ?? researched.type,
+    ...base,
+    description: base.description ?? researched.description,
+    medicalUses: base.medicalUses ?? researched.medicalUses,
+    effects: base.effects ?? researched.effects,
+    lineage: base.lineage ?? researched.lineage,
     thcRange: base.thcRange ?? researched.thcRange,
     cbdRange: base.cbdRange ?? researched.cbdRange,
-    lineage: base.lineage ?? researched.lineage,
-    terpenes:
-      base.terpenes && base.terpenes.length > 0
-        ? base.terpenes
-        : researched.terpenes,
-    medicalUses: unionStrings(base.medicalUses, researched.medicalUses),
-    effects:
-      base.effects && base.effects.length > 0
-        ? base.effects
-        : researched.effects,
-    sideEffects: unionStrings(base.sideEffects, researched.sideEffects),
-    description: base.description ?? researched.description,
     communityNotes: reTag(
       uniqueNotes([
         ...(base.communityNotes ?? []),
         ...(researched.communityNotes ?? []),
       ]),
     ),
-    imageUrl: base.imageUrl,
     leaflyRating: base.leaflyRating,
     leaflyReviewCount: base.leaflyReviewCount,
   };

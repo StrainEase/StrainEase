@@ -9,7 +9,7 @@ export function StrainSectionHeader({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <h2 className="font-display text-xl tracking-tight sm:text-[1.35rem]">
+      <h2 className="font-display text-[1.375rem] font-medium leading-tight tracking-tight sm:text-[1.5rem]">
         {title}
       </h2>
       {seeMoreHref && (

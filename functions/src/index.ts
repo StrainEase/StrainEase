@@ -8,21 +8,23 @@
 import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { evaluateAge, type RegionCode } from "./age";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } from "./doctors";
-import { fetchPopular, fetchProfiles } from "./leafly";
+import {
+  fetchAllStrains,
+  fetchPopular,
+  fetchProfiles,
+  toPreview,
+  type StrainPreview,
+} from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callGroq, extractJsonObject } from "./groq";
 import { matchRedditSeeds } from "./reddit-seed";
 import { clientIp, guestRateLimit, persistResult } from "./results";
-import {
-  AGE_CLAIM_TTL_MS,
-  evaluateAge,
-  requireAgeVerified,
-  type RegionCode,
-} from "./age";
 import type {
   RecommendationResult,
   RedditSource,
@@ -34,6 +36,9 @@ import type {
 
 export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
 
+/** 30 days in milliseconds. Mirrors AGE_CLAIM_TTL_MS in the web app. */
+export const AGE_CLAIM_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 const AI_OPTIONS: CallableOptions = {
   secrets: [GROQ_API_KEY],
   timeoutSeconds: 120,
@@ -42,10 +47,147 @@ const AI_OPTIONS: CallableOptions = {
 
 /* ── Public data lookups (no AI, no auth required) ─────────────────── */
 
-/** Popular strains on Leafly right now. */
-export const popularStrains = onCall(async (): Promise<StrainProfile[]> => {
-  return await fetchPopular();
-});
+const POPULAR_LIST_CACHE_DOC = "popularListCache";
+const POPULAR_LIST_CACHE_COLLECTION = "strainCatalog";
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+type PopularListCache = {
+  previews: StrainPreview[];
+  fetchedAt: number;
+  totalCount: number;
+};
+
+async function readPopularListCache(): Promise<PopularListCache | null> {
+  try {
+    const snap = await getFirestore()
+      .collection(POPULAR_LIST_CACHE_COLLECTION)
+      .doc(POPULAR_LIST_CACHE_DOC)
+      .get();
+    if (!snap.exists) return null;
+    const data = snap.data() as PopularListCache;
+    if (!Array.isArray(data.previews) || !data.fetchedAt) return null;
+    const age = Date.now() - data.fetchedAt;
+    if (age > CACHE_TTL_MS) return null; // Treat stale as miss
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function writePopularListCache(previews: StrainPreview[]): Promise<void> {
+  try {
+    await getFirestore()
+      .collection(POPULAR_LIST_CACHE_COLLECTION)
+      .doc(POPULAR_LIST_CACHE_DOC)
+      .set(
+        {
+          previews,
+          fetchedAt: Date.now(),
+          totalCount: previews.length,
+        },
+        { merge: true },
+      );
+  } catch {
+    // Best-effort. A missed write just means the next cold start scrapes again.
+  }
+}
+
+/**
+ * Popular strains: cache-first from Firestore, scrape-only on cold miss.
+ * The scheduled warmStrainDirectory function keeps the Firestore cache fresh.
+ * Caller gets the first 12 previews from the catalog.
+ */
+export const popularStrains = onCall(
+  { timeoutSeconds: 30 },
+  async (): Promise<StrainProfile[]> => {
+    const cache = await readPopularListCache();
+    if (cache && cache.previews.length > 0) {
+      // Convert previews back to StrainProfiles (lightweight — no full scrape needed)
+      return cache.previews.slice(0, 12).map((p) => ({
+        name: p.name,
+        inKnowledgeBase: true,
+        type: p.type as StrainProfile["type"],
+        thcRange: p.thcRange,
+        imageUrl: p.imageUrl,
+        leaflyRating: p.leaflyRating,
+      }));
+    }
+    // Cold miss — scrape and cache
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    void writePopularListCache(previews);
+    return all.slice(0, 12);
+  },
+);
+
+/**
+ * Browse the full Leafly catalog with offset pagination.
+ * Cache-first from Firestore; falls back to scraping on cold miss.
+ * Returns previews (lightweight) for the grid, not full profiles.
+ */
+export const browseStrains = onCall(
+  { timeoutSeconds: 30 },
+  async (
+    request,
+  ): Promise<{
+    previews: StrainPreview[];
+    totalCount: number;
+    offset: number;
+    fetchedAt: number;
+  }> => {
+    const raw = request.data ?? {};
+    const offset =
+      typeof raw.offset === "number" && raw.offset >= 0 ? raw.offset : 0;
+    const limit =
+      typeof raw.limit === "number" && raw.limit > 0
+        ? Math.min(raw.limit, 100)
+        : 24;
+
+    const cache = await readPopularListCache();
+    if (cache && cache.previews.length > 0) {
+      return {
+        previews: cache.previews.slice(offset, offset + limit),
+        totalCount: cache.totalCount,
+        offset,
+        fetchedAt: cache.fetchedAt,
+      };
+    }
+
+    // Cold miss — scrape, cache, and return the requested slice
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    void writePopularListCache(previews);
+    return {
+      previews: previews.slice(offset, offset + limit),
+      totalCount: previews.length,
+      offset,
+      fetchedAt: Date.now(),
+    };
+  },
+);
+
+/**
+ * Scheduled function: runs once per day to warm the Firestore strain catalog cache.
+ * This keeps the popularStrains and browseStrains callables fast (Firestore hit)
+ * and off Leafly's servers for routine reads.
+ *
+ * Deployed via: firebase deploy --only functions
+ * (The Pub/Sub topic "strains-daily-scrape" must be created in GCP Scheduler:
+ *  gcloud scheduler jobs create pubsub strains-daily-scrape \
+ *    --schedule="0 3 * * *" --topic=strains-daily-scrape --message-body="{}")
+ */
+export const warmStrainDirectory = onSchedule(
+  { schedule: "0 3 * * *", timeoutSeconds: 540, memory: "512MiB" },
+  async () => {
+    console.log("[warmStrainDirectory] Starting daily Leafly catalog scrape…");
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    await writePopularListCache(previews);
+    console.log(
+      `[warmStrainDirectory] Cached ${previews.length} strain previews.`,
+    );
+  },
+);
 
 /** Look up one strain by name on Leafly + Weedmaps + Allbud, with reviews and Reddit. */
 export const searchStrain = onCall(
@@ -60,6 +202,27 @@ export const searchStrain = onCall(
 );
 
 /* ── Age verification ─────────────────────────────────────────────── */
+
+/**
+ * Guard a callable: throws HttpsError if the request has no auth or the
+ * ageVerified custom claim is absent/expired.
+ */
+async function requireAgeVerified(
+  request: { auth?: { uid: string; token?: { ageVerifiedExpiresAt?: number } } },
+  HttpsErrorClass: typeof HttpsError,
+): Promise<{ uid: string }> {
+  if (!request.auth?.uid) {
+    throw new HttpsErrorClass("unauthenticated", "Sign in first.");
+  }
+  const exp = request.auth.token?.ageVerifiedExpiresAt;
+  if (!exp || exp < Date.now()) {
+    throw new HttpsErrorClass(
+      "permission-denied",
+      "Age verification expired. Please re-verify from the account page.",
+    );
+  }
+  return { uid: request.auth.uid };
+}
 
 /**
  * Records that the signed-in caller has attested to being of legal age in
@@ -146,6 +309,147 @@ export const setAgeVerified = onCall(
   },
 );
 
+/* ── Community reviews ─────────────────────────────────────────────── */
+
+/**
+ * Submit or update a star rating + optional written review for a strain.
+ * Auth-gated (requires sign-in) + age-verified. Uses Firestore transaction
+ * to atomically update the per-strain aggregate rating.
+ *
+ * reviewId = `${uid}_${strainSlug}` — enforces one review per user per strain
+ * naturally via the Firestore document ID (the rules gate it to the owner).
+ */
+export const submitStrainReview = onCall(
+  { timeoutSeconds: 30 },
+  async (
+    request,
+  ): Promise<{
+    ok: true;
+    reviewId: string;
+    avgRating: number;
+    reviewCount: number;
+  }> => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in to leave a review.");
+    }
+
+    const data = (request.data ?? {}) as {
+      strainSlug?: unknown;
+      starRating?: unknown;
+      reviewText?: unknown;
+      consumptionForm?: unknown;
+    };
+
+    const strainSlug =
+      typeof data.strainSlug === "string" && data.strainSlug.trim()
+        ? data.strainSlug.trim().slice(0, 200)
+        : null;
+    if (!strainSlug) {
+      throw new HttpsError("invalid-argument", "strainSlug is required.");
+    }
+
+    const starRating = data.starRating;
+    if (typeof starRating !== "number" || starRating < 1 || starRating > 5) {
+      throw new HttpsError(
+        "invalid-argument",
+        "starRating must be a number between 1 and 5.",
+      );
+    }
+
+    const reviewText =
+      typeof data.reviewText === "string"
+        ? data.reviewText.trim().slice(0, 500)
+        : "";
+
+    const validForms = ["flower", "cart", "edible", "tincture"];
+    const consumptionForm =
+      typeof data.consumptionForm === "string" &&
+      validForms.includes(data.consumptionForm)
+        ? data.consumptionForm
+        : null;
+
+    const uid = request.auth.uid;
+    const reviewId = `${uid}_${strainSlug}`;
+    const now = Date.now();
+
+    // Upsert the review doc
+    const db = getFirestore();
+    const reviewRef = db.collection("strainReviews").doc(reviewId);
+    const ratingsRef = db.collection("strainRatings").doc(strainSlug);
+
+    await db.runTransaction(async (tx: Transaction) => {
+      // Read existing rating summary (if any)
+      const ratingSnap = await tx.get(ratingsRef);
+      const existing = ratingSnap.data() as {
+        totalStars: number;
+        reviewCount: number;
+        reviewIds: string[];
+      } | null;
+
+      // Read the current review doc to determine if this is create or update
+      const reviewSnap = await tx.get(reviewRef);
+      const prevReview = reviewSnap.data() as {
+        starRating?: number;
+      } | null;
+      const prevStars = prevReview?.starRating ?? 0;
+
+      const totalStars =
+        (existing?.totalStars ?? 0) - prevStars + starRating;
+      const existingCount = existing?.reviewCount ?? 0;
+      const isNewReview = !reviewSnap.exists;
+      const reviewCount = isNewReview
+        ? existingCount + 1
+        : existingCount;
+
+      // Upsert the review
+      tx.set(
+        reviewRef,
+        {
+          strainSlug,
+          uid,
+          displayName: request.auth?.token?.name ?? request.auth?.token?.email ?? "Anonymous",
+          starRating,
+          reviewText,
+          consumptionForm,
+          createdAt: reviewSnap.exists
+            ? (reviewSnap.data() as { createdAt: number }).createdAt
+            : now,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+
+      // Upsert the aggregate
+      tx.set(
+        ratingsRef,
+        {
+          strainSlug,
+          totalStars,
+          reviewCount,
+          avgRating: reviewCount > 0
+            ? Math.round((totalStars / reviewCount) * 10) / 10
+            : 0,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+    });
+
+    // Read back the final aggregate
+    const finalSnap = await ratingsRef.get();
+    const final = finalSnap.data() as {
+      avgRating: number;
+      reviewCount: number;
+    };
+
+    return {
+      ok: true,
+      reviewId,
+      avgRating: final.avgRating,
+      reviewCount: final.reviewCount,
+    };
+  },
+);
 /* ── AI synthesis (auth-gated) ─────────────────────────────────────── */
 
 const COMPARE_SYSTEM_PROMPT = `You are Dr. Kaya, an AI cannabis care assistant working inside StrainEase. Patients come to you to choose between strains for symptom relief, so you speak directly to them — not to budtenders or enthusiasts.
@@ -257,6 +561,31 @@ JSON shape (all fields required). Each body is 2-4 short paragraphs (1-2 sentenc
     {"heading": "What it might do for you", "body": "2-4 short paragraphs honestly rating each of the patient's ailments against the strain, with mismatches called out plainly, and calibrated to medications + recent history with other strains"},
     {"heading": "What to expect", "body": "2-4 short paragraphs on practical considerations, including a caution to start low"}
   ]
+}`;
+
+/**
+ * System prompt for `elaborateSection` — the ✨ Ask Maya button. We
+ * keep the same Dr. Kaya persona and the same hard rules (no invented
+ * numbers, no medication stop advice, no diagnoses) but ask the model
+ * to *expand* a single section instead of producing all three.
+ *
+ * The user's current section body is passed in too so the model can
+ * stay grounded and avoid contradicting the already-displayed copy.
+ */
+const ELABORATE_SECTION_SYSTEM_PROMPT = `You are Dr. Kaya, StrainEase's AI cannabis care assistant. The patient is reading a three-section strain description on the web app and just tapped "✨ Ask Maya" on one of the sections. Your job is to expand that single section in more depth.
+
+Rules:
+- Stay grounded in the strain data provided. Never invent numbers, terpenes, effects, or uses that aren't in the data or your general knowledge of how this strain is commonly reported.
+- Some strains arrive WITHOUT a curated profile (marked "noCuratedProfile": true). For those, research from your own knowledge of how the strain is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. Only state details you are reasonably confident are commonly reported about that strain; otherwise say "not verified" or note the uncertainty instead of guessing.
+- The patient has a saved set of ailments, a list of medications, and a recent relief-log history. Use them the same way the three-section description does — speak directly to the patient ("for your insomnia…"), call out mismatches plainly, never advise stopping a prescription, and use the relief log to calibrate.
+- The current body of the section is provided as "sectionBody". Do NOT contradict it. Treat it as the short version of what the patient already sees; your elaboration should add depth, mechanism, or example, not replace the headline.
+- Keep the elaboration short: 2-4 short paragraphs (1-2 sentences each), separated by a single blank line. No markdown, no inner headings, no bullet lists. It should be skimmable on a phone, not a wall of text.
+- Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider when relevant.
+- Respond with ONLY a single JSON object. No markdown, no text outside the JSON.
+
+JSON shape (all fields required):
+{
+  "elaboration": "2-4 short paragraphs (1-2 sentences each), separated by a single \\n\\n so the client can render them with paragraph spacing"
 }`;
 
 function asStringArray(value: unknown): string[] {
@@ -597,9 +926,10 @@ function normalizeRecommendations(value: unknown): StrainRecommendation[] {
 
 /**
  * Compare 2-3 strains side by side. Auth required: the caller must be signed
- * in (request.auth is populated by Firebase from the client's ID token). When
- * signed in, they must also have a non-expired `ageVerified` custom claim —
- * guest callers go through the IP rate limit instead.
+ * in (request.auth is populated by Firebase from the client's ID token).
+ * Guest callers (no auth) go through the IP rate limit instead. The client
+ * already gates everything behind the local age gate, so the AI callable
+ * trusts the caller's auth and doesn't re-check the custom claim.
  */
 export const compareStrains = onCall(
   AI_OPTIONS,
@@ -613,8 +943,6 @@ export const compareStrains = onCall(
           err instanceof Error ? err.message : "Too many guest searches.",
         );
       }
-    } else {
-      requireAgeVerified(request, HttpsError);
     }
 
     const data = (request.data ?? {}) as {
@@ -665,8 +993,10 @@ export const compareStrains = onCall(
 );
 
 /**
- * Find the best strains for a patient's symptoms. Auth required, and signed-in
- * callers must have an unexpired age-verified custom claim.
+ * Find the best strains for a patient's symptoms. Auth required. Guest
+ * callers go through the IP rate limit. The client already gates the page
+ * behind the local age gate, so the callable trusts the caller's auth and
+ * does not re-check the (now removed) age-verified custom claim.
  */
 export const recommendStrainsForConditions = onCall(
   AI_OPTIONS,
@@ -680,8 +1010,6 @@ export const recommendStrainsForConditions = onCall(
           err instanceof Error ? err.message : "Too many guest searches.",
         );
       }
-    } else {
-      requireAgeVerified(request, HttpsError);
     }
 
     const data = (request.data ?? {}) as {
@@ -772,11 +1100,28 @@ export const recommendStrainsForConditions = onCall(
 /* ── Image proxy (public, no auth) ────────────────────────────────────── */
 
 /**
+ * Build the public Storage URL for a cached image. The image-cache
+ * module stores the object with public-read ACL (via `makePublic()`),
+ * so the browser can fetch it directly via the public
+ * `https://storage.googleapis.com/...` URL without a signed URL —
+ * which would require the runtime SA to hold
+ * `iam.serviceAccounts.signBlob`, a permission Firebase's default
+ * compute SA does not have. A previous version of this function used
+ * `getSignedUrl` and the missing permission turned every call into
+ * an opaque `INTERNAL` error from Cloud Functions, with the browser
+ * never seeing a working URL.
+ */
+export function publicStrainImageUrl(bucket: string, key: string): string {
+  return `https://storage.googleapis.com/${bucket}/strain-images/${key}`;
+}
+
+/**
  * Cache + serve a strain image. The function fetches the upstream
  * bytes once via cachedFetchImage (in-memory then Storage), then
- * returns a signed URL pointing at the cached object so the browser
- * can fetch it directly with normal HTTP caching. Repeat calls within
- * the 7-day TTL hit the Storage copy without re-touching Leafly.
+ * returns a permanent public Storage URL pointing at the cached
+ * object so the browser can fetch it directly with normal HTTP
+ * caching. Repeat calls within the 7-day TTL hit the Storage copy
+ * without re-touching Leafly.
  */
 export const cachedStrainImage = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
@@ -793,18 +1138,9 @@ export const cachedStrainImage = onCall(
     }
     const cached = await cachedFetchImage(url);
     const key = imageCacheKey(url);
-    // Generate a long-lived signed URL for the Storage copy so the
-    // browser caches the image across visits without a callable round-trip.
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const [signedUrl] = await getStorage()
-      .bucket()
-      .file(`strain-images/${key}`)
-      .getSignedUrl({
-        action: "read",
-        expires: expiresAt,
-      });
+    const bucket = getStorage().bucket().name;
     return {
-      url: signedUrl,
+      url: publicStrainImageUrl(bucket, key),
       contentType: cached.contentType,
       bytes: cached.bytes.length,
       source: cached.source,
@@ -817,15 +1153,14 @@ export const cachedStrainImage = onCall(
  * public doctors directory (the page embedded `__NEXT_DATA__` blob
  * carries the structured listings) and reverse-geocodes the caller's
  * coordinates via OpenStreetMap Nominatim when only lat/lon is given.
- * Public — guest callers go through IP rate limiting; signed-in callers
- * must also hold an unexpired age-verified custom claim.
+ * Public — guest callers go through IP rate limiting. The client gates
+ * the page behind the local age gate, so the callable trusts the caller's
+ * auth and does not re-check the (now removed) age-verified custom claim.
  */
 export const findDoctors = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
   async (request): Promise<DoctorResult> => {
-    if (request.auth) {
-      requireAgeVerified(request, HttpsError);
-    } else {
+    if (!request.auth) {
       try {
         guestRateLimit(clientIp(request));
       } catch (err) {
@@ -1038,7 +1373,9 @@ function withLanguageClause(base: string, language: string): string {
 export const __testing = {
   normalizeDescriptionSections,
   DESCRIBE_SYSTEM_PROMPT,
+  ELABORATE_SECTION_SYSTEM_PROMPT,
   parseOutputLanguage,
+  parseElaboration,
   withLanguageClause,
 };
 
@@ -1047,6 +1384,8 @@ export const __testing = {
  * Auth-gated: the caller must be signed in so we can pull their saved
  * ailments without exposing them to guest traffic. Guests hit the
  * rate-limited fallback in `clientIp`/`guestRateLimit` instead.
+ * The client already gates the page behind the local age gate, so the
+ * callable trusts the caller's auth without re-checking any custom claim.
  */
 export const describeStrainForUser = onCall(
   AI_OPTIONS,
@@ -1060,8 +1399,6 @@ export const describeStrainForUser = onCall(
           err instanceof Error ? err.message : "Too many guest searches.",
         );
       }
-    } else {
-      requireAgeVerified(request, HttpsError);
     }
 
     const data = (request.data ?? {}) as {
@@ -1113,6 +1450,185 @@ export const describeStrainForUser = onCall(
     ]);
 
     return parseDescription(content, name);
+  },
+);
+
+/**
+ * Response shape for `elaborateSection`. A single short prose string
+ * (2-4 short paragraphs separated by a blank line).
+ */
+type ElaborateSectionResult = {
+  elaboration: string;
+};
+
+/**
+ * Pull the elaboration text out of a Groq response. The model is
+ * expected to return a single JSON object with one `elaboration` field.
+ * We tolerate a few failure modes the same way `parseDescription`
+ * does: a string body, an unparseable blob, or a missing field. When
+ * anything goes wrong we hand back a one-paragraph safe fallback so
+ * the web client never renders an empty elaboration card.
+ */
+function parseElaboration(
+  content: string,
+  fallbackName: string,
+  heading: string,
+): ElaborateSectionResult {
+  // First try the structured path — model returns
+  // `{ "elaboration": "..." }`.
+  const obj = extractJsonObject(content) as { elaboration?: unknown } | null;
+  if (obj && typeof obj.elaboration === "string") {
+    const text = obj.elaboration.trim();
+    if (text.length > 0) return { elaboration: text };
+  }
+  // Fall back to treating the whole body as the elaboration. The model
+  // sometimes returns a bare string instead of a JSON object, especially
+  // for the smaller elaboration surface.
+  const fallback = content.trim();
+  if (fallback.length > 0 && fallback.length <= 4000) {
+    return { elaboration: fallback };
+  }
+  return {
+    elaboration: `We don't have an expanded take for ${fallbackName} on "${heading}" right now. Tap again in a moment.`,
+  };
+}
+
+/**
+ * Build the user-message prompt for `elaborateSection`. Mirrors the
+ * structure of `describePrompt` so the model has the same context
+ * (ailments, medications, relief log, language) but asks it to focus
+ * on a single section.
+ */
+function elaborateSectionPrompt(
+  strain: StrainProfile,
+  sectionHeading: string,
+  sectionBody: string,
+  ailments: string[],
+  medications: string[],
+  reliefHistory: string,
+): string {
+  const payload = describeStrainPayload(strain);
+  const contextLines: string[] = [];
+  contextLines.push(
+    ailments.length > 0
+      ? `Patient's saved ailments (fold them into the elaboration where relevant): ${ailments.join(", ")}`
+      : "Patient's saved ailments: none — write a general expansion.",
+  );
+  contextLines.push(
+    medications.length > 0
+      ? `Patient's current medications (mention a specific drug only when there is a commonly cited cannabis interaction — always phrase as "ask your clinician about combining with X", never advise stopping): ${medications.join(", ")}`
+      : "Patient's current medications: none reported.",
+  );
+  contextLines.push(
+    reliefHistory.trim().length > 0
+      ? `Recent relief-log history (newest first; use to calibrate tone and depth — the patient has logged how previous strains went for similar symptoms):\n${reliefHistory}`
+      : "Recent relief-log history: none — write without calibrating to past sessions.",
+  );
+  return [
+    `Strain data (JSON):`,
+    JSON.stringify(payload, null, 2),
+    ``,
+    `Section to expand:`,
+    `Heading: ${sectionHeading}`,
+    `Current body (do NOT contradict — this is what the patient already sees):`,
+    sectionBody,
+    ``,
+    contextLines.join("\n"),
+    ``,
+    `Write a short elaboration that goes deeper on this section's focus. Keep it 2-4 short paragraphs, separated by a single blank line.`,
+  ].join("\n");
+}
+
+/**
+ * Ask the AI to elaborate on a single section of a strain's tailored
+ * description. Wired to the ✨ Ask Maya button on the web strain page.
+ * Auth-gated: the caller must be signed in so we can pull their saved
+ * ailments without exposing them to guest traffic. Guests hit the
+ * rate-limited fallback in `clientIp`/`guestRateLimit` instead.
+ * The client already gates the page behind the local age gate, so the
+ * callable trusts the caller's auth without re-checking any custom claim.
+ */
+export const elaborateSection = onCall(
+  AI_OPTIONS,
+  async (request): Promise<ElaborateSectionResult> => {
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
+    }
+
+    const data = (request.data ?? {}) as {
+      strain?: unknown;
+      sectionHeading?: unknown;
+      sectionBody?: unknown;
+      ailments?: unknown;
+      medications?: unknown;
+      reliefHistory?: unknown;
+      language?: unknown;
+    };
+    const strain = (data.strain ?? {}) as StrainProfile;
+    const name =
+      typeof strain.name === "string" && strain.name.trim()
+        ? strain.name.trim().slice(0, 120)
+        : "";
+    if (name === "") {
+      throw new HttpsError("invalid-argument", "Provide a strain to describe.");
+    }
+    const heading =
+      typeof data.sectionHeading === "string" && data.sectionHeading.trim()
+        ? data.sectionHeading.trim().slice(0, 80)
+        : "";
+    if (heading === "") {
+      throw new HttpsError("invalid-argument", "Provide a section heading.");
+    }
+    const body =
+      typeof data.sectionBody === "string"
+        ? data.sectionBody.trim().slice(0, 2000)
+        : "";
+    // Cap everything to the same lengths the rest of the describe
+    // surface uses so a malicious caller can't blow up the prompt.
+    const ailments = asStringArray(data.ailments)
+      .map((a) => a.trim())
+      .filter((a) => a !== "")
+      .slice(0, 16);
+    const medications = asStringArray(data.medications)
+      .map((m) => m.trim().slice(0, 80))
+      .filter((m) => m !== "")
+      .slice(0, 24);
+    const reliefHistory =
+      typeof data.reliefHistory === "string"
+        ? data.reliefHistory.trim().slice(0, 800)
+        : "";
+    const language = parseOutputLanguage(data.language);
+    const safeStrain: StrainProfile = { ...strain, name };
+
+    const content = await callGroq(GROQ_API_KEY.value(), [
+      {
+        role: "system",
+        content: withLanguageClause(
+          ELABORATE_SECTION_SYSTEM_PROMPT,
+          language,
+        ),
+      },
+      {
+        role: "user",
+        content: elaborateSectionPrompt(
+          safeStrain,
+          heading,
+          body,
+          ailments,
+          medications,
+          reliefHistory,
+        ),
+      },
+    ]);
+
+    return parseElaboration(content, name, heading);
   },
 );
 

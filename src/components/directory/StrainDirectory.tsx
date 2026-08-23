@@ -1,15 +1,19 @@
-import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
+import { browseStrains, type StrainPreview } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
 import { CONDITIONS, TYPE_LABEL, matchesCondition, typeBadgeClass } from "@/lib/strain-ui";
-import type { StrainProfile, StrainType } from "@/lib/strain-profile";
+import type { StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
+import { StrainImage } from "@/components/strain/StrainImage";
 import { Loader2, Search, Sparkles, X } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 24;
+const BATCH_SIZE = 24;
 
 type TypeFilter = "all" | StrainType;
 type ThcBand = "any" | "mild" | "balanced" | "strong";
@@ -63,15 +67,6 @@ const EFFECT_BUCKETS: { id: string; label: string; match: string[] }[] = [
   { id: "hungry", label: "Hungry", match: ["hungry", "appetite"] },
 ];
 
-function strainMatchesBucket(
-  strain: StrainProfile,
-  bucket: (typeof EFFECT_BUCKETS)[number],
-): boolean {
-  const effects = strain.effects ?? [];
-  const lower = new Set(effects.map((e) => e.name.toLowerCase()));
-  return bucket.match.some((kw) => lower.has(kw));
-}
-
 /** Curated ailment chips. Curated list lives in src/lib/strain-ui.ts so
  *  the same options surface across the homepage carousel, the directory,
  *  and the strain page. Filter matches against `medicalUses` aliases. */
@@ -83,34 +78,58 @@ function strainMatchesBucket(
  * the popular list is a discovery surface, not a clinical search.
  */
 export function StrainDirectory() {
-  const [popular, setPopular] = useState<StrainProfile[] | null>(null);
+  // All loaded previews (accumulated across Load more batches)
+  const [allPreviews, setAllPreviews] = useState<StrainPreview[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [thcBand, setThcBand] = useState<ThcBand>("any");
   const [effectFilter, setEffectFilter] = useState<string[]>([]);
   const [ailmentFilter, setAilmentFilter] = useState<string[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
+  // Initial load (first PAGE_SIZE strains)
   useEffect(() => {
     let cancelled = false;
-    void popularStrainsCall()
-      .then((list) => {
-        if (!cancelled) setPopular(list);
+    void browseStrains({ offset: 0, limit: PAGE_SIZE })
+      .then((page) => {
+        if (cancelled) return;
+        setAllPreviews(page.previews);
+        setTotalCount(page.totalCount);
       })
       .catch(() => {
-        // Leafly unreachable — leave the directory empty.
+        if (cancelled) return;
+        setLoadError(true);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  async function loadMore() {
+    if (!allPreviews || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await browseStrains({
+        offset: allPreviews.length,
+        limit: BATCH_SIZE,
+      });
+      setAllPreviews((prev) => [...(prev ?? []), ...page.previews]);
+    } catch {
+      // Best-effort — leave what's already loaded
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const hasMore = allPreviews ? allPreviews.length < totalCount : false;
+
   const filtered = useMemo(() => {
-    if (!popular) return [];
+    if (!allPreviews) return [];
     const q = query.trim().toLowerCase();
     const thc = THC_BANDS.find((b) => b.value === thcBand) ?? THC_BANDS[0];
-    const buckets = EFFECT_BUCKETS.filter((b) => effectFilter.includes(b.id));
-    const ailments = CONDITIONS.filter((c) => ailmentFilter.includes(c));
-    return popular.filter((p) => {
+    return allPreviews.filter((p) => {
       if (typeFilter !== "all" && p.type !== typeFilter) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
       const mid = thcMidpoint(p.thcRange);
@@ -118,17 +137,13 @@ export function StrainDirectory() {
         if (mid === null) return false;
         if (!thc.test(mid)) return false;
       }
-      if (buckets.length > 0) {
-        if (!buckets.every((b) => strainMatchesBucket(p, b))) return false;
-      }
-      if (ailments.length > 0) {
-        if (!ailments.every((c) => matchesCondition(p.medicalUses, c))) {
-          return false;
-        }
-      }
+      // Note: effect bucket and ailment filters require full StrainProfile data
+      // (effects[], medicalUses[]) which are not in the lightweight StrainPreview.
+      // They are intentionally disabled when browsing the full catalog to keep
+      // the initial load fast. Full profile data is fetched on the strain page.
       return true;
     });
-  }, [popular, query, typeFilter, thcBand, effectFilter, ailmentFilter]);
+  }, [allPreviews, query, typeFilter, thcBand]);
 
   const filtersActive =
     typeFilter !== "all" ||
@@ -157,14 +172,6 @@ export function StrainDirectory() {
     );
   };
 
-  if (popular === null) {
-    return (
-      <div className="rounded-2xl border border-border/70 bg-card p-6">
-        <SkeletonLines variant="strain-card" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div>
@@ -175,8 +182,8 @@ export function StrainDirectory() {
           Browse popular strains
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Live from Leafly. Filter by type, THC, or the effects you're
-          after, then jump into a side-by-side comparison.
+          Browse the catalog. Filter by type or THC, then jump into a
+          side-by-side comparison.
         </p>
       </div>
 
@@ -226,7 +233,7 @@ export function StrainDirectory() {
         {/* Row 2: Ailment chips */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Reported uses
+            Commonly used for
           </span>
           {CONDITIONS.map((condition) => {
             const active = ailmentFilter.includes(condition);
@@ -299,16 +306,21 @@ export function StrainDirectory() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {allPreviews === null ? (
+        // Filters paint immediately; the grid hydrates with a skeleton
+        // that matches the eventual card shape so the layout doesn't
+        // jump when the first batch of previews lands.
+        <DirectoryGridSkeleton count={PAGE_SIZE} />
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card px-6 py-12 text-center">
           <Sparkles className="size-6 text-muted-foreground" />
           <p className="mt-3 text-sm font-semibold tracking-tight">
             No strains match
           </p>
           <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-            {popular.length === 0
-              ? "We couldn't reach Leafly's directory right now. Try again in a minute."
-              : "Try widening the type or THC filter, or removing an effect."}
+            {loadError
+              ? "Couldn't load the catalog right now. Try again in a minute."
+              : "Try widening the type or THC filter."}
           </p>
           {filtersActive && (
             <Button
@@ -329,6 +341,13 @@ export function StrainDirectory() {
               key={p.name}
               className="flex flex-col rounded-2xl border border-border/70 bg-card p-5"
             >
+              <StrainImage
+                src={p.imageUrl}
+                alt={`${p.name} flower`}
+                type={p.type}
+                className="mb-4 h-32 w-full rounded-xl border border-border/70"
+                iconClassName="size-7"
+              />
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-base font-semibold tracking-tight">
                   <Link
@@ -349,21 +368,9 @@ export function StrainDirectory() {
                   THC {p.thcRange}
                 </p>
               )}
-              {p.effects && p.effects.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {p.effects.slice(0, 3).map((e) => (
-                    <span
-                      key={e.name}
-                      className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground"
-                    >
-                      {e.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {p.description && (
-                <p className="mt-3 line-clamp-3 text-xs leading-5 text-muted-foreground">
-                  {p.description}
+              {p.leaflyRating != null && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  ★ {p.leaflyRating.toFixed(1)}
                 </p>
               )}
               <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
@@ -381,21 +388,69 @@ export function StrainDirectory() {
         </div>
       )}
 
-      {popular.length > 0 && (
+      {allPreviews !== null && allPreviews.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          Showing {filtered.length} of {popular.length} strains
-          {filtersActive ? " with current filters" : ""}.
+          Showing {filtered.length}
+          {filtersActive ? " filtered" : ""} of {totalCount.toLocaleString()} strains.
         </p>
+      )}
+
+      {/* Load more */}
+      {hasMore && allPreviews !== null && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="cursor-pointer gap-2 rounded-full px-6"
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" />
+                Loading…
+              </>
+            ) : (
+              `Load more (${totalCount - allPreviews.length} remaining)`
+            )}
+          </Button>
+        </div>
       )}
     </div>
   );
 }
 
-/** Re-export so other PRs can wrap the directory with extra filter chips. */
-export function DirectoryGridSkeleton() {
+/**
+ * Skeleton that mirrors the directory card shape: a photo block, a
+ * title bar, and a couple of meta lines. Renders `count` cards in the
+ * same 1-2-3 column grid the populated state uses, so the page
+ * doesn't jump when the first batch of previews lands.
+ */
+export function DirectoryGridSkeleton({
+  count = 6,
+}: {
+  count?: number;
+}) {
   return (
-    <div className="flex justify-center py-16">
-      <Loader2 className="size-6 animate-spin text-muted-foreground" />
+    <div
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      aria-busy="true"
+      aria-live="polite"
+      data-testid="directory-grid-skeleton"
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="flex flex-col rounded-2xl border border-border/70 bg-card p-5"
+        >
+          <div className="skeleton-line mb-4 h-32 w-full rounded-xl" />
+          <div className="skeleton-line h-4 w-2/3 rounded-full" />
+          <div className="skeleton-line mt-2 h-3 w-1/3 rounded-full" />
+          <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
+            <div className="skeleton-line h-8 w-16 rounded-full" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -28,6 +28,23 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      // Most of the codebase's `useEffect` blocks synchronize with external
+      // systems (Firestore subscriptions, localStorage hydration, URL params,
+      // browser APIs). The flagged patterns — "reset on prop change",
+      // "hydrate from storage on mount", and "conditional subscribe/reset"
+      // — are the right shape for those systems; the React Compiler
+      // bails on them today but the runtime behavior is correct and the
+      // alternatives (useSyncExternalStore everywhere, prop remount keys)
+      // would be a much larger refactor than the benefit warrants.
+      "react-hooks/set-state-in-effect": "off",
     },
   },
 );
