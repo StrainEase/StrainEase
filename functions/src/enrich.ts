@@ -1,7 +1,9 @@
-// Merge Leafly + Weedmaps + Allbud into one StrainProfile, attach
-// Reddit quotes for the patient's ailments, and ask Groq to fill any
-// fields still missing — the same shape the old curated knowledge
-// base carried.
+// Consolidate per-source strain profiles (Leafly + Weedmaps + Allbud),
+// attach Reddit quotes for the patient's ailments, and ask Groq to
+// fill any fields still missing — the same shape the old curated
+// knowledge base carried. The consolidator does the per-source
+// caching, the numeric averaging, and the source attribution in
+// one pass; this file adds Reddit quotes and the AI fallback on top.
 import { fetchProfile } from "./leafly";
 import { callGroq, extractJsonObject } from "./groq";
 import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
@@ -11,6 +13,7 @@ import type {
   StrainProfile,
   StrainType,
 } from "./types";
+import { consolidateStrain } from "./consolidate";
 import { fetchWeedmapsProfile } from "./weedmaps";
 import { fetchAllbudProfile } from "./allbud";
 
@@ -360,20 +363,19 @@ export async function enrichProfiles(
   ];
   if (unique.length === 0) return [];
 
-  const [leaflyList, weedmapsList, allbudList, redditMap] = await Promise.all([
-    Promise.all(
-      unique.map((name) =>
-        fetchProfile(name, { extraReviews: true, conditions }),
-      ),
-    ),
-    Promise.all(unique.map(fetchWeedmapsProfile)),
-    Promise.all(unique.map(fetchAllbudProfile)),
+  // Consolidate in parallel: each call hits the per-source cache
+  // first, fires any missing source's scraper, and writes the
+  // results back. Hard numbers (THC/CBD/ratings) are averaged
+  // across sources and the per-source values are attached as
+  // `sourceAttribution` so Dr. Kaya can audit the merge.
+  const [consolidatedList, redditMap] = await Promise.all([
+    Promise.all(unique.map(consolidateStrain)),
     fetchRedditQuotesFor(unique, conditions),
   ]);
 
-  let merged = unique.map((name, i) =>
-    mergeProfiles(name, leaflyList[i], weedmapsList[i], allbudList[i]),
-  );
+  let merged = consolidatedList
+    .filter((c): c is NonNullable<typeof c> => c !== null)
+    .map((c) => c as StrainProfile);
 
   if (apiKey && merged.some(needsResearch)) {
     try {
@@ -411,7 +413,7 @@ export function redditNotesFor(
   );
 }
 
-/** Single-name lookup for search: Leafly + Weedmaps + Allbud + Reddit, no AI. */
+/** Single-name lookup for search: per-source cache + Reddit, no AI. */
 export async function lookupProfile(
   name: string,
   conditions: string[] = [],
@@ -422,18 +424,15 @@ export async function lookupProfile(
     .map((c) => c.trim())
     .filter((c) => c !== "")
     .slice(0, 16);
-  const [leafly, weedmaps, allbud, reddit] = await Promise.all([
-    fetchProfile(trimmed, { extraReviews: true, conditions: focus }),
-    fetchWeedmapsProfile(trimmed),
-    fetchAllbudProfile(trimmed),
+  const [consolidated, reddit] = await Promise.all([
+    consolidateStrain(trimmed),
     fetchRedditQuotes(trimmed, focus),
   ]);
-  if (!leafly && !weedmaps && !allbud) return null;
-  const merged = mergeProfiles(trimmed, leafly, weedmaps, allbud);
+  if (!consolidated) return null;
   return {
-    ...merged,
+    ...(consolidated as StrainProfile),
     communityNotes: preferAilmentNotes(
-      reTag(uniqueNotes([...(merged.communityNotes ?? []), ...reddit])),
+      reTag(uniqueNotes([...(consolidated.communityNotes ?? []), ...reddit])),
       focus,
     ),
   };

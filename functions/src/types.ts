@@ -54,6 +54,45 @@ export type StrainProfile = {
   leaflyRating?: number;
   /** Leafly published review count for the star rating. */
   leaflyReviewCount?: number;
+  /**
+   * Sources that contributed to the consolidated fields. Populated
+   * only when the consolidator ran (i.e. when at least one source
+   * returned a profile). Cross-platform safe — the iOS Codable
+   * decoder ignores unknown fields, so older clients still parse.
+   */
+  sources?: ("leafly" | "weedmaps" | "allbud")[];
+  /**
+   * Per-field attribution for the consolidated values. Carries the
+   * raw input from each source when averaging or selection produced
+   * a value distinct from any single raw value, so Dr. Kaya can
+   * audit the merge. Omitted when every field was unambiguous.
+   */
+  sourceAttribution?: SourceAttribution;
+};
+
+/**
+ * One field's worth of per-source attribution. `value` is the
+ * consolidated value Maya sees. `sources` lists what each catalog
+ * actually said, in the order Leafly → Weedmaps → Allbud. `averaged`
+ * is true when the consolidated value was computed (e.g. averaged
+ * across ranges) rather than copied verbatim from one source.
+ */
+export type SourceAttribution = {
+  thcRange?: FieldAttribution;
+  cbdRange?: FieldAttribution;
+  type?: FieldAttribution;
+  lineage?: FieldAttribution;
+  description?: FieldAttribution;
+  leaflyRating?: FieldAttribution;
+};
+
+export type FieldAttribution = {
+  value: string | number | null;
+  sources: {
+    source: "leafly" | "weedmaps" | "allbud";
+    raw: string | number | null;
+  }[];
+  averaged: boolean;
 };
 
 export type StrainAnalysis = {

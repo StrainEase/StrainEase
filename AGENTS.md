@@ -26,7 +26,9 @@ conventions. This file is for machines.
 | -------------------- | ------------------------------------- | ----------------- |
 | UI / routing         | `src/pages/`, `src/components/`       | Firebase Auth via `useAuth` |
 | User profile / saved strains / notes | Firebase Firestore (see `firestore.rules`) | Firebase UID |
-| Strain data (read)   | `functions/src/leafly.ts` (scrape)    | None (public)     |
+| Strain data (read)   | `functions/src/leafly.ts`, `weedmaps.ts`, `allbud.ts` (scrapes) | None (public) |
+| Per-source cache     | `functions/src/source-cache.ts` (Firestore `sourceCache/{slug}`) | Admin only |
+| Strain consolidator  | `functions/src/consolidate.ts` (averages + source attribution) | None |
 | AI compare / recommend | `functions/src/index.ts`            | Firebase ID token |
 
 The frontend talks to Firebase through three surfaces:
@@ -122,12 +124,61 @@ functions/
   src/
     index.ts         # callable function exports (the entry point)
     leafly.ts        # public Leafly scrape, no auth
+    weedmaps.ts      # public Weedmaps scrape, no auth
+    allbud.ts        # public Allbud scrape, no auth
+    source-cache.ts  # per-source Firestore cache (sourceCache/{slug})
+    consolidate.ts   # read per-source cache, average numbers, build
+                     # sourceAttribution for Dr. Kaya's prompts
+    thc-percent.ts   # THC/CBD percent parser + averager
+    strain-info-cache.ts # legacy merged cache (strainCache/{slug})
     groq.ts          # Groq client + JSON extraction helpers
     types.ts         # shared response types
   lib/               # compiled output, gitignored, DO NOT edit
   package.json       # main: "lib/index.js", engines.node: "22"
   tsconfig.json
 ```
+
+## Strain data pipeline (Leafly + Weedmaps + Allbud → Dr. Kaya)
+
+The enrichment pipeline that feeds the AI callables is now a
+three-source cache + consolidator, not a per-request scrape:
+
+  1. `consolidateStrain(name)` (in `consolidate.ts`) is the only
+     entry point. It reads the per-source Firestore cache
+     (`sourceCache/{slug}`, one document per strain with leafly /
+     weedmaps / allbud slots) and falls through to the scrapers
+     for any missing source, then writes the fresh profile back
+     to the cache.
+
+  2. Hard numbers (THC%, CBD%, ratings) are averaged across
+     sources. The midpoint of each source's range is computed,
+     the midpoints are averaged, and the result is re-formatted
+     as a single percent string. Sources with unparseable
+     percent values are dropped from the average; if every
+     source is unparseable the field stays empty.
+
+  3. The consolidated StrainProfile carries a `sourceAttribution`
+     block that is only populated for fields where the sources
+     actually disagreed or where averaging changed the value.
+     Dr. Kaya's prompts mention this block — she can audit any
+     number she second-guesses without re-fetching anything.
+
+  4. The output is plain JSON: only string / number / boolean /
+     null / array / object values, no Date / Map / NaN / Infinity.
+     The iOS Codable decoder ignores unknown fields, so the
+     cross-platform contract is preserved.
+
+When adding a new scraper:
+
+  - Add the export in the new `source.ts` (e.g. `fetchXProfile`).
+  - Add the new source id to `SourceId` in `source-cache.ts` and
+    `SOURCE_ORDER` in `consolidate.ts`.
+  - Add the scraper to the `fetchOne` switch in `consolidate.ts`.
+  - Wire `putSourceCache(slug, source, profile)` in the
+    consolidator's missing-source fan-out (the consolidator does
+    this automatically via `fetchOne`).
+  - Update the AI callables' system prompts in `index.ts` so
+    Dr. Kaya knows the new source contributes to attribution.
 
 Node 20 is the runtime. It's deprecated on GCP (see deprecation warning
 in deploy output) — when you upgrade, bump both `engines.node` here and
