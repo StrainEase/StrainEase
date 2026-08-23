@@ -562,7 +562,11 @@ export function CommunityVoices({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
         >
-          <TabsContent value="all" forceMount className="mt-0 outline-none">
+          {/* No forceMount: force-mounted Radix tabs stay VISIBLE when
+              inactive, which stacked every panel on the page — two Leafly
+              star ratings and duplicate review lists. Only the active
+              panel renders; the keyed motion wrapper animates the swap. */}
+          <TabsContent value="all" className="mt-0 outline-none">
             <AllPanel
               cannabis={cannabis}
               reddit={reddit}
@@ -573,7 +577,7 @@ export function CommunityVoices({
               leaflyReviewCount={leaflyReviewCount}
             />
           </TabsContent>
-          <TabsContent value="cannabis" forceMount className="mt-0 outline-none">
+          <TabsContent value="cannabis" className="mt-0 outline-none">
             <ChannelPanel
               channel="cannabis"
               notes={cannabis}
@@ -585,7 +589,7 @@ export function CommunityVoices({
               onSortChange={setSort}
             />
           </TabsContent>
-          <TabsContent value="reddit" forceMount className="mt-0 outline-none">
+          <TabsContent value="reddit" className="mt-0 outline-none">
             <ChannelPanel
               channel="reddit"
               notes={reddit}
@@ -595,7 +599,7 @@ export function CommunityVoices({
               onSortChange={setSort}
             />
           </TabsContent>
-          <TabsContent value="app" forceMount className="mt-0 outline-none">
+          <TabsContent value="app" className="mt-0 outline-none">
             <AppReviewsPanel appNotes={appNotes} />
           </TabsContent>
         </motion.div>

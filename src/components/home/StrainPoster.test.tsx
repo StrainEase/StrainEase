@@ -22,72 +22,57 @@ const baseProfile: StrainProfile = {
   leaflyReviewCount: 10410,
 };
 
+function renderPoster(profile: StrainProfile = baseProfile) {
+  return render(
+    <MemoryRouter>
+      <StrainPoster profile={profile} />
+    </MemoryRouter>,
+  );
+}
+
 describe("StrainPoster", () => {
-  test("shows ailment chips and the Leafly footer by default", () => {
-    render(
-      <MemoryRouter>
-        <StrainPoster profile={baseProfile} />
-      </MemoryRouter>,
-    );
-    expect(screen.getByText("Insomnia")).toBeTruthy();
-    expect(screen.getByText("Chronic pain")).toBeTruthy();
-    expect(screen.getByText("Stress")).toBeTruthy();
-    // The footer renders the Leafly line "4.6★ · 10,410 reviews".
-    expect(screen.getByText(/4\.6★/)).toBeTruthy();
-    expect(screen.getByText(/10,410 reviews/)).toBeTruthy();
-    // Terpenes appear in the footer.
-    expect(screen.getByText(/Myrcene/)).toBeTruthy();
+  test("renders the iOS-style order: photo, type badge, name, THC line", () => {
+    const { container } = renderPoster();
+    const link = container.querySelector("a")!;
+    // [0] photo container, [1] type badge, [2] name, [3] THC + rating row.
+    expect(link.children).toHaveLength(4);
+    expect(link.children[1]!.textContent).toBe("Indica");
+    expect(link.children[2]!.textContent).toBe("Granddaddy Purple");
+    expect(link.children[3]!.textContent).toContain("THC 17-23%");
   });
 
-  test("showAilmentChips={false} drops the medical-use chips", () => {
-    render(
-      <MemoryRouter>
-        <StrainPoster profile={baseProfile} showAilmentChips={false} />
-      </MemoryRouter>,
-    );
-    expect(screen.queryByText("Insomnia")).toBeNull();
-    expect(screen.queryByText("Chronic pain")).toBeNull();
-    expect(screen.queryByText("Stress")).toBeNull();
-  });
-
-  test("showAilmentChips={false} drops the Leafly footer (terpenes + review)", () => {
-    render(
-      <MemoryRouter>
-        <StrainPoster profile={baseProfile} showAilmentChips={false} />
-      </MemoryRouter>,
-    );
-    expect(screen.queryByText(/Myrcene/)).toBeNull();
-    expect(screen.queryByText(/10,410 reviews/)).toBeNull();
-  });
-
-  test("showAilmentChips={false} surfaces a green star chip with the rating", () => {
-    const { container } = render(
-      <MemoryRouter>
-        <StrainPoster profile={baseProfile} showAilmentChips={false} />
-      </MemoryRouter>,
-    );
-    // The star chip renders the average rating next to the THC line.
+  test("shows the Leafly star chip next to the THC range", () => {
+    const { container } = renderPoster();
     expect(container.textContent).toMatch(/THC 17-23%/);
     expect(container.textContent).toMatch(/4\.6/);
-    // The chip has the green/primary class.
     const chip = container.querySelector(".text-primary");
     expect(chip).toBeTruthy();
   });
 
-  test("showAilmentChips={false} without a leaflyRating still drops the chip", () => {
+  test("drops the review text, terpene footer, and medical-use chips", () => {
+    renderPoster();
+    expect(screen.queryByText(/10,410 reviews/)).toBeNull();
+    expect(screen.queryByText(/Leafly ·/)).toBeNull();
+    expect(screen.queryByText(/Myrcene/)).toBeNull();
+    expect(screen.queryByText("Insomnia")).toBeNull();
+  });
+
+  test("is not wrapped in a card — bare column, no chrome", () => {
+    const { container } = renderPoster();
+    const link = container.querySelector("a")!;
+    expect(link.className).not.toContain("bg-card");
+    expect(link.className).not.toContain("border");
+    expect(link.className).not.toContain("rounded-2xl");
+  });
+
+  test("without a leaflyRating the THC line still shows but no chip", () => {
     const noRating: StrainProfile = {
       ...baseProfile,
       leaflyRating: undefined,
       leaflyReviewCount: undefined,
     };
-    const { container } = render(
-      <MemoryRouter>
-        <StrainPoster profile={noRating} showAilmentChips={false} />
-      </MemoryRouter>,
-    );
-    // The THC line still shows.
+    const { container } = renderPoster(noRating);
     expect(container.textContent).toMatch(/THC 17-23%/);
-    // But no green star chip is rendered when there is no rating.
     const chip = container.querySelector(".text-primary");
     expect(chip).toBeNull();
   });
