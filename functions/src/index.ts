@@ -10,10 +10,11 @@ import { defineSecret } from "firebase-functions/params";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { evaluateAge, type RegionCode } from "./age";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } from "./doctors";
-import { fetchPopular, fetchProfiles } from "./leafly";
+import { fetchAllStrains, fetchProfiles, toPreview, type StrainPreview } from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { callGroq, extractJsonObject } from "./groq";
 import { matchRedditSeeds } from "./reddit-seed";
@@ -40,11 +41,145 @@ const AI_OPTIONS: CallableOptions = {
 
 /* ── Public data lookups (no AI, no auth required) ─────────────────── */
 
-/** Popular strains on Leafly right now. */
+const POPULAR_LIST_CACHE_DOC = "popularListCache";
+const POPULAR_LIST_CACHE_COLLECTION = "strainCatalog";
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+type PopularListCache = {
+  previews: StrainPreview[];
+  fetchedAt: number;
+  totalCount: number;
+};
+
+async function readPopularListCache(): Promise<PopularListCache | null> {
+  try {
+    const snap = await getFirestore()
+      .collection(POPULAR_LIST_CACHE_COLLECTION)
+      .doc(POPULAR_LIST_CACHE_DOC)
+      .get();
+    if (!snap.exists) return null;
+    const data = snap.data() as PopularListCache;
+    if (!Array.isArray(data.previews) || !data.fetchedAt) return null;
+    const age = Date.now() - data.fetchedAt;
+    if (age > CACHE_TTL_MS) return null; // Treat stale as miss
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function writePopularListCache(previews: StrainPreview[]): Promise<void> {
+  try {
+    await getFirestore()
+      .collection(POPULAR_LIST_CACHE_COLLECTION)
+      .doc(POPULAR_LIST_CACHE_DOC)
+      .set(
+        {
+          previews,
+          fetchedAt: Date.now(),
+          totalCount: previews.length,
+        },
+        { merge: true },
+      );
+  } catch {
+    // Best-effort. A missed write just means the next cold start scrapes again.
+  }
+}
+
+/**
+ * Popular strains: cache-first from Firestore, scrape-only on cold miss.
+ * The scheduled warmStrainDirectory function keeps the Firestore cache fresh.
+ * Caller gets the first 12 previews from the catalog.
+ */
 export const popularStrains = onCall(
   { timeoutSeconds: 30 },
   async (): Promise<StrainProfile[]> => {
-    return await fetchPopular();
+    const cache = await readPopularListCache();
+    if (cache && cache.previews.length > 0) {
+      // Convert previews back to StrainProfiles (lightweight — no full scrape needed)
+      return cache.previews.slice(0, 12).map((p) => ({
+        name: p.name,
+        inKnowledgeBase: true,
+        type: p.type as StrainProfile["type"],
+        thcRange: p.thcRange,
+        imageUrl: p.imageUrl,
+        leaflyRating: p.leaflyRating,
+      }));
+    }
+    // Cold miss — scrape and cache
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    void writePopularListCache(previews);
+    return all.slice(0, 12);
+  },
+);
+
+/**
+ * Browse the full Leafly catalog with offset pagination.
+ * Cache-first from Firestore; falls back to scraping on cold miss.
+ * Returns previews (lightweight) for the grid, not full profiles.
+ */
+export const browseStrains = onCall(
+  { timeoutSeconds: 30 },
+  async (
+    request,
+  ): Promise<{
+    previews: StrainPreview[];
+    totalCount: number;
+    offset: number;
+    fetchedAt: number;
+  }> => {
+    const raw = request.data ?? {};
+    const offset =
+      typeof raw.offset === "number" && raw.offset >= 0 ? raw.offset : 0;
+    const limit =
+      typeof raw.limit === "number" && raw.limit > 0
+        ? Math.min(raw.limit, 100)
+        : 24;
+
+    const cache = await readPopularListCache();
+    if (cache && cache.previews.length > 0) {
+      return {
+        previews: cache.previews.slice(offset, offset + limit),
+        totalCount: cache.totalCount,
+        offset,
+        fetchedAt: cache.fetchedAt,
+      };
+    }
+
+    // Cold miss — scrape, cache, and return the requested slice
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    void writePopularListCache(previews);
+    return {
+      previews: previews.slice(offset, offset + limit),
+      totalCount: previews.length,
+      offset,
+      fetchedAt: Date.now(),
+    };
+  },
+);
+
+/**
+ * Scheduled function: runs once per day to warm the Firestore strain catalog cache.
+ * This keeps the popularStrains and browseStrains callables fast (Firestore hit)
+ * and off Leafly's servers for routine reads.
+ *
+ * Deployed via: firebase deploy --only functions
+ * (The Pub/Sub topic "strains-daily-scrape" must be created in GCP Scheduler:
+ *  gcloud scheduler jobs create pubsub strains-daily-scrape \
+ *    --schedule="0 3 * * *" --topic=strains-daily-scrape --message-body="{}")
+ */
+export const warmStrainDirectory = onSchedule(
+  { schedule: "0 3 * * *", timeoutSeconds: 540, memory: "512MiB" },
+  async () => {
+    console.log("[warmStrainDirectory] Starting daily Leafly catalog scrape…");
+    const all = await fetchAllStrains();
+    const previews = all.map(toPreview);
+    await writePopularListCache(previews);
+    console.log(
+      `[warmStrainDirectory] Cached ${previews.length} strain previews.`,
+    );
   },
 );
 
