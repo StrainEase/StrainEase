@@ -137,6 +137,10 @@ function PosterRow({ strains }: { strains: StrainProfile[] }) {
           key={profileSlug(profile)}
           profile={profile}
           compact
+          // The page already filters by the ailment, so the medical-use
+          // chips are redundant; the Leafly footer fights the green star
+          // chip we surface next to the THC range instead.
+          showAilmentChips={false}
           className="min-w-0"
         />
       ))}
