@@ -15,7 +15,7 @@ export function StrainGrid({ strains }: { strains: StrainProfile[] }) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {strains.map((profile) => (
         <StrainPoster
           key={profileSlug(profile)}
