@@ -22,8 +22,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
-import kotlinx.serialization.json.addAll
-import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -271,8 +269,6 @@ class LiveStrainAPI(
         check(FirebaseBootstrap.isConfigured) { "Firebase isn't configured yet." }
         return try {
             val task = functions.getHttpsCallable(name).call(payload)
-            // The Android SDK exposes `.data()` on the Task<HttpsCallableResult>;
-            // the suspend extension comes from `kotlinx-coroutines-play-services`.
             val raw = task.await().data
             anyToJsonElement(raw)
         } catch (t: Throwable) {
