@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  StrainEase Android manifest. Mirrors the iOS Info.plist + entitlements
+  (com.strainwise.app bundle, location permission for the Doctors tab,
+  Google sign-in entry on the sign-in screen).
+
+  Notes:
+  * The age-gate popup runs inside the app, so there is no server-side
+    age claim to gate Firebase callables behind. The client gate wraps
+    every screen via RootView; see iOS `App/AgeGateView.swift`.
+  * Sign in with Apple is iOS-only (Apple does not offer an Android
+    SDK for it). The Android sign-in screen offers email + Google only.
+  * `android:usesCleartextTraffic` is true for debug builds only
+    (configured in a debug-only manifest merger) so local Firebase
+    emulators work.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Location is used to find medical-marijuana doctors near the user
+         (mirrors the iOS `NSLocationWhenInUseUsageDescription`). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application
+        android:name=".StrainWiseApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.StrainWise.Splash"
+        tools:targetApi="34">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|keyboard|keyboardHidden|navigation"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.StrainWise.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Google sign-in returns the ID token + nonce via this
+                 intent filter; URI scheme mirrors the iOS
+                 `com.googleusercontent.apps.<client-id>` URL scheme. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="com.strainwise.app"
+                    android:host="oauth" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

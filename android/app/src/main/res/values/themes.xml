@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      The XML theme only paints the splash screen (the `windowSplashScreenBackground`
+      and `windowSplashScreenAnimatedIcon`). The actual app theme lives
+      in code (`StrainWiseTheme.kt`) so it can use the full Material 3
+      dynamic color system and the same `Palette` tokens as the iOS
+      client.
+    -->
+    <style name="Theme.StrainWise.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/palette_background_light</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.StrainWise</item>
+    </style>
+
+    <style name="Theme.StrainWise" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+    </style>
+</resources>

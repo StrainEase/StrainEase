@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup rules: only the auth state + DataStore preferences, not
+     large cache files. Mirrors the iOS keychain-only auth model. -->
+<full-backup-content>
+    <include domain="sharedpref" path="." />
+    <include domain="file" path="datastore/" />
+    <exclude domain="file" path="cache/" />
+</full-backup-content>

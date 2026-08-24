@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  StrainEase brand mark. A stylized leaf silhouette in primary mint,
+  sized for the 108x108dp adaptive-icon safe zone. The foreground
+  viewport in Android adaptive icons is 72x72dp centered in 108x108dp;
+  the leaf shape sits inside that 72x72 circle with a small margin so
+  it never clips when the system mask is applied.
+
+  The PNG variants under mipmap-*dpi/ are the same brand mark at
+  physical resolutions for pre-O launchers. (Real PNG export lands in
+  PR-A13; for now the adaptive vector is the canonical icon.)
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Safe zone circle (visual reference, kept as a translucent fill
+         so the leaf reads on both light and dark backgrounds during
+         design review). -->
+    <path
+        android:fillColor="#1A71BE92"
+        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+    <!-- Leaf shape -->
+    <path
+        android:fillColor="#71BE92"
+        android:pathData="M54,30
+                          C 70,30 80,46 78,60
+                          C 76,72 64,80 54,80
+                          C 44,80 32,72 30,60
+                          C 28,46 38,30 54,30
+                          Z" />
+    <!-- Leaf central vein -->
+    <path
+        android:strokeColor="#01603A"
+        android:strokeWidth="2"
+        android:pathData="M54,32 L54,78" />
+    <!-- Leaf secondary veins -->
+    <path
+        android:strokeColor="#01603A"
+        android:strokeWidth="1.4"
+        android:pathData="M54,40 L46,46 M54,40 L62,46 M54,52 L44,58 M54,52 L64,58 M54,64 L46,70 M54,64 L62,70" />
+</vector>
