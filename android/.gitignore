@@ -1,0 +1,33 @@
+# Android build outputs
+build/
+.gradle/
+.idea/
+*.iml
+local.properties
+captures/
+.cxx/
+gen/
+
+# Android Studio
+.navigation/
+*.hprof
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Kotlin
+.kotlin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Generated
+google-services.json
+*.keystore
+*.jks
