@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">StrainEase</string>
+
+    <!-- Sign-in screen (wired in PR-A4) -->
+    <string name="signin_title">Sign in to StrainEase</string>
+    <string name="signin_subtitle">Same accounts as strainease.ai and the iOS app.</string>
+    <string name="signin_email_hint">Email</string>
+    <string name="signin_password_hint">Password</string>
+    <string name="signin_submit">Sign in</string>
+    <string name="signin_create_account">Create account</string>
+    <string name="signin_google">Continue with Google</string>
+
+    <!-- Age gate (wired in PR-A4) -->
+    <string name="agegate_title">Are you 21 or older?</string>
+    <string name="agegate_subtitle">StrainEase is for medical and adult-use cannabis research. We don\'t sell or ship product.</string>
+    <string name="agegate_region">Region</string>
+    <string name="agegate_birthdate">Date of birth</string>
+    <string name="agegate_confirm">Confirm</string>
+
+    <!-- Tabs (wired in PR-A5) -->
+    <string name="tab_home">Home</string>
+    <string name="tab_find">Find</string>
+    <string name="tab_browse">Browse</string>
+    <string name="tab_doctors">Doctors</string>
+
+    <!-- Errors -->
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_offline">You appear to be offline. Check your connection and try again.</string>
+    <string name="error_unauthorized">Please sign in to continue.</string>
+
+    <!-- A11y -->
+    <string name="cd_back">Back</string>
+    <string name="cd_close">Close</string>
+    <string name="cd_save">Save</string>
+</resources>

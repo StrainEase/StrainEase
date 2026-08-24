@@ -1,0 +1,9 @@
+# Local SDK path. Copied to `local.properties` on first checkout; the
+# `local.properties` file itself is gitignored. The SDK location is
+# used by AGP to find build-tools, platforms, etc.
+#
+# The most common locations are:
+#   - Linux:   ~/Android/Sdk
+#   - macOS:   ~/Library/Android/sdk
+#   - Windows: C:\\Users\\<you>\\AppData\\Local\\Android\\Sdk
+sdk.dir=/Users/you/Library/Android/sdk
