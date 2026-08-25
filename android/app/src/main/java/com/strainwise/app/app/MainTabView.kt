@@ -51,6 +51,7 @@ fun MainTabView() {
     val findModel = remember { com.strainwise.app.ui.find.FindModel() }
     val directoryModel = remember { com.strainwise.app.ui.browse.DirectoryModel() }
     val compareStore = remember { com.strainwise.app.ui.compare.CompareSelectionStore() }
+    val doctorsModel = remember { com.strainwise.app.ui.doctors.DoctorsModel() }
     val savedAilments = remember { com.strainwise.app.data.SavedAilmentsStore(app) }
     val savedMedications = remember { com.strainwise.app.data.SavedMedicationsStore(app) }
     val relief = remember { com.strainwise.app.data.ReliefLogStore(app) }
@@ -112,7 +113,10 @@ fun MainTabView() {
                     model = directoryModel,
                     modifier = Modifier.padding(padding),
                 )
-                AppTab.Doctors -> DoctorsTabPlaceholder(Modifier.padding(padding))
+                AppTab.Doctors -> com.strainwise.app.ui.doctors.DoctorsView(
+                    model = doctorsModel,
+                    modifier = Modifier.padding(padding),
+                )
             }
         }
     }

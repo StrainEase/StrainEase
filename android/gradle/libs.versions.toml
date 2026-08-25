@@ -24,6 +24,7 @@ firebase-firestore = "25.1.0"
 firebase-functions = "21.1.0"
 firebase-storage = "21.0.1"
 play-services-auth = "21.2.0"
+play-services-location = "21.3.0"
 
 # Coil (image loading)
 coil = "2.7.0"
@@ -69,6 +70,7 @@ firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore
 firebase-functions = { group = "com.google.firebase", name = "firebase-functions-ktx" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage-ktx" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "play-services-auth" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-services-location" }
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

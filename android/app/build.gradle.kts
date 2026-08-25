@@ -105,6 +105,7 @@ dependencies {
     implementation(libs.firebase.functions)
     implementation(libs.firebase.storage)
     implementation(libs.play.services.auth)
+    implementation(libs.play.services.location)
 
     // Coil (image loading)
     implementation(libs.coil.compose)
