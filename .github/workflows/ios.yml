@@ -130,10 +130,13 @@ jobs:
         working-directory: ios
         run: |
           set -o pipefail
+          # macos-latest rolls forward — pin a device that exists in the
+          # current default Xcode (iPhone 17 as of Xcode 16.x in Aug 2026)
+          # and let xcodebuild pick the latest matching OS.
           xcodebuild test \
             -project StrainWise.xcodeproj \
             -scheme StrainWise \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest' \
             -configuration Debug \
             -derivedDataPath build/DerivedData \
             -resultBundlePath build/StrainWise.xcresult \
