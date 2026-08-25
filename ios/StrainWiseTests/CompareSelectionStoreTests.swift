@@ -132,11 +132,11 @@ final class CompareSelectionStoreTests: XCTestCase {
 private struct StubCompareAPI: StrainServicing {
     let result: Result<StrainComparison, Error>
 
-    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?) async throws -> RecommendationResult {
+    func recommend(conditions: [String], potency: Potency, prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> RecommendationResult {
         .sample
     }
 
-    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?) async throws -> StrainComparison {
+    func compare(strainNames: [String], conditions: [String], prefs: ResearchPrefs, reliefSummary: String?, language: String) async throws -> StrainComparison {
         try result.get()
     }
 
@@ -156,7 +156,8 @@ private struct StubCompareAPI: StrainServicing {
         strain: StrainProfile,
         ailments: [String],
         medications: [String],
-        reliefHistory: String
+        reliefHistory: String,
+        language: String
     ) async throws -> StrainDescription? {
         .sample
     }
