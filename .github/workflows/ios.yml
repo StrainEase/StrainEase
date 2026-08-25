@@ -247,16 +247,22 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO \
             archive
 
-      - name: Write ExportOptions.plist
+      - name: Write ExportOptions.plist (unused, kept for reference)
         working-directory: ios
         run: |
+          # xcodebuild -exportArchive refuses to run with an empty teamID,
+          # so we don't actually use it here. The "Package unsigned IPA"
+          # step below assembles the IPA directly from the archive's
+          # unsigned .app bundle. This plist is left in tree for any
+          # future signed-distribution work (then fill in teamID +
+          # signingIdentity and uncomment the Export IPA step).
           cat > build/ExportOptions.plist <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
               <key>method</key>
-              <string>development</string>
+              <string>debugging</string>
               <key>signingStyle</key>
               <string>manual</string>
               <key>signingIdentity</key>
@@ -267,21 +273,43 @@ jobs:
           </plist>
           plutil -lint build/ExportOptions.plist
 
-      - name: Export IPA
+      # - name: Export IPA
+      #   working-directory: ios
+      #   run: |
+      #     set -o pipefail
+      #     xcodebuild -exportArchive \
+      #       -archivePath build/StrainWise.xcarchive \
+      #       -exportPath build/ipa \
+      #       -exportOptionsPlist build/ExportOptions.plist
+
+      - name: Package unsigned IPA
         working-directory: ios
         run: |
           set -o pipefail
-          xcodebuild -exportArchive \
-            -archivePath build/StrainWise.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist build/ExportOptions.plist
+          APP_PATH="build/StrainWise.xcarchive/Products/Applications/StrainWise.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::StrainWise.app not found at $APP_PATH"
+            ls -la build/StrainWise.xcarchive/Products/ 2>&1 || true
+            exit 1
+          fi
+          rm -rf build/ipa
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/
+          cd build/ipa
+          /usr/bin/zip -yry StrainWise.ipa Payload
+          cd ../..
+          ls -la build/ipa
+          file build/ipa/StrainWise.ipa
 
       - name: Inspect IPA
         working-directory: ios
         run: |
-          ls -la build/ipa
-          file build/ipa/*.ipa
           unzip -l build/ipa/StrainWise.ipa | head -30
+          echo "---"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/ipa/Payload/StrainWise.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' build/ipa/Payload/StrainWise.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/ipa/Payload/StrainWise.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' build/ipa/Payload/StrainWise.app/Info.plist
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
