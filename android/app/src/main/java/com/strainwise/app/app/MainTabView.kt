@@ -43,6 +43,10 @@ val LocalAppNavigation = compositionLocalOf<AppNavigation> {
 fun MainTabView() {
     val nav = remember { AppNavigation() }
     var selected by remember { mutableStateOf(AppTab.Home) }
+    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext
+        as com.strainwise.app.StrainWiseApplication
+    val homeModel = remember { com.strainwise.app.ui.home.HomeModel() }
+    val recents = remember { com.strainwise.app.data.RecentlyViewedStore(app) }
 
     CompositionLocalProvider(LocalAppNavigation provides nav) {
         Scaffold(
@@ -77,7 +81,11 @@ fun MainTabView() {
             },
         ) { padding ->
             when (selected) {
-                AppTab.Home -> HomeTabPlaceholder(Modifier.padding(padding))
+                AppTab.Home -> com.strainwise.app.ui.home.HomeView(
+                    model = homeModel,
+                    recentlyViewed = recents,
+                    modifier = Modifier.padding(padding),
+                )
                 AppTab.Find -> FindTabPlaceholder(Modifier.padding(padding))
                 AppTab.Browse -> BrowseTabPlaceholder(Modifier.padding(padding))
                 AppTab.Doctors -> DoctorsTabPlaceholder(Modifier.padding(padding))
@@ -85,16 +93,6 @@ fun MainTabView() {
         }
     }
 }
-
-@Composable
-private fun HomeTabPlaceholder(modifier: Modifier) =
-    com.strainwise.app.ui.components.SWCard(modifier = modifier) {
-        Text(
-            text = "Home (PR-A6)",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
 
 @Composable
 private fun FindTabPlaceholder(modifier: Modifier) =
