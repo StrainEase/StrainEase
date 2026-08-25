@@ -63,10 +63,9 @@ jobs:
       - name: Install xcodegen
         run: brew install xcodegen
 
-      - name: Generate Xcode project
-        working-directory: ios
-        run: xcodegen generate
-
+      # xcodegen validates `type: file` source paths at generation time, so
+      # the stub plist has to exist before xcodegen runs (FirebaseBootstrap
+      # already no-ops at runtime when the plist is missing).
       - name: Write stub GoogleService-Info.plist
         if: hashFiles('ios/StrainWise/GoogleService-Info.plist') == ''
         working-directory: ios
@@ -109,6 +108,10 @@ jobs:
           </dict>
           </plist>
           plutil -lint StrainWise/GoogleService-Info.plist
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
 
       - name: Cache DerivedData
         uses: actions/cache@v4
@@ -164,10 +167,9 @@ jobs:
       - name: Install xcodegen
         run: brew install xcodegen
 
-      - name: Generate Xcode project
-        working-directory: ios
-        run: xcodegen generate
-
+      # xcodegen validates `type: file` source paths at generation time, so
+      # the stub plist has to exist before xcodegen runs (FirebaseBootstrap
+      # already no-ops at runtime when the plist is missing).
       - name: Write stub GoogleService-Info.plist
         if: hashFiles('ios/StrainWise/GoogleService-Info.plist') == ''
         working-directory: ios
@@ -210,6 +212,10 @@ jobs:
           </dict>
           </plist>
           plutil -lint StrainWise/GoogleService-Info.plist
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
 
       - name: Cache DerivedData
         uses: actions/cache@v4
