@@ -655,6 +655,24 @@ export async function fetchPopular(): Promise<StrainProfile[]> {
   return all.slice(0, 12);
 }
 
+/**
+ * True when a profile is only a thin, pre-defined description — a
+ * description (typically a single paragraph) with none of the richer
+ * patient-facing detail fields a real detail-page scrape carries
+ * (medical uses, effects). Legacy `strainCache` entries and popular
+ * directory rows can carry exactly this shape; callers treat thin
+ * profiles as needing a live fetch rather than trusting them as the
+ * final answer.
+ */
+export function isThinProfile(p: StrainProfile): boolean {
+  return (
+    typeof p.description === "string" &&
+    p.description.trim().length > 0 &&
+    !(p.medicalUses && p.medicalUses.length > 0) &&
+    !(p.effects && p.effects.length > 0)
+  );
+}
+
 export async function fetchProfile(
   name: string,
   opts: { extraReviews?: boolean; conditions?: readonly string[] } = {},
@@ -665,7 +683,13 @@ export async function fetchProfile(
   // Distributed cache hit — reuse the parsed profile, only freshly fetch
   // the extra ailment reviews that were not part of the original scrape.
   const cached = await getCachedStrainProfile(slug);
-  if (cached) {
+
+  // A thin cached profile (single-paragraph pre-defined description) is
+  // NOT the final answer — we still pull the live detail page so the
+  // strain carries the full data. If Leafly is unreachable we keep the
+  // cached description instead of dropping the strain; the consolidator
+  // still unions Weedmaps + Allbud into the other fields.
+  if (cached && !isThinProfile(cached.profile)) {
     const extraReviews = opts.extraReviews
       ? await fetchLeaflyReviews(name, conditions)
       : ([] as CommunityNote[]);
@@ -677,6 +701,7 @@ export async function fetchProfile(
       ),
     };
   }
+
   try {
     const extraPromise = opts.extraReviews
       ? fetchLeaflyReviews(name, conditions)
@@ -689,7 +714,9 @@ export async function fetchProfile(
     const raw = (data as RawRecord)?.props?.pageProps?.strain as
       | RawRecord
       | undefined;
-    if (!raw || typeof raw.name !== "string" || raw.name === "") return null;
+    if (!raw || typeof raw.name !== "string" || raw.name === "") {
+      throw new Error(`No strain payload on ${slug}`);
+    }
     const pageReviews = reviewNotesFrom(
       (data as RawRecord)?.props?.pageProps?.reviews,
       conditions,
@@ -701,7 +728,21 @@ export async function fetchProfile(
     void putCachedStrainProfile(slug, profile);
     return profile;
   } catch {
-    // 404 or a parse failure → not a strain page on Leafly.
+    // 404, a parse failure, or Leafly is down. Keep the pre-defined
+    // description when one was cached rather than returning null — the
+    // Weedmaps → Allbud fallback chain fills the rest of the profile.
+    if (cached) {
+      const extraReviews = opts.extraReviews
+        ? await fetchLeaflyReviews(name, conditions)
+        : ([] as CommunityNote[]);
+      return {
+        ...cached.profile,
+        communityNotes: mergeReviewNotes(
+          cached.profile.communityNotes ?? [],
+          extraReviews,
+        ),
+      };
+    }
     return null;
   }
 }

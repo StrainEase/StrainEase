@@ -23,11 +23,10 @@
 //   no Date objects, no Maps, no class instances — all of which
 //   would silently corrupt the iOS Codable round-trip.
 
-import { fetchProfile } from "./leafly";
+import { fetchProfile, isThinProfile, slugify } from "./leafly";
 import { fetchWeedmapsProfile } from "./weedmaps";
 import { fetchAllbudProfile } from "./allbud";
 import { getSourceCache, putSourceCache, type SourceId } from "./source-cache";
-import { slugify } from "./leafly";
 import {
   averagePercent,
   formatPercent,
@@ -321,15 +320,25 @@ export async function consolidateStrain(
     if (entry) profiles[s] = entry.profile;
   }
 
-  // 2. Fire any missing source. We do these in parallel so the worst
-  //    case is one scrape of latency, not three.
-  const missing = SOURCE_ORDER.filter((s) => !profiles[s]);
+  // 2. Fire any source we're missing — including a cached Leafly entry
+  //    that is only a thin pre-defined description (name + description,
+  //    no detail fields). Thin Leafly profiles are re-pulled against the
+  //    live detail page so the strain carries full data; if Leafly is
+  //    unreachable the thin entry is kept as the fallback and the
+  //    Weedmaps → Allbud chain fills the other fields. Fetching stays
+  //    parallel so the worst case is one scrape of latency, not three.
+  const missing = SOURCE_ORDER.filter((s) =>
+    shouldRefetchSource(s, profiles[s]),
+  );
   if (missing.length > 0) {
     const fetched = await Promise.all(
       missing.map(async (source) => {
         const profile = await fetchOne(source, trimmed);
         if (profile) {
-          await putSourceCache(slug, source, profile);
+          const existing = profiles[source];
+          if (shouldPersistRefetch(existing, profile)) {
+            await putSourceCache(slug, source, profile);
+          }
           profiles[source] = profile;
         }
         return { source, profile };
@@ -410,4 +419,31 @@ async function fetchOne(
     case "allbud":
       return await fetchAllbudProfile(name);
   }
+}
+
+/**
+ * Should a cached source slot be re-fetched? Missing slots always are;
+ * a present Leafly slot is re-fetched when it is only a thin
+ * pre-defined description (single paragraph, no medical uses / effects)
+ * so the live detail page can upgrade it. Weedmaps / Allbud slots are
+ * trusted once present — their thin profiles are the scraper's honest
+ * output, so re-pulling them would just loop.
+ */
+export function shouldRefetchSource(
+  source: SourceId,
+  profile: StrainProfile | null | undefined,
+): boolean {
+  return !profile || (source === "leafly" && isThinProfile(profile));
+}
+
+/**
+ * Should a refetched profile overwrite the cached entry? Thin→thin
+ * refetches (e.g. Leafly still down) keep the old timestamp so the
+ * entry ages out naturally instead of being pinned by a refreshed TTL.
+ */
+export function shouldPersistRefetch(
+  existing: StrainProfile | null | undefined,
+  refetched: StrainProfile,
+): boolean {
+  return existing == null || !isThinProfile(refetched);
 }
