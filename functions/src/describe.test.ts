@@ -6,17 +6,18 @@ import {
 } from "./index";
 
 describe("describeStrainPayload", () => {
-  test("strips communityNotes and redditSources — the description prompt does not need them", () => {
+  test("preserves full descriptions and includes community and Reddit evidence", () => {
+    const fullDescription = "A detailed source description. ".repeat(60);
     const payload = describeStrainPayload({
       name: "Blue Dream",
       inKnowledgeBase: true,
       type: "hybrid",
       thcRange: "17–24%",
-      description: "Classic daytime hybrid.",
+      description: fullDescription,
       communityNotes: [{ source: "Leafly", text: "Great for daytime." }],
       redditSources: [
         {
-          url: "https://old.reddit.com/r/trees/comments/abc/sample/",
+          url: "https://old.reddit.com/r/trees/comments/abcd/sample/",
           subreddit: "trees",
           title: "Blue Dream review",
         },
@@ -26,11 +27,17 @@ describe("describeStrainPayload", () => {
       name: "Blue Dream",
       type: "hybrid",
       thcRange: "17–24%",
-      description: "Classic daytime hybrid.",
+      description: fullDescription,
+      communityNotes: [{ source: "Leafly", text: "Great for daytime." }],
+      redditSources: [
+        {
+          url: "https://old.reddit.com/r/trees/comments/abcd/sample/",
+          subreddit: "trees",
+          title: "Blue Dream review",
+        },
+      ],
       noCuratedProfile: false,
     });
-    expect("communityNotes" in payload).toBe(false);
-    expect("redditSources" in payload).toBe(false);
   });
 
   test("keeps a true stub as name-only with noCuratedProfile flag", () => {
