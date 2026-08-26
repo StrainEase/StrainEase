@@ -3,7 +3,11 @@ import {
   clearStrainInfoCacheForTest,
   putCachedStrainProfile,
 } from "./strain-info-cache";
-import { fetchProfile, isThinProfile } from "./leafly";
+import {
+  clearLeaflyHtmlCacheForTest,
+  fetchProfile,
+  isThinProfile,
+} from "./leafly";
 import type { StrainProfile } from "./types";
 
 const THIN_DESCRIPTION =
@@ -49,10 +53,12 @@ const realFetch = globalThis.fetch;
 
 beforeEach(() => {
   clearStrainInfoCacheForTest();
+  clearLeaflyHtmlCacheForTest();
 });
 
 afterEach(() => {
   clearStrainInfoCacheForTest();
+  clearLeaflyHtmlCacheForTest();
   globalThis.fetch = realFetch;
 });
 

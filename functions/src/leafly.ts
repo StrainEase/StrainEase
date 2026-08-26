@@ -18,6 +18,15 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 // don't re-hit Leafly. Resets when the instance is recycled, which is fine.
 const htmlCache = new Map<string, { at: number; html: string }>();
 
+/**
+ * Restart the in-memory HTML cache. Exposed for tests; not used in prod.
+ * Other test files can populate this cache through fetchProfile, which
+ * would otherwise make fetch-count assertions order-dependent.
+ */
+export function clearLeaflyHtmlCacheForTest(): void {
+  htmlCache.clear();
+}
+
 // Leafly's response shape is documented only by their rendered HTML; we don't
 // have a schema to type against. `any` is intentional — every consumer below
 // narrows the fields it reads with explicit type checks.

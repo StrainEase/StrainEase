@@ -82,16 +82,17 @@ function preferAilmentNotes(
   if (notes.length === 0) return notes;
 
   // Target at least 8 community notes total, preferring a balance of
-  // cannabis-site (Leafly / Weedmaps) and Reddit sources (min ~4 each
-  // when available). Ailment-matched notes still rank first. Non-helpful
-  // / hype reviews are already filtered upstream in leafly.ts + reddit.ts.
+  // cannabis-site (Leafly / Weedmaps / Allbud) and Reddit sources
+  // (min ~4 each when available). Ailment-matched notes still rank
+  // first. Non-helpful / hype reviews are already filtered upstream
+  // in leafly.ts + reddit.ts + allbud.ts.
   const TARGET = 8;
   const MIN_PER_PLATFORM = 4;
 
   const kindOf = (n: CommunityNote) => n.kind ?? kindFromSource(n.source);
   const isSite = (n: CommunityNote) => {
     const k = kindOf(n);
-    return k === "leafly" || k === "weedmaps";
+    return k === "leafly" || k === "weedmaps" || k === "allbud";
   };
   const isReddit = (n: CommunityNote) => kindOf(n) === "reddit";
 
@@ -213,6 +214,8 @@ export function mergeProfiles(
     imageUrl: fallback("imageUrl"),
     leaflyRating: leafly?.leaflyRating,
     leaflyReviewCount: leafly?.leaflyReviewCount,
+    allbudRating: allbud?.allbudRating,
+    allbudReviewCount: allbud?.allbudReviewCount,
   };
 }
 
@@ -357,6 +360,8 @@ function applyResearch(
     ),
     leaflyRating: base.leaflyRating,
     leaflyReviewCount: base.leaflyReviewCount,
+    allbudRating: base.allbudRating,
+    allbudReviewCount: base.allbudReviewCount,
   };
 }
 
