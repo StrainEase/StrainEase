@@ -1,10 +1,8 @@
 // Groq Chat Completions client + JSON extraction helpers.
 //
 // We use the OpenAI-compatible endpoint at api.groq.com/openai/v1.
-// The chosen model is Groq's current Llama 3 70B-class model
-// (llama-3.3-70b-versatile). The original `llama3-70b-8192` is deprecated
-// on Groq; 3.3 70B is its spiritual successor and supports the
-// `response_format: json_object` mode we lean on for clean output.
+// The chosen model is Groq's GPT-OSS-120B (gpt-oss-120b), which supports
+// the `response_format: json_object` mode we lean on for clean output.
 //
 // All callers in this codebase demand strict JSON, so we always send
 // `response_format: { type: "json_object" }`. The system prompts already
@@ -13,7 +11,7 @@
 
 import { HttpsError } from "firebase-functions/v2/https";
 
-export const GROQ_MODEL = "llama-3.3-70b-versatile";
+export const GROQ_MODEL = "gpt-oss-120b";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export type ChatMessage = {
