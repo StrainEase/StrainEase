@@ -9,7 +9,11 @@ import {
   clearSourceCacheForTest,
   putSourceCache,
 } from "./source-cache";
-import { consolidateStrain } from "./consolidate";
+import {
+  consolidateStrain,
+  shouldPersistRefetch,
+  shouldRefetchSource,
+} from "./consolidate";
 import type { SourceId } from "./source-cache";
 import type { StrainProfile } from "./types";
 
@@ -195,6 +199,59 @@ describe("consolidateStrain — sources list + empty case", () => {
     const out = await consolidateStrain("Test Strain");
     expect(out).not.toBeNull();
     expect(out?.sources).toHaveLength(3);
+  });
+});
+
+describe("consolidateStrain — thin Leafly pre-defined description", () => {
+  const thin = (name = "X Strain"): StrainProfile => ({
+    name,
+    inKnowledgeBase: true,
+    description: "A single paragraph pre-defined description.",
+  });
+
+  test("refetches a cached Leafly slot that is only a thin description", () => {
+    expect(shouldRefetchSource("leafly", thin())).toBe(true);
+  });
+
+  test("reuses a full Leafly slot without refetching", () => {
+    expect(
+      shouldRefetchSource("leafly", {
+        name: "X",
+        inKnowledgeBase: true,
+        type: "hybrid",
+        medicalUses: ["Stress"],
+        effects: [{ name: "Relaxed", intensity: 3 }],
+      }),
+    ).toBe(false);
+  });
+
+  test("always fetches a missing slot, for every source", () => {
+    for (const s of ["leafly", "weedmaps", "allbud"] as SourceId[]) {
+      expect(shouldRefetchSource(s, undefined)).toBe(true);
+    }
+  });
+
+  test("trusts a present Weedmaps / Allbud slot even when thin", () => {
+    // Their thin profiles are the scraper's honest output — re-pulling
+    // them every request would just loop.
+    expect(shouldRefetchSource("weedmaps", thin())).toBe(false);
+    expect(shouldRefetchSource("allbud", thin())).toBe(false);
+  });
+
+  test("persists an upgrade of a thin slot", () => {
+    const existing = thin();
+    const upgraded = { ...existing, medicalUses: ["Stress"] };
+    expect(shouldPersistRefetch(existing, upgraded)).toBe(true);
+  });
+
+  test("does not pin a thin entry with a thin refetch (dead Leafly)", () => {
+    // A dead Leafly would otherwise keep refreshing the TTL and pin the
+    // thin profile forever; the old timestamp lets it expire.
+    expect(shouldPersistRefetch(thin(), thin())).toBe(false);
+  });
+
+  test("persists a fresh fetch when nothing was cached", () => {
+    expect(shouldPersistRefetch(undefined, thin())).toBe(true);
   });
 });
 
