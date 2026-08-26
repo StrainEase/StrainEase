@@ -1,7 +1,7 @@
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { documentTitle } from "@/lib/site";
-import logo from "@/assets/logo.svg";
+import { BrandLogo } from "@/components/BrandLogo";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { Link } from "react-router";
@@ -21,12 +21,9 @@ export default function NotFound() {
         noindex
       />
       <Link to="/" className="mb-10 flex items-center gap-2.5">
-        <img
-          src={logo}
+        <BrandLogo
           alt="StrainEase logo"
-          width={32}
-          height={32}
-          className="rounded-[10px]"
+          className="size-8 rounded-[10px]"
         />
         <span className="text-sm font-semibold tracking-tight">StrainEase</span>
       </Link>

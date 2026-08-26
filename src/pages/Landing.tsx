@@ -14,7 +14,7 @@ import { applyCatalogPhotos, CATALOG, topMedicalUses } from "@/lib/strain-catalo
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { TERPENE_PROFILES, terpeneSlug } from "@/lib/terpenes";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/logo.svg";
+import { BrandLogo } from "@/components/BrandLogo";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
@@ -347,13 +347,7 @@ function LandingNav({
     <header className="pointer-events-none fixed inset-x-0 top-0 z-40 px-4 pt-4 sm:px-6">
       <div className="pointer-events-auto mx-auto flex w-full max-w-5xl items-center justify-between rounded-full border border-border/70 bg-background/75 px-3 py-2 backdrop-blur-md md:px-4">
         <Link to="/" className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2">
-          <img
-            src={logo}
-            alt="StrainEase logo"
-            width={32}
-            height={32}
-            className="rounded-[10px]"
-          />
+          <BrandLogo className="size-8 rounded-[10px]" />
           <span className="text-[15px] font-semibold tracking-tight">
             StrainEase
           </span>
@@ -927,13 +921,7 @@ export default function Landing() {
         </div>
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 border-t border-border/60 px-6 py-8 sm:flex-row">
           <Link to="/" className="flex items-center gap-2.5">
-            <img
-              src={logo}
-              alt="StrainEase logo"
-              width={28}
-              height={28}
-              className="rounded-lg"
-            />
+            <BrandLogo className="size-7 rounded-lg" />
             <span className="text-sm font-semibold tracking-tight">
               StrainEase
             </span>

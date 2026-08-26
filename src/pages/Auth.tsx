@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
-import logo from "@/assets/logo.svg";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -160,12 +160,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             <CardHeader className="text-center">
               <div className="flex justify-center">
                 <Link to="/">
-                  <img
-                    src={logo}
+                  <BrandLogo
                     alt="StrainEase logo"
-                    width={64}
-                    height={64}
-                    className="mb-4 mt-4 rounded-lg"
+                    className="mb-4 mt-4 size-16 rounded-lg"
                   />
                 </Link>
               </div>
@@ -215,12 +212,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             <CardHeader className="text-center">
               <div className="flex justify-center">
                 <Link to="/">
-                  <img
-                    src={logo}
+                  <BrandLogo
                     alt="StrainEase logo"
-                    width={64}
-                    height={64}
-                    className="mb-4 mt-4 rounded-lg"
+                    className="mb-4 mt-4 size-16 rounded-lg"
                   />
                 </Link>
               </div>
