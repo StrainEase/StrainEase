@@ -257,7 +257,7 @@ function Gate({
                 max={new Date().toISOString().slice(0, 10)}
                 min="1900-01-01"
                 required
-                className="w-auto max-w-[12.5rem] min-w-0 pr-1 text-base [&::-webkit-datetime-edit]:min-w-0 [&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-calendar-picker-indicator]:ml-1"
+                className="w-full min-w-0 pr-1 text-base [&::-webkit-datetime-edit]:min-w-0 [&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-calendar-picker-indicator]:ml-1"
               />
             </Field>
 
