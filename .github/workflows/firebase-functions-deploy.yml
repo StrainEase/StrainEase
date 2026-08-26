@@ -1,6 +1,9 @@
-# Deploys the StrainEase backend (Firebase Cloud Functions + Firestore rules)
-# to Firebase whenever functions-related code lands on `main`, or on demand
-# via the Actions tab.
+# Validates Firebase backend changes on pull requests, then deploys the
+# StrainEase backend (Firebase Cloud Functions + Firestore rules) whenever
+# those changes land on `main`, or on demand via the Actions tab.
+#
+# A PR never deploys production directly. Merging the PR creates a push to
+# `main`, which runs the deploy job automatically.
 #
 # Required GitHub secrets:
 #   FIREBASE_SERVICE_ACCOUNT_KEY — JSON key for a Firebase deploy service
@@ -21,19 +24,60 @@ on:
     branches:
       - main
     paths:
-      - 'functions/**'
-      - 'firebase.json'
-      - '.github/workflows/firebase-functions-deploy.yml'
+      - "functions/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "storage.rules"
+      - ".github/workflows/firebase-functions-deploy.yml"
+  pull_request:
+    paths:
+      - "functions/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "storage.rules"
+      - ".github/workflows/firebase-functions-deploy.yml"
   workflow_dispatch:
 
 concurrency:
   group: firebase-functions-deploy-${{ github.workflow }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
-  deploy:
+  validate:
+    name: Validate Firebase Functions
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install & Build Functions
+        working-directory: functions
+        run: |
+          npm ci
+          npm run build
+
+  deploy:
+    name: Deploy Firebase Functions and Rules
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v7
@@ -55,7 +99,8 @@ jobs:
         # Pin a release tag - never @master (supply-chain + reproducibility).
         uses: w9jds/firebase-action@v15.23.0
         with:
-          # firestore:rules keeps the save/notes security rules in sync too.
-          args: deploy --only functions,firestore:rules --project "${{ secrets.FIREBASE_PROJECT_ID }}" --force
+          # Deploy all Firebase targets represented in this workflow's path
+          # filter: Functions, Firestore rules/indexes, and Storage rules.
+          args: deploy --only functions,firestore,storage --project "${{ secrets.FIREBASE_PROJECT_ID }}" --force
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
