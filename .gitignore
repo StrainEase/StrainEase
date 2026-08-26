@@ -37,6 +37,9 @@ functions/lib
 .env.*
 !.env.example
 
+# Generated AI context (task briefs remain shareable)
+.ai/context.md
+
 # Xcode / iOS
 DerivedData/
 xcuserdata/

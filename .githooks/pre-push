@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+if [ "${AI_SKIP_HOOKS:-}" = "1" ]; then
+  exit 0
+fi
+
+bun tsc -b --noEmit
