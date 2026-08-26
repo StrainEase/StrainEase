@@ -20,15 +20,15 @@ import com.google.firebase.FirebaseOptions
  *   `FirebaseBootstrap.configure(this)`
  */
 object FirebaseBootstrap {
-    const val API_KEY = "AIzaSyAVeoQkXYi3eMRaINsvDBNxbKX2XrTatBM" // matches iOS
+    // Values match `android/app/google-services.json` for the
+    // `com.strainwise.app` Android client registered against the
+    // shared `strainfinder-84a9b` Firebase project.
+    const val API_KEY = "AIzaSyAPKxwr0P4xLYijch3cFa2g0ldhqelc0aA"
     const val PROJECT_ID = "strainfinder-84a9b"
     const val GCM_SENDER_ID = "89734321536"
-    // Android client id registered for `com.strainwise.app` in the
-    // shared Firebase project. Distinct from the iOS bundle's app id
-    // (`1:89734321536:ios:…`) and the web app id.
-    const val GOOGLE_APP_ID = "1:89734321536:android:0000000000000000000000"
-    const val GOOGLE_CLIENT_ID = "89734321536-s3njeabohn98bd8s0rqh05diur2mk9h2.apps.googleusercontent.com"
-    const val STORAGE_BUCKET = "strainfinder-84a9b.appspot.com"
+    const val GOOGLE_APP_ID = "1:89734321536:android:279b629e98727a43e31d65"
+    const val GOOGLE_CLIENT_ID = "89734321536-l42t2nlfigvngag1so9stlok42cbp8o2.apps.googleusercontent.com"
+    const val STORAGE_BUCKET = "strainfinder-84a9b.firebasestorage.app"
 
     @Volatile
     var isConfigured: Boolean = false

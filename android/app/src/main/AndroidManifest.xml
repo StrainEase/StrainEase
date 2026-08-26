@@ -33,15 +33,16 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.StrainWise.Splash"
+        android:theme="@style/Theme.StrainWise"
         tools:targetApi="34">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:label=""
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|keyboard|keyboardHidden|navigation"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.StrainWise.Splash">
+            android:theme="@style/Theme.StrainWise">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

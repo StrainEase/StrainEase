@@ -1,6 +1,7 @@
 package com.strainwise.app.compliance
 
 import android.content.Context
+import com.strainwise.app.BuildConfig
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -67,6 +68,9 @@ private val AGE_RECORD_KEY = stringPreferencesKey("age_record_v1")
  *    120 (typo guard).
  *  - [reset] wipes the record; used by the Compliance footer
  *    "Reset age verification" action.
+ *  - [seedIfNeeded] pre-populates a valid record in debug builds
+ *    so the age gate is bypassed during development. No-op in
+ *    release builds — production logic is unaffected.
  */
 class AgeVerificationStore(private val context: Context) {
 
@@ -88,8 +92,33 @@ class AgeVerificationStore(private val context: Context) {
         record = context.ageDataStore.data.first()[AGE_RECORD_KEY]?.let { decode(it) }
     }
 
+    /**
+     * Development shortcut: if no valid record exists, seed one that
+     * passes [isVerified]. No-op in release builds — production age
+     * gate logic is untouched.
+     *
+     * Call once at startup (e.g. from `RootView`) before the gate
+     * decision is evaluated.
+     */
+    suspend fun seedIfNeeded() {
+        if (isVerified) return
+        if (!BuildConfig.DEBUG) return
+        val now = System.currentTimeMillis()
+        val seed = AgeVerificationRecord(
+            region = AgeRegion.US,
+            birthDate = LocalDate.now(ZoneId.systemDefault())
+                .minusYears(25).format(DateTimeFormatter.ISO_LOCAL_DATE),
+            attestedAt = now,
+            expiresAt = now + TTL_MS,
+            termsAcceptedAt = now,
+            privacyAcceptedAt = now,
+        )
+        persist(seed)
+    }
+
     val isVerified: Boolean
         get() {
+            if (BuildConfig.DEBUG) return true  // bypass gate in debug builds
             val r = record ?: return false
             return r.expiresAt > System.currentTimeMillis()
         }

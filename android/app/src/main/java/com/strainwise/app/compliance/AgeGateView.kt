@@ -147,7 +147,7 @@ private fun header() {
         )
         Text(
             text = "StrainEase provides cannabis research information intended for adults of legal age in their jurisdiction. Please confirm your age before continuing.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = StrainWiseTypography.bodyLarge.copy(fontSize = 15.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

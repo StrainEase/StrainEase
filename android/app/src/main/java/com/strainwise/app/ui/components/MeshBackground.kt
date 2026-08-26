@@ -37,35 +37,27 @@ fun MeshBackground(
             .fillMaxSize()
             .background(bg),
     ) {
-        // Top-right orb: anchored above the top-right corner, large
-        // radial fade. The iOS source uses
-        //   RadialGradient(colors: [..., .clear], center: .topTrailing,
-        //                  startRadius: 20, endRadius: 420)
-        //   .offset(x: 40, y: -80)
-        // so the orb is centered ~40dp past the right edge, 80dp
-        // above the top. We approximate that with a 2x parent-sized
-        // Box pinned to the top-right.
+        // Top-right orb: mint glow from the top-right corner.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.radialGradient(
                         colors = listOf(glowMint, Color.Transparent),
-                        center = androidx.compose.ui.geometry.Offset(0.85f, 0.15f),
-                        radius = 700f,
+                        center = androidx.compose.ui.geometry.Offset(1.1f, -0.05f),
+                        radius = 750f,
                     ),
                 ),
         )
-        // Bottom-left orb: centered ~30dp past the left edge, 120dp
-        // below the bottom.
+        // Bottom-left orb: deep glow from the bottom-left corner.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.radialGradient(
                         colors = listOf(glowDeep, Color.Transparent),
-                        center = androidx.compose.ui.geometry.Offset(0.15f, 0.85f),
-                        radius = 650f,
+                        center = androidx.compose.ui.geometry.Offset(-0.1f, 1.05f),
+                        radius = 700f,
                     ),
                 ),
         )
