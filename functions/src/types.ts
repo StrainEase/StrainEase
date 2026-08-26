@@ -55,6 +55,10 @@ export type StrainProfile = {
   leaflyRating?: number;
   /** Leafly published review count for the star rating. */
   leaflyReviewCount?: number;
+  /** Allbud aggregate rating (0–5). Not a patient quote. */
+  allbudRating?: number;
+  /** Allbud published review count for the star rating. */
+  allbudReviewCount?: number;
   /**
    * Sources that contributed to the consolidated fields. Populated
    * only when the consolidator ran (i.e. when at least one source

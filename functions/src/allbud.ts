@@ -179,8 +179,12 @@ function communityFrom(
   effects: string[],
   medical: string[],
   flavors: string[],
-  lead: string | undefined,
 ): CommunityNote[] {
+  // Note: we deliberately do NOT attach the listing's lead paragraph as
+  // a community note — that's the strain's marketing description, which
+  // already renders as the profile `description`. The notes here carry
+  // only the patient-tag aggregates; actual customer reviews come from
+  // reviewNotesFrom() below.
   const notes: CommunityNote[] = [];
   if (effects.length > 0) {
     notes.push({
@@ -200,13 +204,116 @@ function communityFrom(
       text: `Flavor profile: ${flavors.slice(0, 4).join(", ")}.`,
     });
   }
-  if (lead) {
-    notes.push({
-      source: "Allbud listing",
-      text: firstSentences(lead, 280),
+  return notes;
+}
+
+/**
+ * The aggregate rating block in the strain header + reviews panel:
+ *   <span class="rating-num">4.6</span>
+ *   <div id="title-rateit-102" class="rateit_map rateit"
+ *        data-rateit-value="4.64570737606" ...></div>
+ *   <span class="rating-votes">
+ *     <span class="product-rating-votes">135</span>
+ *     <span class="product-rating-votes-text">votes</span>
+ *     <span class="product-rating-votes-delimiter">| </span>
+ *     <span >84</span> reviews
+ *   </span>
+ * The display span is already rounded for the UI; the rateit widget
+ * carries the full-precision value as a fallback. Everything else in
+ * the block is optional — a strain with no votes simply has no
+ * aggregate numbers, which is a valid state.
+ */
+function readReviewSummary(html: string): {
+  allbudRating?: number;
+  allbudReviewCount?: number;
+} {
+  const out: { allbudRating?: number; allbudReviewCount?: number } = {};
+  const num = html.match(
+    /<span class="rating-num"[^>]*>\s*([\d.]+)\s*<\/span>/i,
+  );
+  if (num) {
+    const v = parseFloat(num[1]);
+    if (Number.isFinite(v)) out.allbudRating = Math.round(v * 10) / 10;
+  }
+  if (out.allbudRating === undefined) {
+    const rate = html.match(
+      /<div id="title-rateit-[^"]*"[^>]*data-rateit-value="([\d.]+)"/i,
+    );
+    if (rate) {
+      const v = parseFloat(rate[1]);
+      if (Number.isFinite(v)) out.allbudRating = Math.round(v * 10) / 10;
+    }
+  }
+  // "135 votes | 84 reviews" — the count sits inside rating-votes.
+  const votes = html.match(
+    /<span class="rating-votes">[\s\S]*?<span\s*>([\d,]+)<\/span>\s*reviews/i,
+  );
+  if (votes) {
+    const n = parseInt(votes[1].replace(/,/g, ""), 10);
+    if (Number.isFinite(n)) out.allbudReviewCount = n;
+  }
+  return out;
+}
+
+function clipReview(text: string, max = 280): string {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= max) return cleaned;
+  const cut = cleaned.slice(0, max);
+  const lastStop = Math.max(
+    cut.lastIndexOf(". "),
+    cut.lastIndexOf("! "),
+    cut.lastIndexOf("? "),
+  );
+  if (lastStop > 80) return cut.slice(0, lastStop + 1).trim();
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+}
+
+/**
+ * Written patient reviews from the strain page's review list. Each
+ * entry is an <article class="infopanel review"> holding a star widget,
+ * the review body in <p class="text">, and a byline with the author:
+ *   <article class="infopanel review mobile-panel">
+ *     <div class="title"><div class="rateit_map rateit"
+ *          data-rateit-value="5" ...></div></div>
+ *     <p class="text">Bought a half oz for my joint pain ...</p>
+ *     <div class="byline pull-left-sm">
+ *       <span class="author"><span >robow1zard</span></span> ...
+ *     </div>
+ *   </article>
+ * Returns at most 8 notes, mirroring the Leafly cap. Reviews with no
+ * usable body text are dropped; everything else becomes a first-person
+ * patient note attributed to the reviewer.
+ */
+function reviewNotesFrom(html: string): CommunityNote[] {
+  const out: CommunityNote[] = [];
+  const articleRe = /<article class="infopanel review[\s\S]*?<\/article>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = articleRe.exec(html)) !== null && out.length < 8) {
+    const block = m[0];
+    const text = compressWhitespace(
+      stripTags(
+        htmlDecode(
+          block.match(/<p class="text"[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? "",
+        ),
+      ),
+    );
+    if (text.length < 40) continue;
+    const author = compressWhitespace(
+      stripTags(
+        htmlDecode(
+          block.match(
+            /<span class="author"[^>]*>([\s\S]*?)<\/span>/i,
+          )?.[1] ?? "",
+        ),
+      ),
+    );
+    out.push({
+      source: author ? `Allbud review · ${author}` : "a Allbud reviewer",
+      text: clipReview(text),
     });
   }
-  return notes;
+  return out;
 }
 
 function toProfile(html: string): StrainProfile | null {
@@ -235,6 +342,7 @@ function toProfile(html: string): StrainProfile | null {
   const lineage = readLineage(leadPlain ?? title);
   const { type } = readVariety(html);
   const { thc, cbd } = readCannabinoids(html);
+  const reviewSummary = readReviewSummary(html);
 
   // Pull the canonical name from the title; Allbud formats it
   // "Blue Dream Marijuana Strain Information - Allbud".
@@ -255,7 +363,12 @@ function toProfile(html: string): StrainProfile | null {
       ? effects.slice(0, 5).map((name) => ({ name, intensity: 3 }))
       : undefined,
     description: leadPlain ? firstSentences(leadPlain) : undefined,
-    communityNotes: communityFrom(effects, medical, flavors, leadPlain),
+    communityNotes: [
+      ...communityFrom(effects, medical, flavors),
+      ...reviewNotesFrom(html),
+    ],
+    allbudRating: reviewSummary.allbudRating,
+    allbudReviewCount: reviewSummary.allbudReviewCount,
   };
 }
 

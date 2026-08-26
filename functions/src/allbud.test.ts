@@ -10,6 +10,40 @@ import {
 // Build a small but representative Allbud page so the parser is
 // exercised end-to-end without a network call. Real Allbud HTML
 // (from live probes) is used as the template.
+// Representative reviews section copied from a live Allbud strain page
+// (Bubba Kush): the aggregate rating block plus two written reviews with
+// star widgets, body text, and author bylines.
+function reviewsHtml(): string {
+  return `
+  <span class="ratings-summary "><div class="detail-rating-num collapse">4.6</div>
+    <span class="rating-num">4.6</span>
+    <div id="title-rateit-102" class="rateit_map rateit" data-rateit-value="4.64570737606" data-rateit-readonly="true"></div>
+    <span class="rating-votes">
+      <span class="product-rating-votes">
+        135
+      </span><span class="product-rating-votes-text">votes</span><span class="product-rating-votes-delimiter">| </span><span >84</span> reviews
+    </span>
+  </span>
+  <article class="infopanel review mobile-panel">
+    <div class="body">
+      <div class="title"><div class="rateit_map rateit" data-rateit-value="5" data-rateit-readonly="true"></div></div>
+      <p class="text">
+        Bought a half oz for my joint pain and I will say I am quite enjoying. Definitely a nice light bubbly head high with a relaxing body high. Feels super good, would definitely recommend.
+      </p>
+      <div class="clearfix"></div>
+      <div class="byline pull-left-sm"><span class="author"><span>robow1zard</span></span><span class="post-date">&nbsp; - <span>June 30, 2026, 11:24 a.m.</span></span></div>
+    </div>
+  </article>
+  <hr class="hr-thin">
+  <article class="infopanel review mobile-panel">
+    <div class="body">
+      <div class="title"><div class="rateit_map rateit" data-rateit-value="4" data-rateit-readonly="true"></div></div>
+      <p class="text">Nice relaxing indica. One of the best strains I have smoked. It packs a punch and numbs the brain n body.</p>
+      <div class="byline pull-left-sm"><span class="author"><span>DelGriffith87</span></span><span class="post-date">&nbsp; - <span>May 14, 2026, 4:49 p.m.</span></span></div>
+    </div>
+  </article>`;
+}
+
 function allbudHtml(opts: {
   title: string;
   variety: string;
@@ -18,6 +52,7 @@ function allbudHtml(opts: {
   medical: string[];
   flavors: string[];
   lead: string;
+  reviews?: string;
 }): string {
   const renderTags = (prefix: string, items: string[], kind: string) => {
     const links = items
@@ -47,11 +82,12 @@ function allbudHtml(opts: {
   ${renderTags("positive_effects", opts.effects, "effect")}
   ${renderTags("relieved_symptoms", opts.medical, "symptom")}
   ${renderTags("strain_flavors", opts.flavors, "flavor")}
+  ${opts.reviews ?? ""}
 </body>
 </html>`;
 }
 
-const SAMPLE_BLUE_DREAM = allbudHtml({
+const SAMPLE_BLUE_DREAM_OPTS = {
   title: "Blue Dream",
   variety: "Sativa Dominant Hybrid - 60% Sativa / 40% Indica",
   percentage: "THC: 17% - 24%, CBD: 2 %, CBN: 1 %",
@@ -60,7 +96,9 @@ const SAMPLE_BLUE_DREAM = allbudHtml({
   flavors: ["Blueberry", "Berry", "Earthy"],
   lead:
     "Blue Dream is a sativa dominant hybrid (60% sativa/40% indica) strain. This infamous bud boasts a moderately high THC level.",
-});
+};
+
+const SAMPLE_BLUE_DREAM = allbudHtml(SAMPLE_BLUE_DREAM_OPTS);
 
 // Replace the percentage h4 content with the actual Allbud text so
 // the per-test data controls what the parser sees. The fixture
@@ -103,6 +141,12 @@ describe("fetchAllbudProfile", () => {
     ]);
     expect(profile.medicalUses).toEqual(["Anxiety", "Depression", "Pain"]);
     expect(profile.communityNotes?.length).toBeGreaterThan(0);
+    // The listing's marketing description must NOT appear as a community
+    // note — it already renders as `description`, and the notes section
+    // is reserved for real customer reviews + tag aggregates.
+    expect(
+      profile.communityNotes?.some((n) => n.source === "Allbud listing"),
+    ).toBe(false);
   });
 
   test("returns null when all four species paths miss", async () => {
@@ -165,5 +209,60 @@ describe("fetchAllbudProfile", () => {
     const { fetchAllbudProfile } = await import("./allbud");
     const profile = await fetchAllbudProfile("Anything");
     expect(profile).toBeNull();
+  });
+
+  test("parses the aggregate rating and review count from the reviews block", async () => {
+    fetchMock = mock(
+      async () =>
+        new Response(
+          allbudHtml({
+            ...SAMPLE_BLUE_DREAM_OPTS,
+            reviews: reviewsHtml(),
+          }),
+          { status: 200 },
+        ),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const { fetchAllbudProfile } = await import("./allbud");
+    const profile = await fetchAllbudProfile("Bubba Kush");
+    expect(profile?.allbudRating).toBe(4.6);
+    expect(profile?.allbudReviewCount).toBe(84);
+  });
+
+  test("converts written reviews into community notes with author attribution", async () => {
+    fetchMock = mock(
+      async () =>
+        new Response(
+          allbudHtml({
+            ...SAMPLE_BLUE_DREAM_OPTS,
+            reviews: reviewsHtml(),
+          }),
+          { status: 200 },
+        ),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const { fetchAllbudProfile } = await import("./allbud");
+    const profile = await fetchAllbudProfile("Bubba Kush");
+    const reviewNotes = (profile?.communityNotes ?? []).filter((n) =>
+      n.source.startsWith("Allbud review"),
+    );
+    expect(reviewNotes.length).toBe(2);
+    expect(reviewNotes[0].source).toBe("Allbud review · robow1zard");
+    expect(reviewNotes[0].text).toContain("joint pain");
+    expect(reviewNotes[1].source).toBe("Allbud review · DelGriffith87");
+    // Curated effect/use notes still ride along beside the reviews.
+    expect(profile?.communityNotes?.length).toBeGreaterThan(2);
+  });
+
+  test("leaves rating and review fields empty when no reviews exist", async () => {
+    const { fetchAllbudProfile } = await import("./allbud");
+    const profile = await fetchAllbudProfile("Blue Dream");
+    expect(profile?.allbudRating).toBeUndefined();
+    expect(profile?.allbudReviewCount).toBeUndefined();
+    expect(
+      (profile?.communityNotes ?? []).some((n) =>
+        n.source.startsWith("Allbud review"),
+      ),
+    ).toBe(false);
   });
 });

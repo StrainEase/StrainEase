@@ -194,12 +194,15 @@ function buildDescriptionAttribution(
 function buildRatingAttribution(
   cache: Partial<Record<SourceId, StrainProfile | null>>,
 ): FieldAttribution | undefined {
-  // Only Leafly publishes an aggregate rating today. The other
-  // sources may add one in the future — keep the wiring so the
-  // attribution block is ready when they do.
+  // Ratings stay source-attributed rather than averaged: Leafly's
+  // aggregate lives in `leaflyRating`, Allbud's in `allbudRating`,
+  // and blending them into a single "leaflyRating" would mislabel
+  // the number. This helper only fires when multiple sources happen
+  // to publish into the same field (none do today), so the
+  // attribution block is ready if a source is ever merged.
   const sources: { source: SourceId; raw: number }[] = [];
   for (const s of SOURCE_ORDER) {
-    const r = cache[s]?.leaflyRating;
+    const r = s === "leafly" ? cache[s]?.leaflyRating : undefined;
     if (typeof r === "number" && Number.isFinite(r)) {
       sources.push({ source: s, raw: r });
     }
@@ -391,6 +394,8 @@ export async function consolidateStrain(
     leaflyRating: ratingAttribution?.value as number | undefined ??
       pickFirst(profiles, (p) => p.leaflyRating),
     leaflyReviewCount: pickFirst(profiles, (p) => p.leaflyReviewCount),
+    allbudRating: pickFirst(profiles, (p) => p.allbudRating),
+    allbudReviewCount: pickFirst(profiles, (p) => p.allbudReviewCount),
     sources: present,
     sourceAttribution: hasAttribution
       ? {
