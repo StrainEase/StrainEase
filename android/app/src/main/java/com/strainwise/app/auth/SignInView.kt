@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -84,7 +86,8 @@ fun SignInView(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp, vertical = 28.dp),
+                .padding(horizontal = 22.dp)
+                .padding(top = 80.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             header(mode)
@@ -160,18 +163,32 @@ private enum class Mode {
 
 @Composable
 private fun header(mode: Mode) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // App logo. We use the iOS AppLogo image as a placeholder
-        // asset (copied into drawable/). PR-A13 swaps in a proper
-        // vector logo.
-        androidx.compose.foundation.Image(
-            painter = painterResource(R.drawable.ic_launcher_foreground),
-            contentDescription = "StrainEase",
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // App icon — brand-green squircle with the white-tinted
+        // leaf silhouette on top, left-aligned. The green tile
+        // is rendered in Compose (not via a layer-list drawable,
+        // which `painterResource` can't load) and the white
+        // silhouette is drawn on top with an 8dp inset so the
+        // leaf sits in the same safe-zone the launcher uses.
+        Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp)),
-        )
-        Eyebrow(text = "StrainEase")
+                .size(104.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center,
+        ) {
+            androidx.compose.foundation.Image(
+                painter = painterResource(R.drawable.ic_signin_logo_tinted),
+                contentDescription = "StrainEase",
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxSize(),
+            )
+        }
+        Eyebrow(text = "STRAINEASE")
         Text(
             text = mode.title,
             style = MaterialTheme.typography.displaySmall,
@@ -192,6 +209,10 @@ private fun socialProviders(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // Google button: pill on card background with a border.
+        // The G glyph and the label sit as a centered group, with
+        // matching spacers on either side so the label is centered
+        // horizontally. Matches the iOS `Continue with Google`
+        // button visual.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -202,18 +223,22 @@ private fun socialProviders(
                 .clickable(enabled = !isBusy, onClick = onGoogle)
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            // Leading spacer mirrors the G glyph's width so the
+            // label sits exactly centered in the button.
+            Spacer(Modifier.width(20.dp))
             Text(
                 text = "G",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.primary,
             )
+            Spacer(Modifier.width(10.dp))
             Text(
                 text = "Continue with Google",
                 style = StrainWiseTypography.titleSmall.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
             if (isBusy) {
@@ -222,6 +247,9 @@ private fun socialProviders(
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = 2.dp,
                 )
+                Spacer(Modifier.width(0.dp))
+            } else {
+                Spacer(Modifier.width(20.dp))
             }
         }
         // Note: Apple is intentionally NOT shown on Android. The
