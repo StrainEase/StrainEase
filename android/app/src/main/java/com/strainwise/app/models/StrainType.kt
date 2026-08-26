@@ -1,5 +1,6 @@
 package com.strainwise.app.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -16,11 +17,22 @@ import kotlinx.serialization.Serializable
  * `Hybrid` is the default fallback when the type is missing or
  * unrecognized, mirroring the iOS
  * `TypeStyle.color(for:)` behavior.
+ *
+ * Wire format mapping: each variant carries an explicit
+ * `@SerialName` so kotlinx.serialization round-trips the
+ * backend's lowercase strings instead of failing with
+ * "does not contain element with name 'hybrid'". The iOS
+ * `CodingKeys` does the same on Swift's side.
  */
 @Serializable
 enum class StrainType {
+    @SerialName("indica")
     Indica,
+
+    @SerialName("sativa")
     Sativa,
+
+    @SerialName("hybrid")
     Hybrid;
 
     /** Raw wire value, lowercase, matches the backend. */

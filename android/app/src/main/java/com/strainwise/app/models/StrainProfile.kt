@@ -16,6 +16,15 @@ import kotlinx.serialization.Serializable
  * `popularStrains()` carries only `name`, `type`, `thcRange`, and
  * `medicalUses`; the rest is filled in later by `searchStrain()` or
  * `describeStrainForUser()`. See [isPartial].
+ *
+ * NOTE: do NOT add a `private companion object` to this class. The
+ * kotlinx.serialization plugin generates a public `Companion`
+ * implementing `KSerializer<StrainProfile>` that
+ * `LiveStrainAPI.call<StrainProfile>()` reaches for via
+ * `serializer<T>()`. A user-declared private companion shadows the
+ * generated one and breaks runtime deserialization with
+ * "Field 'StrainProfile.Companion' is inaccessible" — keep helpers
+ * at file scope (see [STARS_REGEX] / [REVIEW_COUNT_REGEX] below).
  */
 @Serializable
 data class StrainProfile(
@@ -111,9 +120,9 @@ data class StrainProfile(
         StrainType.Sativa -> "Sativa"
         StrainType.Hybrid -> "Hybrid"
     }
-
-    private companion object {
-        val STARS_REGEX = Regex("""(\d+(?:\.\d+)?)★""")
-        val REVIEW_COUNT_REGEX = Regex("""([\d,]+)\s+reviews""")
-    }
 }
+
+// File-scope (not in a companion) so kotlinx.serialization's
+// generated `Companion` stays public and reachable.
+private val STARS_REGEX = Regex("""(\d+(?:\.\d+)?)★""")
+private val REVIEW_COUNT_REGEX = Regex("""([\d,]+)\s+reviews""")

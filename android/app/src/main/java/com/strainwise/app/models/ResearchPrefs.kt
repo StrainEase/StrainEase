@@ -1,5 +1,6 @@
 package com.strainwise.app.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -8,9 +9,13 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 enum class TimeOfDay(val wire: String) {
+    @SerialName("anytime")
     Anytime("anytime"),
+    @SerialName("morning")
     Morning("morning"),
+    @SerialName("afternoon")
     Afternoon("afternoon"),
+    @SerialName("night")
     Night("night");
 
     val label: String
@@ -32,10 +37,15 @@ enum class TimeOfDay(val wire: String) {
  */
 @Serializable
 enum class ConsumeForm(val wire: String) {
+    @SerialName("any")
     Any("any"),
+    @SerialName("flower")
     Flower("flower"),
+    @SerialName("cart")
     Cart("cart"),
+    @SerialName("edible")
     Edible("edible"),
+    @SerialName("tincture")
     Tincture("tincture");
 
     val label: String
@@ -59,8 +69,11 @@ enum class ConsumeForm(val wire: String) {
  */
 @Serializable
 enum class ThcSensitivity(val wire: String) {
+    @SerialName("typical")
     Typical("typical"),
+    @SerialName("anxious-high-thc")
     AnxiousHighThc("anxious-high-thc"),
+    @SerialName("experienced")
     Experienced("experienced");
 
     val label: String
@@ -90,9 +103,13 @@ enum class ThcSensitivity(val wire: String) {
  */
 @Serializable
 enum class Potency(val wire: String) {
+    @SerialName("")
     Any(""),
+    @SerialName("mild")
     Mild("mild"),
+    @SerialName("balanced")
     Balanced("balanced"),
+    @SerialName("strong")
     Strong("strong");
 
     val label: String
