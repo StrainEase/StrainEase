@@ -90,7 +90,7 @@ class ReliefLogStore(private val context: Context) {
         }
     }
 
-    suspend fun forStrain(name: String): List<ReliefLog> =
+    fun forStrain(name: String): List<ReliefLog> =
         log.filter { it.strainName.equals(name, ignoreCase = true) }
 
     private fun decode(raw: String): List<ReliefLog> = try {
