@@ -1,5 +1,6 @@
 package com.strainwise.app.app
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -49,6 +50,7 @@ fun MainTabView() {
     val recents = remember { com.strainwise.app.data.RecentlyViewedStore(app) }
     val findModel = remember { com.strainwise.app.ui.find.FindModel() }
     val directoryModel = remember { com.strainwise.app.ui.browse.DirectoryModel() }
+    val compareStore = remember { com.strainwise.app.ui.compare.CompareSelectionStore() }
     val savedAilments = remember { com.strainwise.app.data.SavedAilmentsStore(app) }
     val savedMedications = remember { com.strainwise.app.data.SavedMedicationsStore(app) }
     val relief = remember { com.strainwise.app.data.ReliefLogStore(app) }
@@ -58,29 +60,37 @@ fun MainTabView() {
             modifier = Modifier.fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ) {
-                    AppTab.entries.forEach { tab ->
-                        NavigationBarItem(
-                            selected = selected == tab,
-                            onClick = { selected = tab },
-                            icon = {
-                                Icon(
-                                    imageVector = tab.systemImage,
-                                    contentDescription = tab.title,
-                                )
-                            },
-                            label = { Text(tab.title) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
+                Column {
+                    com.strainwise.app.ui.compare.CompareTrayBar(
+                        store = compareStore,
+                        api = com.strainwise.app.StrainWiseApplication.strainAPI,
+                        savedAilments = savedAilments,
+                        savedMedications = savedMedications,
+                    )
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ) {
+                        AppTab.entries.forEach { tab ->
+                            NavigationBarItem(
+                                selected = selected == tab,
+                                onClick = { selected = tab },
+                                icon = {
+                                    Icon(
+                                        imageVector = tab.systemImage,
+                                        contentDescription = tab.title,
+                                    )
+                                },
+                                label = { Text(tab.title) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primary,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                            )
+                        }
                     }
                 }
             },
