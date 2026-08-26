@@ -150,6 +150,22 @@ describe("describePrompt", () => {
     const prompt = describePrompt(strain, [], ["Atorvastatin"], "");
     expect(prompt).toContain("Atorvastatin");
   });
+
+  test("keeps up to six side effects in the description payload", () => {
+    const payload = describeStrainPayload({
+      name: "Side Effect Test",
+      inKnowledgeBase: true,
+      sideEffects: Array.from({ length: 8 }, (_, i) => `side-effect-${i}`),
+    });
+    expect(payload.sideEffects).toEqual([
+      "side-effect-0",
+      "side-effect-1",
+      "side-effect-2",
+      "side-effect-3",
+      "side-effect-4",
+      "side-effect-5",
+    ]);
+  });
 });
 
 describe("DESCRIBE_SYSTEM_PROMPT", () => {

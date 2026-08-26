@@ -695,7 +695,7 @@ const PROMPT_TERPENE_PROFILE_MAX = 80;
 const PROMPT_TERPENES_MAX = 5;
 const PROMPT_EFFECTS_MAX = 6;
 const PROMPT_MEDICAL_USES_MAX = 6;
-const PROMPT_SIDE_EFFECTS_MAX = 4;
+const PROMPT_SIDE_EFFECTS_MAX = 6;
 
 function capString(value: string | undefined, max: number): string | undefined {
   if (typeof value !== "string" || value.length <= max) return value;
