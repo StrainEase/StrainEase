@@ -704,6 +704,64 @@ function prefsBlock(prefs: ResearchPrefs | undefined): string {
   return lines.join("\n");
 }
 
+/**
+ * Cap the per-strain fields we send to the LLM so a single rich profile
+ * doesn't blow past Groq's free-tier 8K TPM budget. Catalog rows are
+ * small on their own, but a real Leafly description can run 3-5K chars,
+ * terpenes list a long `profile` per entry, and communityNotes grow
+ * unbounded. These caps keep the user message under ~3K tokens per
+ * strain with the typical mix of fields populated.
+ */
+const PROMPT_DESCRIPTION_MAX = 800;
+const PROMPT_COMMUNITY_NOTE_TEXT_MAX = 280;
+const PROMPT_COMMUNITY_NOTES_MAX = 2;
+const PROMPT_TERPENE_PROFILE_MAX = 80;
+const PROMPT_TERPENES_MAX = 5;
+const PROMPT_EFFECTS_MAX = 6;
+const PROMPT_MEDICAL_USES_MAX = 6;
+const PROMPT_SIDE_EFFECTS_MAX = 4;
+
+function capString(value: string | undefined, max: number): string | undefined {
+  if (typeof value !== "string" || value.length <= max) return value;
+  return value.slice(0, max - 1).trimEnd() + "…";
+}
+
+function compactStrainFields(row: Record<string, unknown>): Record<string, unknown> {
+  if (typeof row.description === "string") {
+    row.description = capString(row.description, PROMPT_DESCRIPTION_MAX);
+  }
+  if (Array.isArray(row.terpenes)) {
+    row.terpenes = (row.terpenes as Array<Record<string, unknown>>)
+      .slice(0, PROMPT_TERPENES_MAX)
+      .map((t) => {
+        if (t && typeof t === "object" && "profile" in t) {
+          return { ...t, profile: capString(t.profile as string | undefined, PROMPT_TERPENE_PROFILE_MAX) };
+        }
+        return t;
+      });
+  }
+  if (Array.isArray(row.effects)) {
+    row.effects = (row.effects as unknown[]).slice(0, PROMPT_EFFECTS_MAX);
+  }
+  if (Array.isArray(row.medicalUses)) {
+    row.medicalUses = (row.medicalUses as string[]).slice(0, PROMPT_MEDICAL_USES_MAX);
+  }
+  if (Array.isArray(row.sideEffects)) {
+    row.sideEffects = (row.sideEffects as string[]).slice(0, PROMPT_SIDE_EFFECTS_MAX);
+  }
+  if (Array.isArray(row.communityNotes)) {
+    row.communityNotes = (row.communityNotes as Array<Record<string, unknown>>)
+      .slice(0, PROMPT_COMMUNITY_NOTES_MAX)
+      .map((n) => {
+        if (n && typeof n === "object" && "text" in n) {
+          return { ...n, text: capString(n.text as string | undefined, PROMPT_COMMUNITY_NOTE_TEXT_MAX) };
+        }
+        return n;
+      });
+  }
+  return row;
+}
+
 export function compareStrainPayload(s: StrainProfile) {
   const hasBody = Boolean(
     s.inKnowledgeBase ||
@@ -714,7 +772,7 @@ export function compareStrainPayload(s: StrainProfile) {
       (s.communityNotes && s.communityNotes.length > 0),
   );
   if (!hasBody) return { name: s.name, noCuratedProfile: true as const };
-  return {
+  return compactStrainFields({
     name: s.name,
     type: s.type,
     thcRange: s.thcRange,
@@ -730,7 +788,7 @@ export function compareStrainPayload(s: StrainProfile) {
     sourceAttribution: s.sourceAttribution,
     sources: s.sources,
     noCuratedProfile: !s.inKnowledgeBase,
-  };
+  });
 }
 
 function comparePrompt(
@@ -775,16 +833,18 @@ function recommendPrompt(
   potency: string | undefined,
   prefs?: ResearchPrefs,
 ): string {
-  const payload = strains.map((s) => ({
-    name: s.name,
-    type: s.type,
-    thcRange: s.thcRange,
-    cbdRange: s.cbdRange,
-    terpenes: s.terpenes,
-    medicalUses: s.medicalUses,
-    effects: s.effects,
-    description: s.description,
-  }));
+  const payload = strains.map((s) =>
+    compactStrainFields({
+      name: s.name,
+      type: s.type,
+      thcRange: s.thcRange,
+      cbdRange: s.cbdRange,
+      terpenes: s.terpenes,
+      medicalUses: s.medicalUses,
+      effects: s.effects,
+      description: s.description,
+    }),
+  );
   // Filter the Reddit seed list to threads relevant to this patient's
   // symptoms + the popular strains in play. Same TPM-budget reason as
   // comparePrompt above.
@@ -1225,7 +1285,7 @@ export function describeStrainPayload(s: StrainProfile) {
       (s.medicalUses && s.medicalUses.length > 0),
   );
   if (!hasBody) return { name: s.name, noCuratedProfile: true as const };
-  return {
+  return compactStrainFields({
     name: s.name,
     type: s.type,
     thcRange: s.thcRange,
@@ -1237,7 +1297,7 @@ export function describeStrainPayload(s: StrainProfile) {
     sideEffects: s.sideEffects,
     description: s.description,
     noCuratedProfile: !s.inKnowledgeBase,
-  };
+  });
 }
 
 export function describePrompt(
