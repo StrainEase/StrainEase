@@ -111,10 +111,18 @@ function DescriptionSection({
           />
         </header>
         <div className="mt-3 space-y-3 text-sm leading-6 text-foreground/85">
+          {/* whitespace-pre-line: single newlines the model left inside a
+              paragraph render as line breaks instead of collapsing to a
+              space, while blank-line paragraph separators stay separate
+              <p> elements. */}
           {paragraphs.length === 0 ? (
-            <p>{section.body}</p>
+            <p className="whitespace-pre-line">{section.body}</p>
           ) : (
-            paragraphs.map((paragraph, idx) => <p key={idx}>{paragraph}</p>)
+            paragraphs.map((paragraph, idx) => (
+              <p key={idx} className="whitespace-pre-line">
+                {paragraph}
+              </p>
+            ))
           )}
         </div>
         <div className="mt-3">

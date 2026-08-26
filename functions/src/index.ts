@@ -1277,6 +1277,20 @@ export function describePrompt(
 }
 
 /**
+/**
+ * The LLM sometimes emits double-escaped newlines — the literal two
+ * characters backslash-n ("\\n") — inside its JSON strings. JSON parsing
+ * turns those into real backslash-n text, which clients then render as
+ * the visible string "\n" instead of a line break. Normalize both
+ * forms to real newlines so the client can split paragraphs the way
+ * the model intended. Only runs on model output; user-supplied strings
+ * are never passed through here.
+ */
+function normalizeEscapedNewlines(s: string): string {
+  return s.replace(/\\n/g, "\n");
+}
+
+/**
  * Validate the LLM's JSON shape. We always want exactly three sections,
  * with non-empty headings and bodies. If the model returns fewer, fill
  * in the missing ones with a generic safe placeholder so the client
@@ -1293,7 +1307,9 @@ function normalizeDescriptionSections(
       const r = item as Record<string, unknown>;
       const heading =
         typeof r.heading === "string" ? r.heading.trim() : "";
-      const body = typeof r.body === "string" ? r.body.trim() : "";
+      const body = normalizeEscapedNewlines(
+        typeof r.body === "string" ? r.body.trim() : "",
+      );
       if (!heading || !body) continue;
       list.push({ heading, body });
     }
@@ -1478,13 +1494,13 @@ function parseElaboration(
   // `{ "elaboration": "..." }`.
   const obj = extractJsonObject(content) as { elaboration?: unknown } | null;
   if (obj && typeof obj.elaboration === "string") {
-    const text = obj.elaboration.trim();
+    const text = normalizeEscapedNewlines(obj.elaboration.trim());
     if (text.length > 0) return { elaboration: text };
   }
   // Fall back to treating the whole body as the elaboration. The model
   // sometimes returns a bare string instead of a JSON object, especially
   // for the smaller elaboration surface.
-  const fallback = content.trim();
+  const fallback = normalizeEscapedNewlines(content.trim());
   if (fallback.length > 0 && fallback.length <= 4000) {
     return { elaboration: fallback };
   }
