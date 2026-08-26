@@ -9,7 +9,18 @@
     -->
     <style name="Theme.StrainWise.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/palette_background_light</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_dark</item>
+        <item name="postSplashScreenTheme">@style/Theme.StrainWise</item>
+    </style>
+
+    <!--
+      Debug-only splash: no animated icon (Compose isn't ready yet on
+      a JIT-less emulator, which keeps the splash visible for 1+ min).
+      Dismissal is instant — the branded icon shows inside the app
+      content instead. The release theme keeps the animated icon.
+    -->
+    <style name="Theme.StrainWise.Splash.Debug" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/palette_background_light</item>
         <item name="postSplashScreenTheme">@style/Theme.StrainWise</item>
     </style>
 

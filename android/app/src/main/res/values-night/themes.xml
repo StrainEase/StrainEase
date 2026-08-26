@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.StrainWise.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/palette_background_dark</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_light</item>
         <item name="postSplashScreenTheme">@style/Theme.StrainWise</item>
     </style>
 
