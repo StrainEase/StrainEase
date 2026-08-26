@@ -47,6 +47,10 @@ fun MainTabView() {
         as com.strainwise.app.StrainWiseApplication
     val homeModel = remember { com.strainwise.app.ui.home.HomeModel() }
     val recents = remember { com.strainwise.app.data.RecentlyViewedStore(app) }
+    val findModel = remember { com.strainwise.app.ui.find.FindModel() }
+    val savedAilments = remember { com.strainwise.app.data.SavedAilmentsStore(app) }
+    val savedMedications = remember { com.strainwise.app.data.SavedMedicationsStore(app) }
+    val relief = remember { com.strainwise.app.data.ReliefLogStore(app) }
 
     CompositionLocalProvider(LocalAppNavigation provides nav) {
         Scaffold(
@@ -86,7 +90,13 @@ fun MainTabView() {
                     recentlyViewed = recents,
                     modifier = Modifier.padding(padding),
                 )
-                AppTab.Find -> FindTabPlaceholder(Modifier.padding(padding))
+                AppTab.Find -> com.strainwise.app.ui.find.FindView(
+                    model = findModel,
+                    savedAilments = savedAilments,
+                    savedMedications = savedMedications,
+                    relief = relief,
+                    modifier = Modifier.padding(padding),
+                )
                 AppTab.Browse -> BrowseTabPlaceholder(Modifier.padding(padding))
                 AppTab.Doctors -> DoctorsTabPlaceholder(Modifier.padding(padding))
             }
