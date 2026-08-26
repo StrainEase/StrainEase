@@ -140,4 +140,44 @@ describe("CommunityVoices", () => {
     expect(panel!.textContent).toMatch(/sleep through the night/);
     expect(panel!.textContent).toMatch(/Eased my back pain/);
   });
+
+  test("averages Leafly and Allbud ratings into one card when both exist", () => {
+    render(
+      <MemoryRouter>
+        <CommunityVoices
+          notes={CANNABIS_NOTES}
+          strainName="Granddaddy Purple"
+          leaflyRating={4.5}
+          leaflyReviewCount={13240}
+          allbudRating={4.6}
+          allbudReviewCount={84}
+        />
+      </MemoryRouter>,
+    );
+    // (4.5 + 4.6) / 2 = 4.55 → 4.6, shown as one blended card.
+    const body = document.body.textContent ?? "";
+    expect(body).toContain("4.6");
+    expect(body).toContain("Average Leafly & Allbud rating");
+    // The blended card carries no per-source count label (the summary
+    // prose may still mention Leafly's 13,240 separately — that's the
+    // sentiment blurb, not the rating card).
+    expect(body).not.toContain("13,240 Leafly reviews");
+    expect(body).not.toContain("84 Allbud reviews");
+  });
+
+  test("shows a single source's rating verbatim when only Leafly exists", () => {
+    render(
+      <MemoryRouter>
+        <CommunityVoices
+          notes={CANNABIS_NOTES}
+          strainName="Granddaddy Purple"
+          leaflyRating={4.5}
+          leaflyReviewCount={13240}
+        />
+      </MemoryRouter>,
+    );
+    const body = document.body.textContent ?? "";
+    expect(body).toContain("4.5");
+    expect(body).toContain("13,240 Leafly reviews");
+  });
 });

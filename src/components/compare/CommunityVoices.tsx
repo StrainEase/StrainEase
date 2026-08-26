@@ -123,10 +123,12 @@ function StarStrip({ value }: { value: number }) {
   );
 }
 
-function LeaflyRatingCard({
+function SourceRatingCard({
+  label,
   stars,
   reviewCount,
 }: {
+  label: string;
   stars: number;
   reviewCount: number | null;
 }) {
@@ -139,11 +141,65 @@ function LeaflyRatingCard({
         </p>
         <p className="text-xs text-muted-foreground">
           {reviewCount !== null
-            ? `${reviewCount.toLocaleString("en-US")} Leafly reviews`
-            : "Average Leafly rating"}
+            ? `${reviewCount.toLocaleString("en-US")} ${label} reviews`
+            : `Average ${label} rating`}
         </p>
       </div>
     </SWCard>
+  );
+}
+
+/**
+ * One rating card that blends the sources that actually published a
+ * rating. With a single source (Leafly or Allbud alone) it shows that
+ * source verbatim with its review count; when both publish, it shows
+ * the average of the two. The average has no single review count, so
+ * the card drops it rather than presenting a misleading sum.
+ */
+function RatingCards({
+  leaflyRating,
+  leaflyReviewCount,
+  allbudRating,
+  allbudReviewCount,
+}: {
+  leaflyRating?: number;
+  leaflyReviewCount?: number;
+  allbudRating?: number;
+  allbudReviewCount?: number;
+}) {
+  const ratings: { label: string; stars: number; count: number | null }[] =
+    [];
+  if (typeof leaflyRating === "number") {
+    ratings.push({
+      label: "Leafly",
+      stars: leaflyRating,
+      count: leaflyReviewCount ?? null,
+    });
+  }
+  if (typeof allbudRating === "number") {
+    ratings.push({
+      label: "Allbud",
+      stars: allbudRating,
+      count: allbudReviewCount ?? null,
+    });
+  }
+  if (ratings.length === 0) return null;
+  if (ratings.length === 1) {
+    const single = ratings[0];
+    return (
+      <SourceRatingCard
+        label={single.label}
+        stars={single.stars}
+        reviewCount={single.count}
+      />
+    );
+  }
+  const avg =
+    Math.round(
+      (ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length) * 10,
+    ) / 10;
+  return (
+    <SourceRatingCard label="Leafly & Allbud" stars={avg} reviewCount={null} />
   );
 }
 
@@ -177,6 +233,8 @@ function AllPanel({
   appNotes,
   leaflyRating,
   leaflyReviewCount,
+  allbudRating,
+  allbudReviewCount,
   conditions,
 }: {
   cannabis: QuoteNote[];
@@ -186,8 +244,9 @@ function AllPanel({
   conditions: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  allbudRating?: number;
+  allbudReviewCount?: number;
 }) {
-  const hasRating = typeof leaflyRating === "number";
   const reviews = sortNotesForConditions(
     [
       ...individualReviews(cannabis),
@@ -199,12 +258,12 @@ function AllPanel({
 
   return (
     <div className="space-y-4">
-      {hasRating ? (
-        <LeaflyRatingCard
-          stars={leaflyRating}
-          reviewCount={leaflyReviewCount ?? null}
-        />
-      ) : null}
+      <RatingCards
+        leaflyRating={leaflyRating}
+        leaflyReviewCount={leaflyReviewCount}
+        allbudRating={allbudRating}
+        allbudReviewCount={allbudReviewCount}
+      />
 
       {reviews.length === 0 ? (
         <p className="text-xs leading-5 text-muted-foreground">
@@ -261,6 +320,8 @@ function ChannelPanel({
   conditions,
   leaflyRating,
   leaflyReviewCount,
+  allbudRating,
+  allbudReviewCount,
   sort,
   onSortChange,
 }: {
@@ -270,6 +331,8 @@ function ChannelPanel({
   conditions: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  allbudRating?: number;
+  allbudReviewCount?: number;
   sort: ReviewSort;
   onSortChange: (next: ReviewSort) => void;
 }) {
@@ -285,10 +348,12 @@ function ChannelPanel({
 
   return (
     <div className="space-y-4">
-      {channel !== "reddit" && summary.rating ? (
-        <LeaflyRatingCard
-          stars={summary.rating.stars}
-          reviewCount={summary.rating.reviewCount}
+      {channel !== "reddit" ? (
+        <RatingCards
+          leaflyRating={leaflyRating}
+          leaflyReviewCount={leaflyReviewCount}
+          allbudRating={allbudRating}
+          allbudReviewCount={allbudReviewCount}
         />
       ) : null}
 
@@ -393,6 +458,8 @@ export function CommunityVoices({
   conditions = [],
   leaflyRating,
   leaflyReviewCount,
+  allbudRating,
+  allbudReviewCount,
   redditSources,
   appReviews,
 }: {
@@ -401,6 +468,8 @@ export function CommunityVoices({
   conditions?: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  allbudRating?: number;
+  allbudReviewCount?: number;
   redditSources?: {
     subreddit: string;
     title: string;
@@ -444,11 +513,13 @@ export function CommunityVoices({
   const cannabis = notesForChannel(mergedNotes, "cannabis");
   const reddit = notesForChannel(mergedNotes, "reddit");
   const hasRating = typeof leaflyRating === "number";
+  const hasAllbudRating = typeof allbudRating === "number";
   const hasAny =
     cannabis.length > 0 ||
     reddit.length > 0 ||
     appNotes.length > 0 ||
-    hasRating;
+    hasRating ||
+    hasAllbudRating;
 
   // "All" combines every channel so a reader landing on the page can scan
   // every voice at once. We only show the All tab when at least two
@@ -575,6 +646,8 @@ export function CommunityVoices({
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+              allbudRating={allbudRating}
+              allbudReviewCount={allbudReviewCount}
             />
           </TabsContent>
           <TabsContent value="cannabis" className="mt-0 outline-none">
@@ -585,6 +658,8 @@ export function CommunityVoices({
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+              allbudRating={allbudRating}
+              allbudReviewCount={allbudReviewCount}
               sort={sort}
               onSortChange={setSort}
             />
