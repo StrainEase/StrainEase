@@ -6,7 +6,6 @@ import com.strainwise.app.auth.AuthSession
 import com.strainwise.app.compliance.AgeVerificationStore
 import com.strainwise.app.data.LiveStrainAPI
 import com.strainwise.app.data.StrainAPI
-import com.strainwise.app.data.StrainCatalog
 import com.strainwise.app.services.FirebaseBootstrap
 import com.strainwise.app.services.ImageCache
 
@@ -37,7 +36,6 @@ class StrainWiseApplication : Application() {
         super.onCreate()
         FirebaseBootstrap.configure(this)
         Coil.setImageLoader(ImageCache.get(this))
-        StrainCatalog.init(this)
         strainAPI = LiveStrainAPI()
         authSession.start()
     }

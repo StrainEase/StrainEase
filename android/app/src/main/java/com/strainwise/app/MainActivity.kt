@@ -7,7 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.strainwise.app.app.RootView
 import com.strainwise.app.auth.ProvideAuthSession
@@ -24,6 +23,11 @@ import com.strainwise.app.ui.theme.StrainWiseTheme
  *
  * The whole tree is wrapped in [StrainWiseTheme] so every
  * screen reads colors + typography from the same place.
+ *
+ * The activity uses `Theme.StrainWise` directly (no splash) so
+ * the system splash with the app label is never shown — the
+ * activity window paints the app's own background immediately
+ * while Compose boots.
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,17 +35,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val app = application as StrainWiseApplication
-        val session = app.authSession
-        val ageStore = app.ageStore
-
         setContent {
             StrainWiseTheme {
-                ProvideAuthSession(session = session) {
+                ProvideAuthSession(session = app.authSession) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background,
                     ) {
-                        RootView(ageStore = ageStore)
+                        RootView(ageStore = app.ageStore)
                     }
                 }
             }
