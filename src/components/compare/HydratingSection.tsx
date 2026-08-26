@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import { SWCard } from "@/components/ui/sw-card";
 import { cn } from "@/lib/utils";
 
 /**
@@ -137,7 +138,7 @@ export function HydratingSection({
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {config.label}
       </p>
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-card p-5">
+      <SWCard innerClassName="p-5">
         <div className="flex items-center gap-2">
           <Loader2
             className="size-4 shrink-0 animate-spin text-primary"
@@ -159,7 +160,7 @@ export function HydratingSection({
             }}
           />
         ))}
-      </div>
+      </SWCard>
     </div>
   );
 }

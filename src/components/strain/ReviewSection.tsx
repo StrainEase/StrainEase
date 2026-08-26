@@ -10,6 +10,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { SWCard } from "@/components/ui/sw-card";
 import type { StrainRating, StrainReview } from "@/lib/strain-api";
 
 function StarStrip({
@@ -62,7 +63,7 @@ function AggregateRatingCard({
 }) {
   if (!rating || rating.reviewCount === 0) return null;
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-border/70 bg-background px-4 py-3.5">
+    <SWCard innerClassName="flex items-center gap-4 px-4 py-3.5">
       <StarStrip value={rating.avgRating} />
       <div className="min-w-0">
         <p className="text-xl font-semibold tabular-nums tracking-tight">
@@ -72,7 +73,7 @@ function AggregateRatingCard({
           {rating.reviewCount.toLocaleString("en-US")} StrainEase reviews
         </p>
       </div>
-    </div>
+    </SWCard>
   );
 }
 
@@ -88,7 +89,7 @@ function ReviewCard({
     date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
-    <div className="rounded-xl border border-border/60 bg-background px-4 py-3.5">
+    <SWCard innerClassName="px-4 py-3.5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold uppercase text-primary">
@@ -120,7 +121,7 @@ function ReviewCard({
           {review.reviewText}
         </p>
       ) : null}
-    </div>
+    </SWCard>
   );
 }
 
@@ -201,9 +202,11 @@ export function ReviewSection({
           ))}
         </div>
       ) : !loading ? (
-        <p className="rounded-xl border border-border/60 bg-background px-4 py-4 text-sm text-muted-foreground">
-          No reviews yet. Be the first to share your experience with {strainName}.
-        </p>
+        <SWCard innerClassName="px-4 py-4">
+          <p className="text-sm text-muted-foreground">
+            No reviews yet. Be the first to share your experience with {strainName}.
+          </p>
+        </SWCard>
       ) : null}
     </div>
   );

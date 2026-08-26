@@ -482,76 +482,8 @@ export default function Strain() {
             />
           ) : null}
 
-            {isAuthenticated && profile && others.length > 0 && (
-              <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
-                <p className="text-sm font-semibold tracking-tight">
-                  Compare with what you saved
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {others.slice(0, 4).map((name) => (
-                    <Button
-                      key={name}
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="cursor-pointer rounded-full"
-                    >
-                      <Link
-                        to={`/dashboard?mode=compare&strains=${encodeURIComponent(`${profile.name},${name}`)}`}
-                      >
-                        <GitCompareArrows className="size-3.5" />
-                        vs {name}
-                        <StrainNoteIndicator strainName={name} />
-                      </Link>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {isAuthenticated && profile && (
               <>
-                <div className="rounded-2xl border border-border/70 bg-card p-6">
-                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Relief log
-                  </p>
-                  <ReliefLogButton strainName={profile.name} variant="button" />
-                  {logs.filter(
-                    (log) =>
-                      log.strainName.trim().toLowerCase() ===
-                      profile.name.trim().toLowerCase(),
-                  ).length > 0 && (
-                    <ul className="mt-4 space-y-2">
-                      {logs
-                        .filter(
-                          (log) =>
-                            log.strainName.trim().toLowerCase() ===
-                            profile.name.trim().toLowerCase(),
-                        )
-                        .slice(0, 6)
-                        .map((log) => (
-                          <li
-                            key={log.id}
-                            className="rounded-xl border border-border/60 bg-background px-4 py-3 text-sm"
-                          >
-                            <div className="flex items-center justify-between gap-2 text-xs">
-                              <span className="font-medium capitalize">
-                                {log.fit.replace("-", " ")}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {log.relief}/5 relief
-                              </span>
-                            </div>
-                            {log.note ? (
-                              <p className="mt-1.5 text-sm leading-6">
-                                {log.note}
-                              </p>
-                            ) : null}
-                          </li>
-                        ))}
-                    </ul>
-                  )}
-                </div>
                 <SavedStrainNotes
                   slug={slugify(profile.name)}
                   strainName={profile.name}
@@ -559,7 +491,7 @@ export default function Strain() {
                 />
 
                 {/* Community reviews */}
-                <div className="rounded-2xl border border-border/70 bg-card p-6">
+                <SWCard innerClassName="p-6">
                   <ReviewSection
                     strainSlug={slug}
                     strainName={profile.name}
@@ -585,7 +517,7 @@ export default function Strain() {
                       )}
                     </Button>
                   </div>
-                </div>
+                </SWCard>
 
                 <WriteReviewDialog
                   open={reviewDialogOpen}
