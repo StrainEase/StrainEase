@@ -26,7 +26,9 @@ extension StrainProfile {
             CommunityNote(source: "Reddit · r/trees", text: "GDP knocks me out in the best way after a long pain day."),
         ],
         leaflyRating: 4.5,
-        leaflyReviewCount: 3201
+        leaflyReviewCount: 3201,
+        allbudRating: 4.6,
+        allbudReviewCount: 84
     )
 
     static let sampleBlueDream = StrainProfile(

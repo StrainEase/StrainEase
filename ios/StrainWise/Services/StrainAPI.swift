@@ -241,6 +241,8 @@ struct LiveStrainAPI: StrainServicing {
         if let imageUrl = strain.imageUrl { out["imageUrl"] = imageUrl }
         if let rating = strain.leaflyRating { out["leaflyRating"] = rating }
         if let count = strain.leaflyReviewCount { out["leaflyReviewCount"] = count }
+        if let rating = strain.allbudRating { out["allbudRating"] = rating }
+        if let count = strain.allbudReviewCount { out["allbudReviewCount"] = count }
         return out
     }
 

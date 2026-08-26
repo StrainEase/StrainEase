@@ -119,6 +119,8 @@ struct StrainProfile: Codable, Hashable, Identifiable, Sendable {
     var imageUrl: String? = nil
     var leaflyRating: Double? = nil
     var leaflyReviewCount: Int? = nil
+    var allbudRating: Double? = nil
+    var allbudReviewCount: Int? = nil
 
     /// Home catalog stubs only carry name / type / THC / uses.
     var isPartial: Bool {
@@ -131,9 +133,21 @@ struct StrainProfile: Codable, Hashable, Identifiable, Sendable {
         (communityNotes ?? []).filter { !$0.isAggregate }
     }
 
+    /// Aggregate rating blended across the sources that published one
+    /// (Leafly, Allbud). With a single source it shows that source
+    /// verbatim with its own review count; with both it shows the
+    /// average (a blended count would mislead, so it is dropped). Falls
+    /// back to a "Leafly community" note match for older profiles.
     var resolvedLeaflyRating: (stars: Double, count: Int?)? {
-        if let leaflyRating {
-            return (leaflyRating, leaflyReviewCount)
+        let ratings = [leaflyRating, allbudRating].compactMap { $0 }
+        if !ratings.isEmpty {
+            if ratings.count == 1 {
+                let stars = ratings[0]
+                let count = leaflyRating != nil ? leaflyReviewCount : allbudReviewCount
+                return (stars, count)
+            }
+            let avg = (ratings.reduce(0, +) / Double(ratings.count) * 10).rounded() / 10
+            return (avg, nil)
         }
         for note in communityNotes ?? [] where note.source.lowercased() == "leafly community" {
             let stars = note.text.firstMatch(of: /(\d+(?:\.\d+)?)★/).flatMap { Double($0.1) }
