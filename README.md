@@ -305,8 +305,10 @@ Source lives in `functions/src/`. Four callables are exported:
 
 - `popularStrains()` — public, no auth, returns Leafly's popular list.
 - `searchStrain({ name })` — public, no auth, returns one Leafly profile.
-- `compareStrains({ strainNames, condition })` — auth required, calls Groq (Llama 3.3 70B) for synthesis.
-- `recommendStrainsForConditions({ conditions, potency })` — auth required, calls Groq (Llama 3.3 70B) for synthesis.
+- `compareStrains({ strainNames, condition })` — auth required, calls Groq GPT-OSS 120B for synthesis.
+- `recommendStrainsForConditions({ conditions, potency })` — auth required, calls Groq GPT-OSS 120B for synthesis.
+- `describeStrainForUser({ strain, ailments, medications, reliefHistory })` — auth required, calls Groq GPT-OSS 20B with the full strain evidence payload.
+- `elaborateSection({ strain, sectionHeading, sectionBody, ... })` — auth required, calls Groq GPT-OSS 120B for deeper follow-up.
 
 To add a new callable:
 

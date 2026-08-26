@@ -1,8 +1,10 @@
 // Groq Chat Completions client + JSON extraction helpers.
 //
 // We use the OpenAI-compatible endpoint at api.groq.com/openai/v1.
-// The chosen model is Groq's GPT-OSS-120B (openai/gpt-oss-120b), which supports
-// the `response_format: json_object` mode we lean on for clean output.
+// The default model is Groq's GPT-OSS-120B (openai/gpt-oss-120b), which supports
+// the `response_format: json_object` mode we lean on for clean output. The
+// initial single-strain description uses GPT-OSS-20B; see the model constants
+// below for the deliberate routing split.
 //
 // All callers in this codebase demand strict JSON, so we always send
 // `response_format: { type: "json_object" }`. The system prompts already
@@ -12,6 +14,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
 export const GROQ_MODEL = "openai/gpt-oss-120b";
+export const GROQ_DESCRIPTION_MODEL = "openai/gpt-oss-20b";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export type ChatMessage = {
@@ -19,9 +22,28 @@ export type ChatMessage = {
   content: string;
 };
 
+/**
+ * Build the stable portion of a chat completion request. Groq prompt caching
+ * is automatic, so the important part is keeping the reusable system prefix
+ * before the variable user content in `messages`.
+ */
+export function groqRequestBody(
+  model: string,
+  messages: ChatMessage[],
+): Record<string, unknown> {
+  return {
+    model,
+    messages,
+    temperature: 0.4,
+    max_tokens: 2200,
+    response_format: { type: "json_object" },
+  };
+}
+
 export async function callGroq(
   apiKey: string,
   messages: ChatMessage[],
+  model: string = GROQ_MODEL,
 ): Promise<string> {
   if (!apiKey) {
     throw new HttpsError(
@@ -38,13 +60,7 @@ export async function callGroq(
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages,
-        temperature: 0.4,
-        max_tokens: 2200,
-        response_format: { type: "json_object" },
-      }),
+      body: JSON.stringify(groqRequestBody(model, messages)),
     });
   } catch {
     throw new HttpsError(

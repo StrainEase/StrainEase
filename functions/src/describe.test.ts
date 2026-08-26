@@ -6,17 +6,18 @@ import {
 } from "./index";
 
 describe("describeStrainPayload", () => {
-  test("strips communityNotes and redditSources — the description prompt does not need them", () => {
+  test("preserves full descriptions and includes community and Reddit evidence", () => {
+    const fullDescription = "A detailed source description. ".repeat(60);
     const payload = describeStrainPayload({
       name: "Blue Dream",
       inKnowledgeBase: true,
       type: "hybrid",
       thcRange: "17–24%",
-      description: "Classic daytime hybrid.",
+      description: fullDescription,
       communityNotes: [{ source: "Leafly", text: "Great for daytime." }],
       redditSources: [
         {
-          url: "https://old.reddit.com/r/trees/comments/abc/sample/",
+          url: "https://old.reddit.com/r/trees/comments/abcd/sample/",
           subreddit: "trees",
           title: "Blue Dream review",
         },
@@ -26,11 +27,17 @@ describe("describeStrainPayload", () => {
       name: "Blue Dream",
       type: "hybrid",
       thcRange: "17–24%",
-      description: "Classic daytime hybrid.",
+      description: fullDescription,
+      communityNotes: [{ source: "Leafly", text: "Great for daytime." }],
+      redditSources: [
+        {
+          url: "https://old.reddit.com/r/trees/comments/abcd/sample/",
+          subreddit: "trees",
+          title: "Blue Dream review",
+        },
+      ],
       noCuratedProfile: false,
     });
-    expect("communityNotes" in payload).toBe(false);
-    expect("redditSources" in payload).toBe(false);
   });
 
   test("keeps a true stub as name-only with noCuratedProfile flag", () => {
@@ -149,6 +156,22 @@ describe("describePrompt", () => {
     // renderer, so it does no additional truncation.
     const prompt = describePrompt(strain, [], ["Atorvastatin"], "");
     expect(prompt).toContain("Atorvastatin");
+  });
+
+  test("keeps up to six side effects in the description payload", () => {
+    const payload = describeStrainPayload({
+      name: "Side Effect Test",
+      inKnowledgeBase: true,
+      sideEffects: Array.from({ length: 8 }, (_, i) => `side-effect-${i}`),
+    });
+    expect(payload.sideEffects).toEqual([
+      "side-effect-0",
+      "side-effect-1",
+      "side-effect-2",
+      "side-effect-3",
+      "side-effect-4",
+      "side-effect-5",
+    ]);
   });
 });
 
