@@ -81,9 +81,16 @@ struct CommunityNote: Codable, Hashable, Sendable, Identifiable {
     }
 
     /// Rating aggregates and site blurbs — not individual patient comments.
+    /// "Allbud listing" is covered too: older cached profiles carried the
+    /// strain's marketing blurb as a note; the scraper now only emits real
+    /// customer reviews (sourced "Allbud review · user"), so any leftover
+    /// listing note must stay out of the quote stream.
     var isAggregate: Bool {
         let src = source.lowercased()
-        if src == "leafly community" || src == "weedmaps" || src == "weedmaps listing" {
+        if src == "leafly community"
+            || src == "weedmaps"
+            || src == "weedmaps listing"
+            || src == "allbud listing" {
             return true
         }
         return text.trimmingCharacters(in: .whitespacesAndNewlines).contains("★")
@@ -136,18 +143,29 @@ struct StrainProfile: Codable, Hashable, Identifiable, Sendable {
     /// Aggregate rating blended across the sources that published one
     /// (Leafly, Allbud). With a single source it shows that source
     /// verbatim with its own review count; with both it shows the
-    /// average (a blended count would mislead, so it is dropped). Falls
+    /// average (a blended count would mislead, so it is dropped) labeled
+    /// "Leafly & Allbud" — matching the web's single rating card. Falls
     /// back to a "Leafly community" note match for older profiles.
-    var resolvedLeaflyRating: (stars: Double, count: Int?)? {
-        let ratings = [leaflyRating, allbudRating].compactMap { $0 }
-        if !ratings.isEmpty {
-            if ratings.count == 1 {
-                let stars = ratings[0]
-                let count = leaflyRating != nil ? leaflyReviewCount : allbudReviewCount
-                return (stars, count)
-            }
-            let avg = (ratings.reduce(0, +) / Double(ratings.count) * 10).rounded() / 10
-            return (avg, nil)
+    var resolvedCommunityRating: CommunityRating? {
+        let hasLeafly = leaflyRating != nil
+        let hasAllbud = allbudRating != nil
+        if hasLeafly && hasAllbud {
+            let avg = ((leaflyRating! + allbudRating!) / 2 * 10).rounded() / 10
+            return CommunityRating(stars: avg, count: nil, label: "Leafly & Allbud")
+        }
+        if hasLeafly {
+            return CommunityRating(
+                stars: leaflyRating!,
+                count: leaflyReviewCount,
+                label: "Leafly"
+            )
+        }
+        if hasAllbud {
+            return CommunityRating(
+                stars: allbudRating!,
+                count: allbudReviewCount,
+                label: "Allbud"
+            )
         }
         for note in communityNotes ?? [] where note.source.lowercased() == "leafly community" {
             let stars = note.text.firstMatch(of: /(\d+(?:\.\d+)?)★/).flatMap { Double($0.1) }
@@ -155,7 +173,7 @@ struct StrainProfile: Codable, Hashable, Identifiable, Sendable {
             let count = note.text.firstMatch(of: /([\d,]+)\s+reviews/).flatMap {
                 Int($0.1.replacingOccurrences(of: ",", with: ""))
             }
-            return (stars, count)
+            return CommunityRating(stars: stars, count: count, label: "Leafly")
         }
         return nil
     }
@@ -178,6 +196,30 @@ struct StrainProfile: Codable, Hashable, Identifiable, Sendable {
     private var cbdCaption: String? {
         guard let cbdRange, cbdRange != "<1%" else { return nil }
         return "CBD \(cbdRange)"
+    }
+}
+
+/// Blended community rating for the strain detail card.
+struct CommunityRating: Hashable, Sendable {
+    var stars: Double
+    /// Review count for the single-source case. Dropped (nil) when the
+    /// rating is an average across sources — a blended count would
+    /// mislead.
+    var count: Int?
+    /// Source label shown on the card ("Leafly", "Allbud", or
+    /// "Leafly & Allbud" for the average).
+    var label: String
+}
+
+extension String {
+    /// LLM output occasionally arrives with escaped newlines (literal
+    /// backslash + "n") instead of real line breaks — most common when
+    /// the model wrote JSON and the escape survived the round trip.
+    /// Normalize so `Text` renders the intended paragraph breaks. Safe
+    /// to call on already-normalized text: this only collapses the
+    /// literal two-character sequence and never introduces an escape.
+    var withUnescapedNewlines: String {
+        replacingOccurrences(of: "\\n", with: "\n")
     }
 }
 

@@ -422,28 +422,81 @@ final class StrainWiseTests: XCTestCase {
     func testAggregateNotesAreNotQuotes() {
         let rating = CommunityNote(source: "Leafly community", text: "4.3★ from 14,919 reviews")
         let listing = CommunityNote(source: "Weedmaps listing", text: "A sativa loved for energy.")
+        // Stale cached "Allbud listing" blurbs are aggregates too — the
+        // scraper now only emits real reviews ("Allbud review · user").
+        let allbudListing = CommunityNote(
+            source: "Allbud listing",
+            text: "A heavy-hitting indica known for deep relaxation."
+        )
+        let allbudReview = CommunityNote(
+            source: "Allbud review · DelGriffith87",
+            text: "Nice relaxing indica, smooth body buzz."
+        )
         let review = CommunityNote(source: "Leafly review · sam", text: "Helped my afternoon fatigue without the jitters I get from coffee.")
         let reddit = CommunityNote(source: "Reddit · r/trees", text: "Green Crack is my get-off-the-couch strain.")
         XCTAssertTrue(rating.isAggregate)
         XCTAssertTrue(listing.isAggregate)
+        XCTAssertTrue(allbudListing.isAggregate)
+        XCTAssertFalse(allbudReview.isAggregate)
         XCTAssertFalse(review.isAggregate)
         XCTAssertFalse(reddit.isAggregate)
         XCTAssertTrue(reddit.isReddit)
     }
 
-    func testResolvedLeaflyRatingPrefersStructuredFields() {
+    func testResolvedCommunityRatingPrefersStructuredFields() {
         var profile = StrainProfile.sampleBlueDream
-        XCTAssertEqual(profile.resolvedLeaflyRating?.stars, 4.3)
-        XCTAssertEqual(profile.resolvedLeaflyRating?.count, 14919)
+        XCTAssertEqual(profile.resolvedCommunityRating?.stars, 4.3)
+        XCTAssertEqual(profile.resolvedCommunityRating?.count, 14919)
+        XCTAssertEqual(profile.resolvedCommunityRating?.label, "Leafly")
 
         profile.leaflyRating = nil
         profile.leaflyReviewCount = nil
         profile.communityNotes = [
             CommunityNote(source: "Leafly community", text: "4.3★ from 14,919 reviews"),
         ]
-        XCTAssertEqual(profile.resolvedLeaflyRating?.stars, 4.3)
-        XCTAssertEqual(profile.resolvedLeaflyRating?.count, 14919)
+        XCTAssertEqual(profile.resolvedCommunityRating?.stars, 4.3)
+        XCTAssertEqual(profile.resolvedCommunityRating?.count, 14919)
+        XCTAssertEqual(profile.resolvedCommunityRating?.label, "Leafly")
         XCTAssertTrue(profile.quoteNotes.isEmpty)
+    }
+
+    func testResolvedCommunityRatingBlendsBothSources() {
+        var profile = StrainProfile.sampleBlueDream
+        profile.leaflyRating = 4.5
+        profile.leaflyReviewCount = 3201
+        profile.allbudRating = 4.6
+        profile.allbudReviewCount = 84
+
+        let rating = try? XCTUnwrap(profile.resolvedCommunityRating)
+        // (4.5 + 4.6) / 2 = 4.55 → rounds to 4.6, matching the web card.
+        XCTAssertEqual(rating?.stars, 4.6)
+        XCTAssertNil(rating?.count, "A blended average must not show a source-specific count")
+        XCTAssertEqual(rating?.label, "Leafly & Allbud")
+    }
+
+    func testResolvedCommunityRatingAllbudOnly() {
+        var profile = StrainProfile.sampleBlueDream
+        profile.leaflyRating = nil
+        profile.leaflyReviewCount = nil
+        profile.allbudRating = 4.6
+        profile.allbudReviewCount = 84
+
+        let rating = try? XCTUnwrap(profile.resolvedCommunityRating)
+        XCTAssertEqual(rating?.stars, 4.6)
+        XCTAssertEqual(rating?.count, 84)
+        XCTAssertEqual(rating?.label, "Allbud")
+    }
+
+    func testWithUnescapedNewlinesRendersModelIntent() {
+        // Literal backslash-n sequences, as they survive JSON round trips.
+        let escaped = "Overview of Blue Dream.\\n\\nExpect a calm, clear-headed lift."
+        let rendered = escaped.withUnescapedNewlines
+        XCTAssertTrue(rendered.contains("\n\n"))
+        XCTAssertFalse(rendered.contains("\\n"))
+        // Already-normalized text is untouched.
+        XCTAssertEqual("Line 1\nLine 2".withUnescapedNewlines, "Line 1\nLine 2")
+        // No-op on plain strings.
+        XCTAssertEqual("Just a sentence.".withUnescapedNewlines, "Just a sentence.")
     }
 
     func testDecodeRecommendationResult() throws {

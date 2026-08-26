@@ -135,7 +135,7 @@ struct StrainDetailView: View {
             tailoredDescriptionLoading
         } else if let description = profile.description, !description.isEmpty {
             SWCard {
-                Text(description)
+                Text(description.withUnescapedNewlines)
                     .font(.system(size: 16))
                     .foregroundStyle(Palette.foreground)
                     .fixedSize(horizontal: false, vertical: true)
@@ -208,17 +208,20 @@ struct StrainDetailView: View {
     /// description reads with breathing room on a phone instead of as a
     /// wall of text. The model separates paragraphs with blank lines
     /// ("\n\n"); we trim each chunk and drop empties so a stray blank
-    /// doesn't add a phantom paragraph.
+    /// doesn't add a phantom paragraph. Escaped newlines (literal
+    /// backslash + "n") are normalized first so the model's intent
+    /// survives JSON round trips.
     @ViewBuilder
     private func tailoredDescriptionBody(_ body: String) -> some View {
-        let paragraphs = body
+        let normalized = body.withUnescapedNewlines
+        let paragraphs = normalized
             .components(separatedBy: "\n\n")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         if paragraphs.isEmpty {
             // Model returned no blank lines. Fall back to the raw body
             // so we never render an empty section silently.
-            Text(body)
+            Text(normalized)
                 .font(.system(size: 15))
                 .foregroundStyle(Palette.foreground)
                 .fixedSize(horizontal: false, vertical: true)
@@ -560,7 +563,7 @@ private struct CommunityVoicesSection: View {
     @State private var selected: Tab = .sites
 
     private var quotes: [CommunityNote] { profile.quoteNotes }
-    private var rating: (stars: Double, count: Int?)? { profile.resolvedLeaflyRating }
+    private var rating: CommunityRating? { profile.resolvedCommunityRating }
 
     private var redditNotes: [CommunityNote] {
         quotes.filter { $0.resolvedKind == "reddit" }
@@ -605,7 +608,11 @@ private struct CommunityVoicesSection: View {
         VStack(alignment: .leading, spacing: 10) {
             SectionLabel("Community voices")
             if let rating {
-                LeaflyRatingCard(stars: rating.stars, count: rating.count)
+                SourceRatingCard(
+                    stars: rating.stars,
+                    count: rating.count,
+                    label: rating.label
+                )
             }
             if hasReddit && hasSites {
                 tabPicker
@@ -711,9 +718,11 @@ private struct CommunityVoicesSection: View {
     }
 }
 
-private struct LeaflyRatingCard: View {
+private struct SourceRatingCard: View {
     let stars: Double
     let count: Int?
+    /// "Leafly", "Allbud", or "Leafly & Allbud" for the blended average.
+    let label: String
 
     var body: some View {
         SWCard {
@@ -744,17 +753,17 @@ private struct LeaflyRatingCard: View {
 
     private var countLabel: String {
         if let count {
-            return "\(count.formatted()) Leafly reviews"
+            return "\(count.formatted()) \(label) reviews"
         }
-        return "Average Leafly rating"
+        return "Average \(label) rating"
     }
 
     private var accessibilityLabel: String {
         let rating = String(format: "%.1f", stars)
         if let count {
-            return "Leafly rating \(rating) from \(count.formatted()) reviews"
+            return "\(label) rating \(rating) from \(count.formatted()) reviews"
         }
-        return "Leafly rating \(rating)"
+        return "\(label) rating \(rating)"
     }
 }
 
