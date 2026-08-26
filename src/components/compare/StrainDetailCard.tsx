@@ -285,6 +285,8 @@ export function StrainDetailCard({
         conditions={conditions}
         leaflyRating={strain.leaflyRating}
         leaflyReviewCount={strain.leaflyReviewCount}
+        allbudRating={strain.allbudRating}
+        allbudReviewCount={strain.allbudReviewCount}
         redditSources={strain.redditSources}
         appReviews={patientNotes}
       />
