@@ -8,7 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ai:context": "node scripts/ai-context.mjs",
+    "ai:context:check": "node scripts/ai-context.mjs --check",
+    "ai:task": "node scripts/ai-context.mjs --task",
+    "ai:setup": "node scripts/install-ai-workspace.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
