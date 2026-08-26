@@ -122,6 +122,23 @@ describe("normalizeDescriptionSections", () => {
     const out = normalizeDescriptionSections({ weird: true }, "Y");
     expect(out).toHaveLength(3);
   });
+
+  test("turns literal backslash-n sequences into real newlines", () => {
+    // The model sometimes emits double-escaped newlines (the two
+    // characters backslash-n) which survive JSON parsing as literal
+    // text. Normalize them so the client can split paragraphs.
+    const out = normalizeDescriptionSections(
+      [
+        {
+          heading: "Overview",
+          body: "First paragraph\n\nSecond paragraph",
+        },
+      ],
+      "X",
+    );
+    expect(out[0].body).toContain("\n\n");
+    expect(out[0].body).not.toContain("\\n");
+  });
 });
 
 describe("describePrompt", () => {
