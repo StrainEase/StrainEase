@@ -2,7 +2,7 @@
 //
 // - popularStrains / searchStrain: public Leafly data lookups (no AI).
 // - compareStrains / recommendStrainsForConditions: Groq AI synthesis
-//   (gpt-oss-120b), auth-gated — Firebase callable functions
+//   (openai/gpt-oss-120b), auth-gated — Firebase callable functions
 //   automatically attach the caller's ID token, and we reject calls
 //   without `request.auth`.
 import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
