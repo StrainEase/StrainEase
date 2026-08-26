@@ -67,3 +67,9 @@ ios/StrainWise/GoogleService-Info.plist
 # Local scratch / smoke-test scripts left over from manual verification.
 trash-*.ts
 .trash/
+
+# Adb screencap dumps captured during emulator verification.
+android-current.png
+android-now.png
+# Old layer-list / vector drafts left in tree during brand-asset iteration.
+*.bak
