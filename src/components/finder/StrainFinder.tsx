@@ -452,7 +452,7 @@ export function StrainFinder({
               </Button>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-card px-6 py-6 sm:px-8">
+            <div>
               <h2 className="text-xl font-semibold tracking-tight text-balance sm:text-2xl">
                 {result.headline}
               </h2>
@@ -465,7 +465,7 @@ export function StrainFinder({
                     ({ strain, note }) => (
                       <blockquote
                         key={`${strain}-${note.source}`}
-                        className="rounded-xl bg-background px-4 py-3"
+                        className="rounded-xl bg-card px-4 py-3"
                       >
                         <p className="text-sm leading-6">“{note.text}”</p>
                         <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
@@ -478,7 +478,7 @@ export function StrainFinder({
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="grid snap-x snap-mandatory auto-cols-[minmax(18rem,85%)] grid-flow-col gap-4 overflow-x-auto pb-2 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-3">
               {result.recommendations.map((r, i) => {
                 const profile = profilesByName.get(r.strainName.toLowerCase());
                 const added = inCompareSelection?.(r.strainName) ?? false;
@@ -486,7 +486,7 @@ export function StrainFinder({
                 return (
                   <div
                     key={`${r.strainName}-${i}`}
-                    className="rounded-2xl border border-border/70 bg-card p-5"
+                    className="flex min-w-0 snap-start flex-col rounded-2xl border border-border/70 bg-card p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2.5">
