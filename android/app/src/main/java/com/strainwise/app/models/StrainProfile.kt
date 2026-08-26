@@ -34,6 +34,8 @@ data class StrainProfile(
     val imageUrl: String? = null,
     val leaflyRating: Double? = null,
     val leaflyReviewCount: Int? = null,
+    val allbudRating: Double? = null,
+    val allbudReviewCount: Int? = null,
 ) {
     /**
      * Home catalog stubs only carry name / type / THC / uses.
@@ -68,13 +70,24 @@ data class StrainProfile(
     val id: String get() = slug
 
     /**
-     * Aggregate Leafly rating, preferring the dedicated field on
-     * the new backend and falling back to a `Leafly community`
-     * community note text match for older profiles.
+     * Aggregate rating blended across the sources that published one
+     * (Leafly, Allbud). With a single source it shows that source
+     * verbatim with its own review count; with both it shows the
+     * average (a blended count would mislead, so it is dropped). Falls
+     * back to a `Leafly community` note text match for older profiles.
      */
     val resolvedLeaflyRating: Pair<Double, Int?>?
         get() {
-            if (leaflyRating != null) return leaflyRating to leaflyReviewCount
+            val ratings = listOfNotNull(leaflyRating, allbudRating)
+            if (ratings.isNotEmpty()) {
+                if (ratings.size == 1) {
+                    val stars = ratings[0]
+                    val count = if (leaflyRating != null) leaflyReviewCount else allbudReviewCount
+                    return stars to count
+                }
+                val avg = Math.round(ratings.average() * 10) / 10.0
+                return avg to null
+            }
             for (note in communityNotes.orEmpty()) {
                 if (note.source.lowercase() != "leafly community") continue
                 val stars = STARS_REGEX.find(note.text)?.groupValues?.get(1)?.toDoubleOrNull()
