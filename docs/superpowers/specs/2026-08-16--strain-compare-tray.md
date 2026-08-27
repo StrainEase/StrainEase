@@ -1,7 +1,7 @@
 # Compare-from-search: persistent floating tray
 
 **Date:** 2026-08-16
-**Scope:** `strain-finder` web app (`src/`) **and** SwiftUI iOS companion (`ios/StrainWise/`)
+**Scope:** `strain-finder` web app (`src/`) **and** SwiftUI iOS companion (`ios/StrainEase/`)
 **Status:** Approved by JC. Awaiting implementation plan.
 
 ## Problem
@@ -110,7 +110,7 @@ The Dashboard has many call sites that currently read or mutate `selectedNames`.
 
 ### New files
 
-- `ios/StrainWise/Compare/CompareSelectionStore.swift` — `@Observable @MainActor final class CompareSelectionStore`. Public surface:
+- `ios/StrainEase/Compare/CompareSelectionStore.swift` — `@Observable @MainActor final class CompareSelectionStore`. Public surface:
   - `var names: [String]` (case-preserving, deduped, capped at 3).
   - `func add(_:)`, `func remove(_:)`, `func toggle(_:) -> Bool`.
   - `func setNames(_:)` — batch set used by quick-pick flows.
@@ -119,14 +119,14 @@ The Dashboard has many call sites that currently read or mutate `selectedNames`.
   - `var canRunCompare: Bool { count >= 2 }`.
   - **Run path lives here too:** `var comparison: StrainComparison?`, `var isComparing: Bool`, `var compareError: String?`, `func runCompare(api:conditions:prefs:reliefSummary:) async`. The single point of truth for the comparison result on both the Find tab (renders inline) and the tray (presents a sheet).
   - Case-insensitive dedup uses `String.caseInsensitiveCompare(_:)`, matching `FindModel`'s existing helpers.
-- `ios/StrainWise/Compare/CompareTrayBar.swift` — overlay view rendered in `MainTabView`. Hidden when `names.isEmpty`. Hidden when `nav.tab == .find` to avoid a duplicate CTA on that tab (FindModel+FindView continue to handle the result inline as today). Contents: a horizontal scroll of chips per name (each with a close button), primary "Compare N strains" button, secondary "Clear" button. Sits above the tab bar with `safeAreaInset(edge: .bottom)` plus an explicit keyboard observer so it never hides under the keyboard. Animates in/out via SwiftUI transition (`.move(edge: .bottom).combined(with: .opacity)`). When `store.comparison` becomes non-nil, presents a sheet containing a reusable `CompareResultsView(comparison:)` extracted from FindView.
-- `ios/StrainWise/Compare/CompareToggleButton.swift` — small `Button` (SF symbol `arrow.left.arrow.right` idle / `arrow.left.arrow.right.circle.fill` selected) with the three visual states. `.buttonStyle(.borderless)` + `.contentShape(Rectangle())` not needed here because the toggle is only rendered as a `ToolbarItem` in `StrainDetailView`, not inside a card. `accessibilityLabel` and `accessibilityHint` mirror the web tooltip. **Used in only one place: the `StrainDetailView` toolbar.**
-- `ios/StrainWise/Compare/CompareResultsView.swift` — **new view**, parameterized as `struct CompareResultsView: View { let comparison: StrainComparison; let onSelectProfile: (StrainProfile) -> Void }`. Renders the same comparison layout as the existing `compareResults(_:)` helper at FindView.swift:369–430, but takes an `onSelectProfile` callback so it works in any host (FindView's `NavigationStack(path: $path)` wraps it with `{ path.append($0) }`; the tray's sheet wraps it with a closure that pushes onto its own internal `NavigationStack`). The dead `compareResults(_:)` helper at FindView.swift:369–430 is **removed**; the dead `compareTray` helper at FindView.swift:322–367 is **wired up** into FindView's body (see Wiring table).
-- `ios/StrainWiseTests/CompareSelectionStoreTests.swift` — XCTest for add / remove / toggle / dedup / cap / clear / canRunCompare / setNames.
+- `ios/StrainEase/Compare/CompareTrayBar.swift` — overlay view rendered in `MainTabView`. Hidden when `names.isEmpty`. Hidden when `nav.tab == .find` to avoid a duplicate CTA on that tab (FindModel+FindView continue to handle the result inline as today). Contents: a horizontal scroll of chips per name (each with a close button), primary "Compare N strains" button, secondary "Clear" button. Sits above the tab bar with `safeAreaInset(edge: .bottom)` plus an explicit keyboard observer so it never hides under the keyboard. Animates in/out via SwiftUI transition (`.move(edge: .bottom).combined(with: .opacity)`). When `store.comparison` becomes non-nil, presents a sheet containing a reusable `CompareResultsView(comparison:)` extracted from FindView.
+- `ios/StrainEase/Compare/CompareToggleButton.swift` — small `Button` (SF symbol `arrow.left.arrow.right` idle / `arrow.left.arrow.right.circle.fill` selected) with the three visual states. `.buttonStyle(.borderless)` + `.contentShape(Rectangle())` not needed here because the toggle is only rendered as a `ToolbarItem` in `StrainDetailView`, not inside a card. `accessibilityLabel` and `accessibilityHint` mirror the web tooltip. **Used in only one place: the `StrainDetailView` toolbar.**
+- `ios/StrainEase/Compare/CompareResultsView.swift` — **new view**, parameterized as `struct CompareResultsView: View { let comparison: StrainComparison; let onSelectProfile: (StrainProfile) -> Void }`. Renders the same comparison layout as the existing `compareResults(_:)` helper at FindView.swift:369–430, but takes an `onSelectProfile` callback so it works in any host (FindView's `NavigationStack(path: $path)` wraps it with `{ path.append($0) }`; the tray's sheet wraps it with a closure that pushes onto its own internal `NavigationStack`). The dead `compareResults(_:)` helper at FindView.swift:369–430 is **removed**; the dead `compareTray` helper at FindView.swift:322–367 is **wired up** into FindView's body (see Wiring table).
+- `ios/StrainEaseTests/CompareSelectionStoreTests.swift` — XCTest for add / remove / toggle / dedup / cap / clear / canRunCompare / setNames.
 
 ### Project.yml / xcodegen note
 
-`ios/project.yml` uses a `path: StrainWise` source glob, so the new `Compare/` directory will be picked up automatically by `xcodegen generate`. **No project.yml edits are required.** The implementer runs `xcodegen generate` once after adding the files.
+`ios/project.yml` uses a `path: StrainEase` source glob, so the new `Compare/` directory will be picked up automatically by `xcodegen generate`. **No project.yml edits are required.** The implementer runs `xcodegen generate` once after adding the files.
 
 ### Wiring
 

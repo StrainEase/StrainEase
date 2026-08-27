@@ -205,6 +205,28 @@ export const searchStrain = onCall(
   },
 );
 
+/**
+ * Curated Reddit threads relevant to a single strain. Pulled from the
+ * vetted `reddit-seed` pool — no LLM in the loop, so this stays cheap
+ * enough to call on every strain-detail open. Public callable (no
+ * auth, no age gate) so the iOS / web detail page can prefetch it
+ * before the user signs in.
+ */
+export const redditThreadsForStrain = onCall(
+  { timeoutSeconds: 15 },
+  async (request): Promise<RedditSource[]> => {
+    const name =
+      typeof request.data?.name === "string" ? request.data.name : "";
+    if (name.trim() === "") return [];
+    const conditions = asStringArray(request.data?.conditions);
+    return matchRedditSeeds({
+      conditions,
+      strainNames: [name.trim()],
+      limit: 5,
+    });
+  },
+);
+
 /* ── Age verification ─────────────────────────────────────────────── */
 
 /**

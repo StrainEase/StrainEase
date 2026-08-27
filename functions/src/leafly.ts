@@ -645,6 +645,7 @@ export type StrainPreview = {
   thcRange?: string;
   imageUrl?: string;
   leaflyRating?: number;
+  weedmapsRating?: number;
 };
 
 export function toPreview(p: StrainProfile): StrainPreview {
@@ -655,6 +656,7 @@ export function toPreview(p: StrainProfile): StrainPreview {
     thcRange: p.thcRange,
     imageUrl: p.imageUrl,
     leaflyRating: p.leaflyRating,
+    weedmapsRating: p.weedmapsRating,
   };
 }
 

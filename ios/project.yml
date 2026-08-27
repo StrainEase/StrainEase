@@ -1,6 +1,6 @@
-name: StrainWise
+name: StrainEase
 options:
-  bundleIdPrefix: com.strainwise
+  bundleIdPrefix: ai.strainease
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -20,29 +20,29 @@ packages:
     url: https://github.com/google/GoogleSignIn-iOS
     from: 8.0.0
 targets:
-  StrainWise:
+  StrainEase:
     type: application
     platform: iOS
     sources:
-      - path: StrainWise
+      - path: StrainEase
         excludes:
           - "**/.DS_Store"
           - "GoogleService-Info.plist"
           - "Resources/**"
-      - path: StrainWise/Resources
+      - path: StrainEase/Resources
         buildPhase: resources
-      - path: StrainWise/GoogleService-Info.plist
+      - path: StrainEase/GoogleService-Info.plist
         buildPhase: resources
         type: file
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.strainwise.app
-        PRODUCT_NAME: StrainWise
-        INFOPLIST_FILE: StrainWise/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: ai.strainease.app
+        PRODUCT_NAME: StrainEase
+        INFOPLIST_FILE: StrainEase/Info.plist
         GENERATE_INFOPLIST_FILE: false
         DEVELOPMENT_TEAM: 4JBMBNGPK7
         CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_ENTITLEMENTS: StrainWise/StrainWise.entitlements
+        CODE_SIGN_ENTITLEMENTS: StrainEase/StrainEase.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
@@ -57,28 +57,28 @@ targets:
         product: FirebaseFunctions
       - package: GoogleSignIn
         product: GoogleSignIn
-  StrainWiseTests:
+  StrainEaseTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: StrainWiseTests
+      - path: StrainEaseTests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.strainwise.app.tests
+        PRODUCT_BUNDLE_IDENTIFIER: ai.strainease.app.tests
         GENERATE_INFOPLIST_FILE: true
         DEVELOPMENT_TEAM: 4JBMBNGPK7
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/StrainWise.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StrainWise"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/StrainEase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StrainEase"
         BUNDLE_LOADER: "$(TEST_HOST)"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     dependencies:
-      - target: StrainWise
+      - target: StrainEase
 schemes:
-  StrainWise:
+  StrainEase:
     build:
       targets:
-        StrainWise: all
-        StrainWiseTests: [test]
+        StrainEase: all
+        StrainEaseTests: [test]
     test:
       targets:
-        - StrainWiseTests
+        - StrainEaseTests
       gatherCoverageData: false

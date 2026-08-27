@@ -2,7 +2,7 @@
 
 Native Jetpack Compose companion to the StrainEase web app
 ([strainease.ai](https://strainease.ai)) and the iOS app
-(`ios/StrainWise`). Same Firebase project (`strainfinder-84a9b`),
+(`ios/StrainEase`). Same Firebase project (`strainfinder-84a9b`),
 same accounts, same AI callables — three surfaces, one backend.
 
 The port is shipped as 13 sequential PRs (`feat/android/<feature>`),
@@ -58,9 +58,9 @@ android/
 │   │   ├── AndroidManifest.xml       # permissions + activity entry
 │   │   ├── assets/
 │   │   │   └── strain-directory.json # bundled Leafly + Weedmaps catalog
-│   │   ├── java/com/strainwise/app/
-│   │   │   ├── StrainWiseApplication.kt   # FirebaseBootstrap + Coil + catalog
-│   │   │   ├── MainActivity.kt            # setContent { StrainWiseTheme { RootView } }
+│   │   ├── java/com/strainease/app/
+│   │   │   ├── StrainEaseApplication.kt   # FirebaseBootstrap + Coil + catalog
+│   │   │   ├── MainActivity.kt            # setContent { StrainEaseTheme { RootView } }
 │   │   │   ├── app/
 │   │   │   │   ├── AppNavigation.kt
 │   │   │   │   ├── MainTabView.kt          # 4 tabs + CompareTrayBar slot
@@ -126,7 +126,7 @@ app. The shared contracts are:
   (see root `firestore.rules`).
 - **Age gate** — local-only verification, 30-day TTL; the same
   `src/lib/age-policy.ts` regions/minimum ages are mirrored in
-  `com.strainwise.app.compliance.AgeRegion`.
+  `ai.strainease.app.compliance.AgeRegion`.
 - **Brand** — `Palette` tokens are a 1:1 port of iOS `Palette.swift`
   so the same light + dark themes ship on both surfaces.
 
@@ -139,7 +139,7 @@ app. The shared contracts are:
   the bundled `strain-directory.json`. No Hilt — manual DI
   keeps the surface small and matches the iOS pattern of
   `@State` + `@Environment`.
-- **Bundle id:** `com.strainwise.app` — same identifier iOS uses,
+- **Bundle id:** `ai.strainease.app` — same identifier iOS uses,
   so Firebase Auth + Firestore user records are shared.
 - **minSdk 26, target/compile SDK 34** — same effective coverage as
   the iOS app's iOS 17 floor.
@@ -156,7 +156,7 @@ app. The shared contracts are:
 
 | # | Branch | Scope |
 | - | ------ | ----- |
-| 1  | `feat/android/scaffold`   | Gradle, AGP, Kotlin, Compose, Firebase deps; brand `Palette`; `StrainWiseTheme`; `RootPlaceholder` |
+| 1  | `feat/android/scaffold`   | Gradle, AGP, Kotlin, Compose, Firebase deps; brand `Palette`; `StrainEaseTheme`; `RootPlaceholder` |
 | 2  | `feat/android/theme`      | Full `Palette` + `TypeStyle` + `MeshBackground` + reusable `Components` |
 | 3  | `feat/android/models`     | All `StrainProfile` / `Recommendation` / `Doctor` Kotlin data classes; `LiveStrainAPI`; `strain-directory.json` resource; `PreviewData` |
 | 4  | `feat/android/auth`       | `AuthSession` (email, Google); `AgeVerificationStore`; `AgeGateView`; `SignInView` |

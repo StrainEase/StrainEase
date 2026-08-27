@@ -194,12 +194,12 @@ function buildDescriptionAttribution(
 function buildRatingAttribution(
   cache: Partial<Record<SourceId, StrainProfile | null>>,
 ): FieldAttribution | undefined {
-  // Ratings stay source-attributed rather than averaged: Leafly's
-  // aggregate lives in `leaflyRating`, Allbud's in `allbudRating`,
-  // and blending them into a single "leaflyRating" would mislabel
-  // the number. This helper only fires when multiple sources happen
-  // to publish into the same field (none do today), so the
-  // attribution block is ready if a source is ever merged.
+  // Ratings stay source-attributed rather than averaged: each catalog
+  // publishes into its own field (leaflyRating, weedmapsRating,
+  // allbudRating) and blending them would mislabel the number. This
+  // helper only fires when multiple sources happen to publish into
+  // the same field (none do today), so the attribution block is
+  // ready if a source is ever merged.
   const sources: { source: SourceId; raw: number }[] = [];
   for (const s of SOURCE_ORDER) {
     const r = s === "leafly" ? cache[s]?.leaflyRating : undefined;
@@ -220,6 +220,15 @@ function buildRatingAttribution(
   };
 }
 
+/**
+ * Per-source cap on patient community notes. Keeps the strain detail
+ * surface honest — 5 from each of Leafly / Weedmaps / Allbud is enough
+ * variety without scrolling past the same aggregate card. The
+ * consolidator also caps total output at 5 × sources.length, so a
+ * strain with all three sources shows at most 15 notes.
+ */
+const NOTES_PER_SOURCE = 5;
+
 function unionNotes(
   cache: Partial<Record<SourceId, StrainProfile | null>>,
 ): CommunityNote[] {
@@ -228,7 +237,9 @@ function unionNotes(
   for (const s of SOURCE_ORDER) {
     const profile = cache[s];
     if (!profile?.communityNotes) continue;
+    let keptForSource = 0;
     for (const note of profile.communityNotes) {
+      if (keptForSource >= NOTES_PER_SOURCE) break;
       const key = `${note.source}|${note.text.slice(0, 80)}`.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -237,6 +248,7 @@ function unionNotes(
         text: note.text,
         kind: note.kind ?? detectSourceKind(note.source),
       });
+      keptForSource++;
     }
   }
   return out;
@@ -394,6 +406,8 @@ export async function consolidateStrain(
     leaflyRating: ratingAttribution?.value as number | undefined ??
       pickFirst(profiles, (p) => p.leaflyRating),
     leaflyReviewCount: pickFirst(profiles, (p) => p.leaflyReviewCount),
+    weedmapsRating: pickFirst(profiles, (p) => p.weedmapsRating),
+    weedmapsReviewCount: pickFirst(profiles, (p) => p.weedmapsReviewCount),
     allbudRating: pickFirst(profiles, (p) => p.allbudRating),
     allbudReviewCount: pickFirst(profiles, (p) => p.allbudReviewCount),
     sources: present,

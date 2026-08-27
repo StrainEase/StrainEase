@@ -131,7 +131,7 @@ ${stackSummary(packageJson)}
 | Firestore client access | \`src/lib/firebase.ts\`, \`src/components/saved/\` |
 | Callable function wrappers | \`src/lib/strain-api.ts\` |
 | Cloud Functions | \`functions/src/index.ts\`, \`functions/src/\` |
-| iOS companion | \`ios/StrainWise/\` |
+| iOS companion | \`ios/StrainEase/\` |
 | Android companion | \`android/app/src/main/\` |
 
 ## Operating Rules
