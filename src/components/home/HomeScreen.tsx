@@ -12,7 +12,7 @@ import {
 import { TIME_OF_DAY_SUBTITLE, timeOfDayHeadline } from "@/lib/time-of-day";
 import type { StrainProfile } from "@/lib/strain-profile";
 
-/** Mirrors `ios/StrainWise/Home/HomeView.swift` row order:
+/** Mirrors `ios/StrainEase/Home/HomeView.swift` row order:
  *   hero → Top picks for your symptoms? → Popular strains → For your symptoms
  *   (carousel) → Sativa → Hybrid → Indica → Recently viewed.
  */

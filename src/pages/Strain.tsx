@@ -7,6 +7,7 @@ import {
   type StrainHydrationSection,
 } from "@/components/compare/HydratingSection";
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
+import { RedditThreads } from "@/components/compare/RedditThreads";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
@@ -40,8 +41,13 @@ import {
   strainJsonLd,
 } from "@/lib/seo";
 import { documentTitle } from "@/lib/site";
-import { searchStrain, type StrainReview } from "@/lib/strain-api";
+import {
+  redditThreads as fetchRedditThreads,
+  searchStrain,
+  type StrainReview,
+} from "@/lib/strain-api";
 import { applyCatalogPhotos, CATALOG } from "@/lib/strain-catalog";
+import type { RedditSource } from "@/lib/strain-profile";
 import { getFeaturedStrainProfile } from "@/lib/featured-strain-details";
 import {
   dayNightLabel,
@@ -93,6 +99,7 @@ export default function Strain() {
   );
   const [savedNames, setSavedNames] = useState<string[]>([]);
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
+  const [reddit, setReddit] = useState<RedditSource[]>([]);
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
   const featuredProfile = getFeaturedStrainProfile(slug);
@@ -173,6 +180,24 @@ export default function Strain() {
     }
     return listenToPublicNotes(slug, setPatientNotes);
   }, [slug]);
+
+  // Curated Reddit threads for the strain. Mirrors the iOS call so the
+  // web and iOS strain detail show the same outbound links. Failures
+  // are silent — the section simply doesn't render.
+  useEffect(() => {
+    let cancelled = false;
+    const name = catalogHit?.name ?? slug.replace(/-/g, " ");
+    void fetchRedditThreads({ name, conditions: [] })
+      .then((list) => {
+        if (!cancelled) setReddit(list);
+      })
+      .catch(() => {
+        if (!cancelled) setReddit([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, catalogHit]);
 
   // Review dialog state
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -440,13 +465,28 @@ export default function Strain() {
           ) : profile &&
             (profile.communityNotes?.length ||
               profile.leaflyRating ||
+              profile.weedmapsRating ||
+              profile.allbudRating ||
               patientNotes.length > 0) ? (
             <CommunityVoices
               notes={profile.communityNotes}
               strainName={profile.name}
               leaflyRating={profile.leaflyRating}
               leaflyReviewCount={profile.leaflyReviewCount}
+              weedmapsRating={profile.weedmapsRating}
+              weedmapsReviewCount={profile.weedmapsReviewCount}
+              allbudRating={profile.allbudRating}
+              allbudReviewCount={profile.allbudReviewCount}
               appReviews={patientNotes}
+            />
+          ) : null}
+
+          {/* Reddit threads for this strain — curated list, no live scrape. */}
+          {reddit.length > 0 ? (
+            <RedditThreads
+              sources={reddit}
+              title="Reddit threads for this strain"
+              description="Public threads mentioning this strain — pulled from a curated list, not live-scraped."
             />
           ) : null}
 

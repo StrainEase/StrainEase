@@ -10,7 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
-const LOCAL_KEY = "strainwise:history:v1";
+const LOCAL_KEY = "strainease:history:v1";
 
 export type HistoryKind = "find" | "compare";
 

@@ -214,7 +214,7 @@ gate is the **client-side popup** (localStorage + DOB attestation) — there
 is no server-side custom claim or callable gate anymore (see PR #134).
 
 - The age gate is `<AgeGate>` (`src/components/compliance/AgeGate.tsx`) on the
-  web and `AgeGateView` (`ios/StrainWise/App/AgeGateView.swift`) on iOS.
+  web and `AgeGateView` (`ios/StrainEase/App/AgeGateView.swift`) on iOS.
   Both wrap the entire `<Routes>` / `RootView` so every page is gated.
 - Region list + minimum ages live in `src/lib/age-policy.ts` (web) and
   `functions/src/age.ts` (server, kept for shared constants only).
@@ -263,18 +263,18 @@ is no server-side custom claim or callable gate anymore (see PR #134).
 
 ## Android port (`android/`)
 
-Native Jetpack Compose companion to the iOS app (`ios/StrainWise`).
+Native Jetpack Compose companion to the iOS app (`ios/StrainEase`).
 Same Firebase project (`strainfinder-84a9b`), same accounts, same AI
 callables — three surfaces, one backend. The port is broken into
 **13 sequential PRs** so each slice is reviewable on its own.
 
 | PR | Branch | Scope |
 | -- | ------ | ----- |
-| 1  | `feat/android/scaffold`   | Gradle, AGP, Kotlin, Compose, Firebase deps; brand `Palette`; `StrainWiseTheme`; `RootPlaceholder` |
+| 1  | `feat/android/scaffold`   | Gradle, AGP, Kotlin, Compose, Firebase deps; brand `Palette`; `StrainEaseTheme`; `RootPlaceholder` |
 | 2  | `feat/android/theme`      | Full `Palette` + `TypeStyle` + `MeshBackground` + reusable `Components` (cards, eyebrow, buttons) |
 | 3  | `feat/android/models`     | All `StrainProfile` / `Recommendation` / `Doctor` Kotlin data classes; `LiveStrainAPI`; `strain-directory.json` resource; `PreviewData` |
 | 4  | `feat/android/auth`       | `FirebaseBootstrap`; `AuthSession` (email, Google); `AgeVerificationStore`; `AgeGateView`; `SignInView` |
-| 5  | `feat/android/shell`      | `StrainWiseApp` (Compose entry) + `RootView` + `MainTabView` + `AppNavigation` |
+| 5  | `feat/android/shell`      | `StrainEaseApp` (Compose entry) + `RootView` + `MainTabView` + `AppNavigation` |
 | 6  | `feat/android/home`       | `HomeView`, `HomeModel`, `HomeHeadline`, `AilmentCarousel`, `StrainPoster`, `StrainGridView`, `RecentlyViewedStore` |
 | 7  | `feat/android/find`       | `FindView`, `FindModel`, `ResearchPrefs`, `SavedAilmentsStore`, `SavedMedicationsStore`, `ReliefLogStore` |
 | 8  | `feat/android/browse`     | `DirectoryView`, `DirectoryModel`, `DirectoryFilter` |
@@ -284,7 +284,7 @@ callables — three surfaces, one backend. The port is broken into
 | 12 | `feat/android/doctors`    | `DoctorsView`, `DoctorsModel`, `DoctorModels`, `LocationProvider` |
 | 13 | `feat/android/polish`     | App icon set, splash polish, README, AGENTS.md update, test setup |
 
-Conventions for the Android port (mirrors the iOS `StrainWise` style
+Conventions for the Android port (mirrors the iOS `StrainEase` style
 as much as Compose allows):
 
 - **Stack:** Kotlin 1.9 + AGP 8.5 + Jetpack Compose + Material 3,
@@ -292,12 +292,12 @@ as much as Compose allows):
   for image loading, DataStore for local preferences, kotlinx-serialization
   for `strain-directory.json`. No Hilt — manual DI keeps the surface
   small and matches the iOS pattern of `@State` + `@Environment`.
-- **Bundle id:** `com.strainwise.app` — same identifier iOS uses,
+- **Bundle id:** `ai.strainease.app` — same identifier iOS uses,
   so Firebase Auth + Firestore user records are shared.
 - **minSdk 26, target/compile SDK 34** — same effective coverage as
   the iOS app's iOS 17 floor.
-- **Package layout:** `com.strainwise.app.{services,ui.theme,ui.components,ui.home,ui.find,ui.browse,ui.compare,ui.account,ui.doctors,ui.strain,auth,compliance,data,models}`
-  mirrors the iOS folder structure under `ios/StrainWise/`.
+- **Package layout:** `ai.strainease.app.{services,ui.theme,ui.components,ui.home,ui.find,ui.browse,ui.compare,ui.account,ui.doctors,ui.strain,auth,compliance,data,models}`
+  mirrors the iOS folder structure under `ios/StrainEase/`.
 - **Theming:** brand colors live in `ui/theme/Color.kt` as a
   `Palette` object (token-by-token port of iOS `Palette.swift`).
   Always go through `MaterialTheme.colorScheme.*`; never reach into
@@ -313,6 +313,32 @@ as much as Compose allows):
 - **Test setup:** basic JUnit unit tests + Compose UI tests live in
   `app/src/test/` and `app/src/androidTest/`. PR-A13 wires up the
   initial suite.
+
+### Future parity work (iOS / web shipped, Android not yet)
+
+The 13-PR plan above ships feature parity with iOS as of the
+`StrainWise` → `StrainEase` rename. The iOS + web `feat/ios-rating-average`
+PR landed several changes that the Android port will need to mirror
+in a follow-up PR:
+
+- **Per-source rating cards** — the strain detail shows 1-3
+  `SourceRatingCard`s (one per source that published a rating —
+  Leafly, Weedmaps, Allbud) instead of the legacy blended
+  "Leafly & Allbud" average. `StrainProfile` gains
+  `weedmapsRating` / `weedmapsReviewCount`. The backend
+  `consolidate.ts` and `weedmaps.ts` already emit the new fields.
+- **5-per-source community-note cap** — `unionNotes` in the
+  consolidator caps each source at 5 notes; the iOS / web
+  `CommunityVoices` apply the same cap client-side so a future
+  wire push can't quietly dump the whole list.
+- **Curated Reddit threads on strain detail** — new public
+  callable `redditThreadsForStrain(name, conditions)` returns up
+  to 5 vetted threads (no LLM in the loop). Strain detail pages
+  render them in a `RedditThreads` block under community voices.
+
+These are iOS + web parity; an Android follow-up PR (A14 or
+later) should land all three together so the Android strain
+detail matches what iOS / web ship today.
 
 # Remember:
 

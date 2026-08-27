@@ -15,7 +15,7 @@
   - "Add to compare" button on `Strain.tsx`
   - Remove `StrainDirectory.tsx`'s per-card "Compare" link
   - Tests for the hook and components
-- iOS (`ios/StrainWise/`):
+- iOS (`ios/StrainEase/`):
   - `CompareSelectionStore`, `CompareToggleButton`, `CompareTrayBar`, `CompareResultsView`
   - `MainTabView` owns + injects the store
   - Wire up `FindView.compareTray` (currently dead) into the body
@@ -119,33 +119,33 @@ Edit `src/components/directory/StrainDirectory.tsx`:
 
 #### I1 · Foundation — `CompareSelectionStore`
 
-- Create `ios/StrainWise/Compare/CompareSelectionStore.swift`. `@Observable @MainActor final class`.
+- Create `ios/StrainEase/Compare/CompareSelectionStore.swift`. `@Observable @MainActor final class`.
 - Public API: `names`, `cap = 3`, `add`, `remove`, `toggle`, `setNames`, `clear`, `isIn`, `atCap`, `count`, `canRunCompare`, `comparison`, `isComparing`, `compareError`, `runCompare(api:conditions:prefs:reliefSummary:)`.
 - Case-insensitive dedup uses `String.caseInsensitiveCompare(_:)`.
 - `runCompare` sets `isComparing = true`, calls `api.compare(...)`, sets `comparison` on success or `compareError` on failure, clears `isComparing` in `defer`.
-- Create `ios/StrainWiseTests/CompareSelectionStoreTests.swift`:
+- Create `ios/StrainEaseTests/CompareSelectionStoreTests.swift`:
   - add, remove, toggle, dedup, cap, clear, canRunCompare threshold, setNames.
   - `runCompare` sets `comparison` on success and clears `isComparing`/`compareError`.
 
-**Gate:** `xcodebuild test -scheme StrainWise -destination 'platform=iOS Simulator,name=iPhone 15'` passes.
+**Gate:** `xcodebuild test -scheme StrainEase -destination 'platform=iOS Simulator,name=iPhone 15'` passes.
 
 #### I2 · UI primitives
 
-- Create `ios/StrainWise/Compare/CompareResultsView.swift`. Parameterized: `comparison: StrainComparison`, `onSelectProfile: (StrainProfile) -> Void`. Renders the same layout as the existing `compareResults(_:)` helper at FindView.swift:369–430 (for, key differences, common ground, cautions, strain list). All `path.append($0)` calls become `onSelectProfile($0)`.
-- Create `ios/StrainWise/Compare/CompareToggleButton.swift`. `Button` with the three states via SF symbols. Used only as a `ToolbarItem` in `StrainDetailView` — no card overlay use.
-- Create `ios/StrainWise/Compare/CompareTrayBar.swift`. Floating overlay. Hidden when `names.isEmpty` OR when bound `nav.tab == .find`. Animates via `.move(edge: .bottom).combined(with: .opacity)`. Owns its own `@State private var trayPath: [StrainProfile] = []`. Presents a sheet that wraps `NavigationStack { CompareResultsView(comparison: store.comparison, onSelectProfile: { trayPath.append($0) }) }` plus `.navigationDestination(for: StrainProfile.self) { StrainDetailView(profile: $0) }`. Has explicit keyboard observer for `keyboardWillChangeFrameNotification`.
+- Create `ios/StrainEase/Compare/CompareResultsView.swift`. Parameterized: `comparison: StrainComparison`, `onSelectProfile: (StrainProfile) -> Void`. Renders the same layout as the existing `compareResults(_:)` helper at FindView.swift:369–430 (for, key differences, common ground, cautions, strain list). All `path.append($0)` calls become `onSelectProfile($0)`.
+- Create `ios/StrainEase/Compare/CompareToggleButton.swift`. `Button` with the three states via SF symbols. Used only as a `ToolbarItem` in `StrainDetailView` — no card overlay use.
+- Create `ios/StrainEase/Compare/CompareTrayBar.swift`. Floating overlay. Hidden when `names.isEmpty` OR when bound `nav.tab == .find`. Animates via `.move(edge: .bottom).combined(with: .opacity)`. Owns its own `@State private var trayPath: [StrainProfile] = []`. Presents a sheet that wraps `NavigationStack { CompareResultsView(comparison: store.comparison, onSelectProfile: { trayPath.append($0) }) }` plus `.navigationDestination(for: StrainProfile.self) { StrainDetailView(profile: $0) }`. Has explicit keyboard observer for `keyboardWillChangeFrameNotification`.
 
 **Gate:** Xcode build clean. (No test for the views themselves; manual smoke covers it.)
 
 #### I3 · `MainTabView` + `FindView` wire-up
 
-Edit `ios/StrainWise/App/MainTabView.swift`:
+Edit `ios/StrainEase/App/MainTabView.swift`:
 
 - Add `@State private var compareStore = CompareSelectionStore()`.
 - Inject via `.environment(compareStore)`.
 - Render `<CompareTrayBar compareStore: compareStore />` as an overlay; tray reads `nav.tab` to hide on Find.
 
-Edit `ios/StrainWise/Find/FindModel.swift`:
+Edit `ios/StrainEase/Find/FindModel.swift`:
 
 - Remove `compareNames`, `isComparing`, `comparison`, `compareError` stored properties.
 - Add `@Environment(CompareSelectionStore.self) private var compareStore: CompareSelectionStore?` — **note**: `@Environment` on `@Observable` classes is fine for read but mutation is best done via the store directly. Consider passing the store explicitly in `init` from the view instead.
@@ -161,7 +161,7 @@ Edit `ios/StrainWise/Find/FindModel.swift`:
 
 **Implementation note:** since `FindModel` is created with `@State` in `MainTabView` (line 5), and `@Environment` doesn't propagate to `@State`-created models the way it does to views, the cleanest path is to pass the store in `init`: `init(api: any StrainServicing = LiveStrainAPI(), compareStore: CompareSelectionStore? = nil)`. Update `MainTabView` line 5 to pass `compareStore`.
 
-Edit `ios/StrainWise/Find/FindView.swift`:
+Edit `ios/StrainEase/Find/FindView.swift`:
 
 - Wire `compareTray` (currently dead at lines 322–367) into the body between `prefs` and `recommendations`. Re-point all its references: `model.compareNames` → `compareStore?.names ?? []`, `model.removeFromCompare(name)` → `compareStore?.remove(name)`, `model.canCompare` → `(compareStore?.canRunCompare ?? false) && !(compareStore?.isComparing ?? false)`, `model.isComparing` → `compareStore?.isComparing ?? false`, `model.compareSelected(...)` → the new delegation through `compareStore?.runCompare(...)`.
 - Add a new sibling block at the body level (next to `if let result = model.result`): `if let comparison = compareStore?.comparison { CompareResultsView(comparison: comparison, onSelectProfile: { path.append($0) }).id(comparison.headline) }`.
@@ -171,7 +171,7 @@ Edit `ios/StrainWise/Find/FindView.swift`:
 
 #### I4 · Detail-page toggle
 
-Edit `ios/StrainWise/Strain/StrainDetailView.swift`:
+Edit `ios/StrainEase/Strain/StrainDetailView.swift`:
 
 - In the existing `ToolbarItem` block at lines 90–103, add a second `ToolbarItem(placement: .topBarLeading)` with `CompareToggleButton`.
 - `arrow.left.arrow.right` (idle) / `arrow.left.arrow.right.circle.fill` (selected). Selected state reads from `compareStore?.isIn(profile.name)`.
@@ -188,7 +188,7 @@ Edit `ios/StrainWise/Strain/StrainDetailView.swift`:
 #### I5 · Optional polish
 
 - Run `xcodegen generate` once to refresh the project (no project.yml edits needed — the new `Compare/` directory is auto-globbed).
-- Verify the generated pbxproj includes the new files (`grep "CompareSelectionStore" StrainWise.xcodeproj/project.pbxproj`).
+- Verify the generated pbxproj includes the new files (`grep "CompareSelectionStore" StrainEase.xcodeproj/project.pbxproj`).
 
 ## Order of operations
 
@@ -221,14 +221,14 @@ Within each track, do not advance to the next step until the previous step's gat
 
 ### iOS
 
-- `ios/StrainWise/Compare/CompareSelectionStore.swift` — new
-- `ios/StrainWise/Compare/CompareToggleButton.swift` — new
-- `ios/StrainWise/Compare/CompareTrayBar.swift` — new
-- `ios/StrainWise/Compare/CompareResultsView.swift` — new
-- `ios/StrainWise/App/MainTabView.swift` — inject store, mount tray
-- `ios/StrainWise/Find/FindModel.swift` — refactor (delegate to store)
-- `ios/StrainWise/Find/FindView.swift` — wire `compareTray` into body, add `CompareResultsView` inline, remove dead `compareResults(_:)`
-- `ios/StrainWise/Strain/StrainDetailView.swift` — toolbar button
+- `ios/StrainEase/Compare/CompareSelectionStore.swift` — new
+- `ios/StrainEase/Compare/CompareToggleButton.swift` — new
+- `ios/StrainEase/Compare/CompareTrayBar.swift` — new
+- `ios/StrainEase/Compare/CompareResultsView.swift` — new
+- `ios/StrainEase/App/MainTabView.swift` — inject store, mount tray
+- `ios/StrainEase/Find/FindModel.swift` — refactor (delegate to store)
+- `ios/StrainEase/Find/FindView.swift` — wire `compareTray` into body, add `CompareResultsView` inline, remove dead `compareResults(_:)`
+- `ios/StrainEase/Strain/StrainDetailView.swift` — toolbar button
 
 ### Untouched
 
@@ -255,8 +255,8 @@ Within each track, do not advance to the next step until the previous step's gat
 
 **iOS**
 
-1. `xcodebuild test -scheme StrainWise` — `CompareSelectionStoreTests` passes.
-2. `xcodebuild build -scheme StrainWise` — Xcode build clean after `xcodegen generate`.
+1. `xcodebuild test -scheme StrainEase` — `CompareSelectionStoreTests` passes.
+2. `xcodebuild build -scheme StrainEase` — Xcode build clean after `xcodegen generate`.
 3. Manual smoke (against iPhone simulator):
    - Open a strain on Browse → tap detail → tap toolbar compare button → selection updates in the env store.
    - Tap toolbar compare on the same strain again → removed.

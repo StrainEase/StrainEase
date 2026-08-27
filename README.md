@@ -130,12 +130,12 @@ tables. Keep the two in sync.
 
 Mirrors the web flow exactly:
 
-- `ios/StrainWise/Services/AgeVerificationStore.swift` — `@Observable` store
+- `ios/StrainEase/Services/AgeVerificationStore.swift` — `@Observable` store
   with `UserDefaults` persistence.
-- `ios/StrainWise/App/AgeGateView.swift` — SwiftUI gate presented at
+- `ios/StrainEase/App/AgeGateView.swift` — SwiftUI gate presented at
   `RootView` until verified.
 - `StrainAPI.setAgeVerified(...)` mirrors the local attestation to the server.
-- `ios/StrainWise/Account/AccountView.swift` exposes a "Reset age verification"
+- `ios/StrainEase/Account/AccountView.swift` exposes a "Reset age verification"
   option for shared devices.
 
 ## Re-verification cadence

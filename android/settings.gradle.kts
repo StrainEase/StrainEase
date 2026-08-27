@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "StrainWise"
+rootProject.name = "StrainEase"
 include(":app")

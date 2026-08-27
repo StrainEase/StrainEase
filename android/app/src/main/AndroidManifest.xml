@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   StrainEase Android manifest. Mirrors the iOS Info.plist + entitlements
-  (com.strainwise.app bundle, location permission for the Doctors tab,
+  (ai.strainease.app bundle, location permission for the Doctors tab,
   Google sign-in entry on the sign-in screen).
 
   Notes:
@@ -25,7 +25,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
-        android:name=".StrainWiseApplication"
+        android:name=".StrainEaseApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -33,7 +33,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.StrainWise"
+        android:theme="@style/Theme.StrainEase"
         tools:targetApi="34">
 
         <activity
@@ -42,7 +42,7 @@
             android:label=""
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|keyboard|keyboardHidden|navigation"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.StrainWise">
+            android:theme="@style/Theme.StrainEase">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -56,7 +56,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="com.strainwise.app"
+                    android:scheme="ai.strainease.app"
                     android:host="oauth" />
             </intent-filter>
         </activity>
