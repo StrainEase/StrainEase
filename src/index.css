@@ -185,7 +185,7 @@
   }
 
   /* Two-orb mesh used across the app. Mirrors
-   * ios/StrainWise/Theme/MeshBackground.swift: a soft mint glow from the
+   * ios/StrainEase/Theme/MeshBackground.swift: a soft mint glow from the
    * top-right (glowMint) and a deep forest glow from the bottom-left
    * (glowDeep), painted over the theme's --background. Dark mode adds a
    * bottom fade for legibility, matching the iOS overlay.

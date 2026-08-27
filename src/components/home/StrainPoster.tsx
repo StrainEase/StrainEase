@@ -9,7 +9,7 @@ import { Star } from "lucide-react";
 import { Link } from "react-router";
 
 /**
- * iOS-parity strain poster (`ios/StrainWise/Home/StrainPoster.swift`):
+ * iOS-parity strain poster (`ios/StrainEase/Home/StrainPoster.swift`):
  * a bare column — rounded photo, type badge, name under the image,
  * then the THC range with the Leafly star rating beside it. No card
  * chrome, no medical-use chips, no review footer.

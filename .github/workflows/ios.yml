@@ -1,4 +1,4 @@
-# StrainWise iOS — build, test, and (on demand) build an unsigned smoke-test IPA.
+# StrainEase iOS — build, test, and (on demand) build an unsigned smoke-test IPA.
 # Runs on macos-latest. Does NOT sign the IPA; an unsigned build is enough
 # to catch compile / SPM / linker regressions in PRs without needing an
 # Apple Developer signing identity in CI.
@@ -21,7 +21,7 @@
 # the archive / test bundle can be linked; Firebase calls at runtime
 # will fail safely because the stub IDs are obviously not real.
 
-name: StrainWise iOS
+name: StrainEase iOS
 
 on:
   push:
@@ -67,10 +67,10 @@ jobs:
       # the stub plist has to exist before xcodegen runs (FirebaseBootstrap
       # already no-ops at runtime when the plist is missing).
       - name: Write stub GoogleService-Info.plist
-        if: hashFiles('ios/StrainWise/GoogleService-Info.plist') == ''
+        if: hashFiles('ios/StrainEase/GoogleService-Info.plist') == ''
         working-directory: ios
         run: |
-          cat > StrainWise/GoogleService-Info.plist <<'PLIST'
+          cat > StrainEase/GoogleService-Info.plist <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -78,7 +78,7 @@ jobs:
               <key>API_KEY</key>
               <string>AIzaSy-stub-stub-stub-stub-stub-stub-stub</string>
               <key>BUNDLE_ID</key>
-              <string>com.strainwise.app</string>
+              <string>ai.strainease.app</string>
               <key>CLIENT_ID</key>
               <string>89734321536-stub.apps.googleusercontent.com</string>
               <key>DATABASE_URL</key>
@@ -107,7 +107,7 @@ jobs:
               <string>strainfinder-84a9b-stub.appspot.com</string>
           </dict>
           </plist>
-          plutil -lint StrainWise/GoogleService-Info.plist
+          plutil -lint StrainEase/GoogleService-Info.plist
 
       - name: Generate Xcode project
         working-directory: ios
@@ -117,7 +117,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-derivedData-${{ hashFiles('ios/project.yml', 'ios/StrainWise.xcodeproj/project.pbxproj', 'ios/StrainWise.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ${{ runner.os }}-derivedData-${{ hashFiles('ios/project.yml', 'ios/StrainEase.xcodeproj/project.pbxproj', 'ios/StrainEase.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-derivedData-
 
@@ -134,12 +134,12 @@ jobs:
           # current default Xcode (iPhone 17 as of Xcode 16.x in Aug 2026)
           # and let xcodebuild pick the latest matching OS.
           xcodebuild test \
-            -project StrainWise.xcodeproj \
-            -scheme StrainWise \
+            -project StrainEase.xcodeproj \
+            -scheme StrainEase \
             -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest' \
             -configuration Debug \
             -derivedDataPath build/DerivedData \
-            -resultBundlePath build/StrainWise.xcresult \
+            -resultBundlePath build/StrainEase.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             COMPILER_INDEX_STORE_ENABLE=NO
 
@@ -148,7 +148,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: xcresult-${{ github.sha }}
-          path: ios/build/StrainWise.xcresult
+          path: ios/build/StrainEase.xcresult
           if-no-files-found: ignore
           retention-days: 14
 
@@ -174,10 +174,10 @@ jobs:
       # the stub plist has to exist before xcodegen runs (FirebaseBootstrap
       # already no-ops at runtime when the plist is missing).
       - name: Write stub GoogleService-Info.plist
-        if: hashFiles('ios/StrainWise/GoogleService-Info.plist') == ''
+        if: hashFiles('ios/StrainEase/GoogleService-Info.plist') == ''
         working-directory: ios
         run: |
-          cat > StrainWise/GoogleService-Info.plist <<'PLIST'
+          cat > StrainEase/GoogleService-Info.plist <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -185,7 +185,7 @@ jobs:
               <key>API_KEY</key>
               <string>AIzaSy-stub-stub-stub-stub-stub-stub-stub</string>
               <key>BUNDLE_ID</key>
-              <string>com.strainwise.app</string>
+              <string>ai.strainease.app</string>
               <key>CLIENT_ID</key>
               <string>89734321536-stub.apps.googleusercontent.com</string>
               <key>DATABASE_URL</key>
@@ -214,7 +214,7 @@ jobs:
               <string>strainfinder-84a9b-stub.appspot.com</string>
           </dict>
           </plist>
-          plutil -lint StrainWise/GoogleService-Info.plist
+          plutil -lint StrainEase/GoogleService-Info.plist
 
       - name: Generate Xcode project
         working-directory: ios
@@ -224,7 +224,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-derivedData-${{ hashFiles('ios/project.yml', 'ios/StrainWise.xcodeproj/project.pbxproj', 'ios/StrainWise.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ${{ runner.os }}-derivedData-${{ hashFiles('ios/project.yml', 'ios/StrainEase.xcodeproj/project.pbxproj', 'ios/StrainEase.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-derivedData-
 
@@ -234,11 +234,11 @@ jobs:
           set -o pipefail
           mkdir -p build
           xcodebuild \
-            -project StrainWise.xcodeproj \
-            -scheme StrainWise \
+            -project StrainEase.xcodeproj \
+            -scheme StrainEase \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath build/StrainWise.xcarchive \
+            -archivePath build/StrainEase.xcarchive \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -278,7 +278,7 @@ jobs:
       #   run: |
       #     set -o pipefail
       #     xcodebuild -exportArchive \
-      #       -archivePath build/StrainWise.xcarchive \
+      #       -archivePath build/StrainEase.xcarchive \
       #       -exportPath build/ipa \
       #       -exportOptionsPlist build/ExportOptions.plist
 
@@ -286,36 +286,36 @@ jobs:
         working-directory: ios
         run: |
           set -o pipefail
-          APP_PATH="build/StrainWise.xcarchive/Products/Applications/StrainWise.app"
+          APP_PATH="build/StrainEase.xcarchive/Products/Applications/StrainEase.app"
           if [ ! -d "$APP_PATH" ]; then
-            echo "::error::StrainWise.app not found at $APP_PATH"
-            ls -la build/StrainWise.xcarchive/Products/ 2>&1 || true
+            echo "::error::StrainEase.app not found at $APP_PATH"
+            ls -la build/StrainEase.xcarchive/Products/ 2>&1 || true
             exit 1
           fi
           rm -rf build/ipa
           mkdir -p build/ipa/Payload
           cp -R "$APP_PATH" build/ipa/Payload/
           cd build/ipa
-          /usr/bin/zip -yry StrainWise.ipa Payload
+          /usr/bin/zip -yry StrainEase.ipa Payload
           cd ../..
           ls -la build/ipa
-          file build/ipa/StrainWise.ipa
+          file build/ipa/StrainEase.ipa
 
       - name: Inspect IPA
         working-directory: ios
         run: |
-          unzip -l build/ipa/StrainWise.ipa | head -30
+          unzip -l build/ipa/StrainEase.ipa | head -30
           echo "---"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/ipa/Payload/StrainWise.app/Info.plist
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' build/ipa/Payload/StrainWise.app/Info.plist
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/ipa/Payload/StrainWise.app/Info.plist
-          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' build/ipa/Payload/StrainWise.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/ipa/Payload/StrainEase.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' build/ipa/Payload/StrainEase.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/ipa/Payload/StrainEase.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' build/ipa/Payload/StrainEase.app/Info.plist
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StrainWise-unsigned-${{ github.sha }}
-          path: ios/build/ipa/StrainWise.ipa
+          name: StrainEase-unsigned-${{ github.sha }}
+          path: ios/build/ipa/StrainEase.ipa
           if-no-files-found: error
           retention-days: 30
 
@@ -323,6 +323,6 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: ios/build/ipa/StrainWise.ipa
+          files: ios/build/ipa/StrainEase.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
