@@ -120,6 +120,7 @@ fun MainTabView() {
                             savedAilments = savedAilments,
                             savedMedications = savedMedications,
                             researchHistory = researchHistory,
+                            currentTab = selected,
                         )
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surface,

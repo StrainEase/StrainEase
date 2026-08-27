@@ -53,6 +53,7 @@ import com.strainwise.app.ui.compare.CompareToggleButton
 import com.strainwise.app.ui.components.Eyebrow
 import com.strainwise.app.ui.components.IntensityBar
 import com.strainwise.app.ui.components.MeshBackground
+import com.strainwise.app.ui.components.NoteBadge
 import com.strainwise.app.ui.components.SWCard
 import com.strainwise.app.ui.components.SWChip
 import com.strainwise.app.ui.components.SWErrorBanner
@@ -185,6 +186,10 @@ fun StrainDetailView(
                 )
             }
             triedNotesSection(triedNotes)
+            TriedNotesView(
+                profile = current,
+                savedStrains = savedStrains,
+            )
             ReliefLogForm(
                 strain = current,
                 relief = relief,
@@ -259,6 +264,7 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TypeBadge(type = profile.type)
+            NoteBadge(profile = profile, savedStrains = savedStrains, compact = true)
             Text(
                 text = dayNightLabel,
                 style = StrainWiseTypography.labelSmall,
