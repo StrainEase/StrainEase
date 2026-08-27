@@ -75,7 +75,7 @@ enum StrainAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unconfigured:
-            "Firebase isn’t configured yet."
+            "Firebase isn't configured yet."
         case .message(let text):
             text
         }
@@ -209,8 +209,8 @@ struct LiveStrainAPI: StrainServicing {
             "language": language,
             "reliefHistory": String(cleanedRelief.prefix(800)),
         ]
-        let result = try await call<ElaboratedSection>(name: "elaborateSection", data: payload)
-        return result.elaboration
+        let section: ElaboratedSection = try await call("elaborateSection", data: payload)
+        return section.elaboration
     }
 
     /// Encode the strain into a plain `[String: Any]` so the backend
@@ -275,12 +275,12 @@ struct LiveStrainAPI: StrainServicing {
         if JSONSerialization.isValidJSONObject(value) {
             data = try JSONSerialization.data(withJSONObject: value)
         } else {
-            throw StrainAPIError.message("Couldn’t read the server response.")
+            throw StrainAPIError.message("Couldn't read the server response.")
         }
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            throw StrainAPIError.message("Couldn’t read the server response.")
+            throw StrainAPIError.message("Couldn't read the server response.")
         }
     }
 
