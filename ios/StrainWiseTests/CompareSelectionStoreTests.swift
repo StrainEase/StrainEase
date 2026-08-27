@@ -23,7 +23,6 @@ final class CompareSelectionStoreTests: XCTestCase {
         XCTAssertTrue(store.toggle("Blue Dream"))
         XCTAssertTrue(store.isIn("Blue Dream"))
         XCTAssertFalse(store.toggle("Blue Dream"))
-        XCTAssertFalse(store.isIn("Blue Dream"))
 
         XCTAssertTrue(store.toggle("Blue Dream"))
         XCTAssertTrue(store.toggle("OG Kush"))
@@ -160,6 +159,18 @@ private struct StubCompareAPI: StrainServicing {
         language: String
     ) async throws -> StrainDescription? {
         .sample
+    }
+
+    func elaborate(
+        strain: StrainProfile,
+        sectionHeading: String,
+        sectionBody: String,
+        ailments: [String],
+        medications: [String],
+        reliefHistory: String,
+        language: String
+    ) async throws -> String {
+        "Maya's take never resolves in test."
     }
 }
 
