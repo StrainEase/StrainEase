@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +41,8 @@ import com.strainwise.app.data.SavedMedicationsStore
 import com.strainwise.app.data.StrainAPI
 import com.strainwise.app.models.StrainProfile
 import com.strainwise.app.models.Terpene
+import com.strainwise.app.ui.compare.CompareSelectionStore
+import com.strainwise.app.ui.compare.CompareToggleButton
 import com.strainwise.app.ui.components.Eyebrow
 import com.strainwise.app.ui.components.IntensityBar
 import com.strainwise.app.ui.components.MeshBackground
@@ -83,6 +86,7 @@ fun StrainDetailView(
     relief: ReliefLogStore,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
+    compareStore: CompareSelectionStore,
     modifier: Modifier = Modifier,
 ) {
     var current by remember(profile.slug) { mutableStateOf(profile) }
@@ -120,7 +124,7 @@ fun StrainDetailView(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            header(profile = current, isHydrating = isHydrating)
+            header(profile = current, isHydrating = isHydrating, compareStore = compareStore)
             descriptionBlock(current)
             if (!current.medicalUses.isNullOrEmpty()) {
                 chipSection(
@@ -159,16 +163,31 @@ fun StrainDetailView(
 }
 
 @Composable
-private fun header(profile: StrainProfile, isHydrating: Boolean) {
+private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: CompareSelectionStore) {
     val score = StrainMeaning.dayNightScore(profile)
     val dayNightLabel = StrainMeaning.labelFor(score)
+    val compareNames by compareStore.names.collectAsState()
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        StrainPhoto(
-            urlString = profile.imageUrl,
-            type = profile.type,
-            height = 220.dp,
-            cornerRadius = 22.dp,
-        )
+        // Photo with a floating "Add to compare" toggle pinned to the
+        // top-right — mirrors the iOS toolbar CompareToggleButton so
+        // the user can build a 2-3 strain comparison set from any
+        // detail screen.
+        Box(modifier = Modifier.fillMaxWidth()) {
+            StrainPhoto(
+                urlString = profile.imageUrl,
+                type = profile.type,
+                height = 220.dp,
+                cornerRadius = 22.dp,
+            )
+            CompareToggleButton(
+                isInSelection = profile.name in compareNames,
+                atCap = compareStore.atCap,
+                onToggle = { compareStore.toggle(profile.name) },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp),
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TypeBadge(type = profile.type)
             Text(
