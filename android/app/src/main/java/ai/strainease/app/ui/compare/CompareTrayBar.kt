@@ -56,6 +56,8 @@ fun CompareTrayBar(
     api: StrainAPI,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
+    researchHistory: com.strainwise.app.data.ResearchHistoryStore,
+    currentTab: com.strainwise.app.app.AppTab,
     modifier: Modifier = Modifier,
 ) {
     val names by store.names.collectAsState()
@@ -64,7 +66,8 @@ fun CompareTrayBar(
     val scope = rememberCoroutineScope()
     var isRunning by remember { mutableStateOf(false) }
 
-    AnimatedVisibility(visible = names.isNotEmpty()) {
+    val visible = names.isNotEmpty() && currentTab != com.strainwise.app.app.AppTab.Find
+    AnimatedVisibility(visible = visible) {
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -123,6 +126,16 @@ fun CompareTrayBar(
                                         language = StrainAILanguage.English,
                                     )
                                     store.setComparison(result)
+                                    // Persist a Past-research row so the
+                                    // user can re-open this exact run
+                                    // from the Account sheet. Mirrors
+                                    // the iOS CompareTrayBar's
+                                    // `history.remember(compare:)` call.
+                                    researchHistory.remember(
+                                        compare = result,
+                                        names = names,
+                                        conditions = savedAilments.ailments,
+                                    )
                                 } catch (t: Throwable) {
                                     store.setError(t.localizedMessage ?: "Couldn't compare.")
                                 } finally {

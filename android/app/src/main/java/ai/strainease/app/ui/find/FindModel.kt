@@ -18,8 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *  - [ailments] is the picked set of conditions for the
  *    current recommend run. Hydrated from [SavedAilmentsStore]
  *    on first appearance so the user's saved list is the
- *    starting point; PR-A11's Account screen will keep the
- *    saved + picked lists in sync.
+ *    starting point.
  *  - [prefs] holds the rest of the inputs (time of day,
  *    consume form, THC sensitivity, owned strains,
  *    medications, patient note).
@@ -29,6 +28,9 @@ import kotlinx.coroutines.flow.asStateFlow
  *    "Or type any symptom" add field.
  *  - [result] / [errorMessage] / [isRunning] track the
  *    recommend call's outcome.
+ *  - [searched] records the ailments that were active when
+ *    the last [recommend] call succeeded; used by the inline
+ *    comparison results to surface "for X, Y" labels.
  */
 class FindModel(
     private val api: StrainAPI = StrainEaseApplication.strainAPI,
@@ -47,6 +49,9 @@ class FindModel(
 
     private val _result = MutableStateFlow<RecommendationResult?>(null)
     val result: StateFlow<RecommendationResult?> = _result.asStateFlow()
+
+    private val _searched = MutableStateFlow<List<String>>(emptyList())
+    val searched: StateFlow<List<String>> = _searched.asStateFlow()
 
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
@@ -93,6 +98,40 @@ class FindModel(
         _customAilment.value = ""
     }
 
+    /**
+     * Replace (or augment) the picked ailments with a fresh
+     * list. Mirrors the iOS `applyAilments(_:replace:)` used by
+     * the Account "Find for these" handoff and the Past-research
+     * round-trip. When [replace] is true the picked list is wiped
+     * first; when false the new entries are appended unless
+     * already present (case-insensitive).
+     */
+    fun applyAilments(names: List<String>, replace: Boolean = false) {
+        if (replace) {
+            ailmentsHydrated = true
+            _ailments.value = emptyList()
+        }
+        for (raw in names) {
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) continue
+            if (isSelected(trimmed)) continue
+            _ailments.value = _ailments.value + trimmed
+        }
+    }
+
+    /**
+     * Re-hydrate the form from a Past-research Find entry. Sets
+     * the picked ailments, the rendered result, and the
+     * `searched` list so the iOS parity surface ("Best strains
+     * for X, Y" headline) is the same.
+     */
+    fun applyRestored(result: RecommendationResult, conditions: List<String>) {
+        applyAilments(conditions, replace = true)
+        _searched.value = conditions
+        _result.value = result
+        _errorMessage.value = null
+    }
+
     fun setPotency(value: Potency) {
         _potency.value = value
     }
@@ -111,6 +150,7 @@ class FindModel(
         }
         _isRunning.value = true
         _errorMessage.value = null
+        _searched.value = _ailments.value
         try {
             val result = api.recommend(
                 conditions = _ailments.value,
