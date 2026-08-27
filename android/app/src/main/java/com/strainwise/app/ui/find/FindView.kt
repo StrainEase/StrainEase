@@ -94,6 +94,17 @@ fun FindView(
 
     LaunchedEffect(Unit) {
         model.hydrateAilmentsIfNeeded(savedAilments)
+        savedAilments.refresh()
+    }
+    // Keep the picked ailments in sync with the
+    // SavedAilmentsStore so symptoms the user added via
+    // AccountView show up here. Mirrors iOS FindView's
+    // ailmentsStore observation. (Hydrate on first frame so
+    // the user doesn't see an empty list when their saved
+    // ailments aren't yet in the model.)
+    val savedAilmentsFlow by savedAilments.ailmentsFlow.collectAsState(initial = emptyList())
+    LaunchedEffect(savedAilmentsFlow) {
+        model.hydrateAilmentsIfNeeded(savedAilments)
     }
 
     Box(modifier = modifier.fillMaxSize()) {

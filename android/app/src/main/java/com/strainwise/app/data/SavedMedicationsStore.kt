@@ -52,6 +52,12 @@ class SavedMedicationsStore(private val context: Context) {
     val names: List<String>
         get() = cached.map { it.name }
 
+    /** Flow of just the medication names. Used by TailoredDescriptionView
+     *  to reactively re-fetch when the user edits medications from Account. */
+    val namesFlow: Flow<List<String>> = medicationsFlow.map { meds ->
+        meds.map { it.name }
+    }
+
     suspend fun refresh() {
         cached = medicationsFlow.first()
     }

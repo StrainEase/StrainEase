@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.collect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,25 +64,22 @@ import kotlinx.coroutines.launch
 
 /**
  * The strain detail screen. 1:1 port of the iOS
- * `StrainDetailView` with the very heaviest sections
- * (tailored description, elaborate, community voices)
- * scoped down for PR-A9. The key sections that ship here:
+ * `StrainDetailView`. All major sections from iOS are wired:
  *
  *  1. Header: hero photo, name, type badge, "Daytime /
  *     Anytime / Evening-leaning" badge, Leafly rating
- *  2. Description (the static `StrainProfile.description`
- *     block; the tailored three-section version lands
- *     when the describe API is wired in the follow-up)
+ *  2. TailoredDescriptionView: AI three-section description
+ *     (falls back to static `profile.description`)
  *  3. "Commonly used for" chip rail
- *  4. "How it might feel" — effects list with intensity
- *     bars
+ *  4. "How it might feel" — effects list with intensity bars
  *  5. Terpenes — tappable profile rows
  *  6. Shop links (Leafly + Weedmaps)
  *  7. "Watch for" — side-effects chip rail
  *  8. Patient tried-notes list (relief log for this strain)
  *  9. "How did it work for you?" form (ReliefLogForm)
- *
- * Compare button + Reddit threads land in PR-A10.
+ * 10. CommunityVoicesSection: Leafly rating card, Reddit /
+ *     weed-site tabbed reviews
+ * 11. SharedNotesView: Firestore community notes
  */
 @Composable
 fun StrainDetailView(
@@ -101,10 +99,24 @@ fun StrainDetailView(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // Collect saved ailments and medications as state so TailoredDescriptionView
+    // can re-fetch when they change (user edits saved ailments while on detail).
+    var ailments by remember { mutableStateOf(emptyList<String>()) }
+    var medications by remember { mutableStateOf(emptyList<String>()) }
+    LaunchedEffect(Unit) {
+        savedAilments.ailmentsFlow.collect { ailments = it }
+    }
+    LaunchedEffect(Unit) {
+        savedMedications.namesFlow.collect { medications = it }
+    }
+
     LaunchedEffect(profile.slug) {
         // 1. Record in recents so the Home rail picks it up
         recentlyViewed.record(profile)
-        // 2. Hydrate any missing sections
+        // 2. Populate relief summary cache so `relief.summary` is non-empty
+        //    for the tailored description AI call.
+        relief.refresh()
+        // 3. Hydrate any missing sections
         val pending = current.pendingHydrationSections
         if (pending.isNotEmpty()) {
             try {
@@ -139,7 +151,13 @@ fun StrainDetailView(
                     scope.launch { savedStrains.toggle(profile) }
                 },
             )
-            descriptionBlock(current)
+            descriptionBlock(
+                profile = current,
+                api = api,
+                ailments = ailments,
+                medications = medications,
+                reliefHistory = relief.summary,
+            )
             if (!current.medicalUses.isNullOrEmpty()) {
                 chipSection(
                     title = "Commonly used for",
@@ -171,6 +189,12 @@ fun StrainDetailView(
                 strainSlug = profile.slug,
                 relief = relief,
             )
+            CommunityVoicesSection(
+                rating = current.resolvedLeaflyRating,
+                quotes = current.quoteNotes,
+                isHydrating = isHydrating,
+            )
+            SharedNotesView(strainSlug = profile.slug)
             error?.let { SWErrorBanner(message = it) }
         }
     }
@@ -296,7 +320,22 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
 }
 
 @Composable
-private fun descriptionBlock(profile: StrainProfile) {
+private fun descriptionBlock(
+    profile: StrainProfile,
+    api: StrainAPI,
+    ailments: List<String>,
+    medications: List<String>,
+    reliefHistory: String,
+) {
+    TailoredDescriptionView(
+        profile = profile,
+        api = api,
+        ailments = ailments,
+        medications = medications,
+        reliefHistory = reliefHistory,
+    )
+    // If TailoredDescriptionView shows nothing (no AI result yet and not loading),
+    // fall back to the static description so the user sees something immediately.
     if (profile.description.isNullOrEmpty()) return
     SWCard {
         Text(

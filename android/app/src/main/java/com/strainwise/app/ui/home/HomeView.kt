@@ -133,12 +133,12 @@ private fun hero() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Eyebrow(text = "Browse")
         Text(
-            text = "Strains tuned to your day.",
+            text = HomeHeadline.text(),
             style = StrainWiseTypography.displaySmall,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
-            text = "StrainEase combines your symptoms, your meds, and the strains real patients keep coming back to.",
+            text = HomeHeadline.SUBTITLE,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
