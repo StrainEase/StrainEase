@@ -141,6 +141,7 @@ fun MainTabView() {
                         savedAilments = savedAilments,
                         savedMedications = savedMedications,
                         relief = relief,
+                        compareStore = compareStore,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )

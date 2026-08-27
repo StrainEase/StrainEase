@@ -45,6 +45,8 @@ import com.strainwise.app.models.ThcSensitivity
 import com.strainwise.app.models.TimeOfDay
 import com.strainwise.app.models.RecommendationResult
 import com.strainwise.app.models.StrainRecommendation
+import com.strainwise.app.ui.compare.CompareResultsView
+import com.strainwise.app.ui.compare.CompareSelectionStore
 import com.strainwise.app.ui.components.Eyebrow
 import com.strainwise.app.ui.components.MeshBackground
 import com.strainwise.app.ui.components.SWCard
@@ -76,6 +78,7 @@ fun FindView(
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
     relief: ReliefLogStore,
+    compareStore: CompareSelectionStore,
     modifier: Modifier = Modifier,
     onOpenProfile: (StrainProfile) -> Unit = {},
 ) {
@@ -86,6 +89,7 @@ fun FindView(
     val result by model.result.collectAsState()
     val isRunning by model.isRunning.collectAsState()
     val error by model.errorMessage.collectAsState()
+    val comparison by compareStore.comparison.collectAsState()
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -129,6 +133,16 @@ fun FindView(
             )
             error?.let { SWErrorBanner(message = it) }
             result?.let { resultBlock(it, onOpenProfile) }
+            // Surface the cross-strain comparison result produced by
+            // CompareTrayBar's "Compare" CTA. Mirrors iOS FindView
+            // which shows the same view inline below the
+            // recommendations block.
+            comparison?.let { comparison ->
+                CompareResultsView(
+                    comparison = comparison,
+                    onOpenProfile = onOpenProfile,
+                )
+            }
         }
     }
 }
