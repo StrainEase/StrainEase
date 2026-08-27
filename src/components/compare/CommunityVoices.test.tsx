@@ -141,7 +141,7 @@ describe("CommunityVoices", () => {
     expect(panel!.textContent).toMatch(/Eased my back pain/);
   });
 
-  test("averages Leafly and Allbud ratings into one card when both exist", () => {
+  test("renders one rating card per source — no averaging", () => {
     render(
       <MemoryRouter>
         <CommunityVoices
@@ -149,20 +149,26 @@ describe("CommunityVoices", () => {
           strainName="Granddaddy Purple"
           leaflyRating={4.5}
           leaflyReviewCount={13240}
+          weedmapsRating={4.3}
+          weedmapsReviewCount={612}
           allbudRating={4.6}
           allbudReviewCount={84}
         />
       </MemoryRouter>,
     );
-    // (4.5 + 4.6) / 2 = 4.55 → 4.6, shown as one blended card.
     const body = document.body.textContent ?? "";
+    // All three source labels render.
+    expect(body).toContain("Leafly");
+    expect(body).toContain("Weedmaps");
+    expect(body).toContain("Allbud");
+    // Per-source star + count labels render verbatim — no blended "Leafly & Allbud" card.
+    expect(body).toContain("4.5");
+    expect(body).toContain("4.3");
     expect(body).toContain("4.6");
-    expect(body).toContain("Average Leafly & Allbud rating");
-    // The blended card carries no per-source count label (the summary
-    // prose may still mention Leafly's 13,240 separately — that's the
-    // sentiment blurb, not the rating card).
-    expect(body).not.toContain("13,240 Leafly reviews");
-    expect(body).not.toContain("84 Allbud reviews");
+    expect(body).toContain("13,240 reviews");
+    expect(body).toContain("612 reviews");
+    expect(body).toContain("84 reviews");
+    expect(body).not.toContain("Average Leafly & Allbud rating");
   });
 
   test("shows a single source's rating verbatim when only Leafly exists", () => {
@@ -178,6 +184,6 @@ describe("CommunityVoices", () => {
     );
     const body = document.body.textContent ?? "";
     expect(body).toContain("4.5");
-    expect(body).toContain("13,240 Leafly reviews");
+    expect(body).toContain("13,240 reviews");
   });
 });

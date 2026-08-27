@@ -124,11 +124,11 @@ function StarStrip({ value }: { value: number }) {
 }
 
 function SourceRatingCard({
-  label,
+  source,
   stars,
   reviewCount,
 }: {
-  label: string;
+  source: string;
   stars: number;
   reviewCount: number | null;
 }) {
@@ -136,70 +136,102 @@ function SourceRatingCard({
     <SWCard innerClassName="flex items-center gap-4 px-4 py-3.5">
       <StarStrip value={stars} />
       <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+          {source}
+        </p>
         <p className="text-xl font-semibold tabular-nums tracking-tight">
           {stars.toFixed(1)}
         </p>
         <p className="text-xs text-muted-foreground">
           {reviewCount !== null
-            ? `${reviewCount.toLocaleString("en-US")} ${label} reviews`
-            : `Average ${label} rating`}
+            ? `${reviewCount.toLocaleString("en-US")} reviews`
+            : "Rating only"}
         </p>
       </div>
     </SWCard>
   );
 }
 
+/** Per-source cap on community notes in the cannabis channel. Matches
+ *  the backend consolidator's NOTES_PER_SOURCE so a future wire push
+ *  can't quietly dump the whole list into the UI. */
+const NOTES_PER_SOURCE = 5;
+
+function capCannabisBySource(notes: QuoteNote[]): QuoteNote[] {
+  const buckets: Record<string, QuoteNote[]> = {
+    leafly: [],
+    weedmaps: [],
+    allbud: [],
+    other: [],
+  };
+  for (const note of notes) {
+    const key = note.kind ?? "other";
+    (buckets[key] ?? buckets.other).push(note);
+  }
+  const out: QuoteNote[] = [];
+  for (const key of ["leafly", "weedmaps", "allbud", "other"] as const) {
+    out.push(...buckets[key].slice(0, NOTES_PER_SOURCE));
+  }
+  return out;
+}
+
 /**
- * One rating card that blends the sources that actually published a
- * rating. With a single source (Leafly or Allbud alone) it shows that
- * source verbatim with its review count; when both publish, it shows
- * the average of the two. The average has no single review count, so
- * the card drops it rather than presenting a misleading sum.
+ * One rating card per source that published a star rating, in
+ * SOURCE_ORDER (Leafly → Weedmaps → Allbud). Strains with all three
+ * sources show 3 cards; with just one, 1. No averaging — a blended
+ * count would mislead the reader about which catalog the number
+ * came from.
  */
 function RatingCards({
   leaflyRating,
   leaflyReviewCount,
+  weedmapsRating,
+  weedmapsReviewCount,
   allbudRating,
   allbudReviewCount,
 }: {
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
   allbudRating?: number;
   allbudReviewCount?: number;
 }) {
-  const ratings: { label: string; stars: number; count: number | null }[] =
+  const ratings: { source: string; stars: number; count: number | null }[] =
     [];
   if (typeof leaflyRating === "number") {
     ratings.push({
-      label: "Leafly",
+      source: "Leafly",
       stars: leaflyRating,
       count: leaflyReviewCount ?? null,
     });
   }
+  if (typeof weedmapsRating === "number") {
+    ratings.push({
+      source: "Weedmaps",
+      stars: weedmapsRating,
+      count: weedmapsReviewCount ?? null,
+    });
+  }
   if (typeof allbudRating === "number") {
     ratings.push({
-      label: "Allbud",
+      source: "Allbud",
       stars: allbudRating,
       count: allbudReviewCount ?? null,
     });
   }
   if (ratings.length === 0) return null;
-  if (ratings.length === 1) {
-    const single = ratings[0];
-    return (
-      <SourceRatingCard
-        label={single.label}
-        stars={single.stars}
-        reviewCount={single.count}
-      />
-    );
-  }
-  const avg =
-    Math.round(
-      (ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length) * 10,
-    ) / 10;
   return (
-    <SourceRatingCard label="Leafly & Allbud" stars={avg} reviewCount={null} />
+    <div className="space-y-2">
+      {ratings.map((r) => (
+        <SourceRatingCard
+          key={r.source}
+          source={r.source}
+          stars={r.stars}
+          reviewCount={r.count}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -233,6 +265,8 @@ function AllPanel({
   appNotes,
   leaflyRating,
   leaflyReviewCount,
+  weedmapsRating,
+  weedmapsReviewCount,
   allbudRating,
   allbudReviewCount,
   conditions,
@@ -244,6 +278,8 @@ function AllPanel({
   conditions: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
   allbudRating?: number;
   allbudReviewCount?: number;
 }) {
@@ -261,6 +297,8 @@ function AllPanel({
       <RatingCards
         leaflyRating={leaflyRating}
         leaflyReviewCount={leaflyReviewCount}
+        weedmapsRating={weedmapsRating}
+        weedmapsReviewCount={weedmapsReviewCount}
         allbudRating={allbudRating}
         allbudReviewCount={allbudReviewCount}
       />
@@ -320,6 +358,8 @@ function ChannelPanel({
   conditions,
   leaflyRating,
   leaflyReviewCount,
+  weedmapsRating,
+  weedmapsReviewCount,
   allbudRating,
   allbudReviewCount,
   sort,
@@ -331,6 +371,8 @@ function ChannelPanel({
   conditions: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
   allbudRating?: number;
   allbudReviewCount?: number;
   sort: ReviewSort;
@@ -352,6 +394,8 @@ function ChannelPanel({
         <RatingCards
           leaflyRating={leaflyRating}
           leaflyReviewCount={leaflyReviewCount}
+          weedmapsRating={weedmapsRating}
+          weedmapsReviewCount={weedmapsReviewCount}
           allbudRating={allbudRating}
           allbudReviewCount={allbudReviewCount}
         />
@@ -458,6 +502,8 @@ export function CommunityVoices({
   conditions = [],
   leaflyRating,
   leaflyReviewCount,
+  weedmapsRating,
+  weedmapsReviewCount,
   allbudRating,
   allbudReviewCount,
   redditSources,
@@ -468,6 +514,8 @@ export function CommunityVoices({
   conditions?: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
   allbudRating?: number;
   allbudReviewCount?: number;
   redditSources?: {
@@ -510,15 +558,19 @@ export function CommunityVoices({
     kind: "other",
   }));
 
-  const cannabis = notesForChannel(mergedNotes, "cannabis");
+  const cannabis = capCannabisBySource(
+    notesForChannel(mergedNotes, "cannabis"),
+  );
   const reddit = notesForChannel(mergedNotes, "reddit");
   const hasRating = typeof leaflyRating === "number";
+  const hasWeedmapsRating = typeof weedmapsRating === "number";
   const hasAllbudRating = typeof allbudRating === "number";
   const hasAny =
     cannabis.length > 0 ||
     reddit.length > 0 ||
     appNotes.length > 0 ||
     hasRating ||
+    hasWeedmapsRating ||
     hasAllbudRating;
 
   // "All" combines every channel so a reader landing on the page can scan
@@ -646,6 +698,8 @@ export function CommunityVoices({
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+              weedmapsRating={weedmapsRating}
+              weedmapsReviewCount={weedmapsReviewCount}
               allbudRating={allbudRating}
               allbudReviewCount={allbudReviewCount}
             />
@@ -658,6 +712,8 @@ export function CommunityVoices({
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+              weedmapsRating={weedmapsRating}
+              weedmapsReviewCount={weedmapsReviewCount}
               allbudRating={allbudRating}
               allbudReviewCount={allbudReviewCount}
               sort={sort}
