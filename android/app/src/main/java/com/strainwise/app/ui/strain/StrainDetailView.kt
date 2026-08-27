@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -107,7 +108,7 @@ fun StrainDetailView(
         savedAilments.ailmentsFlow.collect { ailments = it }
     }
     LaunchedEffect(Unit) {
-        savedMedications.namesFlow.collect { medications = it }
+        savedMedications.medicationsFlow.collect { medications = it.map { med -> med.name } }
     }
 
     LaunchedEffect(profile.slug) {
@@ -185,9 +186,9 @@ fun StrainDetailView(
             }
             triedNotesSection(triedNotes)
             ReliefLogForm(
-                strainName = profile.name,
-                strainSlug = profile.slug,
+                strain = current,
                 relief = relief,
+                savedAilments = savedAilments,
             )
             CommunityVoicesSection(
                 rating = current.resolvedLeaflyRating,
@@ -420,30 +421,54 @@ private fun triedNotesSection(notes: List<com.strainwise.app.data.ReliefLog>) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     notes.forEach { log ->
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                repeat(log.rating) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Star,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(12.dp),
-                                    )
-                                }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
                                 Text(
-                                    text = log.strainName,
+                                    text = log.fit.label,
                                     style = StrainWiseTypography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Spacer(Modifier.weight(1f))
+                                Text(
+                                    text = "${log.relief}/5 relief",
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Text(
-                                text = log.notes,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
+                            if (log.conditions.isNotEmpty()) {
+                                Text(
+                                    text = "for ${log.conditions.joinToString(", ")}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (log.note.isNotEmpty()) {
+                                Text(
+                                    text = log.note,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            if (log.createdAt > 0) {
+                                Text(
+                                    text = formatDate(log.createdAt),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+private fun formatDate(millis: Long): String {
+    if (millis <= 0) return ""
+    val date = java.util.Date(millis)
+    val format = java.text.SimpleDateFormat("MMM d", java.util.Locale.getDefault())
+    return format.format(date)
 }
