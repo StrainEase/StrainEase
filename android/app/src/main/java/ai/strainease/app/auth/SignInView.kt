@@ -76,6 +76,11 @@ fun SignInView(
     var mode by remember { mutableStateOf(Mode.SignIn) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    // Inline validation error that lives above the session error
+    // (a wrong password still wins once the network call fails) so
+    // the user can see why their tap on the submit button did
+    // nothing when both fields are blank.
+    var validationError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val isBusy by session.isBusy.collectAsStateCompat()
     val error by session.errorMessage.collectAsStateCompat()
@@ -94,14 +99,12 @@ fun SignInView(
             socialProviders(
                 isBusy = isBusy,
                 onGoogle = {
-                    scope.launch {
-                        // Stub: the actual Google sign-in flow lives
-                        // in the Activity (it needs an
-                        // ActivityResultLauncher); the parent screen
-                        // passes a callback that completes the
-                        // exchange and calls
-                        // session.signInWithGoogle(idToken, accessToken).
-                    }
+                    // Until the Activity wires a real Google Sign-In
+                    // ActivityResultLauncher (PR-A4 left this as a
+                    // stub), surface the no-op as a clear validation
+                    // message rather than silently swallowing the tap.
+                    validationError =
+                        "Google sign-in is not configured in this build yet. Use email / password to continue."
                 },
             )
             divider()
@@ -114,7 +117,13 @@ fun SignInView(
                 isBusy = isBusy,
                 onSubmit = {
                     val mail = email.trim()
-                    if (mail.isEmpty() || password.isEmpty()) return@form
+                    if (mail.isEmpty() || password.isEmpty()) {
+                        // Reflect the validation through the same error
+                        // channel the auth callables use, so the
+                        // banner styling stays consistent.
+                        validationError = "Enter your email and password to continue."
+                        return@form
+                    }
                     scope.launch {
                         if (mode == Mode.SignIn) {
                             session.signIn(mail, password)
@@ -124,6 +133,13 @@ fun SignInView(
                     }
                 },
             )
+            validationError?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             error?.let {
                 Text(
                     text = it,

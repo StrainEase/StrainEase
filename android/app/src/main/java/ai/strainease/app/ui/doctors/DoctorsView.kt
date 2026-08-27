@@ -133,8 +133,50 @@ fun DoctorsView(
             error?.let { SWErrorBanner(message = it) }
             result?.doctors?.takeIf { it.isNotEmpty() }?.let { doctors ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SectionLabel(title = "Nearby clinics", index = 2)
+                    // "5 clinics near Denver, CO" — mirror the iOS
+                    // header so the count and resolved location are
+                    // visible above the list.
+                    val resolved = result?.resolvedLocation
+                    val suffix = if (doctors.size == 1) "clinic" else "clinics"
+                    val header = if (resolved != null) {
+                        "${doctors.size} $suffix near ${resolved.city}, ${resolved.state}"
+                    } else {
+                        "${doctors.size} $suffix"
+                    }
+                    SectionLabel(title = header, index = 2)
                     doctors.forEach { DoctorCard(doctor = it) }
+                    Text(
+                        text = "Listings come from Leafly's medical-marijuana doctor directory. Always verify licensing and book directly with the clinic.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            // No-results state mirrors the iOS "of {city}, {state}.
+            // Try a wider radius" copy so the user knows the
+            // search ran against a real location.
+            if (result != null && (result?.doctors?.isEmpty() == true) && status != DoctorsModel.Status.Searching) {
+                val resolved = result?.resolvedLocation
+                val nearText = if (resolved != null) {
+                    "of ${resolved.city}, ${resolved.state}"
+                } else if (city.isNotEmpty() && state.isNotEmpty()) {
+                    "of $city, $state"
+                } else {
+                    "near your current location"
+                }
+                SWCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "No clinics found within ${radius.toInt()} mi $nearText.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "Try a wider radius or a different city.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             if (status == DoctorsModel.Status.Searching) {
