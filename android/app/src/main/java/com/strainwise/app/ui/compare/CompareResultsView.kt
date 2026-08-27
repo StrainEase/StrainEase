@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,7 @@ import com.strainwise.app.models.StrainComparison
 import com.strainwise.app.models.StrainProfile
 import com.strainwise.app.ui.components.SWCard
 import com.strainwise.app.ui.components.SectionLabel
+import com.strainwise.app.ui.components.TypeBadge
 import com.strainwise.app.ui.theme.StrainWiseTypography
 
 /**
@@ -84,21 +86,52 @@ fun CompareResultsView(
                 }
             }
         }
-        // The strains themselves
+        // The strains themselves — render each as a card with
+        // the type badge, subtitle, and an "open detail" affordance
+        // so the user can quickly see what's being compared
+        // without re-reading raw JSON. Mirrors the iOS row card.
         comparison.strains.takeIf { it.isNotEmpty() }?.let { strains ->
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SectionLabel(title = "Strains", index = 99)
-                SWCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        strains.forEach { profile ->
-                            Text(
-                                text = profile.name,
-                                style = StrainWiseTypography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onOpenProfile(profile) }
-                                    .padding(vertical = 4.dp),
+                strains.forEach { profile ->
+                    SWCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenProfile(profile) },
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Text(
+                                        text = profile.name,
+                                        style = StrainWiseTypography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    if (profile.type != null) {
+                                        TypeBadge(type = profile.type)
+                                    }
+                                }
+                                if (profile.subtitle.isNotEmpty()) {
+                                    Text(
+                                        text = profile.subtitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Filled.ArrowOutward,
+                                contentDescription = "Open ${profile.name}",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
