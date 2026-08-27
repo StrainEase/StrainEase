@@ -79,6 +79,7 @@ fun FindView(
     savedMedications: SavedMedicationsStore,
     relief: ReliefLogStore,
     compareStore: CompareSelectionStore,
+    researchHistory: com.strainwise.app.data.ResearchHistoryStore,
     modifier: Modifier = Modifier,
     onOpenProfile: (StrainProfile) -> Unit = {},
 ) {
@@ -105,6 +106,34 @@ fun FindView(
     val savedAilmentsFlow by savedAilments.ailmentsFlow.collectAsState(initial = emptyList())
     LaunchedEffect(savedAilmentsFlow) {
         model.hydrateAilmentsIfNeeded(savedAilments)
+    }
+
+    // Cross-tab handoffs from the Account sheet. The
+    // `nav.pendingFindAilments` slot is set by the "Find for
+    // these" button on the saved-ailments card; the
+    // `nav.pendingResearch` slot is set when the user opens a
+    // Past-research entry. Both fire once and clear.
+    val nav = com.strainwise.app.app.LocalAppNavigation.current
+    val pendingAilments = nav.pendingFindAilments
+    LaunchedEffect(pendingAilments) {
+        if (pendingAilments.isNotEmpty()) {
+            model.applyAilments(pendingAilments, replace = true)
+            nav.consumeFindAilments()
+        }
+    }
+    val pendingResearch = nav.pendingResearch
+    LaunchedEffect(pendingResearch) {
+        when (val r = pendingResearch) {
+            is com.strainwise.app.app.RestoredResearch.Find -> {
+                model.applyRestored(r.result, r.conditions)
+                nav.consumeResearch()
+            }
+            is com.strainwise.app.app.RestoredResearch.Compare -> {
+                compareStore.setComparison(r.comparison)
+                nav.consumeResearch()
+            }
+            null -> Unit
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -139,6 +168,17 @@ fun FindView(
                             savedMedications = savedMedications,
                             reliefSummary = relief.summary.takeIf { it.isNotEmpty() },
                         )
+                        // Persist a Past-research row so the user
+                        // can re-open this exact run from the
+                        // Account sheet. Mirrors the iOS
+                        // FindView's `history.remember(find:)`
+                        // call after a successful run.
+                        model.result.value?.let { result ->
+                            researchHistory.remember(
+                                find = result,
+                                conditions = model.searched.value,
+                            )
+                        }
                     }
                 },
             )

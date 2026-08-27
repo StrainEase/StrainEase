@@ -78,8 +78,10 @@ fun AccountView(
     savedStrains: SavedStrainsStore,
     relief: ReliefLogStore,
     ageStore: AgeVerificationStore,
+    researchHistory: com.strainwise.app.data.ResearchHistoryStore,
     onDismiss: () -> Unit,
     onOpenStrain: (com.strainwise.app.models.StrainProfile) -> Unit,
+    onOpenPastResearch: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val session = LocalAuthSession.current
@@ -137,6 +139,7 @@ fun AccountView(
                         scope.launch {
                             savedMedications.set(
                                 medications + com.strainwise.app.data.SavedMedication(
+                                    id = "",
                                     name = v,
                                     addedAt = System.currentTimeMillis(),
                                 ),
@@ -157,6 +160,7 @@ fun AccountView(
                 onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
             )
             ReliefHistoryView(log = log)
+            PastResearchCard(onOpen = onOpenPastResearch)
             ComplianceFooter(
                 ageStore = ageStore,
                 onReset = { scope.launch { ageStore.reset() } },
@@ -489,21 +493,51 @@ private fun ReliefHistoryView(log: List<ReliefLog>) {
                             style = StrainWiseTypography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
-                        Text(
-                            text = entry.notes,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = entry.fit.label,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = "${entry.relief}/5 relief",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (entry.conditions.isNotEmpty()) {
+                            Text(
+                                text = "for ${entry.conditions.joinToString(", ")}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (entry.note.isNotEmpty()) {
+                            Text(
+                                text = entry.note,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        if (entry.createdAt > 0) {
+                            Text(
+                                text = formatReliefDate(entry.createdAt),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
-                    Text(
-                        text = "★".repeat(entry.rating),
-                        style = StrainWiseTypography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
                 }
             }
         }
     }
+}
+
+private fun formatReliefDate(millis: Long): String {
+    if (millis <= 0) return ""
+    val date = java.util.Date(millis)
+    val format = java.text.SimpleDateFormat("MMM d", java.util.Locale.getDefault())
+    return format.format(date)
 }
 
 /** Compliance footer. */
@@ -528,6 +562,31 @@ private fun ComplianceFooter(
                 .clickable(onClick = onReset)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         )
+    }
+}
+
+/**
+ * Entry point to the Past Research list. The iOS app exposes
+ * this as a row in the Account sheet that pushes the full
+ * `ResearchHistoryView`; on Android the shell hosts the screen
+ * in a [androidx.compose.material3.ModalBottomSheet] from
+ * `MainTabView`, so the card just fires the open callback.
+ */
+@Composable
+private fun PastResearchCard(onOpen: () -> Unit) {
+    SWCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(title = "Past research", index = 5)
+            Text(
+                text = "Reopen a Find or Compare result you closed.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SWPrimaryButton(
+                title = "View past research",
+                onClick = onOpen,
+            )
+        }
     }
 }
 

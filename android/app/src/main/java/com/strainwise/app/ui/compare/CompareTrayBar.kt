@@ -56,6 +56,7 @@ fun CompareTrayBar(
     api: StrainAPI,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
+    researchHistory: com.strainwise.app.data.ResearchHistoryStore,
     modifier: Modifier = Modifier,
 ) {
     val names by store.names.collectAsState()
@@ -123,6 +124,16 @@ fun CompareTrayBar(
                                         language = StrainAILanguage.English,
                                     )
                                     store.setComparison(result)
+                                    // Persist a Past-research row so the
+                                    // user can re-open this exact run
+                                    // from the Account sheet. Mirrors
+                                    // the iOS CompareTrayBar's
+                                    // `history.remember(compare:)` call.
+                                    researchHistory.remember(
+                                        compare = result,
+                                        names = names,
+                                        conditions = savedAilments.ailments,
+                                    )
                                 } catch (t: Throwable) {
                                     store.setError(t.localizedMessage ?: "Couldn't compare.")
                                 } finally {

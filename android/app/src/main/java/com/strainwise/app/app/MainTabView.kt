@@ -64,6 +64,7 @@ fun MainTabView() {
     // warm and the user has a way to reach account settings.
     var showAccount by remember { mutableStateOf(false) }
     var showSaved by remember { mutableStateOf(false) }
+    var showPastResearch by remember { mutableStateOf(false) }
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext
         as com.strainwise.app.StrainWiseApplication
     val homeModel = remember { com.strainwise.app.ui.home.HomeModel() }
@@ -76,19 +77,37 @@ fun MainTabView() {
     val savedMedications = remember { com.strainwise.app.data.SavedMedicationsStore(app) }
     val savedStrains = remember { com.strainwise.app.data.SavedStrainsStore(app) }
     val relief = remember { com.strainwise.app.data.ReliefLogStore(app) }
+    val researchHistory = remember { com.strainwise.app.data.ResearchHistoryStore() }
     val ageStore = remember { com.strainwise.app.compliance.AgeVerificationStore(app) }
 
     val openStrain: (StrainProfile) -> Unit = { openProfile = it }
     val closeStrain: () -> Unit = { openProfile = null }
     val closeAccount: () -> Unit = { showAccount = false }
     val closeSaved: () -> Unit = { showSaved = false }
+    val closePastResearch: () -> Unit = { showPastResearch = false }
+    val openPastResearch: () -> Unit = { showPastResearch = true }
     // Hardware / gesture back closes the deepest open surface so
     // the user is never trapped behind a sheet / overlay.
     BackHandler(enabled = openProfile != null) { closeStrain() }
     BackHandler(enabled = showAccount) { closeAccount() }
     BackHandler(enabled = showSaved) { closeSaved() }
+    BackHandler(enabled = showPastResearch) { closePastResearch() }
 
     CompositionLocalProvider(LocalAppNavigation provides nav) {
+        // Bind the personal-data stores to the signed-in user. When
+        // the auth state transitions to SignedIn, every store's
+        // `start(uid)` opens its Firestore snapshot listener. When
+        // the user signs out, every store's `stop()` clears the
+        // listener and the in-memory list so the next user doesn't
+        // briefly see the previous one's data. Mirrors the iOS
+        // per-store `addAuthStateListener` wiring.
+        AuthBound(
+            savedAilments = savedAilments,
+            savedMedications = savedMedications,
+            savedStrains = savedStrains,
+            relief = relief,
+            researchHistory = researchHistory,
+        ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
@@ -100,6 +119,7 @@ fun MainTabView() {
                             api = com.strainwise.app.StrainWiseApplication.strainAPI,
                             savedAilments = savedAilments,
                             savedMedications = savedMedications,
+                            researchHistory = researchHistory,
                         )
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surface,
@@ -143,6 +163,7 @@ fun MainTabView() {
                         savedMedications = savedMedications,
                         relief = relief,
                         compareStore = compareStore,
+                        researchHistory = researchHistory,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
@@ -226,8 +247,23 @@ fun MainTabView() {
                     savedStrains = savedStrains,
                     relief = relief,
                     ageStore = ageStore,
+                    researchHistory = researchHistory,
                     onDismiss = closeAccount,
                     onOpenStrain = { openProfile = it },
+                    onOpenPastResearch = {
+                        openPastResearch()
+                    },
+                )
+            }
+        }
+
+        if (showPastResearch) {
+            ModalBottomSheet(
+                onDismissRequest = closePastResearch,
+            ) {
+                com.strainwise.app.ui.account.ResearchHistoryView(
+                    history = researchHistory,
+                    onBack = closePastResearch,
                 )
             }
         }
@@ -242,6 +278,7 @@ fun MainTabView() {
                     onDismiss = closeSaved,
                 )
             }
+        }
         }
     }
 }

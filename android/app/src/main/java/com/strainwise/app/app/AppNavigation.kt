@@ -6,6 +6,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.strainwise.app.models.RecommendationResult
+import com.strainwise.app.models.StrainComparison
 import com.strainwise.app.models.StrainProfile
 
 /**
@@ -19,11 +21,28 @@ enum class AppTab(val title: String, val systemImage: ImageVector) {
     Doctors("Doctors", Icons.Filled.MedicalServices),
 }
 
-/** Placeholder for [AppNavigation.pendingResearch] — the real
- *  `RestoredResearch` type lands in PR-A11 alongside
- *  ResearchHistoryStore. Holding the slot here lets the
- *  shell compile before that work ships. */
-typealias RestoredResearch = Map<String, String>
+/**
+ * The payload that "Past research" entries restore on the Find
+ * tab. Mirrors the iOS `RestoredResearch` enum:
+ *  - `Find` carries the recommendation result + the conditions
+ *    that were used to generate it
+ *  - `Compare` carries the cross-strain comparison result
+ *
+ * The `consumeResearch` round-trip in [AppNavigation] hands a
+ * `RestoredResearch` to the FindView exactly once; the
+ * `ResearchHistoryStore` reads back the underlying result from
+ * `researchResults/{id}` and packages it into one of these.
+ */
+sealed class RestoredResearch {
+    data class Find(
+        val result: RecommendationResult,
+        val conditions: List<String>,
+    ) : RestoredResearch()
+
+    data class Compare(
+        val comparison: StrainComparison,
+    ) : RestoredResearch()
+}
 
 /**
  * Process-wide navigation state. 1:1 port of the iOS
