@@ -172,6 +172,10 @@ private struct StubCompareAPI: StrainServicing {
     ) async throws -> String {
         "Maya's take never resolves in test."
     }
+
+    func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {
+        []
+    }
 }
 
 private struct CompareFailure: LocalizedError {

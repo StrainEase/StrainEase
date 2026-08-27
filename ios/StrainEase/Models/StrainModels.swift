@@ -126,6 +126,8 @@ struct StrainProfile: Codable, Hashable, Identifiable, Sendable {
     var imageUrl: String? = nil
     var leaflyRating: Double? = nil
     var leaflyReviewCount: Int? = nil
+    var weedmapsRating: Double? = nil
+    var weedmapsReviewCount: Int? = nil
     var allbudRating: Double? = nil
     var allbudReviewCount: Int? = nil
 
@@ -140,42 +142,36 @@ struct StrainProfile: Codable, Hashable, Identifiable, Sendable {
         (communityNotes ?? []).filter { !$0.isAggregate }
     }
 
-    /// Aggregate rating blended across the sources that published one
-    /// (Leafly, Allbud). With a single source it shows that source
-    /// verbatim with its own review count; with both it shows the
-    /// average (a blended count would mislead, so it is dropped) labeled
-    /// "Leafly & Allbud" — matching the web's single rating card. Falls
-    /// back to a "Leafly community" note match for older profiles.
-    var resolvedCommunityRating: CommunityRating? {
-        let hasLeafly = leaflyRating != nil
-        let hasAllbud = allbudRating != nil
-        if hasLeafly && hasAllbud {
-            let avg = ((leaflyRating! + allbudRating!) / 2 * 10).rounded() / 10
-            return CommunityRating(stars: avg, count: nil, label: "Leafly & Allbud")
+    /// One rating card per source that published a star rating, in
+    /// SOURCE_ORDER (Leafly → Weedmaps → Allbud). Strains with all
+    /// three sources show 3 cards; strains with just one show 1.
+    /// No averaging — the backend consolidator keeps each catalog's
+    /// number under its own field, and a blended average would
+    /// mislabel what the patient is actually looking at.
+    ///
+    /// Falls back to a parsed "Leafly community" note for older
+    /// profiles that pre-date the per-source fields.
+    var resolvedCommunityRatings: [SourceRating] {
+        var out: [SourceRating] = []
+        if let r = leaflyRating {
+            out.append(SourceRating(source: "Leafly", stars: r, count: leaflyReviewCount))
         }
-        if hasLeafly {
-            return CommunityRating(
-                stars: leaflyRating!,
-                count: leaflyReviewCount,
-                label: "Leafly"
-            )
+        if let r = weedmapsRating {
+            out.append(SourceRating(source: "Weedmaps", stars: r, count: weedmapsReviewCount))
         }
-        if hasAllbud {
-            return CommunityRating(
-                stars: allbudRating!,
-                count: allbudReviewCount,
-                label: "Allbud"
-            )
+        if let r = allbudRating {
+            out.append(SourceRating(source: "Allbud", stars: r, count: allbudReviewCount))
         }
+        if !out.isEmpty { return out }
         for note in communityNotes ?? [] where note.source.lowercased() == "leafly community" {
             let stars = note.text.firstMatch(of: /(\d+(?:\.\d+)?)★/).flatMap { Double($0.1) }
             guard let stars else { continue }
             let count = note.text.firstMatch(of: /([\d,]+)\s+reviews/).flatMap {
                 Int($0.1.replacingOccurrences(of: ",", with: ""))
             }
-            return CommunityRating(stars: stars, count: count, label: "Leafly")
+            return [SourceRating(source: "Leafly", stars: stars, count: count)]
         }
-        return nil
+        return []
     }
 
     var id: String { slug }
@@ -199,16 +195,21 @@ struct StrainProfile: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
-/// Blended community rating for the strain detail card.
-struct CommunityRating: Hashable, Sendable {
+/// One per-source rating card for the strain detail surface. Each
+/// source that published a star rating (Leafly, Weedmaps, Allbud) gets
+/// its own `SourceRating`; the `StrainProfile.resolvedCommunityRatings`
+/// computed property produces the list.
+struct SourceRating: Hashable, Sendable {
+    /// Display name for the source — matches the chip label
+    /// ("Leafly", "Weedmaps", "Allbud"). One word, title-cased.
+    var source: String
+    /// Star rating (0–5). Always present for any card the UI renders.
     var stars: Double
-    /// Review count for the single-source case. Dropped (nil) when the
-    /// rating is an average across sources — a blended count would
-    /// mislead.
+    /// Published review count for the star rating, if the source
+    /// published one. Dropped (nil) when unknown rather than shown as
+    /// "0 reviews" — a 4.5★ with no count is more honest than a fake
+    /// zero.
     var count: Int?
-    /// Source label shown on the card ("Leafly", "Allbud", or
-    /// "Leafly & Allbud" for the average).
-    var label: String
 }
 
 extension String {

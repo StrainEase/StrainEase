@@ -65,7 +65,7 @@ extension StrainProfile {
         }
         if terpenes?.isEmpty ?? true { pending.insert(.terpenes) }
         if sideEffects?.isEmpty ?? true { pending.insert(.sideEffects) }
-        if quoteNotes.isEmpty && resolvedCommunityRating == nil {
+        if quoteNotes.isEmpty && resolvedCommunityRatings.isEmpty {
             pending.insert(.community)
         }
         return pending

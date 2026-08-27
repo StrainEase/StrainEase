@@ -11,6 +11,7 @@ struct StrainDetailView: View {
     @State private var isLoadingTailoredDescription = false
     @State private var tailoredLoadingMessageIndex = 0
     @State private var tailoredLoadingRotationTask: Task<Void, Never>?
+    @State private var redditThreads: [RedditSource] = []
     @Environment(SavedStrainsStore.self) private var saved
     @Environment(SavedAilmentsStore.self) private var ailments
     @Environment(SavedMedicationsStore.self) private var medications
@@ -74,6 +75,11 @@ struct StrainDetailView: View {
                         profile: profile,
                         isHydrating: pending.contains(.community)
                     )
+                    RedditThreadsView(
+                        sources: redditThreads,
+                        title: "Reddit threads for this strain",
+                        description: "Public threads mentioning this strain — pulled from a curated list, not live-scraped."
+                    )
                     if !profile.inKnowledgeBase && !isHydrating {
                         missing
                     }
@@ -114,6 +120,9 @@ struct StrainDetailView: View {
         }
         .task(id: profile.slug) {
             await fetchTailoredDescription()
+        }
+        .task(id: profile.slug) {
+            await fetchRedditThreads()
         }
         .onChange(of: ailments.ailments) { _, _ in
             Task { await fetchTailoredDescription() }
@@ -263,6 +272,20 @@ struct StrainDetailView: View {
         } catch {
             // Keep the static `profile.description` showing on failure.
             tailoredDescription = nil
+        }
+    }
+
+    /// Pull up to 5 curated Reddit threads relevant to this strain.
+    /// Public callable, so it works pre-sign-in; failures are silent
+    /// (the section simply doesn't render).
+    private func fetchRedditThreads() async {
+        do {
+            redditThreads = try await api.redditThreads(
+                name: profile.name,
+                conditions: ailments.ailments
+            )
+        } catch {
+            redditThreads = []
         }
     }
 
@@ -563,17 +586,26 @@ private struct CommunityVoicesSection: View {
     @State private var selected: Tab = .sites
 
     private var quotes: [CommunityNote] { profile.quoteNotes }
-    private var rating: CommunityRating? { profile.resolvedCommunityRating }
+    private var ratings: [SourceRating] { profile.resolvedCommunityRatings }
+
+    /// Max notes per non-Reddit source in the "Weed sites" tab. The
+    /// backend also caps at 5, but applying the cap on the iOS side
+    /// too keeps the rendered list honest if a future scraper pushes
+    /// more through the wire.
+    private static let notesPerSource = 5
 
     private var redditNotes: [CommunityNote] {
-        quotes.filter { $0.resolvedKind == "reddit" }
+        Array(quotes.filter { $0.resolvedKind == "reddit" }.prefix(Self.notesPerSource))
     }
 
-    /// Leafly written reviews + Weedmaps blurbs + anything else the
-    /// backend tagged as a non-Reddit community source. Patients get
-    /// one "Weed sites" tab instead of three.
+    /// 5 Leafly + 5 Weedmaps + 5 Allbud = 15 max, grouped in source
+    /// order. Patients who scroll past the rating cards get a clear
+    /// "what people said on each site" without an infinite stream.
     private var siteNotes: [CommunityNote] {
-        quotes.filter { $0.resolvedKind != "reddit" }
+        let leafly = quotes.filter { $0.resolvedKind == "leafly" }.prefix(Self.notesPerSource)
+        let weedmaps = quotes.filter { $0.resolvedKind == "weedmaps" }.prefix(Self.notesPerSource)
+        let allbud = quotes.filter { $0.resolvedKind == "allbud" }.prefix(Self.notesPerSource)
+        return Array(leafly) + Array(weedmaps) + Array(allbud)
     }
 
     private var hasReddit: Bool { !redditNotes.isEmpty }
@@ -581,7 +613,7 @@ private struct CommunityVoicesSection: View {
 
     var body: some View {
         Group {
-            if rating != nil || !quotes.isEmpty || isHydrating {
+            if !ratings.isEmpty || !quotes.isEmpty || isHydrating {
                 content
             }
         }
@@ -607,12 +639,12 @@ private struct CommunityVoicesSection: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionLabel("Community voices")
-            if let rating {
-                SourceRatingCard(
-                    stars: rating.stars,
-                    count: rating.count,
-                    label: rating.label
-                )
+            if !ratings.isEmpty {
+                VStack(spacing: 10) {
+                    ForEach(ratings, id: \.source) { rating in
+                        SourceRatingCard(rating: rating)
+                    }
+                }
             }
             if hasReddit && hasSites {
                 tabPicker
@@ -719,17 +751,14 @@ private struct CommunityVoicesSection: View {
 }
 
 private struct SourceRatingCard: View {
-    let stars: Double
-    let count: Int?
-    /// "Leafly", "Allbud", or "Leafly & Allbud" for the blended average.
-    let label: String
+    let rating: SourceRating
 
     var body: some View {
         SWCard {
             HStack(spacing: 14) {
                 HStack(spacing: 3) {
                     ForEach(0..<5, id: \.self) { index in
-                        let fill = min(1, max(0, stars - Double(index)))
+                        let fill = min(1, max(0, rating.stars - Double(index)))
                         Image(systemName: fill >= 0.75 ? "star.fill" : fill >= 0.25 ? "star.leadinghalf.filled" : "star")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Palette.primary)
@@ -738,13 +767,18 @@ private struct SourceRatingCard: View {
                 .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(stars, format: .number.precision(.fractionLength(1)))
+                    Text(rating.source.uppercased())
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(Palette.primary)
+                    Text(rating.stars, format: .number.precision(.fractionLength(1)))
                         .font(.system(size: 22, weight: .semibold, design: .rounded))
                         .foregroundStyle(Palette.foreground)
                     Text(countLabel)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Palette.mutedForeground)
                 }
+                Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
@@ -752,18 +786,18 @@ private struct SourceRatingCard: View {
     }
 
     private var countLabel: String {
-        if let count {
-            return "\(count.formatted()) \(label) reviews"
+        if let count = rating.count {
+            return "\(count.formatted()) reviews"
         }
-        return "Average \(label) rating"
+        return "Rating only"
     }
 
     private var accessibilityLabel: String {
-        let rating = String(format: "%.1f", stars)
-        if let count {
-            return "\(label) rating \(rating) from \(count.formatted()) reviews"
+        let value = String(format: "%.1f", rating.stars)
+        if let count = rating.count {
+            return "\(rating.source) rating \(value) from \(count.formatted()) reviews"
         }
-        return "\(label) rating \(rating)"
+        return "\(rating.source) rating \(value)"
     }
 }
 

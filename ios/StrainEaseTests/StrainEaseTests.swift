@@ -443,48 +443,62 @@ final class StrainEaseTests: XCTestCase {
         XCTAssertTrue(reddit.isReddit)
     }
 
-    func testResolvedCommunityRatingPrefersStructuredFields() {
-        var profile = StrainProfile.sampleBlueDream
-        XCTAssertEqual(profile.resolvedCommunityRating?.stars, 4.3)
-        XCTAssertEqual(profile.resolvedCommunityRating?.count, 14919)
-        XCTAssertEqual(profile.resolvedCommunityRating?.label, "Leafly")
+    func testResolvedCommunityRatingsExposesAllThreeSources() {
+        // The iOS model mirrors the backend: each catalog with a
+        // published rating gets its own SourceRating card, in the
+        // backend's SOURCE_ORDER (Leafly → Weedmaps → Allbud). No
+        // averaging — a blended count would mislead.
+        let profile = StrainProfile.sampleGDP
+        let cards = profile.resolvedCommunityRatings
+        XCTAssertEqual(cards.count, 3)
+        XCTAssertEqual(cards[0].source, "Leafly")
+        XCTAssertEqual(cards[0].stars, 4.5)
+        XCTAssertEqual(cards[0].count, 3201)
+        XCTAssertEqual(cards[1].source, "Weedmaps")
+        XCTAssertEqual(cards[1].stars, 4.3)
+        XCTAssertEqual(cards[1].count, 612)
+        XCTAssertEqual(cards[2].source, "Allbud")
+        XCTAssertEqual(cards[2].stars, 4.6)
+        XCTAssertEqual(cards[2].count, 84)
+    }
 
+    func testResolvedCommunityRatingsDropsMissingSources() {
+        // A strain with only Leafly shows a single card. The card keeps
+        // its own review count — never blended, never dropped.
+        var profile = StrainProfile.sampleBlueDream
+        profile.weedmapsRating = nil
+        profile.weedmapsReviewCount = nil
+        profile.allbudRating = nil
+        profile.allbudReviewCount = nil
+
+        let cards = profile.resolvedCommunityRatings
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards[0].source, "Leafly")
+        XCTAssertEqual(cards[0].stars, 4.3)
+        XCTAssertEqual(cards[0].count, 14919)
+    }
+
+    func testResolvedCommunityRatingsFallsBackToLegacyLeaflyCommunityNote() {
+        // Older profiles (and scraped leafly community notes) carry the
+        // rating in a "Leafly community" community note rather than the
+        // structured field. The parser still surfaces it so the rating
+        // card never disappears.
+        var profile = StrainProfile.sampleBlueDream
         profile.leaflyRating = nil
         profile.leaflyReviewCount = nil
+        profile.weedmapsRating = nil
+        profile.weedmapsReviewCount = nil
+        profile.allbudRating = nil
+        profile.allbudReviewCount = nil
         profile.communityNotes = [
             CommunityNote(source: "Leafly community", text: "4.3★ from 14,919 reviews"),
         ]
-        XCTAssertEqual(profile.resolvedCommunityRating?.stars, 4.3)
-        XCTAssertEqual(profile.resolvedCommunityRating?.count, 14919)
-        XCTAssertEqual(profile.resolvedCommunityRating?.label, "Leafly")
-        XCTAssertTrue(profile.quoteNotes.isEmpty)
-    }
 
-    func testResolvedCommunityRatingBlendsBothSources() {
-        var profile = StrainProfile.sampleBlueDream
-        profile.leaflyRating = 4.5
-        profile.leaflyReviewCount = 3201
-        profile.allbudRating = 4.6
-        profile.allbudReviewCount = 84
-
-        let rating = try? XCTUnwrap(profile.resolvedCommunityRating)
-        // (4.5 + 4.6) / 2 = 4.55 → rounds to 4.6, matching the web card.
-        XCTAssertEqual(rating?.stars, 4.6)
-        XCTAssertNil(rating?.count, "A blended average must not show a source-specific count")
-        XCTAssertEqual(rating?.label, "Leafly & Allbud")
-    }
-
-    func testResolvedCommunityRatingAllbudOnly() {
-        var profile = StrainProfile.sampleBlueDream
-        profile.leaflyRating = nil
-        profile.leaflyReviewCount = nil
-        profile.allbudRating = 4.6
-        profile.allbudReviewCount = 84
-
-        let rating = try? XCTUnwrap(profile.resolvedCommunityRating)
-        XCTAssertEqual(rating?.stars, 4.6)
-        XCTAssertEqual(rating?.count, 84)
-        XCTAssertEqual(rating?.label, "Allbud")
+        let cards = profile.resolvedCommunityRatings
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards[0].source, "Leafly")
+        XCTAssertEqual(cards[0].stars, 4.3)
+        XCTAssertEqual(cards[0].count, 14919)
     }
 
     func testWithUnescapedNewlinesRendersModelIntent() {

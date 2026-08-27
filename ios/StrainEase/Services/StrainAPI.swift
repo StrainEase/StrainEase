@@ -42,6 +42,15 @@ protocol StrainServicing {
         reliefHistory: String,
         language: String
     ) async throws -> String
+
+    /// Curated Reddit threads relevant to a single strain, drawn
+    /// from the vetted `reddit-seed` pool (no LLM in the loop).
+    /// Returns up to 5 threads; empty when nothing matches. Public
+    /// callable, so it works for signed-out readers too.
+    func redditThreads(
+        name: String,
+        conditions: [String]
+    ) async throws -> [RedditSource]
 }
 
 /// Default language for AI-written responses. The backend pins output
@@ -213,6 +222,18 @@ struct LiveStrainAPI: StrainServicing {
         return section.elaboration
     }
 
+    func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return [] }
+        let cleanedConditions = conditions
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let payload: [String: Any] = cleanedConditions.isEmpty
+            ? ["name": trimmedName]
+            : ["name": trimmedName, "conditions": cleanedConditions]
+        return try await call("redditThreadsForStrain", data: payload)
+    }
+
     /// Encode the strain into a plain `[String: Any]` so the backend
     /// gets the same shape it gets from the web client. Mirrors
     /// `StrainProfile` only for the fields `describeStrainPayload` on
@@ -241,6 +262,8 @@ struct LiveStrainAPI: StrainServicing {
         if let imageUrl = strain.imageUrl { out["imageUrl"] = imageUrl }
         if let rating = strain.leaflyRating { out["leaflyRating"] = rating }
         if let count = strain.leaflyReviewCount { out["leaflyReviewCount"] = count }
+        if let rating = strain.weedmapsRating { out["weedmapsRating"] = rating }
+        if let count = strain.weedmapsReviewCount { out["weedmapsReviewCount"] = count }
         if let rating = strain.allbudRating { out["allbudRating"] = rating }
         if let count = strain.allbudReviewCount { out["allbudReviewCount"] = count }
         return out
@@ -356,6 +379,20 @@ struct PreviewStrainAPI: StrainServicing {
         "Maya's take on \(sectionHeading): \(strain.name) shines for the symptoms you flagged — start low, give it time to settle, and check in with how you feel before layering more on top."
     }
 
+    func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {
+        // Preview returns one illustrative thread so the RedditThreadsView
+        // section isn't empty in the SwiftUI preview canvas.
+        [
+            RedditSource(
+                url: "https://old.reddit.com/r/ChronicPain/comments/1df98oq/best_marijuana_strains_for_pain/",
+                subreddit: "ChronicPain",
+                title: "Best marijuana strains for pain",
+                snippet: "Indica-leaning purple genetics (Granddaddy Purple, Purple Kush, Purple OG) are the most reported pain relievers.",
+                score: 42
+            ),
+        ]
+    }
+
 }
 
 /// Preview helper that never resolves so strain-detail placeholders stay visible.
@@ -406,5 +443,10 @@ struct DelayedPreviewAPI: StrainServicing {
     ) async throws -> String {
         try await Task.sleep(for: .seconds(60))
         return "Maya's take never resolves in this preview — but the production path returns a 2-4 paragraph expansion tailored to the strain and the user's saved ailments."
+    }
+
+    func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {
+        try await Task.sleep(for: .seconds(60))
+        return []
     }
 }
