@@ -184,6 +184,7 @@ fun MainTabView() {
                         relief = relief,
                         savedAilments = savedAilments,
                         savedMedications = savedMedications,
+                        savedStrains = savedStrains,
                         compareStore = compareStore,
                         modifier = Modifier.fillMaxSize(),
                     )

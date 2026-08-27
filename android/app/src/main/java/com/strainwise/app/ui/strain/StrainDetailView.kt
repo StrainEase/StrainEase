@@ -1,5 +1,7 @@
 package com.strainwise.app.ui.strain
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,6 +23,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +42,7 @@ import com.strainwise.app.data.RecentlyViewedStore
 import com.strainwise.app.data.ReliefLogStore
 import com.strainwise.app.data.SavedAilmentsStore
 import com.strainwise.app.data.SavedMedicationsStore
+import com.strainwise.app.data.SavedStrainsStore
 import com.strainwise.app.data.StrainAPI
 import com.strainwise.app.models.StrainProfile
 import com.strainwise.app.models.Terpene
@@ -86,6 +91,7 @@ fun StrainDetailView(
     relief: ReliefLogStore,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
+    savedStrains: SavedStrainsStore,
     compareStore: CompareSelectionStore,
     modifier: Modifier = Modifier,
 ) {
@@ -124,7 +130,15 @@ fun StrainDetailView(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            header(profile = current, isHydrating = isHydrating, compareStore = compareStore)
+            header(
+                profile = current,
+                isHydrating = isHydrating,
+                compareStore = compareStore,
+                savedStrains = savedStrains,
+                onToggleSave = {
+                    scope.launch { savedStrains.toggle(profile) }
+                },
+            )
             descriptionBlock(current)
             if (!current.medicalUses.isNullOrEmpty()) {
                 chipSection(
@@ -163,15 +177,17 @@ fun StrainDetailView(
 }
 
 @Composable
-private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: CompareSelectionStore) {
+private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: CompareSelectionStore, savedStrains: SavedStrainsStore, onToggleSave: () -> Unit) {
     val score = StrainMeaning.dayNightScore(profile)
     val dayNightLabel = StrainMeaning.labelFor(score)
     val compareNames by compareStore.names.collectAsState()
+    val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
+    val isLiked = saved.any { it.slug == profile.slug }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // Photo with a floating "Add to compare" toggle pinned to the
-        // top-right — mirrors the iOS toolbar CompareToggleButton so
-        // the user can build a 2-3 strain comparison set from any
-        // detail screen.
+        // Photo with two floating toolbar buttons pinned to the
+        // top-right: heart (save / unsave) and compare-toggle.
+        // Mirrors the iOS `StrainDetailView` toolbar pair so the
+        // user can save the strain without leaving the screen.
         Box(modifier = Modifier.fillMaxWidth()) {
             StrainPhoto(
                 urlString = profile.imageUrl,
@@ -179,14 +195,42 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                 height = 220.dp,
                 cornerRadius = 22.dp,
             )
-            CompareToggleButton(
-                isInSelection = profile.name in compareNames,
-                atCap = compareStore.atCap,
-                onToggle = { compareStore.toggle(profile.name) },
+            androidx.compose.foundation.layout.Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(12.dp),
-            )
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+            ) {
+                // Heart — toggles the saved-strain status.
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isLiked) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline,
+                    ),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable { onToggleSave() },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (isLiked) "Remove from saved strains" else "Save strain",
+                            tint = if (isLiked) androidx.compose.material3.MaterialTheme.colorScheme.primary
+                            else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                CompareToggleButton(
+                    isInSelection = profile.name in compareNames,
+                    atCap = compareStore.atCap,
+                    onToggle = { compareStore.toggle(profile.name) },
+                )
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TypeBadge(type = profile.type)
