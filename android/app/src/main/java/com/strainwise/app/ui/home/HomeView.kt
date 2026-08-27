@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.strainwise.app.data.RecentStrain
 import com.strainwise.app.data.RecentlyViewedStore
+import com.strainwise.app.data.SavedAilmentsStore
 import com.strainwise.app.models.StrainProfile
 import com.strainwise.app.ui.components.Eyebrow
 import com.strainwise.app.ui.components.MeshBackground
@@ -41,18 +42,29 @@ import com.strainwise.app.ui.theme.StrainWiseTypography
 fun HomeView(
     model: HomeModel,
     recentlyViewed: RecentlyViewedStore,
+    savedAilments: SavedAilmentsStore,
     modifier: Modifier = Modifier,
     onOpenProfile: (StrainProfile) -> Unit = {},
     onOpenGrid: (HomeSection, List<StrainProfile>) -> Unit = { _, _ -> },
 ) {
     val popular by model.popular.collectAsState()
     val ailments by model.savedAilments.collectAsState()
+    val savedFlow by savedAilments.ailmentsFlow.collectAsState(initial = emptyList())
     val recentsFlow = recentlyViewed.itemsFlow.collectAsState(initial = emptyList())
     val recents: List<RecentStrain> = recentsFlow.value
 
     LaunchedEffect(Unit) {
         model.load()
         recentlyViewed.refresh()
+        savedAilments.refresh()
+    }
+    // Keep HomeModel's savedAilments in sync with the
+    // SavedAilmentsStore so the "For you" rail and ailment
+    // carousel pick up new entries the user adds via
+    // AccountView. Mirrors iOS HomeView's
+    // `onChange(of: ailmentsStore.ailments) { ... }`.
+    LaunchedEffect(savedFlow) {
+        model.updateSavedAilments(savedFlow)
     }
 
     Box(modifier = modifier.fillMaxSize()) {

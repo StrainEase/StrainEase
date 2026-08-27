@@ -133,6 +133,7 @@ fun MainTabView() {
                     AppTab.Home -> com.strainwise.app.ui.home.HomeView(
                         model = homeModel,
                         recentlyViewed = recents,
+                        savedAilments = savedAilments,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
