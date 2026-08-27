@@ -314,6 +314,32 @@ as much as Compose allows):
   `app/src/test/` and `app/src/androidTest/`. PR-A13 wires up the
   initial suite.
 
+### Future parity work (iOS / web shipped, Android not yet)
+
+The 13-PR plan above ships feature parity with iOS as of the
+`StrainWise` → `StrainEase` rename. The iOS + web `feat/ios-rating-average`
+PR landed several changes that the Android port will need to mirror
+in a follow-up PR:
+
+- **Per-source rating cards** — the strain detail shows 1-3
+  `SourceRatingCard`s (one per source that published a rating —
+  Leafly, Weedmaps, Allbud) instead of the legacy blended
+  "Leafly & Allbud" average. `StrainProfile` gains
+  `weedmapsRating` / `weedmapsReviewCount`. The backend
+  `consolidate.ts` and `weedmaps.ts` already emit the new fields.
+- **5-per-source community-note cap** — `unionNotes` in the
+  consolidator caps each source at 5 notes; the iOS / web
+  `CommunityVoices` apply the same cap client-side so a future
+  wire push can't quietly dump the whole list.
+- **Curated Reddit threads on strain detail** — new public
+  callable `redditThreadsForStrain(name, conditions)` returns up
+  to 5 vetted threads (no LLM in the loop). Strain detail pages
+  render them in a `RedditThreads` block under community voices.
+
+These are iOS + web parity; an Android follow-up PR (A14 or
+later) should land all three together so the Android strain
+detail matches what iOS / web ship today.
+
 # Remember:
 
 - Always ensure platform parity
