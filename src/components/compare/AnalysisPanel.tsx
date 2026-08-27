@@ -1,6 +1,7 @@
 import type { QuoteNote } from "@/lib/quotes";
 import type { RedditSource } from "@/lib/strain-profile";
 import { RedditThreads } from "@/components/compare/RedditThreads";
+import { SWCard } from "@/components/ui/sw-card";
 import {
   Award,
   Brain,
@@ -69,12 +70,14 @@ function BulletList({
 function RedditThreadsBlock({ sources }: { sources: RedditSource[] }) {
   if (sources.length === 0) return null;
   return (
-    <div className="border-t border-border/60 px-6 py-6 sm:px-8">
-      <RedditThreads
-        sources={sources}
-        title="Reddit threads for these strains"
-        description="Pointed to from public discussion — surfaced from a curated list, not live-scraped."
-      />
+    <div className="-mx-[5px] mt-[5px] rounded-b-[22px] border-t border-border/70 bg-muted/45 px-[5px] pb-[5px]">
+      <div className="rounded-[22px] border border-border bg-card px-4 py-4 sm:px-5">
+        <RedditThreads
+          sources={sources}
+          title="Reddit threads for these strains"
+          description="Pointed to from public discussion — surfaced from a curated list, not live-scraped."
+        />
+      </div>
     </div>
   );
 }
@@ -89,9 +92,9 @@ export function AnalysisPanel({
   const { headline, summary, forCondition } = analysis;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+    <SWCard>
       {/* Verdict header */}
-      <div className="border-b border-border/60 bg-gradient-to-br from-primary/8 to-transparent px-6 py-6 sm:px-8">
+      <div className="border-b border-border/60 bg-gradient-to-br from-primary/8 to-transparent px-4 pb-5 pt-4 sm:px-5 sm:pb-6 sm:pt-5">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
           <Sparkles className="size-3.5" />
           AI comparison · Dr. Kaya
@@ -103,29 +106,26 @@ export function AnalysisPanel({
           {summary}
         </p>
         {quotes.length > 0 && (
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
             {quotes.map(({ strain, note }) => (
-              <blockquote
-                key={`${strain}-${note.source}`}
-                className="rounded-xl border border-primary/20 bg-background/70 px-4 py-3"
-              >
+              <SWCard key={`${strain}-${note.source}`} innerClassName="px-3 py-3 sm:px-4">
                 <Quote className="mb-2 size-3.5 text-primary/60" />
                 <p className="text-sm leading-6 text-foreground/90">
-                  “{note.text}”
+                  "{note.text}"
                 </p>
                 <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
                   {strain} · {note.source}
                 </p>
-              </blockquote>
+              </SWCard>
             ))}
           </div>
         )}
       </div>
 
-      <div className="grid gap-8 px-6 py-6 sm:px-8 lg:grid-cols-[1.15fr_1fr]">
-        <div className="space-y-7">
+      <div className="grid gap-5 px-4 py-5 sm:gap-6 sm:px-5 sm:py-6 lg:grid-cols-[1.15fr_1fr]">
+        <div className="space-y-5 sm:space-y-6">
           {forCondition && (
-            <div className="rounded-xl border border-primary/25 bg-primary/5 p-5">
+            <SWCard innerClassName="px-4 py-4 sm:px-5">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
                 <Brain className="size-3.5" />
                 Best for your condition
@@ -142,7 +142,7 @@ export function AnalysisPanel({
                   Runner-up: <span className="font-medium text-foreground">{forCondition.runnerUp}</span>
                 </p>
               )}
-            </div>
+            </SWCard>
           )}
 
           <BulletList
@@ -158,7 +158,7 @@ export function AnalysisPanel({
         </div>
 
         <div>
-          <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-5">
+          <SWCard innerClassName="px-4 py-4 sm:px-5">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-amber-600">
               <ShieldAlert className="size-3.5" />
               Cautions
@@ -174,11 +174,11 @@ export function AnalysisPanel({
                 </li>
               ))}
             </ul>
-          </div>
+          </SWCard>
         </div>
       </div>
 
       <RedditThreadsBlock sources={analysis.redditSources ?? []} />
-    </div>
+    </SWCard>
   );
 }
