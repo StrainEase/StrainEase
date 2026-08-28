@@ -38,6 +38,27 @@ import kotlin.math.min
 private enum class CommunityTab { REDDIT, SITES }
 
 /**
+ * Per-source cap on community notes in the weed-sites channel.
+ * Matches the backend consolidator's NOTES_PER_SOURCE so a future
+ * wire push can't quietly dump the whole list into the UI.
+ */
+private const val NOTES_PER_SOURCE = 5
+
+/**
+ * Split a list of non-Reddit notes into 5-per-source buckets
+ * (leafly / weedmaps / allbud) so the strain detail always shows
+ * variety across the sites instead of one source flooding the
+ * list. Order: leafly, weedmaps, allbud, then any other kind.
+ */
+private fun capCannabisBySource(notes: List<CommunityNote>): List<CommunityNote> {
+    val byKind = notes.groupBy { it.resolvedKind }
+    val ordered = listOf("leafly", "weedmaps", "allbud", "other")
+    return ordered.flatMap { kind ->
+        byKind[kind].orEmpty().take(NOTES_PER_SOURCE)
+    }
+}
+
+/**
  * Community voices section for a strain detail page. 1:1 port of
  * the iOS `CommunityVoicesSection`. Shows:
  *  - One per-source rating card per source that published a star
@@ -54,8 +75,8 @@ fun CommunityVoicesSection(
     isHydrating: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val redditNotes = quotes.filter { it.isReddit }
-    val siteNotes = quotes.filter { !it.isReddit }
+    val redditNotes = quotes.filter { it.isReddit }.take(NOTES_PER_SOURCE)
+    val siteNotes = capCannabisBySource(quotes.filter { !it.isReddit })
     val hasReddit = redditNotes.isNotEmpty()
     val hasSites = siteNotes.isNotEmpty()
 
