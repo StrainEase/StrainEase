@@ -1,5 +1,7 @@
 package ai.strainease.app.ui.strain
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,14 +23,17 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.collect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,9 +43,12 @@ import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.ReliefLogStore
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.data.SavedMedicationsStore
+import ai.strainease.app.data.SavedStrainsStore
 import ai.strainease.app.data.StrainAPI
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.models.Terpene
+import ai.strainease.app.ui.compare.CompareSelectionStore
+import ai.strainease.app.ui.compare.CompareToggleButton
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.IntensityBar
 import ai.strainease.app.ui.components.MeshBackground
@@ -55,25 +64,22 @@ import kotlinx.coroutines.launch
 
 /**
  * The strain detail screen. 1:1 port of the iOS
- * `StrainDetailView` with the very heaviest sections
- * (tailored description, elaborate, community voices)
- * scoped down for PR-A9. The key sections that ship here:
+ * `StrainDetailView`. All major sections from iOS are wired:
  *
  *  1. Header: hero photo, name, type badge, "Daytime /
  *     Anytime / Evening-leaning" badge, Leafly rating
- *  2. Description (the static `StrainProfile.description`
- *     block; the tailored three-section version lands
- *     when the describe API is wired in the follow-up)
+ *  2. TailoredDescriptionView: AI three-section description
+ *     (falls back to static `profile.description`)
  *  3. "Commonly used for" chip rail
- *  4. "How it might feel" — effects list with intensity
- *     bars
+ *  4. "How it might feel" — effects list with intensity bars
  *  5. Terpenes — tappable profile rows
  *  6. Shop links (Leafly + Weedmaps)
  *  7. "Watch for" — side-effects chip rail
  *  8. Patient tried-notes list (relief log for this strain)
  *  9. "How did it work for you?" form (ReliefLogForm)
- *
- * Compare button + Reddit threads land in PR-A10.
+ * 10. CommunityVoicesSection: Leafly rating card, Reddit /
+ *     weed-site tabbed reviews
+ * 11. SharedNotesView: Firestore community notes
  */
 @Composable
 fun StrainDetailView(
@@ -83,6 +89,8 @@ fun StrainDetailView(
     relief: ReliefLogStore,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
+    savedStrains: SavedStrainsStore,
+    compareStore: CompareSelectionStore,
     modifier: Modifier = Modifier,
 ) {
     var current by remember(profile.slug) { mutableStateOf(profile) }
@@ -91,10 +99,24 @@ fun StrainDetailView(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // Collect saved ailments and medications as state so TailoredDescriptionView
+    // can re-fetch when they change (user edits saved ailments while on detail).
+    var ailments by remember { mutableStateOf(emptyList<String>()) }
+    var medications by remember { mutableStateOf(emptyList<String>()) }
+    LaunchedEffect(Unit) {
+        savedAilments.ailmentsFlow.collect { ailments = it }
+    }
+    LaunchedEffect(Unit) {
+        savedMedications.namesFlow.collect { medications = it }
+    }
+
     LaunchedEffect(profile.slug) {
         // 1. Record in recents so the Home rail picks it up
         recentlyViewed.record(profile)
-        // 2. Hydrate any missing sections
+        // 2. Populate relief summary cache so `relief.summary` is non-empty
+        //    for the tailored description AI call.
+        relief.refresh()
+        // 3. Hydrate any missing sections
         val pending = current.pendingHydrationSections
         if (pending.isNotEmpty()) {
             try {
@@ -120,8 +142,22 @@ fun StrainDetailView(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            header(profile = current, isHydrating = isHydrating)
-            descriptionBlock(current)
+            header(
+                profile = current,
+                isHydrating = isHydrating,
+                compareStore = compareStore,
+                savedStrains = savedStrains,
+                onToggleSave = {
+                    scope.launch { savedStrains.toggle(profile) }
+                },
+            )
+            descriptionBlock(
+                profile = current,
+                api = api,
+                ailments = ailments,
+                medications = medications,
+                reliefHistory = relief.summary,
+            )
             if (!current.medicalUses.isNullOrEmpty()) {
                 chipSection(
                     title = "Commonly used for",
@@ -153,22 +189,73 @@ fun StrainDetailView(
                 strainSlug = profile.slug,
                 relief = relief,
             )
+            CommunityVoicesSection(
+                rating = current.resolvedLeaflyRating,
+                quotes = current.quoteNotes,
+                isHydrating = isHydrating,
+            )
+            SharedNotesView(strainSlug = profile.slug)
             error?.let { SWErrorBanner(message = it) }
         }
     }
 }
 
 @Composable
-private fun header(profile: StrainProfile, isHydrating: Boolean) {
+private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: CompareSelectionStore, savedStrains: SavedStrainsStore, onToggleSave: () -> Unit) {
     val score = StrainMeaning.dayNightScore(profile)
     val dayNightLabel = StrainMeaning.labelFor(score)
+    val compareNames by compareStore.names.collectAsState()
+    val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
+    val isLiked = saved.any { it.slug == profile.slug }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        StrainPhoto(
-            urlString = profile.imageUrl,
-            type = profile.type,
-            height = 220.dp,
-            cornerRadius = 22.dp,
-        )
+        // Photo with two floating toolbar buttons pinned to the
+        // top-right: heart (save / unsave) and compare-toggle.
+        // Mirrors the iOS `StrainDetailView` toolbar pair so the
+        // user can save the strain without leaving the screen.
+        Box(modifier = Modifier.fillMaxWidth()) {
+            StrainPhoto(
+                urlString = profile.imageUrl,
+                type = profile.type,
+                height = 220.dp,
+                cornerRadius = 22.dp,
+            )
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+            ) {
+                // Heart — toggles the saved-strain status.
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isLiked) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline,
+                    ),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable { onToggleSave() },
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (isLiked) "Remove from saved strains" else "Save strain",
+                            tint = if (isLiked) androidx.compose.material3.MaterialTheme.colorScheme.primary
+                            else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                CompareToggleButton(
+                    isInSelection = profile.name in compareNames,
+                    atCap = compareStore.atCap,
+                    onToggle = { compareStore.toggle(profile.name) },
+                )
+            }
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TypeBadge(type = profile.type)
             Text(
@@ -233,7 +320,22 @@ private fun header(profile: StrainProfile, isHydrating: Boolean) {
 }
 
 @Composable
-private fun descriptionBlock(profile: StrainProfile) {
+private fun descriptionBlock(
+    profile: StrainProfile,
+    api: StrainAPI,
+    ailments: List<String>,
+    medications: List<String>,
+    reliefHistory: String,
+) {
+    TailoredDescriptionView(
+        profile = profile,
+        api = api,
+        ailments = ailments,
+        medications = medications,
+        reliefHistory = reliefHistory,
+    )
+    // If TailoredDescriptionView shows nothing (no AI result yet and not loading),
+    // fall back to the static description so the user sees something immediately.
     if (profile.description.isNullOrEmpty()) return
     SWCard {
         Text(

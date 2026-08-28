@@ -45,6 +45,8 @@ import ai.strainease.app.models.ThcSensitivity
 import ai.strainease.app.models.TimeOfDay
 import ai.strainease.app.models.RecommendationResult
 import ai.strainease.app.models.StrainRecommendation
+import ai.strainease.app.ui.compare.CompareResultsView
+import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
 import ai.strainease.app.ui.components.SWCard
@@ -76,6 +78,8 @@ fun FindView(
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
     relief: ReliefLogStore,
+    compareStore: CompareSelectionStore,
+    researchHistory: com.strainwise.app.data.ResearchHistoryStore,
     modifier: Modifier = Modifier,
     onOpenProfile: (StrainProfile) -> Unit = {},
 ) {
@@ -86,10 +90,50 @@ fun FindView(
     val result by model.result.collectAsState()
     val isRunning by model.isRunning.collectAsState()
     val error by model.errorMessage.collectAsState()
+    val comparison by compareStore.comparison.collectAsState()
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         model.hydrateAilmentsIfNeeded(savedAilments)
+        savedAilments.refresh()
+    }
+    // Keep the picked ailments in sync with the
+    // SavedAilmentsStore so symptoms the user added via
+    // AccountView show up here. Mirrors iOS FindView's
+    // ailmentsStore observation. (Hydrate on first frame so
+    // the user doesn't see an empty list when their saved
+    // ailments aren't yet in the model.)
+    val savedAilmentsFlow by savedAilments.ailmentsFlow.collectAsState(initial = emptyList())
+    LaunchedEffect(savedAilmentsFlow) {
+        model.hydrateAilmentsIfNeeded(savedAilments)
+    }
+
+    // Cross-tab handoffs from the Account sheet. The
+    // `nav.pendingFindAilments` slot is set by the "Find for
+    // these" button on the saved-ailments card; the
+    // `nav.pendingResearch` slot is set when the user opens a
+    // Past-research entry. Both fire once and clear.
+    val nav = com.strainwise.app.app.LocalAppNavigation.current
+    val pendingAilments = nav.pendingFindAilments
+    LaunchedEffect(pendingAilments) {
+        if (pendingAilments.isNotEmpty()) {
+            model.applyAilments(pendingAilments, replace = true)
+            nav.consumeFindAilments()
+        }
+    }
+    val pendingResearch = nav.pendingResearch
+    LaunchedEffect(pendingResearch) {
+        when (val r = pendingResearch) {
+            is com.strainwise.app.app.RestoredResearch.Find -> {
+                model.applyRestored(r.result, r.conditions)
+                nav.consumeResearch()
+            }
+            is com.strainwise.app.app.RestoredResearch.Compare -> {
+                compareStore.setComparison(r.comparison)
+                nav.consumeResearch()
+            }
+            null -> Unit
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -124,11 +168,32 @@ fun FindView(
                             savedMedications = savedMedications,
                             reliefSummary = relief.summary.takeIf { it.isNotEmpty() },
                         )
+                        // Persist a Past-research row so the user
+                        // can re-open this exact run from the
+                        // Account sheet. Mirrors the iOS
+                        // FindView's `history.remember(find:)`
+                        // call after a successful run.
+                        model.result.value?.let { result ->
+                            researchHistory.remember(
+                                find = result,
+                                conditions = model.searched.value,
+                            )
+                        }
                     }
                 },
             )
             error?.let { SWErrorBanner(message = it) }
             result?.let { resultBlock(it, onOpenProfile) }
+            // Surface the cross-strain comparison result produced by
+            // CompareTrayBar's "Compare" CTA. Mirrors iOS FindView
+            // which shows the same view inline below the
+            // recommendations block.
+            comparison?.let { comparison ->
+                CompareResultsView(
+                    comparison = comparison,
+                    onOpenProfile = onOpenProfile,
+                )
+            }
         }
     }
 }

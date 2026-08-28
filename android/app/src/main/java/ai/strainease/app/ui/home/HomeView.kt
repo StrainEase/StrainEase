@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.data.RecentStrain
 import ai.strainease.app.data.RecentlyViewedStore
+import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
@@ -41,18 +42,29 @@ import ai.strainease.app.ui.theme.StrainEaseTypography
 fun HomeView(
     model: HomeModel,
     recentlyViewed: RecentlyViewedStore,
+    savedAilments: SavedAilmentsStore,
     modifier: Modifier = Modifier,
     onOpenProfile: (StrainProfile) -> Unit = {},
     onOpenGrid: (HomeSection, List<StrainProfile>) -> Unit = { _, _ -> },
 ) {
     val popular by model.popular.collectAsState()
     val ailments by model.savedAilments.collectAsState()
+    val savedFlow by savedAilments.ailmentsFlow.collectAsState(initial = emptyList())
     val recentsFlow = recentlyViewed.itemsFlow.collectAsState(initial = emptyList())
     val recents: List<RecentStrain> = recentsFlow.value
 
     LaunchedEffect(Unit) {
         model.load()
         recentlyViewed.refresh()
+        savedAilments.refresh()
+    }
+    // Keep HomeModel's savedAilments in sync with the
+    // SavedAilmentsStore so the "For you" rail and ailment
+    // carousel pick up new entries the user adds via
+    // AccountView. Mirrors iOS HomeView's
+    // `onChange(of: ailmentsStore.ailments) { ... }`.
+    LaunchedEffect(savedFlow) {
+        model.updateSavedAilments(savedFlow)
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -121,12 +133,12 @@ private fun hero() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Eyebrow(text = "Browse")
         Text(
-            text = "Strains tuned to your day.",
+            text = HomeHeadline.text(),
             style = StrainEaseTypography.displaySmall,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
-            text = "StrainEase combines your symptoms, your meds, and the strains real patients keep coming back to.",
+            text = HomeHeadline.SUBTITLE,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

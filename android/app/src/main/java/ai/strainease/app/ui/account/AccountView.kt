@@ -362,49 +362,110 @@ private fun SavedMedicationsCard(
     }
 }
 
+/**
+ * Public Saved Strains sheet. Direct port of the iOS
+ * `SavedStrainsView` sheet (the iOS app pops it from the
+ * home toolbar heart). The Android app already had the same
+ * content inlined in [AccountView] as a private composable;
+ * this version is the standalone "favorites only" sheet that
+ * the shell's heart button now targets.
+ */
+@Composable
+fun SavedStrainsSheet(
+    savedStrains: com.strainwise.app.data.SavedStrainsStore,
+    onOpen: (com.strainwise.app.models.StrainProfile) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) { savedStrains.refresh() }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        androidx.compose.foundation.layout.Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Saved strains",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f),
+            )
+            androidx.compose.material3.IconButton(onClick = onDismiss) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+        SavedStrainsList(
+            saved = saved,
+            onOpen = onOpen,
+            onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
+        )
+    }
+}
+
 /** Saved strains list. */
 @Composable
-private fun SavedStrainsView(
+private fun SavedStrainsList(
     saved: List<SavedStrain>,
     onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
     onRemove: (String) -> Unit,
 ) {
+    if (saved.isEmpty()) {
+        SWCard {
+            Text(
+                text = "Tap the heart on a strain to save it here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
     SWCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionLabel(title = "Saved strains", index = 3)
-            if (saved.isEmpty()) {
-                Text(
-                    text = "Tap the heart on a strain to save it here.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                saved.take(8).forEach { item ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            StrainPoster(
-                                profile = item.toProfile(),
-                                onClick = { onOpen(item.toProfile()) },
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "Remove ${item.name}",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .clickable { onRemove(item.slug) }
-                                .padding(8.dp),
+            SectionLabel(title = "Saved strains", index = 1)
+            saved.take(16).forEach { item ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        StrainPoster(
+                            profile = item.toProfile(),
+                            onClick = { onOpen(item.toProfile()) },
                         )
                     }
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Remove ${item.name}",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable { onRemove(item.slug) }
+                            .padding(8.dp),
+                    )
                 }
             }
         }
     }
 }
+
+/** Backwards-compatible private alias for the inlined
+ *  card inside [AccountView]. */
+@Composable
+private fun SavedStrainsView(
+    saved: List<SavedStrain>,
+    onOpen: (com.strainwise.app.models.StrainProfile) -> Unit,
+    onRemove: (String) -> Unit,
+) = SavedStrainsList(saved, onOpen, onRemove)
 
 /** Relief log history. */
 @Composable
