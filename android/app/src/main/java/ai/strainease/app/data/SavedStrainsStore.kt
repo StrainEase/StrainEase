@@ -22,6 +22,7 @@ data class SavedStrain(
     val thcRange: String? = null,
     val imageUrl: String? = null,
     val noteCount: Int = 0,
+    val notes: List<SavedNote> = emptyList(),
     val savedAt: Long,
 ) {
     fun toProfile(): StrainProfile = StrainProfile(
@@ -97,6 +98,34 @@ class SavedStrainsStore(private val context: Context) {
 
     fun notesFor(slug: String): Int =
         cached.firstOrNull { it.slug == slug }?.noteCount ?: 0
+
+    // Per-strain patient notes. The full implementation (Firestore +
+    // DataStore mirror + ReliefLogStore integration) is the next
+    // Android parity slice. For now these are no-ops so the
+    // `TriedNotesView` preview can compile and the build stays
+    // green — the per-source rating work in this branch doesn't
+    // depend on them.
+    suspend fun addNote(
+        profile: ai.strainease.app.models.StrainProfile,
+        text: String,
+        isPublic: Boolean,
+        authorName: String,
+    ) = Unit
+
+    suspend fun removeNote(slug: String, noteId: String) = Unit
+
+    // Stub no-ops so the AuthBound wiring in PR #190 compiles. See
+    // SavedAilmentsStore for the parallel note.
+    fun start(uid: String) { /* TODO: Firestore listener */ }
+    fun stop() { /* TODO: Firestore listener */ }
+
+    suspend fun setNotePublic(
+        slug: String,
+        noteId: String,
+        isPublic: Boolean,
+        authorName: String,
+        strainName: String,
+    ) = Unit
 
     private suspend fun persist(next: List<SavedStrain>) {
         context.savedStrainsDataStore.edit { prefs ->

@@ -1,11 +1,11 @@
-package com.strainwise.app.data
+package ai.strainease.app.data
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import com.strainwise.app.app.RestoredResearch
-import com.strainwise.app.models.RecommendationResult
-import com.strainwise.app.models.StrainComparison
+import ai.strainease.app.app.RestoredResearch
+import ai.strainease.app.models.RecommendationResult
+import ai.strainease.app.models.StrainComparison
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,7 +59,7 @@ enum class HistoryKind { Find, Compare;
  *
  * The store is **Firestore-primary** (no local cache — history
  * is the canonical record) and is auto-bound to the signed-in
- * user via [com.strainwise.app.app.AuthBound].
+ * user via [ai.strainease.app.app.AuthBound].
  */
 class ResearchHistoryStore {
 

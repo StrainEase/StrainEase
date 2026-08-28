@@ -1,4 +1,4 @@
-package com.strainwise.app.ui.strain
+package ai.strainease.app.ui.strain
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -33,11 +33,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.strainwise.app.data.StrainAPI
-import com.strainwise.app.models.StrainDescription
-import com.strainwise.app.models.StrainDescriptionSection
-import com.strainwise.app.models.StrainProfile
-import com.strainwise.app.ui.components.SWCard
+import ai.strainease.app.data.StrainAPI
+import ai.strainease.app.models.StrainDescription
+import ai.strainease.app.models.StrainDescriptionSection
+import ai.strainease.app.models.StrainProfile
+import ai.strainease.app.ui.components.SWCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

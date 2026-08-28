@@ -6,6 +6,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.graphics.vector.ImageVector
+import ai.strainease.app.models.RecommendationResult
+import ai.strainease.app.models.StrainComparison
 import ai.strainease.app.models.StrainProfile
 
 /**
@@ -19,11 +21,28 @@ enum class AppTab(val title: String, val systemImage: ImageVector) {
     Doctors("Doctors", Icons.Filled.MedicalServices),
 }
 
-/** Placeholder for [AppNavigation.pendingResearch] — the real
- *  `RestoredResearch` type lands in PR-A11 alongside
- *  ResearchHistoryStore. Holding the slot here lets the
- *  shell compile before that work ships. */
-typealias RestoredResearch = Map<String, String>
+/**
+ * Cross-tab payload the past-research list pushes through
+ * [AppNavigation.pendingResearch] to restore a Find / Compare
+ * result on the Find tab. 1:1 port of the iOS
+ * `RestoredResearch` enum-like payload.
+ *
+ *  - [Find] — a RecommendationResult that was previously run
+ *    against the same conditions, restored from the
+ *    `researchResults/{id}` Firestore doc.
+ *  - [Compare] — a StrainComparison that was previously run
+ *    between two / three strains.
+ */
+sealed class RestoredResearch {
+    data class Find(
+        val result: RecommendationResult,
+        val conditions: List<String>,
+    ) : RestoredResearch()
+
+    data class Compare(
+        val comparison: StrainComparison,
+    ) : RestoredResearch()
+}
 
 /**
  * Process-wide navigation state. 1:1 port of the iOS

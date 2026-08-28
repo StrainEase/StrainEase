@@ -372,8 +372,8 @@ private fun SavedMedicationsCard(
  */
 @Composable
 fun SavedStrainsSheet(
-    savedStrains: com.strainwise.app.data.SavedStrainsStore,
-    onOpen: (com.strainwise.app.models.StrainProfile) -> Unit,
+    savedStrains: ai.strainease.app.data.SavedStrainsStore,
+    onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -463,7 +463,7 @@ private fun SavedStrainsList(
 @Composable
 private fun SavedStrainsView(
     saved: List<SavedStrain>,
-    onOpen: (com.strainwise.app.models.StrainProfile) -> Unit,
+    onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
     onRemove: (String) -> Unit,
 ) = SavedStrainsList(saved, onOpen, onRemove)
 

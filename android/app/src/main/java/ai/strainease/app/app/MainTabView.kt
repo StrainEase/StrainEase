@@ -77,6 +77,7 @@ fun MainTabView() {
     val savedStrains = remember { ai.strainease.app.data.SavedStrainsStore(app) }
     val relief = remember { ai.strainease.app.data.ReliefLogStore(app) }
     val ageStore = remember { ai.strainease.app.compliance.AgeVerificationStore(app) }
+    val researchHistory = remember { ai.strainease.app.data.ResearchHistoryStore() }
 
     val openStrain: (StrainProfile) -> Unit = { openProfile = it }
     val closeStrain: () -> Unit = { openProfile = null }
@@ -100,6 +101,8 @@ fun MainTabView() {
                             api = ai.strainease.app.StrainEaseApplication.strainAPI,
                             savedAilments = savedAilments,
                             savedMedications = savedMedications,
+                            researchHistory = researchHistory,
+                            currentTab = selected,
                         )
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surface,
@@ -143,6 +146,7 @@ fun MainTabView() {
                         savedMedications = savedMedications,
                         relief = relief,
                         compareStore = compareStore,
+                        researchHistory = researchHistory,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
@@ -220,7 +224,7 @@ fun MainTabView() {
             ModalBottomSheet(
                 onDismissRequest = closeAccount,
             ) {
-                com.strainwise.app.ui.account.AccountView(
+                ai.strainease.app.ui.account.AccountView(
                     savedAilments = savedAilments,
                     savedMedications = savedMedications,
                     savedStrains = savedStrains,
@@ -236,7 +240,7 @@ fun MainTabView() {
             ModalBottomSheet(
                 onDismissRequest = closeSaved,
             ) {
-                com.strainwise.app.ui.account.SavedStrainsSheet(
+                ai.strainease.app.ui.account.SavedStrainsSheet(
                     savedStrains = savedStrains,
                     onOpen = { openProfile = it },
                     onDismiss = closeSaved,
@@ -290,7 +294,7 @@ private fun AppChromeButtons(
     onOpenAccount: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val session = com.strainwise.app.auth.LocalAuthSession.current
+    val session = ai.strainease.app.auth.LocalAuthSession.current
     val name = session.user?.name?.trim().orEmpty()
     val initials = when {
         name.isEmpty() -> "·"

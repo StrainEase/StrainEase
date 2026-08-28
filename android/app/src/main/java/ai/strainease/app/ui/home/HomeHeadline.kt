@@ -1,4 +1,4 @@
-package com.strainwise.app.ui.home
+package ai.strainease.app.ui.home
 
 import java.util.Calendar
 

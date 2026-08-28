@@ -1,13 +1,13 @@
-package com.strainwise.app.app
+package ai.strainease.app.app
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import com.strainwise.app.auth.LocalAuthSession
-import com.strainwise.app.data.ReliefLogStore
-import com.strainwise.app.data.ResearchHistoryStore
-import com.strainwise.app.data.SavedAilmentsStore
-import com.strainwise.app.data.SavedMedicationsStore
-import com.strainwise.app.data.SavedStrainsStore
+import ai.strainease.app.auth.LocalAuthSession
+import ai.strainease.app.data.ReliefLogStore
+import ai.strainease.app.data.ResearchHistoryStore
+import ai.strainease.app.data.SavedAilmentsStore
+import ai.strainease.app.data.SavedMedicationsStore
+import ai.strainease.app.data.SavedStrainsStore
 
 /**
  * One-shot binder that opens or closes the Firestore listeners on
@@ -38,7 +38,7 @@ fun AuthBound(
     content: @Composable () -> Unit,
 ) {
     val session = LocalAuthSession.current
-    val uid = (session.status as? com.strainwise.app.auth.SessionStatus.SignedIn)?.user?.uid
+    val uid = (session.status as? ai.strainease.app.auth.SessionStatus.SignedIn)?.user?.uid
 
     LaunchedEffect(uid) {
         if (uid == null) {
