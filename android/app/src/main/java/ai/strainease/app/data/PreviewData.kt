@@ -41,6 +41,8 @@ val SampleGranddaddyPurple = StrainProfile(
     ),
     leaflyRating = 4.5,
     leaflyReviewCount = 3201,
+    weedmapsRating = 4.3,
+    weedmapsReviewCount = 612,
     allbudRating = 4.6,
     allbudReviewCount = 84,
 )
@@ -69,6 +71,8 @@ val SampleBlueDream = StrainProfile(
     ),
     leaflyRating = 4.3,
     leaflyReviewCount = 14919,
+    weedmapsRating = 4.1,
+    weedmapsReviewCount = 2403,
 )
 
 val SampleRecommendation: RecommendationResult = RecommendationResult(

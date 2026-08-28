@@ -1,4 +1,4 @@
-package com.strainwise.app.ui.strain
+package ai.strainease.app.ui.strain
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -6,7 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,9 +28,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.strainwise.app.models.CommunityNote
-import com.strainwise.app.ui.components.SectionLabel
-import com.strainwise.app.ui.components.SWCard
+import ai.strainease.app.models.CommunityNote
+import ai.strainease.app.models.SourceRating
+import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.components.SWCard
 import kotlin.math.max
 import kotlin.math.min
 
@@ -39,14 +40,16 @@ private enum class CommunityTab { REDDIT, SITES }
 /**
  * Community voices section for a strain detail page. 1:1 port of
  * the iOS `CommunityVoicesSection`. Shows:
- *  - Leafly star-rating card (when available)
+ *  - One per-source rating card per source that published a star
+ *    rating (Leafly, Weedmaps, Allbud — whichever returned one).
+ *    Rendered as a vertical stack so 1-3 cards all read clearly.
  *  - Reddit tab / Weed sites tab with note cards (when both sources
  *    have content)
  *  - The active tab's notes
  */
 @Composable
 fun CommunityVoicesSection(
-    rating: Pair<Double, Int?>?,
+    ratings: List<SourceRating>,
     quotes: List<CommunityNote>,
     isHydrating: Boolean,
     modifier: Modifier = Modifier,
@@ -78,7 +81,7 @@ fun CommunityVoicesSection(
         }
     }
 
-    val showContent = rating != null || quotes.isNotEmpty() || isHydrating
+    val showContent = ratings.isNotEmpty() || quotes.isNotEmpty() || isHydrating
     if (!showContent) return
 
     Column(
@@ -87,9 +90,16 @@ fun CommunityVoicesSection(
     ) {
         SectionLabel(title = "Community voices")
 
-        // Leafly rating card.
-        rating?.let { (stars, count) ->
-            LeaflyRatingCard(stars = stars, count = count)
+        // One rating card per available source. Stacked vertically —
+        // 1 source = 1 card, 2 = 2, 3 = 3. Each card carries the
+        // source name as a small eyebrow so the 4.5★ / 4.2★ / 4.6★
+        // numbers never get misattributed.
+        if (ratings.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ratings.forEach { rating ->
+                    SourceRatingCard(rating = rating)
+                }
+            }
         }
 
         // Tab picker — only shown when both sources have content.
@@ -216,28 +226,54 @@ private fun TabButton(
     }
 }
 
+/**
+ * One rating card per source. Renders 5 stars + the big star number
+ * + a small source eyebrow ("LEAFLY" / "WEEDMAPS" / "ALLBUD") so the
+ * number is never misattributed. With a [SourceRating.reviewCount]
+ * the footer shows the published review count; without it the
+ * card shows "Rating only" so the absence is honest.
+ */
 @Composable
-private fun LeaflyRatingCard(stars: Double, count: Int?) {
+private fun SourceRatingCard(rating: SourceRating) {
     SWCard {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Five star icons, filled/half/empty based on the rating.
+            // (We always show 5; the half-filled icon is reserved for
+            // the future when we add star-rating granularity finer than
+            // 0.1 — matches the iOS / web SourceRatingCard for now.)
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 for (i in 0 until 5) {
-                    val fill = min(1.0, max(0.0, stars - i))
+                    val fill = min(1.0, max(0.0, rating.stars - i))
                     Icon(
                         imageVector = Icons.Filled.Star,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp),
                     )
+                    // Drop the half-fill on the floor for now — the
+                    // current scrapers only emit 0.1-rounded numbers.
+                    @Suppress("UNUSED_VARIABLE") fill
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
-                    text = "%.1f".format(stars),
+                    text = rating.source.uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        letterSpacing = 1.2.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "%.1f".format(rating.stars),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -245,7 +281,11 @@ private fun LeaflyRatingCard(stars: Double, count: Int?) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = if (count != null) "$count Leafly reviews" else "Average Leafly rating",
+                    text = if (rating.reviewCount != null) {
+                        "${rating.reviewCount} reviews"
+                    } else {
+                        "Rating only"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

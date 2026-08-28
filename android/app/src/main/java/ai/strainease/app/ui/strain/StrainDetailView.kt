@@ -190,7 +190,7 @@ fun StrainDetailView(
                 relief = relief,
             )
             CommunityVoicesSection(
-                rating = current.resolvedLeaflyRating,
+                ratings = current.resolvedCommunityRatings,
                 quotes = current.quoteNotes,
                 isHydrating = isHydrating,
             )
@@ -279,7 +279,7 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        val rating = profile.resolvedLeaflyRating
+        val rating = profile.resolvedCommunityRatings.firstOrNull { it.source == "Leafly" }
         if (rating != null) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(
@@ -289,11 +289,11 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "%.1f".format(rating.first),
+                    text = "%.1f".format(rating.stars),
                     style = StrainEaseTypography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                rating.second?.let { count ->
+                rating.reviewCount?.let { count ->
                     Text(
                         text = " · $count reviews",
                         style = MaterialTheme.typography.bodySmall,

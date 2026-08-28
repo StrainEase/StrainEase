@@ -212,6 +212,8 @@ class LiveStrainAPI(
         strain.imageUrl?.let { put("imageUrl", it) }
         strain.leaflyRating?.let { put("leaflyRating", it) }
         strain.leaflyReviewCount?.let { put("leaflyReviewCount", it) }
+        strain.weedmapsRating?.let { put("weedmapsRating", it) }
+        strain.weedmapsReviewCount?.let { put("weedmapsReviewCount", it) }
         strain.allbudRating?.let { put("allbudRating", it) }
         strain.allbudReviewCount?.let { put("allbudReviewCount", it) }
     }
