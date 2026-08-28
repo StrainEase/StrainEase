@@ -23,8 +23,8 @@ import { useSearchParams } from "react-router";
 export const CAP = 3;
 
 const STRAINS_PARAM = "strains";
-export const COMPARE_STORAGE_KEY = "strainwise:compare.v1";
-const COMPARE_EVENT = "strainwise:compare-change";
+export const COMPARE_STORAGE_KEY = "strainease:compare.v1";
+const COMPARE_EVENT = "strainease:compare-change";
 
 export function readStoredStrains(): string[] {
   if (typeof sessionStorage === "undefined") return [];

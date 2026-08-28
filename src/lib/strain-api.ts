@@ -65,6 +65,22 @@ export function searchStrain(name: string): Promise<StrainProfile | null> {
   });
 }
 
+/**
+ * Curated Reddit threads relevant to a single strain, drawn from the
+ * vetted `reddit-seed` pool (no LLM in the loop). Returns up to 5
+ * threads; empty when nothing matches. Public callable, so the
+ * strain detail can prefetch it before the user signs in.
+ */
+export function redditThreads(args: {
+  name: string;
+  conditions?: string[];
+}): Promise<RedditSource[]> {
+  return call<{ name: string; conditions?: string[] }, RedditSource[]>(
+    "redditThreadsForStrain",
+    args,
+  );
+}
+
 /** Side-by-side comparison (auth-gated callable). */
 export function compareStrains(args: {
   strainNames: string[];
@@ -155,6 +171,7 @@ export type StrainPreview = {
   thcRange?: string;
   imageUrl?: string;
   leaflyRating?: number;
+  weedmapsRating?: number;
 };
 
 /** A page of catalog previews from browseStrains. */

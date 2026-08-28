@@ -190,18 +190,21 @@ function communityFrom(
     notes.push({
       source: "Allbud",
       text: `Patients most often report: ${effects.slice(0, 4).join(", ")}.`,
+      kind: "allbud",
     });
   }
   if (medical.length > 0) {
     notes.push({
       source: "Allbud",
       text: `Commonly used for ${medical.slice(0, 4).join(", ")}.`,
+      kind: "allbud",
     });
   }
   if (flavors.length > 0) {
     notes.push({
       source: "Allbud",
       text: `Flavor profile: ${flavors.slice(0, 4).join(", ")}.`,
+      kind: "allbud",
     });
   }
   return notes;
@@ -311,6 +314,7 @@ function reviewNotesFrom(html: string): CommunityNote[] {
     out.push({
       source: author ? `Allbud review · ${author}` : "a Allbud reviewer",
       text: clipReview(text),
+      kind: "allbud",
     });
   }
   return out;

@@ -15,6 +15,7 @@ import {
   type PublicNote,
 } from "@/lib/saved-strains";
 import { db } from "@/lib/firebase";
+import { SWCard } from "@/components/ui/sw-card";
 import {
   Activity,
   Award,
@@ -90,19 +91,12 @@ export function StrainDetailCard({
   // card itself is just a content surface — no need to keep the white
   // photo-background, the standard card surface is fine.
   const showInlineHero = !!strain.imageUrl && !hideHero;
-  const surface = showInlineHero
-    ? "bg-white"
-    : "bg-card";
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-col gap-5 rounded-2xl border p-6",
-        surface,
-        badge === "best"
-          ? "border-primary/50 ring-1 ring-primary/20"
-          : "border-border/70",
-      )}
+    <SWCard
+      emphasized={badge === "best"}
+      className="flex min-w-0 flex-col gap-5"
+      innerClassName="flex flex-col gap-5 p-6"
     >
       {/* Header */}
       <div>
@@ -290,6 +284,6 @@ export function StrainDetailCard({
         redditSources={strain.redditSources}
         appReviews={patientNotes}
       />
-    </div>
+    </SWCard>
   );
 }

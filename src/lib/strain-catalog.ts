@@ -15,7 +15,7 @@ type CatalogEntry = {
 
 // Curated browse set so Home rails always have 6+ strains per type and
 // ailment, even when the live popular list is short or missing a phenotype.
-// Keep in sync with ios/StrainWise/Models/StrainCatalog.swift.
+// Keep in sync with ios/StrainEase/Models/StrainCatalog.swift.
 const ENTRIES: CatalogEntry[] = [
   {
     name: "Blue Dream",
