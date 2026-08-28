@@ -103,11 +103,22 @@ fun StrainDetailView(
     // can re-fetch when they change (user edits saved ailments while on detail).
     var ailments by remember { mutableStateOf(emptyList<String>()) }
     var medications by remember { mutableStateOf(emptyList<String>()) }
+    var redditThreads by remember { mutableStateOf(emptyList<ai.strainease.app.models.RedditSource>()) }
     LaunchedEffect(Unit) {
         savedAilments.ailmentsFlow.collect { ailments = it }
     }
     LaunchedEffect(Unit) {
         savedMedications.namesFlow.collect { medications = it }
+    }
+    LaunchedEffect(profile.slug) {
+        // Curated Reddit threads for this strain. Public callable
+        // so it works pre-sign-in; failures are silent (the section
+        // simply doesn't render).
+        redditThreads = try {
+            api.redditThreads(name = profile.name, conditions = ailments)
+        } catch (t: Throwable) {
+            emptyList()
+        }
     }
 
     LaunchedEffect(profile.slug) {
@@ -194,6 +205,7 @@ fun StrainDetailView(
                 quotes = current.quoteNotes,
                 isHydrating = isHydrating,
             )
+            RedditThreadsView(sources = redditThreads)
             SharedNotesView(strainSlug = profile.slug)
             error?.let { SWErrorBanner(message = it) }
         }

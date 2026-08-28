@@ -4,6 +4,7 @@ import ai.strainease.app.models.DoctorQuery
 import ai.strainease.app.models.DoctorResult
 import ai.strainease.app.models.ElaboratedSection
 import ai.strainease.app.models.Potency
+import ai.strainease.app.models.RedditSource
 import ai.strainease.app.models.ResearchPrefs
 import ai.strainease.app.models.StrainComparison
 import ai.strainease.app.models.StrainDescription
@@ -75,6 +76,18 @@ interface StrainAPI {
         reliefHistory: String,
         language: String,
     ): String
+
+    /**
+     * Curated Reddit threads relevant to a single strain, drawn
+     * from the vetted `reddit-seed` pool (no LLM in the loop).
+     * Returns up to 5 threads; empty when nothing matches. Public
+     * callable, so the strain detail can prefetch it before the
+     * user signs in.
+     */
+    suspend fun redditThreads(
+        name: String,
+        conditions: List<String>,
+    ): List<RedditSource>
 }
 
 /** Default language for AI-written responses. Matches the iOS

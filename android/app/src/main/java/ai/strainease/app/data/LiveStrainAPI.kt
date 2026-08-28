@@ -6,6 +6,7 @@ import ai.strainease.app.models.DoctorQuery
 import ai.strainease.app.models.DoctorResult
 import ai.strainease.app.models.ElaboratedSection
 import ai.strainease.app.models.Potency
+import ai.strainease.app.models.RedditSource
 import ai.strainease.app.models.ResearchPrefs
 import ai.strainease.app.models.StrainComparison
 import ai.strainease.app.models.StrainDescription
@@ -160,6 +161,22 @@ class LiveStrainAPI(
         }
         val result = call<ElaboratedSection>("elaborateSection", payload)
         return result.elaboration
+    }
+
+    override suspend fun redditThreads(
+        name: String,
+        conditions: List<String>,
+    ): List<RedditSource> {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return emptyList()
+        val cleaned = conditions.map { it.trim() }.filter { it.isNotEmpty() }
+        val payload = buildJsonObject {
+            put("name", trimmed)
+            if (cleaned.isNotEmpty()) {
+                put("conditions", buildJsonArray { cleaned.forEach { add(it) } })
+            }
+        }
+        return call<List<RedditSource>>("redditThreadsForStrain", payload)
     }
 
     /** Encode the strain into a plain JSON object so the backend
