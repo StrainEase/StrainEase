@@ -1,4 +1,4 @@
-package com.strainwise.app.ui.strain
+package ai.strainease.app.ui.strain
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -37,15 +37,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.strainwise.app.auth.LocalAuthSession
-import com.strainwise.app.data.SavedNote
-import com.strainwise.app.data.SavedStrainsStore
-import com.strainwise.app.models.StrainProfile
-import com.strainwise.app.ui.components.SWCard
-import com.strainwise.app.ui.components.SWField
-import com.strainwise.app.ui.components.SWPrimaryButton
-import com.strainwise.app.ui.components.SectionLabel
-import com.strainwise.app.ui.theme.StrainWiseTypography
+import ai.strainease.app.auth.LocalAuthSession
+import ai.strainease.app.data.SavedNote
+import ai.strainease.app.data.SavedStrainsStore
+import ai.strainease.app.models.StrainProfile
+import ai.strainease.app.ui.components.SWCard
+import ai.strainease.app.ui.components.SWField
+import ai.strainease.app.ui.components.SWPrimaryButton
+import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -271,7 +271,7 @@ private fun PublicToggleChip(
         )
         Text(
             text = label,
-            style = StrainWiseTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = StrainEaseTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
             color = tint,
         )
     }

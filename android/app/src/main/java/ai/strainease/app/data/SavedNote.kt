@@ -1,4 +1,4 @@
-package com.strainwise.app.data
+package ai.strainease.app.data
 
 import kotlinx.serialization.Serializable
 

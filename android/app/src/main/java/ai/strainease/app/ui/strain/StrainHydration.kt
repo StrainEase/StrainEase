@@ -51,4 +51,8 @@ fun StrainProfile.copyHydratedFrom(
     imageUrl = imageUrl ?: other.imageUrl,
     leaflyRating = leaflyRating ?: other.leaflyRating,
     leaflyReviewCount = leaflyReviewCount ?: other.leaflyReviewCount,
+    weedmapsRating = weedmapsRating ?: other.weedmapsRating,
+    weedmapsReviewCount = weedmapsReviewCount ?: other.weedmapsReviewCount,
+    allbudRating = allbudRating ?: other.allbudRating,
+    allbudReviewCount = allbudReviewCount ?: other.allbudReviewCount,
 )

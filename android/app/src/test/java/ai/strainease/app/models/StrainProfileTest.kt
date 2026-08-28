@@ -92,6 +92,77 @@ class StrainProfileTest {
     }
 
     @Test
+    fun resolvedCommunityRatingsExposesAllThreeSources() {
+        // All three sources populated → 3 cards, in SOURCE_ORDER
+        // (Leafly → Weedmaps → Allbud). No averaging.
+        val p = sample(
+            name = "X",
+            leaflyRating = 4.5,
+            leaflyReviewCount = 3201,
+            weedmapsRating = 4.3,
+            weedmapsReviewCount = 612,
+            allbudRating = 4.6,
+            allbudReviewCount = 84,
+        )
+        val cards = p.resolvedCommunityRatings
+        assertEquals(3, cards.size)
+        assertEquals("Leafly", cards[0].source)
+        assertEquals(4.5, cards[0].stars, 0.0001)
+        assertEquals(3201, cards[0].reviewCount)
+        assertEquals("Weedmaps", cards[1].source)
+        assertEquals(4.3, cards[1].stars, 0.0001)
+        assertEquals(612, cards[1].reviewCount)
+        assertEquals("Allbud", cards[2].source)
+        assertEquals(4.6, cards[2].stars, 0.0001)
+        assertEquals(84, cards[2].reviewCount)
+    }
+
+    @Test
+    fun resolvedCommunityRatingsDropsMissingSources() {
+        // Only Leafly populated → exactly one card, with its own count.
+        val p = sample(
+            name = "X",
+            leaflyRating = 4.3,
+            leaflyReviewCount = 14919,
+            weedmapsRating = null,
+            weedmapsReviewCount = null,
+            allbudRating = null,
+            allbudReviewCount = null,
+        )
+        val cards = p.resolvedCommunityRatings
+        assertEquals(1, cards.size)
+        assertEquals("Leafly", cards[0].source)
+        assertEquals(4.3, cards[0].stars, 0.0001)
+        assertEquals(14919, cards[0].reviewCount)
+    }
+
+    @Test
+    fun resolvedCommunityRatingsFallsBackToLegacyLeaflyCommunityNote() {
+        // Older profiles pre-date the structured per-source fields;
+        // the parser still surfaces a single Leafly card.
+        val p = sample(
+            name = "X",
+            leaflyRating = null,
+            leaflyReviewCount = null,
+            weedmapsRating = null,
+            weedmapsReviewCount = null,
+            allbudRating = null,
+            allbudReviewCount = null,
+            communityNotes = listOf(
+                CommunityNote(
+                    source = "Leafly community",
+                    text = "4.6★ from 2,431 reviews",
+                ),
+            ),
+        )
+        val cards = p.resolvedCommunityRatings
+        assertEquals(1, cards.size)
+        assertEquals("Leafly", cards[0].source)
+        assertEquals(4.6, cards[0].stars, 0.0001)
+        assertEquals(2431, cards[0].reviewCount)
+    }
+
+    @Test
     fun quoteNotesExcludesAggregates() {
         val p = sample(
             name = "X",
@@ -115,6 +186,11 @@ class StrainProfileTest {
         terpenes: List<Terpene>? = listOf(Terpene("Myrcene", "Earthy")),
         communityNotes: List<CommunityNote>? = null,
         leaflyRating: Double? = null,
+        leaflyReviewCount: Int? = null,
+        weedmapsRating: Double? = null,
+        weedmapsReviewCount: Int? = null,
+        allbudRating: Double? = null,
+        allbudReviewCount: Int? = null,
     ) = StrainProfile(
         name = name,
         inKnowledgeBase = true,
@@ -126,5 +202,10 @@ class StrainProfileTest {
         terpenes = terpenes,
         communityNotes = communityNotes,
         leaflyRating = leaflyRating,
+        leaflyReviewCount = leaflyReviewCount,
+        weedmapsRating = weedmapsRating,
+        weedmapsReviewCount = weedmapsReviewCount,
+        allbudRating = allbudRating,
+        allbudReviewCount = allbudReviewCount,
     )
 }

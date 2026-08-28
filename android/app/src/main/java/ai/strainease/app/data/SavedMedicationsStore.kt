@@ -75,4 +75,9 @@ class SavedMedicationsStore(private val context: Context) {
         android.util.Log.w("SavedMedicationsStore", "decode failed: ${t.message}")
         emptyList()
     }
+
+    // Stub no-ops so the AuthBound wiring in PR #190 compiles. See
+    // SavedAilmentsStore for the parallel note.
+    fun start(uid: String) { /* TODO: Firestore listener */ }
+    fun stop() { /* TODO: Firestore listener */ }
 }

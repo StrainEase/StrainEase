@@ -4,6 +4,7 @@ import ai.strainease.app.models.Doctor
 import ai.strainease.app.models.DoctorQuery
 import ai.strainease.app.models.DoctorResult
 import ai.strainease.app.models.Potency
+import ai.strainease.app.models.RedditSource
 import ai.strainease.app.models.ResearchPrefs
 import ai.strainease.app.models.StrainComparison
 import ai.strainease.app.models.StrainDescription
@@ -73,6 +74,19 @@ class PreviewStrainAPI(
         reliefHistory: String,
         language: String,
     ): String = "Maya's take on $sectionHeading: ${strain.name} shines for the symptoms you flagged — start low, give it time to settle, and check in with how you feel before layering more on top."
+
+    override suspend fun redditThreads(
+        name: String,
+        conditions: List<String>,
+    ): List<RedditSource> = listOf(
+        RedditSource(
+            url = "https://old.reddit.com/r/ChronicPain/comments/1df98oq/best_marijuana_strains_for_pain/",
+            subreddit = "ChronicPain",
+            title = "Best marijuana strains for pain",
+            snippet = "Indica-leaning purple genetics (Granddaddy Purple, Purple Kush, Purple OG) and cookies-family strains (Wedding Cake, GSC, GG4) are the most reported pain relievers.",
+            score = 42,
+        ),
+    )
 }
 
 private val SampleDescription = StrainDescription(

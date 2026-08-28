@@ -103,11 +103,22 @@ fun StrainDetailView(
     // can re-fetch when they change (user edits saved ailments while on detail).
     var ailments by remember { mutableStateOf(emptyList<String>()) }
     var medications by remember { mutableStateOf(emptyList<String>()) }
+    var redditThreads by remember { mutableStateOf(emptyList<ai.strainease.app.models.RedditSource>()) }
     LaunchedEffect(Unit) {
         savedAilments.ailmentsFlow.collect { ailments = it }
     }
     LaunchedEffect(Unit) {
         savedMedications.namesFlow.collect { medications = it }
+    }
+    LaunchedEffect(profile.slug) {
+        // Curated Reddit threads for this strain. Public callable
+        // so it works pre-sign-in; failures are silent (the section
+        // simply doesn't render).
+        redditThreads = try {
+            api.redditThreads(name = profile.name, conditions = ailments)
+        } catch (t: Throwable) {
+            emptyList()
+        }
     }
 
     LaunchedEffect(profile.slug) {
@@ -190,10 +201,11 @@ fun StrainDetailView(
                 relief = relief,
             )
             CommunityVoicesSection(
-                rating = current.resolvedLeaflyRating,
+                ratings = current.resolvedCommunityRatings,
                 quotes = current.quoteNotes,
                 isHydrating = isHydrating,
             )
+            RedditThreadsView(sources = redditThreads)
             SharedNotesView(strainSlug = profile.slug)
             error?.let { SWErrorBanner(message = it) }
         }
@@ -279,7 +291,7 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        val rating = profile.resolvedLeaflyRating
+        val rating = profile.resolvedCommunityRatings.firstOrNull { it.source == "Leafly" }
         if (rating != null) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(
@@ -289,11 +301,11 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "%.1f".format(rating.first),
+                    text = "%.1f".format(rating.stars),
                     style = StrainEaseTypography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                rating.second?.let { count ->
+                rating.reviewCount?.let { count ->
                     Text(
                         text = " · $count reviews",
                         style = MaterialTheme.typography.bodySmall,

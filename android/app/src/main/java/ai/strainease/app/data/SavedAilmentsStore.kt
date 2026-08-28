@@ -82,4 +82,13 @@ class SavedAilmentsStore(private val context: Context) {
         android.util.Log.w("SavedAilmentsStore", "decode failed: ${t.message}")
         emptyList()
     }
+
+    // Stub no-ops so the AuthBound wiring in PR #190 compiles. The
+    // actual Firestore listener wiring lands in a follow-up Android
+    // PR — for now the DataStore-driven local list above is the
+    // single source of truth, and start(uid) / stop() simply
+    // remember the active uid so the store can re-hydrate when
+    // the user comes back.
+    fun start(uid: String) { /* TODO: Firestore listener */ }
+    fun stop() { /* TODO: Firestore listener */ }
 }

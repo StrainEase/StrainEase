@@ -56,8 +56,8 @@ fun CompareTrayBar(
     api: StrainAPI,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
-    researchHistory: com.strainwise.app.data.ResearchHistoryStore,
-    currentTab: com.strainwise.app.app.AppTab,
+    researchHistory: ai.strainease.app.data.ResearchHistoryStore,
+    currentTab: ai.strainease.app.app.AppTab,
     modifier: Modifier = Modifier,
 ) {
     val names by store.names.collectAsState()
@@ -66,7 +66,7 @@ fun CompareTrayBar(
     val scope = rememberCoroutineScope()
     var isRunning by remember { mutableStateOf(false) }
 
-    val visible = names.isNotEmpty() && currentTab != com.strainwise.app.app.AppTab.Find
+    val visible = names.isNotEmpty() && currentTab != ai.strainease.app.app.AppTab.Find
     AnimatedVisibility(visible = visible) {
         Column(
             modifier = modifier

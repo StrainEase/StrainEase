@@ -1,4 +1,4 @@
-package com.strainwise.app.ui.strain
+package ai.strainease.app.ui.strain
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,10 +18,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.strainwise.app.data.PublicNote
-import com.strainwise.app.data.PublicNotesStore
-import com.strainwise.app.ui.components.SectionLabel
-import com.strainwise.app.ui.components.SWCard
+import ai.strainease.app.data.PublicNote
+import ai.strainease.app.data.PublicNotesStore
+import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.components.SWCard
 import kotlinx.coroutines.flow.collectLatest
 
 /**

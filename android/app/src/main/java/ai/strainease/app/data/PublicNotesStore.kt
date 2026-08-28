@@ -1,8 +1,8 @@
-package com.strainwise.app.data
+package ai.strainease.app.data
 
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.strainwise.app.services.FirebaseBootstrap
+import ai.strainease.app.services.FirebaseBootstrap
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

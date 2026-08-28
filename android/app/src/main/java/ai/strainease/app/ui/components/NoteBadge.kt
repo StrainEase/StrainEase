@@ -1,4 +1,4 @@
-package com.strainwise.app.ui.components
+package ai.strainease.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,9 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.strainwise.app.data.SavedStrainsStore
-import com.strainwise.app.models.StrainProfile
-import com.strainwise.app.ui.theme.StrainWiseTypography
+import ai.strainease.app.data.SavedStrainsStore
+import ai.strainease.app.models.StrainProfile
+import ai.strainease.app.ui.theme.StrainEaseTypography
 
 /**
  * Small "✎" pill that lights up next to a strain whenever the
@@ -48,7 +48,7 @@ fun NoteBadge(
 ) {
     val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
     val count = remember(saved, profile.slug) {
-        saved.firstOrNull { it.slug == profile.slug }?.notes?.size ?: 0
+        saved.firstOrNull { it.slug == profile.slug }?.noteCount ?: 0
     }
     if (count == 0) return
     val padH = if (compact) 6.dp else 8.dp
@@ -72,7 +72,7 @@ fun NoteBadge(
         if (!compact) {
             Text(
                 text = count.toString(),
-                style = StrainWiseTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                style = StrainEaseTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.primary,
             )
         }

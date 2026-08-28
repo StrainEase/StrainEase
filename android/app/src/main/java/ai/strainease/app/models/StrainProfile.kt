@@ -43,6 +43,8 @@ data class StrainProfile(
     val imageUrl: String? = null,
     val leaflyRating: Double? = null,
     val leaflyReviewCount: Int? = null,
+    val weedmapsRating: Double? = null,
+    val weedmapsReviewCount: Int? = null,
     val allbudRating: Double? = null,
     val allbudReviewCount: Int? = null,
 ) {
@@ -79,32 +81,71 @@ data class StrainProfile(
     val id: String get() = slug
 
     /**
-     * Aggregate rating blended across the sources that published one
-     * (Leafly, Allbud). With a single source it shows that source
-     * verbatim with its own review count; with both it shows the
-     * average (a blended count would mislead, so it is dropped). Falls
-     * back to a `Leafly community` note text match for older profiles.
+     * One rating card per source that published a star rating, in
+     * SOURCE_ORDER (Leafly → Weedmaps → Allbud). Strains with all
+     * three sources show 3 cards; with just one, 1. No averaging —
+     * a blended count would mislead the reader about which catalog
+     * the number came from.
+     *
+     * Falls back to a parsed "Leafly community" note for older
+     * profiles that pre-date the per-source fields.
+     *
+     * Mirrors the iOS `StrainProfile.resolvedCommunityRatings` so
+     * the iOS / web / Android strain detail chips all come from the
+     * same shape. The single-source [resolvedLeaflyRating] is kept
+     * for the existing call sites (the strain detail header, the
+     * Home rail poster) and returns the Leafly card verbatim when
+     * present, the Allbud card when only Allbud is, and null
+     * otherwise.
      */
-    val resolvedLeaflyRating: Pair<Double, Int?>?
+    val resolvedCommunityRatings: List<SourceRating>
         get() {
-            val ratings = listOfNotNull(leaflyRating, allbudRating)
-            if (ratings.isNotEmpty()) {
-                if (ratings.size == 1) {
-                    val stars = ratings[0]
-                    val count = if (leaflyRating != null) leaflyReviewCount else allbudReviewCount
-                    return stars to count
-                }
-                val avg = Math.round(ratings.average() * 10) / 10.0
-                return avg to null
+            val out = mutableListOf<SourceRating>()
+            leaflyRating?.let {
+                out.add(SourceRating("Leafly", it, leaflyReviewCount))
             }
+            weedmapsRating?.let {
+                out.add(SourceRating("Weedmaps", it, weedmapsReviewCount))
+            }
+            allbudRating?.let {
+                out.add(SourceRating("Allbud", it, allbudReviewCount))
+            }
+            if (out.isNotEmpty()) return out
             for (note in communityNotes.orEmpty()) {
                 if (note.source.lowercase() != "leafly community") continue
                 val stars = STARS_REGEX.find(note.text)?.groupValues?.get(1)?.toDoubleOrNull()
                 val count = REVIEW_COUNT_REGEX.find(note.text)?.groupValues?.get(1)
                     ?.replace(",", "")?.toIntOrNull()
-                if (stars != null) return stars to count
+                if (stars != null) {
+                    return listOf(SourceRating("Leafly", stars, count))
+                }
             }
-            return null
+            return emptyList()
+        }
+
+    /**
+     * Single-source rating for the strain detail header and Home rail
+     * poster — picks Leafly if present, Allbud otherwise, null when
+     * neither publishes. Kept for call sites that want the old
+     * Pair-of-(stars, count) shape; the new CommunityVoicesSection
+     * uses [resolvedCommunityRatings] directly to render 1-3 cards.
+     */
+    val resolvedLeaflyRating: Pair<Double, Int?>?
+        get() {
+            val cards = resolvedCommunityRatings
+            if (cards.isEmpty()) return null
+            if (cards.size == 1) {
+                val card = cards.first()
+                return card.stars to card.reviewCount
+            }
+            // Multi-source profiles never reach the legacy caller — the
+            // header prefers [resolvedCommunityRatings] for the chip
+            // layout. Fall back to the Leafly card so the existing
+            // star-strip render keeps working until callers migrate.
+            val leafly = cards.firstOrNull { it.source == "Leafly" }
+            if (leafly != null) return leafly.stars to leafly.reviewCount
+            val avg = Math.round(cards.map { it.stars }.average() * 10) / 10.0
+            return avg to null
         }
 
     /** Subtitle used in rail cards: "Indica · THC 17–23% · CBD <1%". */

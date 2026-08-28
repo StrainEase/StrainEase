@@ -79,7 +79,7 @@ fun FindView(
     savedMedications: SavedMedicationsStore,
     relief: ReliefLogStore,
     compareStore: CompareSelectionStore,
-    researchHistory: com.strainwise.app.data.ResearchHistoryStore,
+    researchHistory: ai.strainease.app.data.ResearchHistoryStore,
     modifier: Modifier = Modifier,
     onOpenProfile: (StrainProfile) -> Unit = {},
 ) {
@@ -113,7 +113,7 @@ fun FindView(
     // these" button on the saved-ailments card; the
     // `nav.pendingResearch` slot is set when the user opens a
     // Past-research entry. Both fire once and clear.
-    val nav = com.strainwise.app.app.LocalAppNavigation.current
+    val nav = ai.strainease.app.app.LocalAppNavigation.current
     val pendingAilments = nav.pendingFindAilments
     LaunchedEffect(pendingAilments) {
         if (pendingAilments.isNotEmpty()) {
@@ -124,11 +124,11 @@ fun FindView(
     val pendingResearch = nav.pendingResearch
     LaunchedEffect(pendingResearch) {
         when (val r = pendingResearch) {
-            is com.strainwise.app.app.RestoredResearch.Find -> {
+            is ai.strainease.app.app.RestoredResearch.Find -> {
                 model.applyRestored(r.result, r.conditions)
                 nav.consumeResearch()
             }
-            is com.strainwise.app.app.RestoredResearch.Compare -> {
+            is ai.strainease.app.app.RestoredResearch.Compare -> {
                 compareStore.setComparison(r.comparison)
                 nav.consumeResearch()
             }

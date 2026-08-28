@@ -1,4 +1,4 @@
-package com.strainwise.app.ui.account
+package ai.strainease.app.ui.account
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,15 +39,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.strainwise.app.app.LocalAppNavigation
-import com.strainwise.app.app.RestoredResearch
-import com.strainwise.app.data.HistoryEntry
-import com.strainwise.app.data.ResearchHistoryStore
-import com.strainwise.app.ui.components.MeshBackground
-import com.strainwise.app.ui.components.SWCard
-import com.strainwise.app.ui.components.SWErrorBanner
-import com.strainwise.app.ui.components.SectionLabel
-import com.strainwise.app.ui.theme.StrainWiseTypography
+import ai.strainease.app.app.LocalAppNavigation
+import ai.strainease.app.app.RestoredResearch
+import ai.strainease.app.data.HistoryEntry
+import ai.strainease.app.data.ResearchHistoryStore
+import ai.strainease.app.ui.components.MeshBackground
+import ai.strainease.app.ui.components.SWCard
+import ai.strainease.app.ui.components.SWErrorBanner
+import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.launch
 
 /**
@@ -93,7 +93,7 @@ fun ResearchHistoryView(
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = "No past searches yet",
-                                    style = StrainWiseTypography.titleMedium,
+                                    style = StrainEaseTypography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Text(

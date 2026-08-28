@@ -6,6 +6,7 @@ import ai.strainease.app.models.DoctorQuery
 import ai.strainease.app.models.DoctorResult
 import ai.strainease.app.models.ElaboratedSection
 import ai.strainease.app.models.Potency
+import ai.strainease.app.models.RedditSource
 import ai.strainease.app.models.ResearchPrefs
 import ai.strainease.app.models.StrainComparison
 import ai.strainease.app.models.StrainDescription
@@ -162,6 +163,22 @@ class LiveStrainAPI(
         return result.elaboration
     }
 
+    override suspend fun redditThreads(
+        name: String,
+        conditions: List<String>,
+    ): List<RedditSource> {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return emptyList()
+        val cleaned = conditions.map { it.trim() }.filter { it.isNotEmpty() }
+        val payload = buildJsonObject {
+            put("name", trimmed)
+            if (cleaned.isNotEmpty()) {
+                put("conditions", buildJsonArray { cleaned.forEach { add(it) } })
+            }
+        }
+        return call<List<RedditSource>>("redditThreadsForStrain", payload)
+    }
+
     /** Encode the strain into a plain JSON object so the backend
      *  gets the same shape it gets from the web client. Mirrors
      *  `strainDictionary` in the iOS source. */
@@ -212,6 +229,8 @@ class LiveStrainAPI(
         strain.imageUrl?.let { put("imageUrl", it) }
         strain.leaflyRating?.let { put("leaflyRating", it) }
         strain.leaflyReviewCount?.let { put("leaflyReviewCount", it) }
+        strain.weedmapsRating?.let { put("weedmapsRating", it) }
+        strain.weedmapsReviewCount?.let { put("weedmapsReviewCount", it) }
         strain.allbudRating?.let { put("allbudRating", it) }
         strain.allbudReviewCount?.let { put("allbudReviewCount", it) }
     }
