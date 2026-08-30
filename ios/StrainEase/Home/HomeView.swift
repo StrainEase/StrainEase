@@ -70,7 +70,7 @@ struct HomeView: View {
                 }) {
                     path.append(.profile(next))
                 }
-                nav.consumePendingStrain()
+                _ = nav.consumePendingStrain()
             }
             .onChange(of: ailmentsStore.ailments) { _, next in
                 model.updateSavedAilments(next)

@@ -641,9 +641,7 @@ private struct CommunityVoicesSection: View {
             SectionLabel("Community voices")
             if !ratings.isEmpty {
                 VStack(spacing: 10) {
-                    ForEach(ratings, id: \.source) { rating in
-                        SourceRatingCard(rating: rating)
-                    }
+                    ratingCards
                 }
             }
             if hasReddit && hasSites {
@@ -748,6 +746,32 @@ private struct CommunityVoicesSection: View {
                 .foregroundStyle(Palette.mutedForeground)
         }
     }
+
+    /// Combine Leafly and Allbud into one two-column card when both
+    /// have ratings; show individual cards for any lone source (e.g. Weedmaps).
+    @ViewBuilder
+    private var ratingCards: some View {
+        let leafly = ratings.first { $0.source == "Leafly" }
+        let allbud = ratings.first { $0.source == "Allbud" }
+        let others = ratings.filter { $0.source != "Leafly" && $0.source != "Allbud" }
+
+        if let leafly, let allbud {
+            LeaflyAllbudRatingCard(
+                leaflyStars: leafly.stars,
+                leaflyCount: leafly.count,
+                allbudStars: allbud.stars,
+                allbudCount: allbud.count
+            )
+        } else if let leafly {
+            SourceRatingCard(rating: leafly)
+        } else if let allbud {
+            SourceRatingCard(rating: allbud)
+        }
+
+        ForEach(others, id: \.source) { rating in
+            SourceRatingCard(rating: rating)
+        }
+    }
 }
 
 private struct SourceRatingCard: View {
@@ -798,6 +822,79 @@ private struct SourceRatingCard: View {
             return "\(rating.source) rating \(value) from \(count.formatted()) reviews"
         }
         return "\(rating.source) rating \(value)"
+    }
+}
+
+/// Combined Leafly + Allbud rating card. Two columns side by side
+/// with the title "LEAFLY / ALLBUD" on top, star strips in the
+/// middle, and review counts at the bottom separated by a divider.
+private struct LeaflyAllbudRatingCard: View {
+    let leaflyStars: Double
+    let leaflyCount: Int?
+    let allbudStars: Double
+    let allbudCount: Int?
+
+    var body: some View {
+        SWCard {
+            VStack(spacing: 10) {
+                Text("Leafly / Allbud")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(Palette.primary)
+                    .frame(maxWidth: .infinity)
+
+                HStack(spacing: 0) {
+                    // Leafly column
+                    VStack(spacing: 6) {
+                        starStrip(value: leaflyStars)
+                        Text(String(format: "%.1f", leaflyStars))
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Palette.foreground)
+                        Rectangle()
+                            .fill(Palette.border)
+                            .frame(height: 1)
+                        Text("\(leaflyCount?.formatted() ?? "0") reviews")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Palette.mutedForeground)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Divider()
+                        .frame(height: 60)
+
+                    // Allbud column
+                    VStack(spacing: 6) {
+                        starStrip(value: allbudStars)
+                        Text(String(format: "%.1f", allbudStars))
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Palette.foreground)
+                        Rectangle()
+                            .fill(Palette.border)
+                            .frame(height: 1)
+                        Text("\(allbudCount?.formatted() ?? "0") reviews")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Palette.mutedForeground)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Leafly rating \(String(format: "%.1f", leaflyStars)) from \(leaflyCount?.formatted() ?? "0") reviews. Allbud rating \(String(format: "%.1f", allbudStars)) from \(allbudCount?.formatted() ?? "0") reviews.")
+    }
+
+    @ViewBuilder
+    private func starStrip(value: Double) -> some View {
+        HStack(spacing: 3) {
+            ForEach(0..<5, id: \.self) { index in
+                let fill = min(1, max(0, value - Double(index)))
+                Image(systemName: fill >= 0.75 ? "star.fill" : fill >= 0.25 ? "star.leadinghalf.filled" : "star")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.primary)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
