@@ -249,7 +249,7 @@ export function StrainDetailCard({
                 key={effect.name}
                 className="flex items-center justify-between gap-3"
               >
-                <span className="text-sm">{effect.name}</span>
+                <span className="text-sm capitalize">{effect.name}</span>
                 <IntensityBar value={effect.intensity} />
               </div>
             ))}

@@ -251,7 +251,7 @@ function asEffects(
       typeof rec.intensity === "number" && Number.isFinite(rec.intensity)
         ? Math.max(1, Math.min(5, Math.round(rec.intensity)))
         : 3;
-    if (name) out.push({ name, intensity });
+    if (name) out.push({ name: name.charAt(0).toUpperCase() + name.slice(1), intensity });
   }
   return out.length > 0 ? out.slice(0, 5) : undefined;
 }
