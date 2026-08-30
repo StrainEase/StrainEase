@@ -28,6 +28,7 @@ import {
   GROQ_DESCRIPTION_MODEL,
 } from "./groq";
 import { matchRedditSeeds } from "./reddit-seed";
+import { fetchRedditQuotes } from "./reddit";
 import { clientIp, guestRateLimit, persistResult } from "./results";
 import type {
   RecommendationResult,
@@ -219,11 +220,23 @@ export const redditThreadsForStrain = onCall(
       typeof request.data?.name === "string" ? request.data.name : "";
     if (name.trim() === "") return [];
     const conditions = asStringArray(request.data?.conditions);
-    return matchRedditSeeds({
+    const liveNotes = await fetchRedditQuotes(name.trim(), conditions);
+    // Live Reddit notes are exact-strain filtered by the scraper. The
+    // callable returns them as evidence links only when available; the
+    // static pool is a strict explicit-strain fallback.
+    const fallback = matchRedditSeeds({
       conditions,
       strainNames: [name.trim()],
       limit: 5,
     });
+    if (liveNotes.length > 0) {
+      return fallback.filter((source) => {
+        const haystack = `${source.title} ${source.snippet ?? ""}`.toLowerCase();
+        const words = name.trim().toLowerCase().split(/\s+/).filter((word: string) => word.length > 1);
+        return haystack.includes(name.trim().toLowerCase()) || words.every((word: string) => haystack.includes(word));
+      });
+    }
+    return fallback;
   },
 );
 

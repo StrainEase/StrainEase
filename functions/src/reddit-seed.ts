@@ -563,6 +563,21 @@ const SEEDS: Seed[] = [
 ];
 
 /** Deduplicate seeds by lowercase URL. */
+function normalizeStrainName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/girl scout cookies|gsc/g, "girl scout cookies")
+    .replace(/gorilla glue #?4|gg4/g, "gorilla glue")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function strainMatches(seedName: string, requested: string): boolean {
+  const seed = normalizeStrainName(seedName);
+  const wanted = normalizeStrainName(requested);
+  return seed === wanted || seed.includes(wanted) || wanted.includes(seed);
+}
+
 function uniqueByUrl(items: Seed[]): Seed[] {
   const seen = new Set<string>();
   const out: Seed[] = [];
@@ -592,7 +607,7 @@ export function matchRedditSeeds(args: {
   limit?: number;
 }): RedditSource[] {
   const conditions = args.conditions.map((c) => c.trim().toLowerCase()).filter(Boolean);
-  const strains = args.strainNames.map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const strains = args.strainNames.map((s) => s.trim()).filter(Boolean);
   const limit = Math.max(1, Math.min(args.limit ?? 6, 12));
 
   const scored: { score: number; source: RedditSource }[] = [];
@@ -609,14 +624,20 @@ export function matchRedditSeeds(args: {
       }
     }
     for (const strain of strains) {
-      if (seed.strains.includes(strain)) score += 4;
+      if (seed.strains.some((candidate) => strainMatches(candidate, strain))) score += 4;
     }
+    // A condition-only thread is not evidence for a specific strain.
+    // Require an explicit strain association whenever strains are supplied.
+    if (strains.length > 0 && !strains.some((strain) => seed.strains.some((candidate) => strainMatches(candidate, strain)))) continue;
     if (score === 0) continue;
     const { conditions: _c, strains: _s, ...source } = seed;
     scored.push({ score, source });
   }
 
   scored.sort((a, b) => b.score - a.score);
+  // Do not surface a generic title as strain evidence unless its vetted
+  // metadata names the requested strain. This prevents the old behavior
+  // where a sleep/pain thread was attached to every recommended strain.
   return scored.slice(0, limit).map((s) => s.source);
 }
 

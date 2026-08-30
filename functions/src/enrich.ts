@@ -381,7 +381,7 @@ export async function enrichProfiles(
   // across sources and the per-source values are attached as
   // `sourceAttribution` so Dr. Kaya can audit the merge.
   const [consolidatedList, redditMap] = await Promise.all([
-    Promise.all(unique.map(consolidateStrain)),
+    Promise.all(unique.map((name) => consolidateStrain(name, conditions))),
     fetchRedditQuotesFor(unique, conditions),
   ]);
 
@@ -437,7 +437,7 @@ export async function lookupProfile(
     .filter((c) => c !== "")
     .slice(0, 16);
   const [consolidated, reddit] = await Promise.all([
-    consolidateStrain(trimmed),
+    consolidateStrain(trimmed, focus),
     fetchRedditQuotes(trimmed, focus),
   ]);
   if (!consolidated) return null;

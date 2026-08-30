@@ -62,6 +62,7 @@
 		C493DBE22FB7744912D4ED0C /* SharedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFA17F0F1A175C4E58C3A58 /* SharedNotesView.swift */; };
 		C57B04AC793C259F99E52E30 /* HomeHeadline.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE19BA04421C76E0AB3BE881 /* HomeHeadline.swift */; };
 		C5BEB0A36874732AC1B1C48A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CAB5FE33BEF277ACDD624F8 /* RootView.swift */; };
+		D1A2B3C4D5E6F7A8B9C0D1E2 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F4A5B6C7D8E9F0A1B2C3D4 /* SplashScreenView.swift */; };
 		C618CE8371FA0A4A2076978E /* RecentlyViewedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CA874DA7CD5C58BD9E53558 /* RecentlyViewedStore.swift */; };
 		C79044ADF49937D5F8AA7ED7 /* TerpeneProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF071D01B0F4841408D9AEE /* TerpeneProfile.swift */; };
 		C871DAE6896A49E335358ABD /* ShopLinksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9260DE0FFE6267E937E1A /* ShopLinksView.swift */; };
@@ -106,6 +107,7 @@
 		40CA2FBB0AC1AA8BB87FD3B9 /* ResearchHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchHistoryStore.swift; sourceTree = "<group>"; };
 		4340CAFEFBB8F469A7BBE142 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		4CAB5FE33BEF277ACDD624F8 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		E3F4A5B6C7D8E9F0A1B2C3D4 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		4CF7A84934E747FCDF100987 /* strain-directory.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "strain-directory.json"; sourceTree = "<group>"; };
 		4DB555711154F6F8A10B4D57 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
 		4E61024D2F69C6FE20A2B5C1 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
@@ -343,6 +345,7 @@
 				25F47622037366802A741794 /* AppNavigation.swift */,
 				B0D707FED754B3084F471E94 /* MainTabView.swift */,
 				4CAB5FE33BEF277ACDD624F8 /* RootView.swift */,
+				E3F4A5B6C7D8E9F0A1B2C3D4 /* SplashScreenView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -523,6 +526,7 @@
 				4DA010E98DCB40DB10413B6A /* ResearchHistoryStore.swift in Sources */,
 				A7A84C0DD94085FDE3CDEAB8 /* ResearchHistoryView.swift in Sources */,
 				C5BEB0A36874732AC1B1C48A /* RootView.swift in Sources */,
+				D1A2B3C4D5E6F7A8B9C0D1E2 /* SplashScreenView.swift in Sources */,
 				83AA03F3CD07EA1470D50114 /* SavedAilmentsCard.swift in Sources */,
 				2D40562447C869416F434CE3 /* SavedAilmentsStore.swift in Sources */,
 				57CE374D4C206D84FBD2683A /* SavedMedicationsCard.swift in Sources */,

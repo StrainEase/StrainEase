@@ -319,6 +319,7 @@ function pickFirst<T>(
  */
 export async function consolidateStrain(
   name: string,
+  conditions: readonly string[] = [],
 ): Promise<ConsolidatedStrain | null> {
   const trimmed = name.trim();
   if (!trimmed) return null;
@@ -348,7 +349,7 @@ export async function consolidateStrain(
   if (missing.length > 0) {
     const fetched = await Promise.all(
       missing.map(async (source) => {
-        const profile = await fetchOne(source, trimmed);
+        const profile = await fetchOne(source, trimmed, conditions);
         if (profile) {
           const existing = profiles[source];
           if (shouldPersistRefetch(existing, profile)) {
@@ -429,6 +430,7 @@ export async function consolidateStrain(
 async function fetchOne(
   source: SourceId,
   name: string,
+  conditions: readonly string[] = [],
 ): Promise<StrainProfile | null> {
   switch (source) {
     case "leafly":
@@ -436,7 +438,7 @@ async function fetchOne(
     case "weedmaps":
       return await fetchWeedmapsProfile(name);
     case "allbud":
-      return await fetchAllbudProfile(name);
+      return await fetchAllbudProfile(name, conditions);
   }
 }
 
