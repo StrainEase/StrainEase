@@ -211,7 +211,7 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
             {strain.effects.slice(0, 3).map((effect) => (
               <span
                 key={effect.name}
-                className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground"
+                className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium capitalize text-secondary-foreground"
               >
                 {effect.name}
               </span>

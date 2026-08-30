@@ -260,6 +260,11 @@ function effectsFrom(
   return profile.effects ?? [];
 }
 
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function unionEffects(
   cache: Partial<Record<SourceId, StrainProfile | null>>,
 ): StrainProfile["effects"] {
@@ -270,7 +275,7 @@ function unionEffects(
     if (!profile) continue;
     for (const e of effectsFrom(profile)) {
       const k = e.name.toLowerCase();
-      if (!counts.has(k)) order.push(e.name);
+      if (!counts.has(k)) order.push(capitalize(e.name));
       counts.set(k, (counts.get(k) ?? 0) + 1);
     }
   }
