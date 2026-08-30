@@ -81,15 +81,16 @@ struct CommunityNote: Codable, Hashable, Sendable, Identifiable {
     }
 
     /// Rating aggregates and site blurbs — not individual patient comments.
-    /// "Allbud listing" is covered too: older cached profiles carried the
-    /// strain's marketing blurb as a note; the scraper now only emits real
-    /// customer reviews (sourced "Allbud review · user"), so any leftover
-    /// listing note must stay out of the quote stream.
+    /// "Allbud" (general facts like effects/flavors/medical-use aggregates)
+    /// and "Allbud listing" (older cached profiles' marketing blurbs) are
+    /// both covered. The scraper emits real customer reviews as
+    /// "Allbud review · user" which are NOT aggregates.
     var isAggregate: Bool {
         let src = source.lowercased()
         if src == "leafly community"
             || src == "weedmaps"
             || src == "weedmaps listing"
+            || src == "allbud"
             || src == "allbud listing" {
             return true
         }

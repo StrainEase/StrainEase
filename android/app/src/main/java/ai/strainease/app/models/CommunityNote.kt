@@ -30,7 +30,7 @@ data class CommunityNote(
     val isAggregate: Boolean
         get() {
             val src = source.lowercase()
-            if (src == "leafly community" || src == "weedmaps" || src == "weedmaps listing") {
+            if (src == "leafly community" || src == "weedmaps" || src == "weedmaps listing" || src == "allbud" || src == "allbud listing") {
                 return true
             }
             val trimmed = text.trim()
