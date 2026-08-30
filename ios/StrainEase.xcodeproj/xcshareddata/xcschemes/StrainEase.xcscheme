@@ -15,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FA75B59FE392451781BFC80C"
+               BlueprintIdentifier = "29817B9F9749F8A7AA74546E"
                BuildableName = "StrainEase.app"
                BlueprintName = "StrainEase"
                ReferencedContainer = "container:StrainEase.xcodeproj">
@@ -29,7 +29,7 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D02892193B13C1EFC32F00AE"
+               BlueprintIdentifier = "2392038A0A2438F65A1095CE"
                BuildableName = "StrainEaseTests.xctest"
                BlueprintName = "StrainEaseTests"
                ReferencedContainer = "container:StrainEase.xcodeproj">
@@ -46,7 +46,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FA75B59FE392451781BFC80C"
+            BlueprintIdentifier = "29817B9F9749F8A7AA74546E"
             BuildableName = "StrainEase.app"
             BlueprintName = "StrainEase"
             ReferencedContainer = "container:StrainEase.xcodeproj">
@@ -58,7 +58,7 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D02892193B13C1EFC32F00AE"
+               BlueprintIdentifier = "2392038A0A2438F65A1095CE"
                BuildableName = "StrainEaseTests.xctest"
                BlueprintName = "StrainEaseTests"
                ReferencedContainer = "container:StrainEase.xcodeproj">
@@ -82,7 +82,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FA75B59FE392451781BFC80C"
+            BlueprintIdentifier = "29817B9F9749F8A7AA74546E"
             BuildableName = "StrainEase.app"
             BlueprintName = "StrainEase"
             ReferencedContainer = "container:StrainEase.xcodeproj">
@@ -99,7 +99,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FA75B59FE392451781BFC80C"
+            BlueprintIdentifier = "29817B9F9749F8A7AA74546E"
             BuildableName = "StrainEase.app"
             BlueprintName = "StrainEase"
             ReferencedContainer = "container:StrainEase.xcodeproj">

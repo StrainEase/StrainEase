@@ -36,7 +36,7 @@ targets:
         type: file
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: ai.strainease.app
+        PRODUCT_BUNDLE_IDENTIFIER: ai.strainease.ios
         PRODUCT_NAME: StrainEase
         INFOPLIST_FILE: StrainEase/Info.plist
         GENERATE_INFOPLIST_FILE: false
@@ -64,7 +64,7 @@ targets:
       - path: StrainEaseTests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: ai.strainease.app.tests
+        PRODUCT_BUNDLE_IDENTIFIER: ai.strainease.ios.tests
         GENERATE_INFOPLIST_FILE: true
         DEVELOPMENT_TEAM: 4JBMBNGPK7
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/StrainEase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StrainEase"

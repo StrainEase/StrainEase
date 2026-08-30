@@ -7,405 +7,408 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BFFA771005C3F680E105CAFE /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75A64C00FBF2793AAC4F264 /* AgeGateView.swift */; };
-		610139466D6596BEA6F02CC3 /* AgeVerificationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C10180FC7A9555E5DCF69F /* AgeVerificationStore.swift */; };
-		03398FC904CDD3E2EAA06A46 /* CompareSelectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF5A1302C7C3EBC3626C233 /* CompareSelectionStoreTests.swift */; };
-		039911BC1CC6BE4156078629 /* ShopLinksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5CAC268CEFCE3A7E94CE87A /* ShopLinksView.swift */; };
-		05965109EFB38224CDBE87E0 /* SavedMedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7AFEA6605071EE9A9DCD74E /* SavedMedicationsCard.swift */; };
-		05FEFEC4EFA4AF4416DF0514 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D84ECF38795DF6FC6B7F3B /* HomeView.swift */; };
-		071D717363A31C87D73A925E /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6BED43C81ED4D1C4CB2E4E /* Components.swift */; };
-		0B88F0376275DD571928F7C7 /* HomeHeadline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6225EB42FD12C9DC2A14DA /* HomeHeadline.swift */; };
-		18B989E0B5738E7F706ADEBD /* StrainDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A321898C1D21B156F5E656AF /* StrainDetailView.swift */; };
-		21310596945853CF09E3914E /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = B03B3877011371001498845F /* GoogleSignIn */; };
-		2E471769498EEA1A6FFF5C5A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8A665A0D5B80618873C1876F /* Assets.xcassets */; };
-		2EE1AB2C26823B1AFDD93FE0 /* StrainEaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2066F18BF00D3A96EA5874F /* StrainEaseApp.swift */; };
-		311EFD014FE938AF277B28E9 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A7E38AF8F50FF72D930FB1B /* Palette.swift */; };
-		35447C27AB56EA978EFEF102 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73221765338B5CEE84DE1532 /* PreviewData.swift */; };
-		3FEFF8C3F117480B676C9144 /* SavedStrainsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1946B1C8E418A237324A9C0E /* SavedStrainsView.swift */; };
-		461ECD90C1B3858D41D2AC2F /* FindModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CB95C7009EB09C356A3E546 /* FindModel.swift */; };
-		465BEB9E82732E2902791986 /* MeshBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B1646A9054529E30CC001E /* MeshBackground.swift */; };
-		4B932F74C53ECE955B23C421 /* AilmentCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 914751E7D4D775463DEB6CA9 /* AilmentCarousel.swift */; };
-		57610654429509C2BE3C6771 /* RedditThreadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251AAE4166390BB5D4F58D0A /* RedditThreadsView.swift */; };
-		5B82EA188A2606CC5FC5C9CE /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C3F06F5A47964646196630 /* SignInView.swift */; };
-		5BC43EDC48AB6C4AA1E4E84B /* CompareResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B84430746200D0FD46A17AC9 /* CompareResultsView.swift */; };
-		6095DCC80D3B11AC0277C9C7 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB72C17AE9087DBDFF7D7797 /* RootView.swift */; };
-		621493CE6C3754302F942C5E /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3FF168A5C719F3D3F4702B35 /* GoogleService-Info.plist */; };
-		6226B4D380E3C3ED3A855843 /* SavedStrainsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AAC295805AFD32269131658 /* SavedStrainsStore.swift */; };
-		62C0D5C73AD25A325928159F /* strain-directory.json in Resources */ = {isa = PBXBuildFile; fileRef = 6D1D2CBF28E9A81F7C08E37A /* strain-directory.json */; };
-		633BD06F38FBD9F2AF25952A /* FirebaseBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5FA329BD7AC6982E6FFCA16 /* FirebaseBootstrap.swift */; };
-		6C725C28B553AEA147616C9D /* StrainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF5021241702655D0B556AB6 /* StrainModels.swift */; };
-		740F7B1DEF6572CBAE3740DA /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6453489643321FAC8E130F /* AccountView.swift */; };
-		74FC6536E1E7475A1589D942 /* ReliefHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A408909E10D3882449C9D57D /* ReliefHistoryView.swift */; };
-		7A99F739D8D6ECD453F8CB26 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A538477A9E8CEFA4C6479CB4 /* FirebaseFunctions */; };
-		8053DBA5884A96D65B056F36 /* PublicNotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648CF481E640E18F7B4B47E9 /* PublicNotesStore.swift */; };
-		80CBF96AB4C7D7FEC580712A /* NoteBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7098BC59FC02A03542800F97 /* NoteBadge.swift */; };
-		871662B9AD4A6CB7B07A9694 /* ResearchHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C785B00B5BE01F0F24F44D /* ResearchHistoryStore.swift */; };
-		8821927B929F07592A4871F8 /* StrainEaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D58596872C36B0B71B8273B /* StrainEaseTests.swift */; };
-		8D86BCA471979175EFFA9706 /* CompareSelectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FE12866D738D41961C6AD59 /* CompareSelectionStore.swift */; };
-		8E899AD1A7DBC506E565B886 /* TerpeneDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267CAA4BEF7961AFF960B34B /* TerpeneDetailView.swift */; };
-		95011B8D7AFDF3614B841F77 /* StrainHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE946975B03B7A9EB66743B /* StrainHydration.swift */; };
-		965177C6D075CE69F0BAEC0A /* TerpeneProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3096A96F75E594E9380707BA /* TerpeneProfile.swift */; };
-		97C18BC73D5AFBAEF7CD2413 /* HomeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A492F65A674EC783E6A321B /* HomeModel.swift */; };
-		9AB210BAB6C430188D3CAB77 /* ReliefLogForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE633D8DF9FC60A6054EB28 /* ReliefLogForm.swift */; };
-		9C5FF09AE0446A228A3AA300 /* ResearchHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F95D52DDAE2D32C310B02B37 /* ResearchHistoryView.swift */; };
-		A1FD1525D190F0D89947142C /* StrainAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65A3E705F0FE0B8BB24C080 /* StrainAPI.swift */; };
-		B0AE5C7E0C5A40C7C2D5F4E0 /* StrainImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0AE5C7E0C5A40C7C2D5F4E1 /* StrainImageCache.swift */; };
-		A49771561CE42BA02A3F04D5 /* StrainCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05ED87EFE4C691805EC1BDF /* StrainCatalog.swift */; };
-		A577206F3AD92209F790AF49 /* CompareToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80ACF028868D9EBB332435A /* CompareToggleButton.swift */; };
-		AA49FDAE50FA0663EF005E3A /* StrainMeaning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94B80469D8D6804EADE68021 /* StrainMeaning.swift */; };
-		ABE89A91398C06A7CF67EC69 /* StrainGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5599B52492008F8E0F1A0BE /* StrainGridView.swift */; };
-		B44294E5B194FC72267A2752 /* CompareTrayBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8CBFC05DEA0F20DC008328A /* CompareTrayBar.swift */; };
-		B659E96C5C64CC22AAEC5D3C /* SavedMedicationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43607964BCB21568D4ABA00F /* SavedMedicationsStore.swift */; };
-		B6CB1C666E93E807D5187575 /* TriedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2652F71BBBAD5D6FD8B126B4 /* TriedNotesView.swift */; };
-		C04A68FF9F85D3D68D705533 /* DirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748271FF5F0426BB3D375F6F /* DirectoryView.swift */; };
-		C67055E982F2DF73222A84A8 /* ReliefLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76898A85BA225BC2C71DE809 /* ReliefLogStore.swift */; };
-		C87344DCC2E9E1AF323DB6EE /* FindView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FF600B1920EB5A90DD3333C /* FindView.swift */; };
-		CA9ED57AB2EECA8D8E5033BD /* StrainPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 357E09006008AF14A9962959 /* StrainPoster.swift */; };
-		CD1D7CF23DE96B39F4092DA7 /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90623AAD5EF394539B457A8B /* AuthSession.swift */; };
-		CE080395A96906E4FB258A95 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA5EFB0C94D1E5CFD77BD4D /* LocationProvider.swift */; };
-		D37F34A0B7B1F85EC0E98069 /* DoctorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED2609B141B87BF20929AB6D /* DoctorsView.swift */; };
-		D80FAD18B1A5A8E54B6B1A7D /* DoctorsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B4A624AEA91B3E883A6C24 /* DoctorsModel.swift */; };
-		D9FEAB10B10430051A433189 /* RecentlyViewedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5343719095688D3656C44C69 /* RecentlyViewedStore.swift */; };
-		DC6D7D753FF645F6AC922703 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C535EE8A012F6DC69B3703D /* AppNavigation.swift */; };
-		DD661EA51CEB53C4F1ECBEF5 /* SharedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2472C11CB87864EA4159E36C /* SharedNotesView.swift */; };
-		DDE5AAACC2608D2827D101F0 /* SavedAilmentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C632C6FAD1F5B55A8BF419D9 /* SavedAilmentsStore.swift */; };
-		E539D86FFDA3BE00A7831007 /* SavedAilmentsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588C389D8B89AEC25782558D /* SavedAilmentsCard.swift */; };
-		E85F0249508AD4248A99E35A /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 38DBE4EA04AC5FD23A40636A /* FirebaseAuth */; };
-		EACE6D28559732B70C74B060 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 557CE11C9808D248C14F797E /* FirebaseFirestore */; };
-		F1E6FBE440207924E62722D4 /* DirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA87EEBF1E1ACA1A0904DC8 /* DirectoryModel.swift */; };
-		F9D327C95F3A4FB2EEFC1BD0 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20E53734C990850060FB376 /* MainTabView.swift */; };
-		FB7C9AC2A0814B06583CD199 /* DirectoryFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF7CE6357B2DA7FBCCAA7D0 /* DirectoryFilter.swift */; };
-		FBB6D3CDF950D6520A521710 /* DoctorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3081AB9773150505AF9680BA /* DoctorModels.swift */; };
+		02541CD666717F22B5684C05 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 80F8A2DE1E736B6FB187B8ED /* GoogleService-Info.plist */; };
+		02629B2D89231EE691F803A2 /* PublicNotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2940F6680CF248045D5473 /* PublicNotesStore.swift */; };
+		0809C1FC088C27503106BEB5 /* ReliefLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F950618134AAA21910D868E7 /* ReliefLogStore.swift */; };
+		0C49B25F493F46EEBEEAB06D /* DirectoryFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B424C65832568E4829FD926F /* DirectoryFilter.swift */; };
+		0FE27932A5D70470DFE65856 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 06D21BCCB301293CF92F6A06 /* FirebaseFirestore */; };
+		1BBD44262ED380C7D12ADA5A /* CompareResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF98E803F69C77F3170B2697 /* CompareResultsView.swift */; };
+		2C28C617F995935E04D83BC3 /* FindModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E75551C008AEA069E59362 /* FindModel.swift */; };
+		2D40562447C869416F434CE3 /* SavedAilmentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60200884971058678D018248 /* SavedAilmentsStore.swift */; };
+		33A734AB97EAAF307F80626D /* MeshBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED345F3CFEEB4580F6C89E3 /* MeshBackground.swift */; };
+		3B1B0455CF4A02409D06013E /* StrainCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B674437957FDA4DED6E541FD /* StrainCatalog.swift */; };
+		3F0381DB4D6020781EA68899 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D707FED754B3084F471E94 /* MainTabView.swift */; };
+		407BD5F6A05F5793D8267D31 /* DoctorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C2507C3625C8F13CD229C5 /* DoctorModels.swift */; };
+		40F78819BDD6644E28554D04 /* DoctorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6D390C809E908B60291D9F /* DoctorsView.swift */; };
+		450F165B97AFC13929E28A22 /* AgeVerificationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3242DCEB248AF1EB03D7D260 /* AgeVerificationStore.swift */; };
+		45CA673B1D2B8E90BD9C7188 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = B753437C0905F74D8A03BC81 /* FirebaseFunctions */; };
+		4DA010E98DCB40DB10413B6A /* ResearchHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40CA2FBB0AC1AA8BB87FD3B9 /* ResearchHistoryStore.swift */; };
+		4DCAF1ABD8695FB588743763 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C19AE37513363125582CB69B /* Palette.swift */; };
+		4FEF8A9D41415449EBE5E795 /* DirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F710CFE2D5AF753EC289EA2 /* DirectoryView.swift */; };
+		518E52AF5D6C47DDE5C38D4F /* SavedMedicationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B595382A36875E3B58A93BF7 /* SavedMedicationsStore.swift */; };
+		53245EDF4EFA59E577A6A2C5 /* StrainDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D098106AAA5573A2FF065B5 /* StrainDetailView.swift */; };
+		57CE374D4C206D84FBD2683A /* SavedMedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */; };
+		5C92B2D277E6C8FE7B1F452F /* StrainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF44B432B1D8D6241B90918C /* StrainModels.swift */; };
+		6007418917D701424C25AA68 /* AgeVerificationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D668CCEBCE155C0EEC7D2278 /* AgeVerificationStoreTests.swift */; };
+		6FCB1E737742C825F6DB97A9 /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB555711154F6F8A10B4D57 /* AgeGateView.swift */; };
+		72A7E2127ADD11DF7EFD64F6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 99DCE5C0880FE59E5D994798 /* Assets.xcassets */; };
+		72D37CAAC930C993C289935D /* FindView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E47E2787F643CB812402CC1B /* FindView.swift */; };
+		731887FD36CB1357B7F6F3CB /* CompareSelectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43D446749B1FCC07DD3B881 /* CompareSelectionStoreTests.swift */; };
+		7680F372343D06DCA0AE6014 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E61024D2F69C6FE20A2B5C1 /* Components.swift */; };
+		77B51DD8666BAD58599631C1 /* SavedStrainsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990CED9E0E8C4ED69DC133F5 /* SavedStrainsStore.swift */; };
+		798AC0D7B44AEDD84F79CC04 /* StrainImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06951EF18E159E99848A0CCB /* StrainImageCache.swift */; };
+		7A322B759D93F9D1C6613BC7 /* StrainEaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7D82D46B66A8ADA43EB1AC /* StrainEaseApp.swift */; };
+		7A8309E8EA8D0E2364DEB179 /* StrainGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BDF10B70191C0BD228EBA60 /* StrainGridView.swift */; };
+		7F2E1EE47981663282EA6C9B /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F47622037366802A741794 /* AppNavigation.swift */; };
+		81A40AD53D72F540C5802A81 /* TriedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 800987791E1F518D554E62E9 /* TriedNotesView.swift */; };
+		83AA03F3CD07EA1470D50114 /* SavedAilmentsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FBA9F2DA24E3238FC0120D8 /* SavedAilmentsCard.swift */; };
+		83EA73A892B8C6B26CEECC0A /* RedditThreadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65979D7D0365186077E51DD4 /* RedditThreadsView.swift */; };
+		86416C908A16BF85DB729412 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719373E37B4F3B019CF5EE80 /* AccountView.swift */; };
+		8748D45E269034A732A000C7 /* CompareTrayBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF07512E648F1012EF33C227 /* CompareTrayBar.swift */; };
+		8AE3C073ED9B8F7BA0D76E9A /* DoctorsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 741F33CF63DBBAD6CFBB9D15 /* DoctorsModel.swift */; };
+		988C243EA2833F9D93C99BDC /* StrainAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E8C71C6D08BA5C1AE863F4 /* StrainAPI.swift */; };
+		9CDBE29279D53E725FD1B821 /* TerpeneDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B081DF2959AB0E179292722 /* TerpeneDetailView.swift */; };
+		A60FEA6225E9EDB1897DA82E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4773FC168C285137690A19EC /* FirebaseAuth */; };
+		A7A84C0DD94085FDE3CDEAB8 /* ResearchHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053157392C5DFFE9E6D0B84D /* ResearchHistoryView.swift */; };
+		A9CFD2BD2605FDB8FBFDCC7B /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 5F34F1004D1F4B48A4AA1E2B /* GoogleSignIn */; };
+		AD0EBD7FEF01923D1BB4FBAE /* DirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3529D6377C857E301486363D /* DirectoryModel.swift */; };
+		AF4DA0F5D436F2B435F7A630 /* SavedStrainsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B1BA91D2E7438F55F48388D /* SavedStrainsView.swift */; };
+		B33628F312A7D91C09D6EB09 /* AilmentCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0417DA2001497AE57D0920 /* AilmentCarousel.swift */; };
+		B4420F253D641CC17E6A7301 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4340CAFEFBB8F469A7BBE142 /* HomeView.swift */; };
+		B7890C9AB5534D13D624C6E4 /* StrainMeaning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7819115AFCD2DD9763440358 /* StrainMeaning.swift */; };
+		B9F1AFFCE4FBD63D548C1478 /* StrainPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1B0426629D56FCDD5AB455F /* StrainPoster.swift */; };
+		C0033EAE6EF91871F9227374 /* ReliefLogForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B20BA017AD7D61E5E149923 /* ReliefLogForm.swift */; };
+		C1BD9E03A802EF81212B5527 /* CompareSelectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5B020FE53FDE8A2FB99CDFB /* CompareSelectionStore.swift */; };
+		C493DBE22FB7744912D4ED0C /* SharedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFA17F0F1A175C4E58C3A58 /* SharedNotesView.swift */; };
+		C57B04AC793C259F99E52E30 /* HomeHeadline.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE19BA04421C76E0AB3BE881 /* HomeHeadline.swift */; };
+		C5BEB0A36874732AC1B1C48A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CAB5FE33BEF277ACDD624F8 /* RootView.swift */; };
+		C618CE8371FA0A4A2076978E /* RecentlyViewedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CA874DA7CD5C58BD9E53558 /* RecentlyViewedStore.swift */; };
+		C79044ADF49937D5F8AA7ED7 /* TerpeneProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF071D01B0F4841408D9AEE /* TerpeneProfile.swift */; };
+		C871DAE6896A49E335358ABD /* ShopLinksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9260DE0FFE6267E937E1A /* ShopLinksView.swift */; };
+		CACD61394A1D12B8E66DD4F9 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 235892787F55F043A14105B9 /* LocationProvider.swift */; };
+		CD71D52017BF06CD200BFA9B /* FirebaseBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8580E65316184FC977EA342 /* FirebaseBootstrap.swift */; };
+		D4C65477D64D159898BD24BC /* NoteBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECF081715875F995ACA498B /* NoteBadge.swift */; };
+		E44B53DC77F5FC62D2A195D4 /* HomeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A078B2554B7AADEFFC69D19 /* HomeModel.swift */; };
+		E5BAB8E32F6225C018A80E87 /* CompareToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 768082826A2B68D9AC1CD490 /* CompareToggleButton.swift */; };
+		E6CE74CE62E98AD6A51F43C8 /* strain-directory.json in Resources */ = {isa = PBXBuildFile; fileRef = 4CF7A84934E747FCDF100987 /* strain-directory.json */; };
+		E6D3A9F093B003A0E34EAC27 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5556663A1E35ABD32618DF7 /* PreviewData.swift */; };
+		EE29BB0AA33CA2A10820BD52 /* StrainHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C809CF642413F3D53A622162 /* StrainHydration.swift */; };
+		EF79B8B38CFF3FF648DD7135 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B5B6F8D63BC6DB63870635 /* SignInView.swift */; };
+		F719AA97E503903480E43787 /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61875CB7A206EE1BB3B5C792 /* AuthSession.swift */; };
+		FDFDA06400E36B4D4331A23B /* StrainEaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F47FC9A29B772C77E176A3 /* StrainEaseTests.swift */; };
+		FE9E7A963A0F26EF834106E0 /* ReliefHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E19C7E33E227D0EF7E49F2 /* ReliefHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		3033EF85CFB200BF9809DF1D /* PBXContainerItemProxy */ = {
+		275232E2F0BC7E2A75BCBC22 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 2D39A668C4FE4817D0F61B6D /* Project object */;
+			containerPortal = 70664B279A55FADD32DEBEB9 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = FA75B59FE392451781BFC80C;
+			remoteGlobalIDString = 29817B9F9749F8A7AA74546E;
 			remoteInfo = StrainEase;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		F75A64C00FBF2793AAC4F264 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
-		37C10180FC7A9555E5DCF69F /* AgeVerificationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeVerificationStore.swift; sourceTree = "<group>"; };
-		1946B1C8E418A237324A9C0E /* SavedStrainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsView.swift; sourceTree = "<group>"; };
-		1FA87EEBF1E1ACA1A0904DC8 /* DirectoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryModel.swift; sourceTree = "<group>"; };
-		2472C11CB87864EA4159E36C /* SharedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedNotesView.swift; sourceTree = "<group>"; };
-		251AAE4166390BB5D4F58D0A /* RedditThreadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedditThreadsView.swift; sourceTree = "<group>"; };
-		2652F71BBBAD5D6FD8B126B4 /* TriedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedNotesView.swift; sourceTree = "<group>"; };
-		267CAA4BEF7961AFF960B34B /* TerpeneDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerpeneDetailView.swift; sourceTree = "<group>"; };
-		27B1646A9054529E30CC001E /* MeshBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBackground.swift; sourceTree = "<group>"; };
-		3081AB9773150505AF9680BA /* DoctorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorModels.swift; sourceTree = "<group>"; };
-		3096A96F75E594E9380707BA /* TerpeneProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerpeneProfile.swift; sourceTree = "<group>"; };
-		357E09006008AF14A9962959 /* StrainPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainPoster.swift; sourceTree = "<group>"; };
-		3A492F65A674EC783E6A321B /* HomeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeModel.swift; sourceTree = "<group>"; };
-		3A7E38AF8F50FF72D930FB1B /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
-		3C535EE8A012F6DC69B3703D /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigation.swift; sourceTree = "<group>"; };
-		3D2B71C3F546D88033A80E70 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		3FF168A5C719F3D3F4702B35 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		43607964BCB21568D4ABA00F /* SavedMedicationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMedicationsStore.swift; sourceTree = "<group>"; };
-		4DFD8F953A71CFC1CABFB544 /* StrainEase.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StrainEase.entitlements; sourceTree = "<group>"; };
-		4FE633D8DF9FC60A6054EB28 /* ReliefLogForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogForm.swift; sourceTree = "<group>"; };
-		5343719095688D3656C44C69 /* RecentlyViewedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyViewedStore.swift; sourceTree = "<group>"; };
-		588C389D8B89AEC25782558D /* SavedAilmentsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAilmentsCard.swift; sourceTree = "<group>"; };
-		58B4A624AEA91B3E883A6C24 /* DoctorsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorsModel.swift; sourceTree = "<group>"; };
-		58C785B00B5BE01F0F24F44D /* ResearchHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchHistoryStore.swift; sourceTree = "<group>"; };
-		5D58596872C36B0B71B8273B /* StrainEaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainEaseTests.swift; sourceTree = "<group>"; };
-		648CF481E640E18F7B4B47E9 /* PublicNotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicNotesStore.swift; sourceTree = "<group>"; };
-		6C6225EB42FD12C9DC2A14DA /* HomeHeadline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHeadline.swift; sourceTree = "<group>"; };
-		6D1D2CBF28E9A81F7C08E37A /* strain-directory.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "strain-directory.json"; sourceTree = "<group>"; };
-		6FE12866D738D41961C6AD59 /* CompareSelectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareSelectionStore.swift; sourceTree = "<group>"; };
-		7098BC59FC02A03542800F97 /* NoteBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteBadge.swift; sourceTree = "<group>"; };
-		73221765338B5CEE84DE1532 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
-		748271FF5F0426BB3D375F6F /* DirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryView.swift; sourceTree = "<group>"; };
-		76898A85BA225BC2C71DE809 /* ReliefLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogStore.swift; sourceTree = "<group>"; };
-		7AA5EFB0C94D1E5CFD77BD4D /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
-		81D84ECF38795DF6FC6B7F3B /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		8A665A0D5B80618873C1876F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		8AAC295805AFD32269131658 /* SavedStrainsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsStore.swift; sourceTree = "<group>"; };
-		8CB95C7009EB09C356A3E546 /* FindModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindModel.swift; sourceTree = "<group>"; };
-		8FF600B1920EB5A90DD3333C /* FindView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindView.swift; sourceTree = "<group>"; };
-		90623AAD5EF394539B457A8B /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
-		914751E7D4D775463DEB6CA9 /* AilmentCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AilmentCarousel.swift; sourceTree = "<group>"; };
-		94B80469D8D6804EADE68021 /* StrainMeaning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainMeaning.swift; sourceTree = "<group>"; };
-		9FE946975B03B7A9EB66743B /* StrainHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainHydration.swift; sourceTree = "<group>"; };
-		A321898C1D21B156F5E656AF /* StrainDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainDetailView.swift; sourceTree = "<group>"; };
-		A408909E10D3882449C9D57D /* ReliefHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefHistoryView.swift; sourceTree = "<group>"; };
-		A5599B52492008F8E0F1A0BE /* StrainGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainGridView.swift; sourceTree = "<group>"; };
-		B5C3F06F5A47964646196630 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
-		B84430746200D0FD46A17AC9 /* CompareResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareResultsView.swift; sourceTree = "<group>"; };
-		BB72C17AE9087DBDFF7D7797 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		BD6BED43C81ED4D1C4CB2E4E /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
-		C05ED87EFE4C691805EC1BDF /* StrainCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainCatalog.swift; sourceTree = "<group>"; };
-		C5FA329BD7AC6982E6FFCA16 /* FirebaseBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseBootstrap.swift; sourceTree = "<group>"; };
-		C632C6FAD1F5B55A8BF419D9 /* SavedAilmentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAilmentsStore.swift; sourceTree = "<group>"; };
-		C8CBFC05DEA0F20DC008328A /* CompareTrayBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareTrayBar.swift; sourceTree = "<group>"; };
-		CF6453489643321FAC8E130F /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
-		D20E828C1589484B8E4813CC /* StrainEaseTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StrainEaseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		DEF7CE6357B2DA7FBCCAA7D0 /* DirectoryFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryFilter.swift; sourceTree = "<group>"; };
-		E2066F18BF00D3A96EA5874F /* StrainEaseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainEaseApp.swift; sourceTree = "<group>"; };
-		E20E53734C990850060FB376 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		E80ACF028868D9EBB332435A /* CompareToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareToggleButton.swift; sourceTree = "<group>"; };
-		ED2609B141B87BF20929AB6D /* DoctorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorsView.swift; sourceTree = "<group>"; };
-		EDF5A1302C7C3EBC3626C233 /* CompareSelectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareSelectionStoreTests.swift; sourceTree = "<group>"; };
-		EF5021241702655D0B556AB6 /* StrainModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainModels.swift; sourceTree = "<group>"; };
-		F5CAC268CEFCE3A7E94CE87A /* ShopLinksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopLinksView.swift; sourceTree = "<group>"; };
-		F65A3E705F0FE0B8BB24C080 /* StrainAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainAPI.swift; sourceTree = "<group>"; };
-		B0AE5C7E0C5A40C7C2D5F4E1 /* StrainImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainImageCache.swift; sourceTree = "<group>"; };
-		F7AFEA6605071EE9A9DCD74E /* SavedMedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMedicationsCard.swift; sourceTree = "<group>"; };
-		F7B28257163F5F4871E8A258 /* StrainEase.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StrainEase.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F95D52DDAE2D32C310B02B37 /* ResearchHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchHistoryView.swift; sourceTree = "<group>"; };
+		053157392C5DFFE9E6D0B84D /* ResearchHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchHistoryView.swift; sourceTree = "<group>"; };
+		06951EF18E159E99848A0CCB /* StrainImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainImageCache.swift; sourceTree = "<group>"; };
+		0A7D82D46B66A8ADA43EB1AC /* StrainEaseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainEaseApp.swift; sourceTree = "<group>"; };
+		1B081DF2959AB0E179292722 /* TerpeneDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerpeneDetailView.swift; sourceTree = "<group>"; };
+		1ECF081715875F995ACA498B /* NoteBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteBadge.swift; sourceTree = "<group>"; };
+		215718860397BD1269E5C6E6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		235892787F55F043A14105B9 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
+		25F47622037366802A741794 /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigation.swift; sourceTree = "<group>"; };
+		2FBA9F2DA24E3238FC0120D8 /* SavedAilmentsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAilmentsCard.swift; sourceTree = "<group>"; };
+		3242DCEB248AF1EB03D7D260 /* AgeVerificationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeVerificationStore.swift; sourceTree = "<group>"; };
+		32C2507C3625C8F13CD229C5 /* DoctorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorModels.swift; sourceTree = "<group>"; };
+		3529D6377C857E301486363D /* DirectoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryModel.swift; sourceTree = "<group>"; };
+		3EFA17F0F1A175C4E58C3A58 /* SharedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedNotesView.swift; sourceTree = "<group>"; };
+		40CA2FBB0AC1AA8BB87FD3B9 /* ResearchHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchHistoryStore.swift; sourceTree = "<group>"; };
+		4340CAFEFBB8F469A7BBE142 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		4CAB5FE33BEF277ACDD624F8 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		4CF7A84934E747FCDF100987 /* strain-directory.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "strain-directory.json"; sourceTree = "<group>"; };
+		4DB555711154F6F8A10B4D57 /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
+		4E61024D2F69C6FE20A2B5C1 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		5B20BA017AD7D61E5E149923 /* ReliefLogForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogForm.swift; sourceTree = "<group>"; };
+		5D098106AAA5573A2FF065B5 /* StrainDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainDetailView.swift; sourceTree = "<group>"; };
+		60200884971058678D018248 /* SavedAilmentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAilmentsStore.swift; sourceTree = "<group>"; };
+		61875CB7A206EE1BB3B5C792 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
+		65979D7D0365186077E51DD4 /* RedditThreadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedditThreadsView.swift; sourceTree = "<group>"; };
+		6B1BA91D2E7438F55F48388D /* SavedStrainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsView.swift; sourceTree = "<group>"; };
+		6F710CFE2D5AF753EC289EA2 /* DirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryView.swift; sourceTree = "<group>"; };
+		719373E37B4F3B019CF5EE80 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
+		741F33CF63DBBAD6CFBB9D15 /* DoctorsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorsModel.swift; sourceTree = "<group>"; };
+		7654C7DB91529B0072BA52A8 /* StrainEaseTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StrainEaseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		768082826A2B68D9AC1CD490 /* CompareToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareToggleButton.swift; sourceTree = "<group>"; };
+		7819115AFCD2DD9763440358 /* StrainMeaning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainMeaning.swift; sourceTree = "<group>"; };
+		7A078B2554B7AADEFFC69D19 /* HomeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeModel.swift; sourceTree = "<group>"; };
+		7BA9260DE0FFE6267E937E1A /* ShopLinksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopLinksView.swift; sourceTree = "<group>"; };
+		7D0417DA2001497AE57D0920 /* AilmentCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AilmentCarousel.swift; sourceTree = "<group>"; };
+		800987791E1F518D554E62E9 /* TriedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedNotesView.swift; sourceTree = "<group>"; };
+		80F8A2DE1E736B6FB187B8ED /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		81E75551C008AEA069E59362 /* FindModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindModel.swift; sourceTree = "<group>"; };
+		8BF071D01B0F4841408D9AEE /* TerpeneProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerpeneProfile.swift; sourceTree = "<group>"; };
+		8C6D390C809E908B60291D9F /* DoctorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorsView.swift; sourceTree = "<group>"; };
+		8CA874DA7CD5C58BD9E53558 /* RecentlyViewedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyViewedStore.swift; sourceTree = "<group>"; };
+		8EEBF06F21F01B07A8CF4000 /* StrainEase.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StrainEase.entitlements; sourceTree = "<group>"; };
+		990CED9E0E8C4ED69DC133F5 /* SavedStrainsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsStore.swift; sourceTree = "<group>"; };
+		99DCE5C0880FE59E5D994798 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9BDF10B70191C0BD228EBA60 /* StrainGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainGridView.swift; sourceTree = "<group>"; };
+		A8E19C7E33E227D0EF7E49F2 /* ReliefHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefHistoryView.swift; sourceTree = "<group>"; };
+		AED345F3CFEEB4580F6C89E3 /* MeshBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBackground.swift; sourceTree = "<group>"; };
+		AF07512E648F1012EF33C227 /* CompareTrayBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareTrayBar.swift; sourceTree = "<group>"; };
+		B0D707FED754B3084F471E94 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		B2E8C71C6D08BA5C1AE863F4 /* StrainAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainAPI.swift; sourceTree = "<group>"; };
+		B424C65832568E4829FD926F /* DirectoryFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryFilter.swift; sourceTree = "<group>"; };
+		B43D446749B1FCC07DD3B881 /* CompareSelectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareSelectionStoreTests.swift; sourceTree = "<group>"; };
+		B595382A36875E3B58A93BF7 /* SavedMedicationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMedicationsStore.swift; sourceTree = "<group>"; };
+		B674437957FDA4DED6E541FD /* StrainCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainCatalog.swift; sourceTree = "<group>"; };
+		B8580E65316184FC977EA342 /* FirebaseBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseBootstrap.swift; sourceTree = "<group>"; };
+		B8B5B6F8D63BC6DB63870635 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		C19AE37513363125582CB69B /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
+		C809CF642413F3D53A622162 /* StrainHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainHydration.swift; sourceTree = "<group>"; };
+		CE2940F6680CF248045D5473 /* PublicNotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicNotesStore.swift; sourceTree = "<group>"; };
+		D668CCEBCE155C0EEC7D2278 /* AgeVerificationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeVerificationStoreTests.swift; sourceTree = "<group>"; };
+		DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMedicationsCard.swift; sourceTree = "<group>"; };
+		DF98E803F69C77F3170B2697 /* CompareResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareResultsView.swift; sourceTree = "<group>"; };
+		E1B0426629D56FCDD5AB455F /* StrainPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainPoster.swift; sourceTree = "<group>"; };
+		E47E2787F643CB812402CC1B /* FindView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindView.swift; sourceTree = "<group>"; };
+		E5556663A1E35ABD32618DF7 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
+		EDAFAF4D17507D307C70F65C /* StrainEase.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StrainEase.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EE19BA04421C76E0AB3BE881 /* HomeHeadline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHeadline.swift; sourceTree = "<group>"; };
+		EF44B432B1D8D6241B90918C /* StrainModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainModels.swift; sourceTree = "<group>"; };
+		F5B020FE53FDE8A2FB99CDFB /* CompareSelectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareSelectionStore.swift; sourceTree = "<group>"; };
+		F950618134AAA21910D868E7 /* ReliefLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogStore.swift; sourceTree = "<group>"; };
+		F9F47FC9A29B772C77E176A3 /* StrainEaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainEaseTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		6ED64E69DAB4C900FF880D35 /* Frameworks */ = {
+		DEFC84A5F0FD34F5B6460AE2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E85F0249508AD4248A99E35A /* FirebaseAuth in Frameworks */,
-				EACE6D28559732B70C74B060 /* FirebaseFirestore in Frameworks */,
-				7A99F739D8D6ECD453F8CB26 /* FirebaseFunctions in Frameworks */,
-				21310596945853CF09E3914E /* GoogleSignIn in Frameworks */,
+				A60FEA6225E9EDB1897DA82E /* FirebaseAuth in Frameworks */,
+				0FE27932A5D70470DFE65856 /* FirebaseFirestore in Frameworks */,
+				45CA673B1D2B8E90BD9C7188 /* FirebaseFunctions in Frameworks */,
+				A9CFD2BD2605FDB8FBFDCC7B /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0BAE8EFE559F169DA8C8CDF7 /* Auth */ = {
+		0A6E1CB8C33351A60CAD7ABF /* Directory */ = {
 			isa = PBXGroup;
 			children = (
-				90623AAD5EF394539B457A8B /* AuthSession.swift */,
-				B5C3F06F5A47964646196630 /* SignInView.swift */,
-			);
-			path = Auth;
-			sourceTree = "<group>";
-		};
-		0D38EA4FCE0C31E6084FE599 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				3081AB9773150505AF9680BA /* DoctorModels.swift */,
-				C05ED87EFE4C691805EC1BDF /* StrainCatalog.swift */,
-				EF5021241702655D0B556AB6 /* StrainModels.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		3421CCD2512EC452D91465A8 /* Directory */ = {
-			isa = PBXGroup;
-			children = (
-				DEF7CE6357B2DA7FBCCAA7D0 /* DirectoryFilter.swift */,
-				1FA87EEBF1E1ACA1A0904DC8 /* DirectoryModel.swift */,
-				748271FF5F0426BB3D375F6F /* DirectoryView.swift */,
+				B424C65832568E4829FD926F /* DirectoryFilter.swift */,
+				3529D6377C857E301486363D /* DirectoryModel.swift */,
+				6F710CFE2D5AF753EC289EA2 /* DirectoryView.swift */,
 			);
 			path = Directory;
 			sourceTree = "<group>";
 		};
-		355729E496D415635436688C /* App */ = {
+		2E5195DAE352F21D50C226A7 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F75A64C00FBF2793AAC4F264 /* AgeGateView.swift */,
-				3C535EE8A012F6DC69B3703D /* AppNavigation.swift */,
-				E20E53734C990850060FB376 /* MainTabView.swift */,
-				BB72C17AE9087DBDFF7D7797 /* RootView.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		56013FB91A9810496FDDF8F7 /* Find */ = {
-			isa = PBXGroup;
-			children = (
-				8CB95C7009EB09C356A3E546 /* FindModel.swift */,
-				8FF600B1920EB5A90DD3333C /* FindView.swift */,
-			);
-			path = Find;
-			sourceTree = "<group>";
-		};
-		5634A2CEFF60FD7712A4E8F8 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				37C10180FC7A9555E5DCF69F /* AgeVerificationStore.swift */,
-				C5FA329BD7AC6982E6FFCA16 /* FirebaseBootstrap.swift */,
-				7AA5EFB0C94D1E5CFD77BD4D /* LocationProvider.swift */,
-				73221765338B5CEE84DE1532 /* PreviewData.swift */,
-				648CF481E640E18F7B4B47E9 /* PublicNotesStore.swift */,
-				5343719095688D3656C44C69 /* RecentlyViewedStore.swift */,
-				76898A85BA225BC2C71DE809 /* ReliefLogStore.swift */,
-				58C785B00B5BE01F0F24F44D /* ResearchHistoryStore.swift */,
-				C632C6FAD1F5B55A8BF419D9 /* SavedAilmentsStore.swift */,
-				43607964BCB21568D4ABA00F /* SavedMedicationsStore.swift */,
-				8AAC295805AFD32269131658 /* SavedStrainsStore.swift */,
-				F65A3E705F0FE0B8BB24C080 /* StrainAPI.swift */,
-				B0AE5C7E0C5A40C7C2D5F4E1 /* StrainImageCache.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
-		5AA1BB82BC13BA142CA921EB /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				F7B28257163F5F4871E8A258 /* StrainEase.app */,
-				D20E828C1589484B8E4813CC /* StrainEaseTests.xctest */,
+				EDAFAF4D17507D307C70F65C /* StrainEase.app */,
+				7654C7DB91529B0072BA52A8 /* StrainEaseTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		686C33FE4F01C898F55FF25C /* Doctors */ = {
+		3079B527D632D53EAD6D5E4A /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				58B4A624AEA91B3E883A6C24 /* DoctorsModel.swift */,
-				ED2609B141B87BF20929AB6D /* DoctorsView.swift */,
+				3242DCEB248AF1EB03D7D260 /* AgeVerificationStore.swift */,
+				B8580E65316184FC977EA342 /* FirebaseBootstrap.swift */,
+				235892787F55F043A14105B9 /* LocationProvider.swift */,
+				E5556663A1E35ABD32618DF7 /* PreviewData.swift */,
+				CE2940F6680CF248045D5473 /* PublicNotesStore.swift */,
+				8CA874DA7CD5C58BD9E53558 /* RecentlyViewedStore.swift */,
+				F950618134AAA21910D868E7 /* ReliefLogStore.swift */,
+				40CA2FBB0AC1AA8BB87FD3B9 /* ResearchHistoryStore.swift */,
+				60200884971058678D018248 /* SavedAilmentsStore.swift */,
+				B595382A36875E3B58A93BF7 /* SavedMedicationsStore.swift */,
+				990CED9E0E8C4ED69DC133F5 /* SavedStrainsStore.swift */,
+				B2E8C71C6D08BA5C1AE863F4 /* StrainAPI.swift */,
+				06951EF18E159E99848A0CCB /* StrainImageCache.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		371346F5CFB782E2E063DF1E /* Doctors */ = {
+			isa = PBXGroup;
+			children = (
+				741F33CF63DBBAD6CFBB9D15 /* DoctorsModel.swift */,
+				8C6D390C809E908B60291D9F /* DoctorsView.swift */,
 			);
 			path = Doctors;
 			sourceTree = "<group>";
 		};
-		6DA15F6B3C96347A7A00E4F6 /* Strain */ = {
+		3C5EC9C88E82F419D832F9B9 /* StrainEase */ = {
 			isa = PBXGroup;
 			children = (
-				7098BC59FC02A03542800F97 /* NoteBadge.swift */,
-				4FE633D8DF9FC60A6054EB28 /* ReliefLogForm.swift */,
-				2472C11CB87864EA4159E36C /* SharedNotesView.swift */,
-				F5CAC268CEFCE3A7E94CE87A /* ShopLinksView.swift */,
-				A321898C1D21B156F5E656AF /* StrainDetailView.swift */,
-				9FE946975B03B7A9EB66743B /* StrainHydration.swift */,
-				94B80469D8D6804EADE68021 /* StrainMeaning.swift */,
-				267CAA4BEF7961AFF960B34B /* TerpeneDetailView.swift */,
-				3096A96F75E594E9380707BA /* TerpeneProfile.swift */,
-				2652F71BBBAD5D6FD8B126B4 /* TriedNotesView.swift */,
-			);
-			path = Strain;
-			sourceTree = "<group>";
-		};
-		7128DE2B4208D1D6103B498E = {
-			isa = PBXGroup;
-			children = (
-				A1666ABA3B193559E931FC62 /* StrainEase */,
-				A6FF20161FB6D32F32A307D3 /* StrainEaseTests */,
-				5AA1BB82BC13BA142CA921EB /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		777CA84F052C9E68974B82C4 /* Home */ = {
-			isa = PBXGroup;
-			children = (
-				914751E7D4D775463DEB6CA9 /* AilmentCarousel.swift */,
-				6C6225EB42FD12C9DC2A14DA /* HomeHeadline.swift */,
-				3A492F65A674EC783E6A321B /* HomeModel.swift */,
-				81D84ECF38795DF6FC6B7F3B /* HomeView.swift */,
-				A5599B52492008F8E0F1A0BE /* StrainGridView.swift */,
-				357E09006008AF14A9962959 /* StrainPoster.swift */,
-			);
-			path = Home;
-			sourceTree = "<group>";
-		};
-		A1666ABA3B193559E931FC62 /* StrainEase */ = {
-			isa = PBXGroup;
-			children = (
-				8A665A0D5B80618873C1876F /* Assets.xcassets */,
-				3FF168A5C719F3D3F4702B35 /* GoogleService-Info.plist */,
-				3D2B71C3F546D88033A80E70 /* Info.plist */,
-				4DFD8F953A71CFC1CABFB544 /* StrainEase.entitlements */,
-				E2066F18BF00D3A96EA5874F /* StrainEaseApp.swift */,
-				A1B0CA0A235CE64ACAD6D3FD /* Account */,
-				355729E496D415635436688C /* App */,
-				0BAE8EFE559F169DA8C8CDF7 /* Auth */,
-				C62ABFF8192D177265CBEB87 /* Compare */,
-				3421CCD2512EC452D91465A8 /* Directory */,
-				686C33FE4F01C898F55FF25C /* Doctors */,
-				56013FB91A9810496FDDF8F7 /* Find */,
-				777CA84F052C9E68974B82C4 /* Home */,
-				0D38EA4FCE0C31E6084FE599 /* Models */,
-				BBF05652C1DA53EA0B8EBA62 /* Resources */,
-				5634A2CEFF60FD7712A4E8F8 /* Services */,
-				6DA15F6B3C96347A7A00E4F6 /* Strain */,
-				C4B4A013F11A481D590892B5 /* Theme */,
+				99DCE5C0880FE59E5D994798 /* Assets.xcassets */,
+				80F8A2DE1E736B6FB187B8ED /* GoogleService-Info.plist */,
+				215718860397BD1269E5C6E6 /* Info.plist */,
+				8EEBF06F21F01B07A8CF4000 /* StrainEase.entitlements */,
+				0A7D82D46B66A8ADA43EB1AC /* StrainEaseApp.swift */,
+				53545091E895884A2DC11251 /* Account */,
+				C23F8E15F1C68A76344C2C9E /* App */,
+				4C07F351A0DFA4F3BA396927 /* Auth */,
+				E3DE8049F1E68FA01C1FFC08 /* Compare */,
+				0A6E1CB8C33351A60CAD7ABF /* Directory */,
+				371346F5CFB782E2E063DF1E /* Doctors */,
+				62FE981741A9D9C7F4B0B5EB /* Find */,
+				E698A0E848483B8E479CC877 /* Home */,
+				9DD64AFE86ADB3FF389DFA37 /* Models */,
+				658323478EF39E912E2C4CC1 /* Resources */,
+				3079B527D632D53EAD6D5E4A /* Services */,
+				9DD56161DD5BF7F474CA55EC /* Strain */,
+				85036C9AC218CE41E0885E9A /* Theme */,
 			);
 			path = StrainEase;
 			sourceTree = "<group>";
 		};
-		A1B0CA0A235CE64ACAD6D3FD /* Account */ = {
+		4C07F351A0DFA4F3BA396927 /* Auth */ = {
 			isa = PBXGroup;
 			children = (
-				CF6453489643321FAC8E130F /* AccountView.swift */,
-				A408909E10D3882449C9D57D /* ReliefHistoryView.swift */,
-				F95D52DDAE2D32C310B02B37 /* ResearchHistoryView.swift */,
-				588C389D8B89AEC25782558D /* SavedAilmentsCard.swift */,
-				F7AFEA6605071EE9A9DCD74E /* SavedMedicationsCard.swift */,
-				1946B1C8E418A237324A9C0E /* SavedStrainsView.swift */,
+				61875CB7A206EE1BB3B5C792 /* AuthSession.swift */,
+				B8B5B6F8D63BC6DB63870635 /* SignInView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		53545091E895884A2DC11251 /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				719373E37B4F3B019CF5EE80 /* AccountView.swift */,
+				A8E19C7E33E227D0EF7E49F2 /* ReliefHistoryView.swift */,
+				053157392C5DFFE9E6D0B84D /* ResearchHistoryView.swift */,
+				2FBA9F2DA24E3238FC0120D8 /* SavedAilmentsCard.swift */,
+				DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */,
+				6B1BA91D2E7438F55F48388D /* SavedStrainsView.swift */,
 			);
 			path = Account;
 			sourceTree = "<group>";
 		};
-		A6FF20161FB6D32F32A307D3 /* StrainEaseTests */ = {
+		62FE981741A9D9C7F4B0B5EB /* Find */ = {
 			isa = PBXGroup;
 			children = (
-				EDF5A1302C7C3EBC3626C233 /* CompareSelectionStoreTests.swift */,
-				5D58596872C36B0B71B8273B /* StrainEaseTests.swift */,
+				81E75551C008AEA069E59362 /* FindModel.swift */,
+				E47E2787F643CB812402CC1B /* FindView.swift */,
 			);
-			path = StrainEaseTests;
+			path = Find;
 			sourceTree = "<group>";
 		};
-		BBF05652C1DA53EA0B8EBA62 /* Resources */ = {
+		658323478EF39E912E2C4CC1 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				6D1D2CBF28E9A81F7C08E37A /* strain-directory.json */,
+				4CF7A84934E747FCDF100987 /* strain-directory.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		C4B4A013F11A481D590892B5 /* Theme */ = {
+		85036C9AC218CE41E0885E9A /* Theme */ = {
 			isa = PBXGroup;
 			children = (
-				BD6BED43C81ED4D1C4CB2E4E /* Components.swift */,
-				27B1646A9054529E30CC001E /* MeshBackground.swift */,
-				3A7E38AF8F50FF72D930FB1B /* Palette.swift */,
+				4E61024D2F69C6FE20A2B5C1 /* Components.swift */,
+				AED345F3CFEEB4580F6C89E3 /* MeshBackground.swift */,
+				C19AE37513363125582CB69B /* Palette.swift */,
 			);
 			path = Theme;
 			sourceTree = "<group>";
 		};
-		C62ABFF8192D177265CBEB87 /* Compare */ = {
+		9DD56161DD5BF7F474CA55EC /* Strain */ = {
 			isa = PBXGroup;
 			children = (
-				B84430746200D0FD46A17AC9 /* CompareResultsView.swift */,
-				6FE12866D738D41961C6AD59 /* CompareSelectionStore.swift */,
-				E80ACF028868D9EBB332435A /* CompareToggleButton.swift */,
-				C8CBFC05DEA0F20DC008328A /* CompareTrayBar.swift */,
-				251AAE4166390BB5D4F58D0A /* RedditThreadsView.swift */,
+				1ECF081715875F995ACA498B /* NoteBadge.swift */,
+				5B20BA017AD7D61E5E149923 /* ReliefLogForm.swift */,
+				3EFA17F0F1A175C4E58C3A58 /* SharedNotesView.swift */,
+				7BA9260DE0FFE6267E937E1A /* ShopLinksView.swift */,
+				5D098106AAA5573A2FF065B5 /* StrainDetailView.swift */,
+				C809CF642413F3D53A622162 /* StrainHydration.swift */,
+				7819115AFCD2DD9763440358 /* StrainMeaning.swift */,
+				1B081DF2959AB0E179292722 /* TerpeneDetailView.swift */,
+				8BF071D01B0F4841408D9AEE /* TerpeneProfile.swift */,
+				800987791E1F518D554E62E9 /* TriedNotesView.swift */,
+			);
+			path = Strain;
+			sourceTree = "<group>";
+		};
+		9DD64AFE86ADB3FF389DFA37 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				32C2507C3625C8F13CD229C5 /* DoctorModels.swift */,
+				B674437957FDA4DED6E541FD /* StrainCatalog.swift */,
+				EF44B432B1D8D6241B90918C /* StrainModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		BD967017EFEFCE5697DC848D /* StrainEaseTests */ = {
+			isa = PBXGroup;
+			children = (
+				D668CCEBCE155C0EEC7D2278 /* AgeVerificationStoreTests.swift */,
+				B43D446749B1FCC07DD3B881 /* CompareSelectionStoreTests.swift */,
+				F9F47FC9A29B772C77E176A3 /* StrainEaseTests.swift */,
+			);
+			path = StrainEaseTests;
+			sourceTree = "<group>";
+		};
+		C23F8E15F1C68A76344C2C9E /* App */ = {
+			isa = PBXGroup;
+			children = (
+				4DB555711154F6F8A10B4D57 /* AgeGateView.swift */,
+				25F47622037366802A741794 /* AppNavigation.swift */,
+				B0D707FED754B3084F471E94 /* MainTabView.swift */,
+				4CAB5FE33BEF277ACDD624F8 /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		D06FAEB7E2B808BEF75316FB = {
+			isa = PBXGroup;
+			children = (
+				3C5EC9C88E82F419D832F9B9 /* StrainEase */,
+				BD967017EFEFCE5697DC848D /* StrainEaseTests */,
+				2E5195DAE352F21D50C226A7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E3DE8049F1E68FA01C1FFC08 /* Compare */ = {
+			isa = PBXGroup;
+			children = (
+				DF98E803F69C77F3170B2697 /* CompareResultsView.swift */,
+				F5B020FE53FDE8A2FB99CDFB /* CompareSelectionStore.swift */,
+				768082826A2B68D9AC1CD490 /* CompareToggleButton.swift */,
+				AF07512E648F1012EF33C227 /* CompareTrayBar.swift */,
+				65979D7D0365186077E51DD4 /* RedditThreadsView.swift */,
 			);
 			path = Compare;
+			sourceTree = "<group>";
+		};
+		E698A0E848483B8E479CC877 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				7D0417DA2001497AE57D0920 /* AilmentCarousel.swift */,
+				EE19BA04421C76E0AB3BE881 /* HomeHeadline.swift */,
+				7A078B2554B7AADEFFC69D19 /* HomeModel.swift */,
+				4340CAFEFBB8F469A7BBE142 /* HomeView.swift */,
+				9BDF10B70191C0BD228EBA60 /* StrainGridView.swift */,
+				E1B0426629D56FCDD5AB455F /* StrainPoster.swift */,
+			);
+			path = Home;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D02892193B13C1EFC32F00AE /* StrainEaseTests */ = {
+		2392038A0A2438F65A1095CE /* StrainEaseTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 468635F4FB427297847C5657 /* Build configuration list for PBXNativeTarget "StrainEaseTests" */;
+			buildConfigurationList = 2B359DF5EF2FE6D339EA96AA /* Build configuration list for PBXNativeTarget "StrainEaseTests" */;
 			buildPhases = (
-				4DFFDA5671057544CFE4815D /* Sources */,
+				FD908C94646140716A6B9E1E /* Sources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				3B8BC4E8BD4DF2C29150B853 /* PBXTargetDependency */,
+				181DE4EE4DE9E4AAD3E008E3 /* PBXTargetDependency */,
 			);
 			name = StrainEaseTests;
 			packageProductDependencies = (
 			);
 			productName = StrainEaseTests;
-			productReference = D20E828C1589484B8E4813CC /* StrainEaseTests.xctest */;
+			productReference = 7654C7DB91529B0072BA52A8 /* StrainEaseTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		FA75B59FE392451781BFC80C /* StrainEase */ = {
+		29817B9F9749F8A7AA74546E /* StrainEase */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1BFF6F528D12BF21C6831399 /* Build configuration list for PBXNativeTarget "StrainEase" */;
+			buildConfigurationList = 54BB8BAA018C87BC42494DE9 /* Build configuration list for PBXNativeTarget "StrainEase" */;
 			buildPhases = (
-				D9DAFB90FA8CFBBD78BE0CB5 /* Sources */,
-				E6FC5358DA1B8EEF6B50D251 /* Resources */,
-				6ED64E69DAB4C900FF880D35 /* Frameworks */,
+				63F311A1AED3C7962671EA7E /* Sources */,
+				6E6D7D7B242D8B806A7F0FC5 /* Resources */,
+				DEFC84A5F0FD34F5B6460AE2 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -413,159 +416,160 @@
 			);
 			name = StrainEase;
 			packageProductDependencies = (
-				38DBE4EA04AC5FD23A40636A /* FirebaseAuth */,
-				557CE11C9808D248C14F797E /* FirebaseFirestore */,
-				A538477A9E8CEFA4C6479CB4 /* FirebaseFunctions */,
-				B03B3877011371001498845F /* GoogleSignIn */,
+				4773FC168C285137690A19EC /* FirebaseAuth */,
+				06D21BCCB301293CF92F6A06 /* FirebaseFirestore */,
+				B753437C0905F74D8A03BC81 /* FirebaseFunctions */,
+				5F34F1004D1F4B48A4AA1E2B /* GoogleSignIn */,
 			);
 			productName = StrainEase;
-			productReference = F7B28257163F5F4871E8A258 /* StrainEase.app */;
+			productReference = EDAFAF4D17507D307C70F65C /* StrainEase.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		2D39A668C4FE4817D0F61B6D /* Project object */ = {
+		70664B279A55FADD32DEBEB9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					D02892193B13C1EFC32F00AE = {
+					2392038A0A2438F65A1095CE = {
 						DevelopmentTeam = 4JBMBNGPK7;
 					};
-					FA75B59FE392451781BFC80C = {
+					29817B9F9749F8A7AA74546E = {
 						DevelopmentTeam = 4JBMBNGPK7;
 						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 5410D4249E27DE85FE56320A /* Build configuration list for PBXProject "StrainEase" */;
+			buildConfigurationList = 0B2FF9B16D93B7A66D5C56DB /* Build configuration list for PBXProject "StrainEase" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
 				en,
 			);
-			mainGroup = 7128DE2B4208D1D6103B498E;
+			mainGroup = D06FAEB7E2B808BEF75316FB;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				2288FED7B0573B25467DA5E4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
-				2F3EBFD5C9CB789E5A01DA58 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				EE14233DCFDFA8C394A27890 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				07008C30CE0A5674B285FEC2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 5AA1BB82BC13BA142CA921EB /* Products */;
+			productRefGroup = 2E5195DAE352F21D50C226A7 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FA75B59FE392451781BFC80C /* StrainEase */,
-				D02892193B13C1EFC32F00AE /* StrainEaseTests */,
+				29817B9F9749F8A7AA74546E /* StrainEase */,
+				2392038A0A2438F65A1095CE /* StrainEaseTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		E6FC5358DA1B8EEF6B50D251 /* Resources */ = {
+		6E6D7D7B242D8B806A7F0FC5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2E471769498EEA1A6FFF5C5A /* Assets.xcassets in Resources */,
-				621493CE6C3754302F942C5E /* GoogleService-Info.plist in Resources */,
-				62C0D5C73AD25A325928159F /* strain-directory.json in Resources */,
+				72A7E2127ADD11DF7EFD64F6 /* Assets.xcassets in Resources */,
+				02541CD666717F22B5684C05 /* GoogleService-Info.plist in Resources */,
+				E6CE74CE62E98AD6A51F43C8 /* strain-directory.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		4DFFDA5671057544CFE4815D /* Sources */ = {
+		63F311A1AED3C7962671EA7E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03398FC904CDD3E2EAA06A46 /* CompareSelectionStoreTests.swift in Sources */,
-				8821927B929F07592A4871F8 /* StrainEaseTests.swift in Sources */,
+				86416C908A16BF85DB729412 /* AccountView.swift in Sources */,
+				6FCB1E737742C825F6DB97A9 /* AgeGateView.swift in Sources */,
+				450F165B97AFC13929E28A22 /* AgeVerificationStore.swift in Sources */,
+				B33628F312A7D91C09D6EB09 /* AilmentCarousel.swift in Sources */,
+				7F2E1EE47981663282EA6C9B /* AppNavigation.swift in Sources */,
+				F719AA97E503903480E43787 /* AuthSession.swift in Sources */,
+				1BBD44262ED380C7D12ADA5A /* CompareResultsView.swift in Sources */,
+				C1BD9E03A802EF81212B5527 /* CompareSelectionStore.swift in Sources */,
+				E5BAB8E32F6225C018A80E87 /* CompareToggleButton.swift in Sources */,
+				8748D45E269034A732A000C7 /* CompareTrayBar.swift in Sources */,
+				7680F372343D06DCA0AE6014 /* Components.swift in Sources */,
+				0C49B25F493F46EEBEEAB06D /* DirectoryFilter.swift in Sources */,
+				AD0EBD7FEF01923D1BB4FBAE /* DirectoryModel.swift in Sources */,
+				4FEF8A9D41415449EBE5E795 /* DirectoryView.swift in Sources */,
+				407BD5F6A05F5793D8267D31 /* DoctorModels.swift in Sources */,
+				8AE3C073ED9B8F7BA0D76E9A /* DoctorsModel.swift in Sources */,
+				40F78819BDD6644E28554D04 /* DoctorsView.swift in Sources */,
+				2C28C617F995935E04D83BC3 /* FindModel.swift in Sources */,
+				72D37CAAC930C993C289935D /* FindView.swift in Sources */,
+				CD71D52017BF06CD200BFA9B /* FirebaseBootstrap.swift in Sources */,
+				C57B04AC793C259F99E52E30 /* HomeHeadline.swift in Sources */,
+				E44B53DC77F5FC62D2A195D4 /* HomeModel.swift in Sources */,
+				B4420F253D641CC17E6A7301 /* HomeView.swift in Sources */,
+				CACD61394A1D12B8E66DD4F9 /* LocationProvider.swift in Sources */,
+				3F0381DB4D6020781EA68899 /* MainTabView.swift in Sources */,
+				33A734AB97EAAF307F80626D /* MeshBackground.swift in Sources */,
+				D4C65477D64D159898BD24BC /* NoteBadge.swift in Sources */,
+				4DCAF1ABD8695FB588743763 /* Palette.swift in Sources */,
+				E6D3A9F093B003A0E34EAC27 /* PreviewData.swift in Sources */,
+				02629B2D89231EE691F803A2 /* PublicNotesStore.swift in Sources */,
+				C618CE8371FA0A4A2076978E /* RecentlyViewedStore.swift in Sources */,
+				83EA73A892B8C6B26CEECC0A /* RedditThreadsView.swift in Sources */,
+				FE9E7A963A0F26EF834106E0 /* ReliefHistoryView.swift in Sources */,
+				C0033EAE6EF91871F9227374 /* ReliefLogForm.swift in Sources */,
+				0809C1FC088C27503106BEB5 /* ReliefLogStore.swift in Sources */,
+				4DA010E98DCB40DB10413B6A /* ResearchHistoryStore.swift in Sources */,
+				A7A84C0DD94085FDE3CDEAB8 /* ResearchHistoryView.swift in Sources */,
+				C5BEB0A36874732AC1B1C48A /* RootView.swift in Sources */,
+				83AA03F3CD07EA1470D50114 /* SavedAilmentsCard.swift in Sources */,
+				2D40562447C869416F434CE3 /* SavedAilmentsStore.swift in Sources */,
+				57CE374D4C206D84FBD2683A /* SavedMedicationsCard.swift in Sources */,
+				518E52AF5D6C47DDE5C38D4F /* SavedMedicationsStore.swift in Sources */,
+				77B51DD8666BAD58599631C1 /* SavedStrainsStore.swift in Sources */,
+				AF4DA0F5D436F2B435F7A630 /* SavedStrainsView.swift in Sources */,
+				C493DBE22FB7744912D4ED0C /* SharedNotesView.swift in Sources */,
+				C871DAE6896A49E335358ABD /* ShopLinksView.swift in Sources */,
+				EF79B8B38CFF3FF648DD7135 /* SignInView.swift in Sources */,
+				988C243EA2833F9D93C99BDC /* StrainAPI.swift in Sources */,
+				3B1B0455CF4A02409D06013E /* StrainCatalog.swift in Sources */,
+				53245EDF4EFA59E577A6A2C5 /* StrainDetailView.swift in Sources */,
+				7A322B759D93F9D1C6613BC7 /* StrainEaseApp.swift in Sources */,
+				7A8309E8EA8D0E2364DEB179 /* StrainGridView.swift in Sources */,
+				EE29BB0AA33CA2A10820BD52 /* StrainHydration.swift in Sources */,
+				798AC0D7B44AEDD84F79CC04 /* StrainImageCache.swift in Sources */,
+				B7890C9AB5534D13D624C6E4 /* StrainMeaning.swift in Sources */,
+				5C92B2D277E6C8FE7B1F452F /* StrainModels.swift in Sources */,
+				B9F1AFFCE4FBD63D548C1478 /* StrainPoster.swift in Sources */,
+				9CDBE29279D53E725FD1B821 /* TerpeneDetailView.swift in Sources */,
+				C79044ADF49937D5F8AA7ED7 /* TerpeneProfile.swift in Sources */,
+				81A40AD53D72F540C5802A81 /* TriedNotesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		D9DAFB90FA8CFBBD78BE0CB5 /* Sources */ = {
+		FD908C94646140716A6B9E1E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFFA771005C3F680E105CAFE /* AgeGateView.swift in Sources */,
-				610139466D6596BEA6F02CC3 /* AgeVerificationStore.swift in Sources */,
-				740F7B1DEF6572CBAE3740DA /* AccountView.swift in Sources */,
-				4B932F74C53ECE955B23C421 /* AilmentCarousel.swift in Sources */,
-				DC6D7D753FF645F6AC922703 /* AppNavigation.swift in Sources */,
-				CD1D7CF23DE96B39F4092DA7 /* AuthSession.swift in Sources */,
-				5BC43EDC48AB6C4AA1E4E84B /* CompareResultsView.swift in Sources */,
-				8D86BCA471979175EFFA9706 /* CompareSelectionStore.swift in Sources */,
-				A577206F3AD92209F790AF49 /* CompareToggleButton.swift in Sources */,
-				B44294E5B194FC72267A2752 /* CompareTrayBar.swift in Sources */,
-				071D717363A31C87D73A925E /* Components.swift in Sources */,
-				FB7C9AC2A0814B06583CD199 /* DirectoryFilter.swift in Sources */,
-				F1E6FBE440207924E62722D4 /* DirectoryModel.swift in Sources */,
-				C04A68FF9F85D3D68D705533 /* DirectoryView.swift in Sources */,
-				FBB6D3CDF950D6520A521710 /* DoctorModels.swift in Sources */,
-				D80FAD18B1A5A8E54B6B1A7D /* DoctorsModel.swift in Sources */,
-				D37F34A0B7B1F85EC0E98069 /* DoctorsView.swift in Sources */,
-				461ECD90C1B3858D41D2AC2F /* FindModel.swift in Sources */,
-				C87344DCC2E9E1AF323DB6EE /* FindView.swift in Sources */,
-				633BD06F38FBD9F2AF25952A /* FirebaseBootstrap.swift in Sources */,
-				0B88F0376275DD571928F7C7 /* HomeHeadline.swift in Sources */,
-				97C18BC73D5AFBAEF7CD2413 /* HomeModel.swift in Sources */,
-				05FEFEC4EFA4AF4416DF0514 /* HomeView.swift in Sources */,
-				CE080395A96906E4FB258A95 /* LocationProvider.swift in Sources */,
-				F9D327C95F3A4FB2EEFC1BD0 /* MainTabView.swift in Sources */,
-				465BEB9E82732E2902791986 /* MeshBackground.swift in Sources */,
-				80CBF96AB4C7D7FEC580712A /* NoteBadge.swift in Sources */,
-				311EFD014FE938AF277B28E9 /* Palette.swift in Sources */,
-				35447C27AB56EA978EFEF102 /* PreviewData.swift in Sources */,
-				8053DBA5884A96D65B056F36 /* PublicNotesStore.swift in Sources */,
-				D9FEAB10B10430051A433189 /* RecentlyViewedStore.swift in Sources */,
-				57610654429509C2BE3C6771 /* RedditThreadsView.swift in Sources */,
-				74FC6536E1E7475A1589D942 /* ReliefHistoryView.swift in Sources */,
-				9AB210BAB6C430188D3CAB77 /* ReliefLogForm.swift in Sources */,
-				C67055E982F2DF73222A84A8 /* ReliefLogStore.swift in Sources */,
-				871662B9AD4A6CB7B07A9694 /* ResearchHistoryStore.swift in Sources */,
-				9C5FF09AE0446A228A3AA300 /* ResearchHistoryView.swift in Sources */,
-				6095DCC80D3B11AC0277C9C7 /* RootView.swift in Sources */,
-				E539D86FFDA3BE00A7831007 /* SavedAilmentsCard.swift in Sources */,
-				DDE5AAACC2608D2827D101F0 /* SavedAilmentsStore.swift in Sources */,
-				05965109EFB38224CDBE87E0 /* SavedMedicationsCard.swift in Sources */,
-				B659E96C5C64CC22AAEC5D3C /* SavedMedicationsStore.swift in Sources */,
-				6226B4D380E3C3ED3A855843 /* SavedStrainsStore.swift in Sources */,
-				3FEFF8C3F117480B676C9144 /* SavedStrainsView.swift in Sources */,
-				DD661EA51CEB53C4F1ECBEF5 /* SharedNotesView.swift in Sources */,
-				039911BC1CC6BE4156078629 /* ShopLinksView.swift in Sources */,
-				5B82EA188A2606CC5FC5C9CE /* SignInView.swift in Sources */,
-				A1FD1525D190F0D89947142C /* StrainAPI.swift in Sources */,
-				B0AE5C7E0C5A40C7C2D5F4E0 /* StrainImageCache.swift in Sources */,
-				A49771561CE42BA02A3F04D5 /* StrainCatalog.swift in Sources */,
-				18B989E0B5738E7F706ADEBD /* StrainDetailView.swift in Sources */,
-				ABE89A91398C06A7CF67EC69 /* StrainGridView.swift in Sources */,
-				95011B8D7AFDF3614B841F77 /* StrainHydration.swift in Sources */,
-				AA49FDAE50FA0663EF005E3A /* StrainMeaning.swift in Sources */,
-				6C725C28B553AEA147616C9D /* StrainModels.swift in Sources */,
-				CA9ED57AB2EECA8D8E5033BD /* StrainPoster.swift in Sources */,
-				2EE1AB2C26823B1AFDD93FE0 /* StrainEaseApp.swift in Sources */,
-				8E899AD1A7DBC506E565B886 /* TerpeneDetailView.swift in Sources */,
-				965177C6D075CE69F0BAEC0A /* TerpeneProfile.swift in Sources */,
-				B6CB1C666E93E807D5187575 /* TriedNotesView.swift in Sources */,
+				6007418917D701424C25AA68 /* AgeVerificationStoreTests.swift in Sources */,
+				731887FD36CB1357B7F6F3CB /* CompareSelectionStoreTests.swift in Sources */,
+				FDFDA06400E36B4D4331A23B /* StrainEaseTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		3B8BC4E8BD4DF2C29150B853 /* PBXTargetDependency */ = {
+		181DE4EE4DE9E4AAD3E008E3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = FA75B59FE392451781BFC80C /* StrainEase */;
-			targetProxy = 3033EF85CFB200BF9809DF1D /* PBXContainerItemProxy */;
+			target = 29817B9F9749F8A7AA74546E /* StrainEase */;
+			targetProxy = 275232E2F0BC7E2A75BCBC22 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		057ECDA8F076191F26A66286 /* Release */ = {
+		14300D180FDBFFC6EB09D0A1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -577,14 +581,33 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = ai.strainease.app.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.strainease.ios.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StrainEase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StrainEase";
+			};
+			name = Debug;
+		};
+		15E571869EA353BBFBA7D560 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 4JBMBNGPK7;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ai.strainease.ios.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StrainEase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StrainEase";
 			};
 			name = Release;
 		};
-		18D2136D1359BFDEC92E0028 /* Debug */ = {
+		230BA4D4F3866EED99B28E7D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -598,7 +621,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = ai.strainease.app;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.strainease.ios;
 				PRODUCT_NAME = StrainEase;
 				SDKROOT = iphoneos;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -606,28 +629,9 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
-			name = Debug;
+			name = Release;
 		};
-		6ADC1385ADC950747D66D4A8 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = 4JBMBNGPK7;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = ai.strainease.app.tests;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StrainEase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StrainEase";
-			};
-			name = Debug;
-		};
-		82F7B83BB2B20D1DBAF1F730 /* Release */ = {
+		27CE36C4A6562B10A60B7473 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -641,7 +645,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = ai.strainease.app;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.strainease.ios;
 				PRODUCT_NAME = StrainEase;
 				SDKROOT = iphoneos;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -649,9 +653,9 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
-			name = Release;
+			name = Debug;
 		};
-		DCF2DBB4CDC3D9D4E46397E1 /* Release */ = {
+		3E0A666EF659C70B3CA2682D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -710,7 +714,7 @@
 			};
 			name = Release;
 		};
-		EF76EE88306B5966BBBA343D /* Debug */ = {
+		5521E57E7461CFEC62C37A0E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -779,29 +783,29 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1BFF6F528D12BF21C6831399 /* Build configuration list for PBXNativeTarget "StrainEase" */ = {
+		0B2FF9B16D93B7A66D5C56DB /* Build configuration list for PBXProject "StrainEase" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				18D2136D1359BFDEC92E0028 /* Debug */,
-				82F7B83BB2B20D1DBAF1F730 /* Release */,
+				5521E57E7461CFEC62C37A0E /* Debug */,
+				3E0A666EF659C70B3CA2682D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		468635F4FB427297847C5657 /* Build configuration list for PBXNativeTarget "StrainEaseTests" */ = {
+		2B359DF5EF2FE6D339EA96AA /* Build configuration list for PBXNativeTarget "StrainEaseTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6ADC1385ADC950747D66D4A8 /* Debug */,
-				057ECDA8F076191F26A66286 /* Release */,
+				14300D180FDBFFC6EB09D0A1 /* Debug */,
+				15E571869EA353BBFBA7D560 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		5410D4249E27DE85FE56320A /* Build configuration list for PBXProject "StrainEase" */ = {
+		54BB8BAA018C87BC42494DE9 /* Build configuration list for PBXNativeTarget "StrainEase" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				EF76EE88306B5966BBBA343D /* Debug */,
-				DCF2DBB4CDC3D9D4E46397E1 /* Release */,
+				27CE36C4A6562B10A60B7473 /* Debug */,
+				230BA4D4F3866EED99B28E7D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -809,15 +813,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		2288FED7B0573B25467DA5E4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 8.0.0;
-			};
-		};
-		2F3EBFD5C9CB789E5A01DA58 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+		07008C30CE0A5674B285FEC2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
@@ -825,30 +821,38 @@
 				minimumVersion = 11.12.0;
 			};
 		};
+		EE14233DCFDFA8C394A27890 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		38DBE4EA04AC5FD23A40636A /* FirebaseAuth */ = {
+		06D21BCCB301293CF92F6A06 /* FirebaseFirestore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 2F3EBFD5C9CB789E5A01DA58 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		557CE11C9808D248C14F797E /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2F3EBFD5C9CB789E5A01DA58 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = 07008C30CE0A5674B285FEC2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
 		};
-		A538477A9E8CEFA4C6479CB4 /* FirebaseFunctions */ = {
+		4773FC168C285137690A19EC /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 2F3EBFD5C9CB789E5A01DA58 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFunctions;
+			package = 07008C30CE0A5674B285FEC2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
 		};
-		B03B3877011371001498845F /* GoogleSignIn */ = {
+		5F34F1004D1F4B48A4AA1E2B /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 2288FED7B0573B25467DA5E4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			package = EE14233DCFDFA8C394A27890 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		B753437C0905F74D8A03BC81 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 07008C30CE0A5674B285FEC2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 2D39A668C4FE4817D0F61B6D /* Project object */;
+	rootObject = 70664B279A55FADD32DEBEB9 /* Project object */;
 }

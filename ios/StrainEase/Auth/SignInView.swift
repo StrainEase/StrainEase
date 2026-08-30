@@ -55,6 +55,7 @@ struct SignInView: View {
                 .scaledToFit()
                 .frame(width: 56, height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: Palette.primary.opacity(0.25), radius: 8, y: 2)
             Eyebrow(text: "StrainEase")
             Text(mode.title)
                 .font(.system(.largeTitle, design: .serif).weight(.regular))

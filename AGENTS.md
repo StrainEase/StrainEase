@@ -292,8 +292,10 @@ as much as Compose allows):
   for image loading, DataStore for local preferences, kotlinx-serialization
   for `strain-directory.json`. No Hilt — manual DI keeps the surface
   small and matches the iOS pattern of `@State` + `@Environment`.
-- **Bundle id:** `ai.strainease.app` — same identifier iOS uses,
-  so Firebase Auth + Firestore user records are shared.
+- **Bundle id:** `ai.strainease.app` — the Android and web clients
+  share this identifier so Firebase Auth + Firestore user records are
+  shared. (The iOS app uses `ai.strainease.ios` — registered separately
+  in the Firebase project — so it does not need to be listed there.)
 - **minSdk 26, target/compile SDK 34** — same effective coverage as
   the iOS app's iOS 17 floor.
 - **Package layout:** `ai.strainease.app.{services,ui.theme,ui.components,ui.home,ui.find,ui.browse,ui.compare,ui.account,ui.doctors,ui.strain,auth,compliance,data,models}`
