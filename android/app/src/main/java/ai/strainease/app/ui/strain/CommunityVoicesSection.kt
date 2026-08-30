@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Divider
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
@@ -111,13 +114,27 @@ fun CommunityVoicesSection(
     ) {
         SectionLabel(title = "Community voices")
 
-        // One rating card per available source. Stacked vertically —
-        // 1 source = 1 card, 2 = 2, 3 = 3. Each card carries the
-        // source name as a small eyebrow so the 4.5★ / 4.2★ / 4.6★
-        // numbers never get misattributed.
+        // Rating cards — Leafly + Allbud are merged into a single
+        // two-column card when both exist; other sources keep their own.
         if (ratings.isNotEmpty()) {
+            val leafly = ratings.firstOrNull { it.source == "Leafly" }
+            val allbud = ratings.firstOrNull { it.source == "Allbud" }
+            val others = ratings.filter { it.source != "Leafly" && it.source != "Allbud" }
+
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                ratings.forEach { rating ->
+                if (leafly != null && allbud != null) {
+                    LeaflyAllbudRatingCard(
+                        leaflyStars = leafly.stars,
+                        leaflyCount = leafly.reviewCount,
+                        allbudStars = allbud.stars,
+                        allbudCount = allbud.reviewCount,
+                    )
+                } else if (leafly != null) {
+                    SourceRatingCard(rating = leafly)
+                } else if (allbud != null) {
+                    SourceRatingCard(rating = allbud)
+                }
+                others.forEach { rating ->
                     SourceRatingCard(rating = rating)
                 }
             }
@@ -262,24 +279,7 @@ private fun SourceRatingCard(rating: SourceRating) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Five star icons, filled/half/empty based on the rating.
-            // (We always show 5; the half-filled icon is reserved for
-            // the future when we add star-rating granularity finer than
-            // 0.1 — matches the iOS / web SourceRatingCard for now.)
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                for (i in 0 until 5) {
-                    val fill = min(1.0, max(0.0, rating.stars - i))
-                    Icon(
-                        imageVector = Icons.Filled.Star,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    // Drop the half-fill on the floor for now — the
-                    // current scrapers only emit 0.1-rounded numbers.
-                    @Suppress("UNUSED_VARIABLE") fill
-                }
-            }
+            StarStrip(value = rating.stars)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -310,6 +310,122 @@ private fun SourceRatingCard(rating: SourceRating) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StarStrip(value: Double) {
+    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        for (i in 0 until 5) {
+            Icon(
+                imageVector = Icons.Filled.Star,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LeaflyAllbudRatingCard(
+    leaflyStars: Double,
+    leaflyCount: Int?,
+    allbudStars: Double,
+    allbudCount: Int?,
+) {
+    val dividerColor = MaterialTheme.colorScheme.outline
+    SWCard {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // Two-column grid
+            Row(modifier = Modifier.fillMaxWidth()) {
+                // Leafly column
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = "Leafly",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            letterSpacing = 1.2.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    StarStrip(value = leaflyStars)
+                    Text(
+                        text = "%.1f".format(leaflyStars),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Divider(
+                        color = dividerColor,
+                        thickness = 1.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = "${leaflyCount?.let { "%,d".format(it) } ?: "0"} reviews",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                // Vertical divider between columns
+                Divider(
+                    color = dividerColor,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .height(60.dp)
+                        .width(1.dp),
+                )
+
+                // Allbud column
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = "Allbud",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            letterSpacing = 1.2.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    StarStrip(value = allbudStars)
+                    Text(
+                        text = "%.1f".format(allbudStars),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Divider(
+                        color = dividerColor,
+                        thickness = 1.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = "${allbudCount?.let { "%,d".format(it) } ?: "0"} reviews",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

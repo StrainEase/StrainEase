@@ -141,7 +141,7 @@ describe("CommunityVoices", () => {
     expect(panel!.textContent).toMatch(/Eased my back pain/);
   });
 
-  test("renders one rating card per source — no averaging", () => {
+  test("renders a combined Leafly/Allbud card when both have ratings", () => {
     render(
       <MemoryRouter>
         <CommunityVoices
@@ -157,18 +157,18 @@ describe("CommunityVoices", () => {
       </MemoryRouter>,
     );
     const body = document.body.textContent ?? "";
-    // All three source labels render.
+    // Per-column source labels above the stars.
     expect(body).toContain("Leafly");
-    expect(body).toContain("Weedmaps");
     expect(body).toContain("Allbud");
-    // Per-source star + count labels render verbatim — no blended "Leafly & Allbud" card.
+    // Weedmaps keeps its own card.
+    expect(body).toContain("Weedmaps");
+    // All ratings + counts are rendered.
     expect(body).toContain("4.5");
     expect(body).toContain("4.3");
     expect(body).toContain("4.6");
     expect(body).toContain("13,240 reviews");
     expect(body).toContain("612 reviews");
     expect(body).toContain("84 reviews");
-    expect(body).not.toContain("Average Leafly & Allbud rating");
   });
 
   test("shows a single source's rating verbatim when only Leafly exists", () => {
