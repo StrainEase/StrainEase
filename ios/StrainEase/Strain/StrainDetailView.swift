@@ -837,15 +837,14 @@ private struct LeaflyAllbudRatingCard: View {
     var body: some View {
         SWCard {
             VStack(spacing: 10) {
-                Text("Leafly / Allbud")
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.2)
-                    .foregroundStyle(Palette.primary)
-                    .frame(maxWidth: .infinity)
-
                 HStack(spacing: 0) {
                     // Leafly column
                     VStack(spacing: 6) {
+                        Text("Leafly")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.2)
+                            .foregroundStyle(Palette.primary)
+                            .frame(maxWidth: .infinity)
                         starStrip(value: leaflyStars)
                         Text(String(format: "%.1f", leaflyStars))
                             .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -864,6 +863,11 @@ private struct LeaflyAllbudRatingCard: View {
 
                     // Allbud column
                     VStack(spacing: 6) {
+                        Text("Allbud")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.2)
+                            .foregroundStyle(Palette.primary)
+                            .frame(maxWidth: .infinity)
                         starStrip(value: allbudStars)
                         Text(String(format: "%.1f", allbudStars))
                             .font(.system(size: 15, weight: .semibold, design: .rounded))

@@ -176,11 +176,61 @@ function capCannabisBySource(notes: QuoteNote[]): QuoteNote[] {
 }
 
 /**
+ * Leafly and Allbud star ratings merged into a single two-column
+ * card. The title "LEAFLY / ALLBUD" sits on top; each column shows
+ * the star strip, the numeric rating, a divider, and the published
+ * review count. Weedmaps keeps its own card since it doesn't pair
+ * with another source the same way.
+ */
+function LeaflyAllbudRatingCard({
+  leaflyStars,
+  leaflyCount,
+  allbudStars,
+  allbudCount,
+}: {
+  leaflyStars: number;
+  leaflyCount: number | null;
+  allbudStars: number;
+  allbudCount: number | null;
+}) {
+  return (
+    <SWCard innerClassName="px-4 py-3.5">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">Leafly</span>
+          <StarStrip value={leaflyStars} />
+          <span className="text-sm font-semibold tabular-nums">
+            {leaflyStars.toFixed(1)}
+          </span>
+          <div className="w-full border-t border-border" />
+          <span className="text-[11px] text-muted-foreground">
+            {leaflyCount !== null
+              ? `${leaflyCount.toLocaleString("en-US")} reviews`
+              : "Rating only"}
+          </span>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">Allbud</span>
+          <StarStrip value={allbudStars} />
+          <span className="text-sm font-semibold tabular-nums">
+            {allbudStars.toFixed(1)}
+          </span>
+          <div className="w-full border-t border-border" />
+          <span className="text-[11px] text-muted-foreground">
+            {allbudCount !== null
+              ? `${allbudCount.toLocaleString("en-US")} reviews`
+              : "Rating only"}
+          </span>
+        </div>
+      </div>
+    </SWCard>
+  );
+}
+
+/**
  * One rating card per source that published a star rating, in
- * SOURCE_ORDER (Leafly → Weedmaps → Allbud). Strains with all three
- * sources show 3 cards; with just one, 1. No averaging — a blended
- * count would mislead the reader about which catalog the number
- * came from.
+ * SOURCE_ORDER (Leafly → Weedmaps → Allbud). Leafly and Allbud are
+ * merged into a single two-column card; Weedmaps keeps its own card.
  */
 function RatingCards({
   leaflyRating,
@@ -197,40 +247,41 @@ function RatingCards({
   allbudRating?: number;
   allbudReviewCount?: number;
 }) {
-  const ratings: { source: string; stars: number; count: number | null }[] =
-    [];
-  if (typeof leaflyRating === "number") {
-    ratings.push({
-      source: "Leafly",
-      stars: leaflyRating,
-      count: leaflyReviewCount ?? null,
-    });
-  }
-  if (typeof weedmapsRating === "number") {
-    ratings.push({
-      source: "Weedmaps",
-      stars: weedmapsRating,
-      count: weedmapsReviewCount ?? null,
-    });
-  }
-  if (typeof allbudRating === "number") {
-    ratings.push({
-      source: "Allbud",
-      stars: allbudRating,
-      count: allbudReviewCount ?? null,
-    });
-  }
-  if (ratings.length === 0) return null;
+  const hasLeafly = typeof leaflyRating === "number";
+  const hasAllbud = typeof allbudRating === "number";
+  const hasWeedmaps = typeof weedmapsRating === "number";
+
+  if (!hasLeafly && !hasAllbud && !hasWeedmaps) return null;
+
   return (
     <div className="space-y-2">
-      {ratings.map((r) => (
-        <SourceRatingCard
-          key={r.source}
-          source={r.source}
-          stars={r.stars}
-          reviewCount={r.count}
+      {hasLeafly && hasAllbud ? (
+        <LeaflyAllbudRatingCard
+          leaflyStars={leaflyRating!}
+          leaflyCount={leaflyReviewCount ?? null}
+          allbudStars={allbudRating!}
+          allbudCount={allbudReviewCount ?? null}
         />
-      ))}
+      ) : hasLeafly ? (
+        <SourceRatingCard
+          source="Leafly"
+          stars={leaflyRating!}
+          reviewCount={leaflyReviewCount ?? null}
+        />
+      ) : hasAllbud ? (
+        <SourceRatingCard
+          source="Allbud"
+          stars={allbudRating!}
+          reviewCount={allbudReviewCount ?? null}
+        />
+      ) : null}
+      {hasWeedmaps && (
+        <SourceRatingCard
+          source="Weedmaps"
+          stars={weedmapsRating!}
+          reviewCount={weedmapsReviewCount ?? null}
+        />
+      )}
     </div>
   );
 }
