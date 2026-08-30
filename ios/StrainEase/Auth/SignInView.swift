@@ -50,7 +50,7 @@ struct SignInView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Image("AppIcon")
+            Image("AppLogo")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 56, height: 56)
