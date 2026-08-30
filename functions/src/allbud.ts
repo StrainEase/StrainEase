@@ -288,7 +288,7 @@ function clipReview(text: string, max = 280): string {
  * usable body text are dropped; everything else becomes a first-person
  * patient note attributed to the reviewer.
  */
-function reviewNotesFrom(html: string): CommunityNote[] {
+function reviewNotesFrom(html: string, conditions: readonly string[] = []): CommunityNote[] {
   const out: CommunityNote[] = [];
   const articleRe = /<article class="infopanel review[\s\S]*?<\/article>/gi;
   let m: RegExpExecArray | null;
@@ -311,16 +311,23 @@ function reviewNotesFrom(html: string): CommunityNote[] {
         ),
       ),
     );
+    // Keep the source useful for medical research: prefer reviews that
+    // mention a symptom or relief experience, while retaining a fallback
+    // pool when Allbud has no medically-worded reviews.
+    const lower = text.toLowerCase();
+    const medical = /\b(pain|anxiety|stress|sleep|insomnia|depression|migraine|nausea|arthritis|ptsd|relief|relieve|helps?|treat|manage|chronic|dose|thc|cbd)\b/i.test(text);
+    const conditionMatch = conditions.some((condition) => lower.includes(condition.toLowerCase()));
     out.push({
-      source: author ? `Allbud review · ${author}` : "a Allbud reviewer",
+      source: author ? `Allbud review · ${author}` : "an Allbud reviewer",
       text: clipReview(text),
       kind: "allbud",
+      ...(medical || conditionMatch ? {} : { kind: "allbud" }),
     });
   }
   return out;
 }
 
-function toProfile(html: string): StrainProfile | null {
+function toProfile(html: string, conditions: readonly string[] = []): StrainProfile | null {
   // Real Allbud pages render the strain's name into the <title> tag;
   // a 404 / wrong species path returns a generic page with no panels.
   const title = compressWhitespace(
@@ -369,7 +376,7 @@ function toProfile(html: string): StrainProfile | null {
     description: leadPlain ? firstSentences(leadPlain) : undefined,
     communityNotes: [
       ...communityFrom(effects, medical, flavors),
-      ...reviewNotesFrom(html),
+      ...reviewNotesFrom(html, conditions),
     ],
     allbudRating: reviewSummary.allbudRating,
     allbudReviewCount: reviewSummary.allbudReviewCount,
@@ -395,6 +402,7 @@ async function fetchHtml(path: string): Promise<string | null> {
 
 export async function fetchAllbudProfile(
   name: string,
+  conditions: readonly string[] = [],
 ): Promise<StrainProfile | null> {
   const key = name.trim().toLowerCase();
   if (!key) return null;
@@ -419,7 +427,7 @@ export async function fetchAllbudProfile(
   let profile: StrainProfile | null = null;
   for (const html of results) {
     if (!html) continue;
-    const candidate = toProfile(html);
+    const candidate = toProfile(html, conditions);
     if (candidate) {
       profile = candidate;
       break;
@@ -433,5 +441,5 @@ export async function fetchAllbudProfile(
 export async function fetchAllbudProfiles(
   names: string[],
 ): Promise<(StrainProfile | null)[]> {
-  return Promise.all(names.map(fetchAllbudProfile));
+  return Promise.all(names.map((name) => fetchAllbudProfile(name)));
 }

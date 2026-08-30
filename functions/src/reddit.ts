@@ -243,8 +243,9 @@ async function searchArcticShift(strainName: string): Promise<RawComment[]> {
     for (const c of list) {
       const body = typeof c.body === "string" ? c.body : "";
       if (!body) continue;
-      const lower = body.toLowerCase();
-      if (lower.includes(name)) collected.push(c);
+    const lower = body.toLowerCase();
+    const words = name.split(/\s+/).filter((word) => word.length > 1);
+    if (lower.includes(name) || words.every((word) => lower.includes(word))) collected.push(c);
     }
   });
   return collected;
