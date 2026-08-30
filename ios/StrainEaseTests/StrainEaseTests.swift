@@ -428,6 +428,11 @@ final class StrainEaseTests: XCTestCase {
             source: "Allbud listing",
             text: "A heavy-hitting indica known for deep relaxation."
         )
+        let allbudGeneralFact = CommunityNote(
+            source: "Allbud",
+            text: "Patients most often report: Happy, Relaxed, Euphoric.",
+            kind: "allbud"
+        )
         let allbudReview = CommunityNote(
             source: "Allbud review · DelGriffith87",
             text: "Nice relaxing indica, smooth body buzz."
@@ -437,6 +442,7 @@ final class StrainEaseTests: XCTestCase {
         XCTAssertTrue(rating.isAggregate)
         XCTAssertTrue(listing.isAggregate)
         XCTAssertTrue(allbudListing.isAggregate)
+        XCTAssertTrue(allbudGeneralFact.isAggregate)
         XCTAssertFalse(allbudReview.isAggregate)
         XCTAssertFalse(review.isAggregate)
         XCTAssertFalse(reddit.isAggregate)
