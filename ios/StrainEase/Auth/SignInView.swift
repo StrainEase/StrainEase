@@ -50,11 +50,12 @@ struct SignInView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Image("AppLogo")
+            Image("AppIcon")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 56, height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: Palette.primary.opacity(0.25), radius: 8, y: 2)
             Eyebrow(text: "StrainEase")
             Text(mode.title)
                 .font(.system(.largeTitle, design: .serif).weight(.regular))
