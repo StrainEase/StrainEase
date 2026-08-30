@@ -28,7 +28,7 @@ enum FirebaseBootstrap {
             let options = FirebaseOptions(googleAppID: googleAppID, gcmSenderID: gcmSenderID)
             options.apiKey = apiKey
             options.projectID = projectID
-            options.bundleID = Bundle.main.bundleIdentifier ?? "ai.strainease.app"
+            options.bundleID = Bundle.main.bundleIdentifier ?? "ai.strainease.ios"
             options.clientID = googleClientID
             FirebaseApp.configure(options: options)
         } else {

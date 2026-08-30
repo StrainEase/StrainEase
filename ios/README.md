@@ -16,15 +16,15 @@ Xcode 16+ / iOS 17+. Select the **StrainEase** scheme and an iPhone simulator.
 
 ## Firebase
 
-The iOS app is registered in the same Firebase project as the web client (`strainfinder-84a9b`, bundle `ai.strainease.app`). `GoogleService-Info.plist` ships in the target. **Do not** point Firebase at the web `GOOGLE_APP_ID` (`:web:`) — the iOS SDK aborts on launch.
+The iOS app is registered in the same Firebase project as the web client (`strainfinder-84a9b`, bundle `ai.strainease.ios`). `GoogleService-Info.plist` ships in the target. **Do not** point Firebase at the web `GOOGLE_APP_ID` (`:web:`) — the iOS SDK aborts on launch.
 
 Email/password works against existing accounts. For Google and Apple on a device / TestFlight:
 
 1. Authentication → Sign-in method → enable **Apple** (Google is already on).
-2. Apple Developer → Identifiers → `ai.strainease.app` → enable Sign in with Apple.
+2. Apple Developer → Identifiers → `ai.strainease.ios` → enable Sign in with Apple.
 3. If you re-download the plist, update `GIDClientID` and the reversed client URL scheme in `Info.plist` to match.
 
-Firebase Auth stores the session in the iOS Keychain. The app entitlements include **Keychain Sharing** (`$(AppIdentifierPrefix)ai.strainease.app`). If sign-in fails with a keychain error, delete the app from the simulator/device and rebuild — leftover items from a previous bundle or a missing keychain group cause `AuthErrorCode.keychainError` (17995).
+Firebase Auth stores the session in the iOS Keychain. The app entitlements include **Keychain Sharing** (`$(AppIdentifierPrefix)ai.strainease.ios`). If sign-in fails with a keychain error, delete the app from the simulator/device and rebuild — leftover items from a previous bundle or a missing keychain group cause `AuthErrorCode.keychainError` (17995).
 
 ## Regenerating
 
