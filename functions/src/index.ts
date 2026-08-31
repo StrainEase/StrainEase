@@ -33,6 +33,7 @@ import { clientIp, guestRateLimit, persistResult } from "./results";
 import type {
   RecommendationResult,
   RedditSource,
+  ReasoningEvidenceItem,
   StrainAnalysis,
   StrainComparison,
   StrainProfile,
@@ -662,17 +663,36 @@ const RECOMMEND_SYSTEM_PROMPT = `${KAYA_CORE}
 
 Task: recommend the strains most commonly reported to help with the patient's symptoms or conditions.
 - You may also suggest well-known strains NOT in the provided list, if confident they really exist and are commonly reported for these symptoms.
-- Recommend 3-5 distinct strains, ordered from best overall fit to least. Each needs: a concrete reason tied to the patient's symptoms, a note on who it suits best (e.g. daytime vs evening use, anxiety-sensitive patients), and one practical caution.
+- Recommend 3-5 distinct strains, ordered from best overall fit to least. Each needs: a concrete reason tied to the patient's symptoms, a note on who it suits best (e.g. daytime vs evening use, anxiety-sensitive patients), one practical caution, AND a "reasoning" trace so the patient can audit why you picked it.
 - Respect the potency preference when given.
 - Honor patient context when provided: time of day, form, THC sensitivity, medications (caution only — never tell them to stop a prescription), strains they already own, and anything written in their own words. Treat their own sentence as the primary intent.
 - Reddit sources: include 1-3 threads, taken ONLY from the vetted list at the bottom of the user message. Copy "url", "subreddit", and "title" verbatim; you may paraphrase "snippet" and set "score" to null. Dedupe; prefer threads matching the symptom focus. If none fit, return [] — never fabricate a URL.
+
+Reasoning trace rules (every recommendation MUST include a "reasoning" object — the patient can collapse the rest of the page and still see this):
+- "matchedConditions": the patient's conditions this strain addresses, copied from the user message (case-preserved). Empty array if the recommendation is symptom-adjacent and not a direct match.
+- "preferencesApplied": each patient context you honored for this strain, e.g. "THC-sensitive (lean toward lower-THC options)", "Time of day: night", "Owned strain noted as too strong, avoiding similar lineage", "Patient note: <verbatim short quote or paraphrase>". Empty array if no prefs applied.
+- "evidence": 2-5 short bullets grounding the pick in real data the user message provided. Each bullet is {"source": "Leafly" | "Weedmaps" | "Allbud" | "Reddit" | "Aggregated" | "Patient history", "quote": "1 sentence"}. "source" must be one of those literal values; "quote" must reference a fact actually in the user message (a Leafly effect, a Weedmaps rating, a community note, a Reddit comment, or the patient's own relief-log summary). NEVER invent a quote that isn't in the inputs. Empty array only when nothing supports the pick.
+- "considerations": 0-3 short practical cautions the patient should weigh before trying (potency, time-of-day, side-effect watch-out, drug-class note). Distinct from "caution" above, which is one short sentence; "considerations" is the full list of "what to think about".
 
 JSON shape (all fields required):
 {
   "headline": "one sentence, 18 words max, the practical takeaway",
   "summary": "2-4 sentences",
   "recommendations": [
-    {"strainName": "...", "reason": "1-2 sentences tied to the symptoms", "bestFor": "short phrase on who it suits", "caution": "one short practical caution"}
+    {
+      "strainName": "...",
+      "reason": "1-2 sentences tied to the symptoms",
+      "bestFor": "short phrase on who it suits",
+      "caution": "one short practical caution",
+      "reasoning": {
+        "matchedConditions": ["Insomnia", "Anxiety"],
+        "preferencesApplied": ["Time of day: night"],
+        "evidence": [
+          {"source": "Leafly", "quote": "Reported effects include relaxation and sleep for 78% of reviewers."}
+        ],
+        "considerations": ["Start low given the patient's THC sensitivity."]
+      }
+    }
   ],
   "redditSources": [
     {"url": "https://old.reddit.com/r/<sub>/comments/<id>/<slug>/", "subreddit": "<sub>", "title": "thread title", "snippet": "1-sentence vibe of the thread (optional)", "score": 0}
@@ -1186,9 +1206,67 @@ function normalizeRecommendations(value: unknown): StrainRecommendation[] {
       reason: typeof r.reason === "string" ? r.reason.trim() : "",
       bestFor: typeof r.bestFor === "string" ? r.bestFor.trim() : "",
       caution: typeof r.caution === "string" ? r.caution.trim() : "",
+      reasoning: normalizeReasoning(r.reasoning),
     });
   }
   return out.slice(0, 6);
+}
+
+/**
+ * Parse the model's `reasoning` block. The model emits it for every
+ * recommendation in the new prompt; older model versions and a few edge
+ * cases (e.g. JSON truncation) won't have it, in which case we return
+ * undefined and the UI hides the trace.
+ */
+function normalizeReasoning(
+  value: unknown,
+): StrainRecommendation["reasoning"] {
+  if (!value || typeof value !== "object") return undefined;
+  const r = value as Record<string, unknown>;
+  const evidenceRaw = Array.isArray(r.evidence) ? r.evidence : [];
+  const evidence: { source: ReasoningEvidenceItem["source"]; quote: string }[] = [];
+  for (const item of evidenceRaw) {
+    if (!item || typeof item !== "object") continue;
+    const i = item as Record<string, unknown>;
+    const source = i.source;
+    const quote = typeof i.quote === "string" ? i.quote.trim() : "";
+    if (quote === "") continue;
+    if (
+      source !== "Leafly" &&
+      source !== "Weedmaps" &&
+      source !== "Allbud" &&
+      source !== "Reddit" &&
+      source !== "Aggregated" &&
+      source !== "Patient history"
+    ) {
+      // Unknown source — keep the quote but tag as Aggregated so the
+      // client can still show it without inventing a label.
+      evidence.push({ source: "Aggregated", quote });
+      continue;
+    }
+    evidence.push({ source, quote });
+    if (evidence.length >= 6) break;
+  }
+  if (evidence.length === 0) return undefined;
+  return {
+    matchedConditions: clampStringList(r.matchedConditions, 8, 80),
+    preferencesApplied: clampStringList(r.preferencesApplied, 8, 120),
+    evidence,
+    considerations: clampStringList(r.considerations, 4, 200),
+  };
+}
+
+function clampStringList(value: unknown, maxItems: number, maxLen: number): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim().slice(0, maxLen);
+    if (trimmed === "") continue;
+    out.push(trimmed);
+    if (out.length >= maxItems) break;
+  }
+  return out;
 }
 
 /**
@@ -1660,16 +1738,9 @@ function withLanguageClause(base: string, language: string): string {
 }
 
 /** Exposed for tests. */
-export const __testing = {
-  normalizeDescriptionSections,
-  COMPARE_SYSTEM_PROMPT,
-  RECOMMEND_SYSTEM_PROMPT,
-  DESCRIBE_SYSTEM_PROMPT,
-  ELABORATE_SECTION_SYSTEM_PROMPT,
-  parseOutputLanguage,
-  parseElaboration,
-  withLanguageClause,
-};
+// `__testing` is re-exported at the very end of this file so the test
+// file can introspect the internal prompt + normalizer functions
+// without an export-before-declare cycle as new callables get appended.
 
 /**
  * Generate a tailored, three-section description for a single strain.
@@ -1933,6 +2004,135 @@ export const elaborateSection = onCall(
   },
 );
 
+/* ── Clinician report ────────────────────────────────────────────── */
+
+/**
+ * One short prose paragraph + a 3-bullet "consider" list that the
+ * clinician can read at a glance. Modeled after `describeStrainForUser`
+ * but scoped to the *patient* (not a strain), so the tone is closer to
+ * a chart-summary than a marketing writeup.
+ */
+export type ClinicianReportSummary = {
+  /** 2-3 short paragraphs of prose. */
+  summary: string;
+  /** 3-5 short clinical-style considerations (one per line). */
+  considerations: string[];
+};
+
+const CLINICIAN_REPORT_SYSTEM_PROMPT = `${KAYA_CORE}
+
+Task: write a concise clinical-style summary of a StrainEase patient from the structured snapshot below. The output is for a clinician (physician, NP, dispensary pharmacist) — not the patient — and will be printed on a single page.
+- Ground every claim in the supplied snapshot. Do NOT invent facts (no diagnoses, no specific THC/CBD numbers beyond what the patient logged, no medication names that are not in the list). If a field is empty, say so plainly ("no relief logs in the last 30 days").
+- Keep the prose 2-3 short paragraphs (1-3 sentences each), separated by a single blank line. No markdown, no headings, no bullet lists in the prose body.
+- "considerations" is a 3-5 line list of short, practical items the clinician may want to weigh (e.g. "Sedating profile at night, monitor next-day drowsiness", "Patient is also on Lexapro — note any additive serotonergic load with high-THC sativa"). Frame as neutral observations, not prescriptions. Never tell the clinician what to prescribe. Never advise discontinuing a medication.
+- If the patient is on medications and the patient's relief logs reference a strain class, mention any widely-cited interaction class in one line of the considerations (e.g. "benzodiazepine + sedating strain → monitor additive sedation"). When in doubt, omit.
+- Use the language clause injected at the end of this prompt.
+
+JSON shape (all fields required):
+{
+  "summary": "2-3 short paragraphs of prose, separated by a single \\n\\n",
+  "considerations": ["short practical item 1", "short practical item 2", "short practical item 3"]
+}`;
+
+/**
+ * Serialize the client-side clinician-report snapshot into a user message
+ * for the model. The snapshot is a plain JSON object; the model is
+ * explicitly told every field comes from the patient's account, never
+ * from a live scrape.
+ */
+function clinicianReportPrompt(snapshot: unknown, language: string): string {
+  return [
+    `Patient snapshot (assembled locally from the patient's StrainEase account; do not invent data outside this object):`,
+    compactJson(snapshot),
+    ``,
+    `Language clause: respond in ${language}.`,
+    ``,
+    `Write the JSON exactly as specified.`,
+  ].join("\n");
+}
+
+function normalizeClinicianReport(content: string): ClinicianReportSummary {
+  const obj = extractJsonObject(content) as {
+    summary?: unknown;
+    considerations?: unknown;
+  } | null;
+  const summary =
+    obj && typeof obj.summary === "string"
+      ? normalizeEscapedNewlines(obj.summary.trim())
+      : "";
+  const considerations =
+    obj && Array.isArray(obj.considerations)
+      ? (obj.considerations as unknown[])
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.trim())
+          .filter((x) => x !== "")
+          .slice(0, 6)
+      : [];
+  if (summary === "") {
+    return {
+      summary: "We don't have a clinical summary for this patient right now. Tap again in a moment.",
+      considerations,
+    };
+  }
+  return { summary, considerations };
+}
+
+/**
+ * Generate the prose section of the clinician report. Auth-gated: the
+ * patient must be signed in because the payload includes their saved
+ * ailments, medications, and relief log. The page calls this from a
+ * button, so we never run it on page-load (no surprise billing) and
+ * guests don't hit the rate-limited path here.
+ */
+export const clinicianReportSummary = onCall(
+  AI_OPTIONS,
+  async (request): Promise<ClinicianReportSummary> => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Sign in to generate a clinician report.",
+      );
+    }
+    const data = (request.data ?? {}) as { snapshot?: unknown; language?: unknown };
+    const language = parseOutputLanguage(data.language);
+    if (!data.snapshot || typeof data.snapshot !== "object") {
+      throw new HttpsError(
+        "invalid-argument",
+        "Provide a patient snapshot built from buildClinicianReport.",
+      );
+    }
+    const content = await callGroq(GROQ_API_KEY.value(), [
+      {
+        role: "system",
+        content: withLanguageClause(CLINICIAN_REPORT_SYSTEM_PROMPT, language),
+      },
+      {
+        role: "user",
+        content: clinicianReportPrompt(data.snapshot, language),
+      },
+    ]);
+    return normalizeClinicianReport(content);
+  },
+);
+
 /* ── Background jobs ──────────────────────────────────────────────── */
 
 export { redditCacheRefresh } from "./reddit-refresh";
+
+/* ── Test re-exports (keep last) ──────────────────────────────────── */
+
+export const __testing = {
+  normalizeDescriptionSections,
+  normalizeReasoning,
+  normalizeRecommendations,
+  normalizeClinicianReport,
+  COMPARE_SYSTEM_PROMPT,
+  RECOMMEND_SYSTEM_PROMPT,
+  DESCRIBE_SYSTEM_PROMPT,
+  ELABORATE_SECTION_SYSTEM_PROMPT,
+  CLINICIAN_REPORT_SYSTEM_PROMPT,
+  clinicianReportPrompt,
+  parseOutputLanguage,
+  parseElaboration,
+  withLanguageClause,
+};
