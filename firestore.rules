@@ -121,6 +121,53 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Daily symptom check-ins: one document per day, keyed by `YYYY-MM-DD`
+    // (the lib uses `todayKey()` to build the id). The four tracked metrics
+    // (mood, sleep, pain, anxiety) are all 1–5 integer scales. A free-form
+    // `note` is optional and capped at 1000 chars. Patients may update the
+    // same day (revise) and delete (wipe a day).
+    match /users/{uid}/checkIns/{dateId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+      function checkInPayload() {
+        return request.resource.data.keys().hasOnly([
+          'date', 'mood', 'sleep', 'pain', 'anxiety', 'note', 'createdAt', 'updatedAt',
+        ])
+          && request.resource.data.date is string
+          && request.resource.data.date.size() <= 10
+          && request.resource.data.mood is int
+          && request.resource.data.mood >= 1
+          && request.resource.data.mood <= 5
+          && request.resource.data.sleep is int
+          && request.resource.data.sleep >= 1
+          && request.resource.data.sleep <= 5
+          && request.resource.data.pain is int
+          && request.resource.data.pain >= 1
+          && request.resource.data.pain <= 5
+          && request.resource.data.anxiety is int
+          && request.resource.data.anxiety >= 1
+          && request.resource.data.anxiety <= 5
+          && request.resource.data.note is string
+          && request.resource.data.note.size() <= 1000
+          && request.resource.data.createdAt is number
+          && request.resource.data.createdAt > 0
+          && request.resource.data.updatedAt is number
+          && request.resource.data.updatedAt > 0;
+      }
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && dateId.size() > 0
+        && dateId.size() <= 10
+        && checkInPayload();
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['mood', 'sleep', 'pain', 'anxiety', 'note', 'updatedAt'])
+        && checkInPayload();
+    }
+
     // Age-verification audit log. Each user can write at most one doc per
     // region they've attested for. Server (admin SDK) is the source of truth
     // for the timestamps; client writes are rejected to keep users from
