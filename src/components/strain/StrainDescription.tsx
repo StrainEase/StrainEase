@@ -5,16 +5,16 @@ import type {
   StrainDescriptionSection,
 } from "@/lib/strain-api";
 import {
-  AskMayaButton,
-  AskMayaElaboration,
-} from "@/components/strain/AskMayaButton";
+  AskKayaButton,
+  AskKayaElaboration,
+} from "@/components/strain/AskKayaButton";
 import { SWCard } from "@/components/ui/sw-card";
 
 /**
  * Three-section, patient-tailored strain description. Each section is
  * its own card with a bolded header (matching the iOS layout — no
  * "Tailored to your symptoms" outer wrapper, no nested-card-in-card).
- * A ✨ Ask Maya button sits to the right of every section header and
+ * A ✨ Ask Kaya button sits to the right of every section header and
  * asks the AI to elaborate on that specific focus for this strain.
  *
  * Renders nothing if `description` is missing or empty — callers should
@@ -79,7 +79,7 @@ function DescriptionSection({
 
   // Keep elaboration out of the header flex row so the Hide control
   // stays beside the section title instead of wrapping onto a new line.
-  const [maya, setMaya] = useState<{
+  const [kaya, setKaya] = useState<{
     open: boolean;
     text: string | null;
     error: string | null;
@@ -87,7 +87,7 @@ function DescriptionSection({
 
   const onElaborationChange = useCallback(
     (payload: { open: boolean; text: string | null; error: string | null }) => {
-      setMaya(payload);
+      setKaya(payload);
     },
     [],
   );
@@ -99,7 +99,7 @@ function DescriptionSection({
           <h3 className="min-w-0 flex-1 text-base font-bold tracking-tight text-foreground">
             {section.heading}
           </h3>
-          <AskMayaButton
+          <AskKayaButton
             strain={strain}
             sectionHeading={section.heading}
             sectionBody={section.body}
@@ -126,10 +126,10 @@ function DescriptionSection({
           )}
         </div>
         <div className="mt-3">
-          <AskMayaElaboration
-            open={maya.open}
-            text={maya.text}
-            error={maya.error}
+          <AskKayaElaboration
+            open={kaya.open}
+            text={kaya.text}
+            error={kaya.error}
           />
         </div>
       </article>

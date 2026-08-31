@@ -81,7 +81,7 @@ export type StrainProfile = {
 
 /**
  * One field's worth of per-source attribution. `value` is the
- * consolidated value Maya sees. `sources` lists what each catalog
+ * consolidated value Kaya sees. `sources` lists what each catalog
  * actually said, in the order Leafly → Weedmaps → Allbud. `averaged`
  * is true when the consolidated value was computed (e.g. averaged
  * across ranges) rather than copied verbatim from one source.

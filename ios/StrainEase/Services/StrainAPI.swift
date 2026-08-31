@@ -32,7 +32,7 @@ protocol StrainServicing {
     /// Expand one of the three tailored-description sections (e.g. the
     /// "What it might do for you" block) with a deeper take on the
     /// strain + the user's saved ailments / medications / relief log.
-    /// Mirrors the ✨ Ask Maya button on the web strain page.
+    /// Mirrors the ✨ Ask Kaya button on the web strain page.
     func elaborate(
         strain: StrainProfile,
         sectionHeading: String,
@@ -376,7 +376,7 @@ struct PreviewStrainAPI: StrainServicing {
         reliefHistory: String,
         language: String
     ) async throws -> String {
-        "Maya's take on \(sectionHeading): \(strain.name) shines for the symptoms you flagged — start low, give it time to settle, and check in with how you feel before layering more on top."
+        "Kaya's take on \(sectionHeading): \(strain.name) shines for the symptoms you flagged — start low, give it time to settle, and check in with how you feel before layering more on top."
     }
 
     func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {
@@ -442,7 +442,7 @@ struct DelayedPreviewAPI: StrainServicing {
         language: String
     ) async throws -> String {
         try await Task.sleep(for: .seconds(60))
-        return "Maya's take never resolves in this preview — but the production path returns a 2-4 paragraph expansion tailored to the strain and the user's saved ailments."
+        return "Kaya's take never resolves in this preview — but the production path returns a 2-4 paragraph expansion tailored to the strain and the user's saved ailments."
     }
 
     func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {

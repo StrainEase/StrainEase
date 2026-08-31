@@ -254,7 +254,7 @@ export type ElaboratedSection = {
 
 /**
  * Ask the AI to expand a single section of the tailored strain
- * description. The web client surfaces this behind the ✨ Ask Maya
+ * description. The web client surfaces this behind the ✨ Ask Kaya
  * button on each section header. Same age-verification + rate-limit
  * contract as `describeStrainForUser`.
  */

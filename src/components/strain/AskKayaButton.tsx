@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 /**
- * ✨ Ask Maya button. Sits to the right of a strain-description
+ * ✨ Ask Kaya button. Sits to the right of a strain-description
  * section header and asks the AI to elaborate on that specific section.
  *
  * Age verification is purely client-side now (see PR #134), so there's no
@@ -16,10 +16,10 @@ import { cn } from "@/lib/utils";
  * caller is just rate-limited or hitting a transient error.
  *
  * Layout: control stays on the header row; elaboration is rendered via
- * AskMayaElaboration below the section body when the parent wires
+ * AskKayaElaboration below the section body when the parent wires
  * onElaborationChange.
  */
-export function AskMayaButton({
+export function AskKayaButton({
   strain,
   sectionHeading,
   sectionBody,
@@ -84,7 +84,7 @@ export function AskMayaButton({
       setError(
         err instanceof Error
           ? err.message
-          : "Maya couldn't expand on this right now.",
+          : "Kaya couldn't expand on this right now.",
       );
       setOpen(true);
     } finally {
@@ -102,17 +102,17 @@ export function AskMayaButton({
         disabled={loading}
         aria-expanded={open}
         className="h-7 gap-1.5 rounded-full border-primary/30 px-2.5 text-[11px] font-semibold text-primary hover:bg-primary/5"
-        data-testid={`ask-maya-${slugifyTest(sectionHeading)}`}
+        data-testid={`ask-kaya-${slugifyTest(sectionHeading)}`}
       >
         {loading ? (
           <Loader2 className="size-3 animate-spin" />
         ) : (
           <Sparkles className="size-3" />
         )}
-        {loading ? "Asking Maya…" : open ? "Hide" : "Ask Maya"}
+        {loading ? "Asking Kaya…" : open ? "Hide" : "Ask Kaya"}
       </Button>
       {inlineElaboration ? (
-        <AskMayaElaboration open={open} text={text} error={error} />
+        <AskKayaElaboration open={open} text={text} error={error} />
       ) : null}
       {!isAuthenticated && !open ? (
         <p className="text-right text-[10px] text-muted-foreground">
@@ -123,9 +123,9 @@ export function AskMayaButton({
   );
 }
 
-/** Full-width Maya elaboration panel — place below the section body so the
- *  header row (title + Ask Maya / Hide) never wraps. */
-export function AskMayaElaboration({
+/** Full-width Kaya elaboration panel — place below the section body so the
+ *  header row (title + Ask Kaya / Hide) never wraps. */
+export function AskKayaElaboration({
   open,
   text,
   error,
@@ -147,7 +147,7 @@ export function AskMayaElaboration({
         >
           <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider text-primary uppercase">
             <Sparkles className="size-3" />
-            Maya's take
+            Kaya's take
           </p>
           <p className="mt-1 whitespace-pre-line">{text}</p>
         </motion.aside>

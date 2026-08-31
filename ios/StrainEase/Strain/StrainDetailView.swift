@@ -903,9 +903,9 @@ private struct LeaflyAllbudRatingCard: View {
 }
 
 /// One card per section of the tailored description. The card shows
-/// the section's heading + body, plus an ✨ Ask Maya button on the
+/// the section's heading + body, plus an ✨ Ask Kaya button on the
 /// right that calls `elaborateSection` and renders the deeper take
-/// below the original body. Mirrors the web `AskMayaButton`.
+/// below the original body. Mirrors the web `AskKayaButton`.
 private struct TailoredDescriptionSection: View {
     @Environment(\.strainAPI) private var api
     let section: StrainDescriptionSection
@@ -929,7 +929,7 @@ private struct TailoredDescriptionSection: View {
                             .foregroundStyle(Palette.foreground)
                     }
                     Spacer(minLength: 8)
-                    askMayaButton
+                    askKayaButton
                 }
                 tailoredDescriptionBody(section.body)
                 if isOpen {
@@ -947,7 +947,7 @@ private struct TailoredDescriptionSection: View {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 10, weight: .semibold))
-                    Text("Maya's take")
+                    Text("Kaya's take")
                         .font(.system(size: 10, weight: .semibold))
                         .tracking(1.0)
                         .textCase(.uppercase)
@@ -971,7 +971,7 @@ private struct TailoredDescriptionSection: View {
         }
     }
 
-    private var askMayaButton: some View {
+    private var askKayaButton: some View {
         Button {
             Task { await toggle() }
         } label: {
@@ -984,7 +984,7 @@ private struct TailoredDescriptionSection: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 10, weight: .semibold))
                 }
-                Text(isLoading ? "Asking Maya…" : (isOpen ? "Hide" : "Ask Maya"))
+                Text(isLoading ? "Asking Kaya…" : (isOpen ? "Hide" : "Ask Kaya"))
                     .font(.system(size: 11, weight: .semibold))
             }
             .padding(.horizontal, 10)
@@ -1000,7 +1000,7 @@ private struct TailoredDescriptionSection: View {
         .accessibilityLabel(
             isOpen
                 ? "Hide \(section.heading) elaboration"
-                : "Ask Maya about \(section.heading)"
+                : "Ask Kaya about \(section.heading)"
         )
     }
 
@@ -1025,7 +1025,7 @@ private struct TailoredDescriptionSection: View {
             elaboration = text
             withAnimation(.snappy(duration: 0.22)) { isOpen = true }
         } catch {
-            errorMessage = "Maya couldn't expand on this right now."
+            errorMessage = "Kaya couldn't expand on this right now."
             withAnimation(.snappy(duration: 0.22)) { isOpen = true }
         }
     }

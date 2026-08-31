@@ -19,7 +19,7 @@ Last updated: 2026-08-27
 | StrainDetailView shop links | ✅ Implemented |
 | StrainDetailView side effects | ✅ Implemented |
 | ReliefLogForm | ✅ Implemented |
-| TailoredDescriptionView + Ask Maya | ✅ Implemented (`TailoredDescriptionView.kt`) |
+| TailoredDescriptionView + Ask Kaya | ✅ Implemented (`TailoredDescriptionView.kt`) |
 | CommunityVoicesSection (Leafly rating, Reddit/sites tabs) | ✅ Implemented (`CommunityVoicesSection.kt`) |
 | SharedNotesView (Firestore community notes) | ✅ Implemented (`SharedNotesView.kt` + `PublicNotesStore.kt`) |
 | CompareTrayBar | ✅ Implemented |
