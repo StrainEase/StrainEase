@@ -15,7 +15,7 @@
 //   fields plus an optional `sourceAttribution` block. The block is
 //   only included on fields where the sources actually disagreed or
 //   where averaging produced a value distinct from the raw input —
-//   this keeps Maya's prompt small (token budget) while still
+//   this keeps Kaya's prompt small (token budget) while still
 //   letting her audit any number she second-guesses.
 //
 // - Cross-platform: the consolidator only emits string / number /
@@ -44,7 +44,7 @@ const SOURCE_ORDER: SourceId[] = ["leafly", "weedmaps", "allbud"];
 
 /**
  * What each source said for a single numeric field. Carried into
- * Maya's prompt only when the answer came from multiple sources or
+ * Kaya's prompt only when the answer came from multiple sources or
  * the averaged value differs from any single raw value.
  */
 export type FieldAttribution = {
@@ -120,7 +120,7 @@ function buildPercentAttribution(
   const distinctRaw = new Set(collected.map((c) => c.raw));
   // Only attribute when the averaged value differs from at least one
   // raw value (i.e. averaging actually changed the answer) OR when
-  // the sources disagreed. Otherwise Maya's prompt can stay slim.
+  // the sources disagreed. Otherwise Kaya's prompt can stay slim.
   const averagedSomething =
     distinctRaw.size > 1 || !distinctRaw.has(value);
   if (!averagedSomething) return undefined;
@@ -146,7 +146,7 @@ function buildTypeAttribution(
   const distinct = new Set(sources.map((s) => s.raw));
   if (distinct.size <= 1) return undefined;
   // Sources disagree on the species — pick the dominant one (most
-  // common) and surface the conflict so Maya can decide.
+  // common) and surface the conflict so Kaya can decide.
   const counts = new Map<StrainType, number>();
   for (const s of sources) counts.set(s.raw, (counts.get(s.raw) ?? 0) + 1);
   const winner = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];

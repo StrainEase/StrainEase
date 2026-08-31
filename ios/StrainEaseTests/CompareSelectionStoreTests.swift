@@ -170,7 +170,7 @@ private struct StubCompareAPI: StrainServicing {
         reliefHistory: String,
         language: String
     ) async throws -> String {
-        "Maya's take never resolves in test."
+        "Kaya's take never resolves in test."
     }
 
     func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {

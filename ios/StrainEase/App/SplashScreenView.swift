@@ -19,7 +19,7 @@ struct SplashScreenView: View {
             MeshBackground()
 
             GeometryReader { geo in
-                let side = geo.size.width / 3
+                let side = geo.size.width / 4
                 Image("AppLogo")
                     .resizable()
                     .scaledToFit()

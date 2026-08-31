@@ -73,3 +73,5 @@ android-current.png
 android-now.png
 # Old layer-list / vector drafts left in tree during brand-asset iteration.
 *.bak
+
+scripts/

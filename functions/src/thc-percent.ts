@@ -63,7 +63,7 @@ export function formatPercent(mid: number): string {
  * Average the parsed midpoints across sources. Sources with null
  * midpoints (unparseable) are dropped; if all sources are null we
  * return null so the caller can leave the field empty. The returned
- * `sources` list preserves the original raw values so Maya can
+ * `sources` list preserves the original raw values so Kaya can
  * inspect what each catalog said.
  */
 export function averagePercent(

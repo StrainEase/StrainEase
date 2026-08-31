@@ -73,7 +73,7 @@ class PreviewStrainAPI(
         medications: List<String>,
         reliefHistory: String,
         language: String,
-    ): String = "Maya's take on $sectionHeading: ${strain.name} shines for the symptoms you flagged — start low, give it time to settle, and check in with how you feel before layering more on top."
+    ): String = "Kaya's take on $sectionHeading: ${strain.name} shines for the symptoms you flagged — start low, give it time to settle, and check in with how you feel before layering more on top."
 
     override suspend fun redditThreads(
         name: String,

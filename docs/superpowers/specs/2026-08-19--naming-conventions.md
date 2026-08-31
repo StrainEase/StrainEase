@@ -62,8 +62,8 @@ when naming things, and a reference for humans during code review.
 ### Suffixes
 
 - `-pr<N>` — append when the branch is the Nth iteration of the same logical change. The repo
-  already does this: `fix/ios-gradient-image-cache-ask-maya-pr5`,
-  `fix/web-quick-fixes-pr1`, `feat/description-cards-and-ask-maya-pr3`. Use it when a PR is sent
+  already does this: `fix/ios-gradient-image-cache-ask-kaya-pr5`,
+  `fix/web-quick-fixes-pr1`, `feat/description-cards-and-ask-kaya-pr3`. Use it when a PR is sent
   back for review and a follow-up push is needed before merge; bump the number rather than
   mutating the slug.
 - `-auto-YYYYMMDD-<id>` — append when an AI agent (or any automated flow) generated the branch
@@ -75,8 +75,8 @@ when naming things, and a reference for humans during code review.
 
 ```
 feat/auto-20260819-15661046
-feat/description-cards-and-ask-maya-pr3
-fix/ios-gradient-image-cache-ask-maya-pr5
+feat/description-cards-and-ask-kaya-pr3
+fix/ios-gradient-image-cache-ask-kaya-pr5
 fix/ios-tailored-description-pr2
 fix/web-notes-and-image-cache-pr4
 fix/web-quick-fixes-pr1
@@ -199,7 +199,7 @@ fix(iOS): drop the note badge from the StrainDetailView hero + toolbar heart
 - `style(ui)` is the conventional prefix for visual-only changes that don't fit `feat` or
   `fix`. Use it for shimmers, spacing, color tweaks, font changes, copy polish. Reserve `fix`
   for actual broken behavior.
-- Emojis are allowed (see the `✨` in `feat(iOS): day/night gradient parity, ... ✨ Ask Maya
+- Emojis are allowed (see the `✨` in `feat(iOS): day/night gradient parity, ... ✨ Ask Kaya
   elaboration`). Use them sparingly and only when they help a human scanning the log.
 - Body and footer (Breaking change, Refs) are optional. Use a `BREAKING CHANGE:` footer when
   shipping a public-API change (callable signature, Firestore schema, env var).
@@ -239,7 +239,7 @@ Examples (already in use):
 
 ```
 .worktrees/feat-auto-20260819-15661046/
-.worktrees/feat-description-cards-and-ask-maya-pr3/
+.worktrees/feat-description-cards-and-ask-kaya-pr3/
 ```
 
 AI agents that create a worktree must name the directory with `-` instead of `/`. Don't embed

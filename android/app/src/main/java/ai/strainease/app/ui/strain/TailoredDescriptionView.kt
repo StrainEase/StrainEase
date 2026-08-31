@@ -57,8 +57,8 @@ private val TAILORED_LOADING_MESSAGES = listOf(
  * Each section renders:
  *  - Heading (uppercase eyebrow + bold title)
  *  - Body text (paragraphs split on blank lines)
- *  - "Ask Maya" button that calls `elaborateSection` and shows
- *    Maya's deeper take inline
+ *  - "Ask Kaya" button that calls `elaborateSection` and shows
+ *    Kaya's deeper take inline
  *
  * While the tailored description is being fetched, a rotating loading
  * state is shown with messages that match the web cadence (1.6s/msg).
@@ -219,13 +219,13 @@ private fun TailoredDescriptionSectionCard(
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.size(8.dp))
-                AskMayaButton(
+                AskKayaButton(
                     isLoading = isLoading,
                     isOpen = isOpen,
                     onClick = {
                         if (isOpen) {
                             isOpen = false
-                            return@AskMayaButton
+                            return@AskKayaButton
                         }
                         scope.launch {
                             isLoading = true
@@ -274,7 +274,7 @@ private fun TailoredDescriptionSectionCard(
                 }
             }
 
-            // Maya's take — shown after elaborate call.
+            // Kaya's take — shown after elaborate call.
             if (isOpen) {
                 ElaborationBlock(
                     elaboration = elaboration,
@@ -286,7 +286,7 @@ private fun TailoredDescriptionSectionCard(
 }
 
 @Composable
-private fun AskMayaButton(
+private fun AskKayaButton(
     isLoading: Boolean,
     isOpen: Boolean,
     onClick: () -> Unit,
@@ -320,9 +320,9 @@ private fun AskMayaButton(
         }
         Text(
             text = when {
-                isLoading -> "Asking Maya…"
+                isLoading -> "Asking Kaya…"
                 isOpen -> "Hide"
-                else -> "Ask Maya"
+                else -> "Ask Kaya"
             },
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
             color = primary,
@@ -357,7 +357,7 @@ private fun ElaborationBlock(
                 modifier = Modifier.size(10.dp),
             )
             Text(
-                text = "Maya's take",
+                text = "Kaya's take",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,

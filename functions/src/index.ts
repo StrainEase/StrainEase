@@ -593,7 +593,7 @@ JSON shape (all fields required). Each body is 2-4 short paragraphs (1-2 sentenc
 }`;
 
 /**
- * System prompt for `elaborateSection` — the ✨ Ask Maya button. We
+ * System prompt for `elaborateSection` — the ✨ Ask Kaya button. We
  * keep the same Dr. Kaya persona and the same hard rules (no invented
  * numbers, no medication stop advice, no diagnoses) but ask the model
  * to *expand* a single section instead of producing all three.
@@ -603,7 +603,7 @@ JSON shape (all fields required). Each body is 2-4 short paragraphs (1-2 sentenc
  */
 const ELABORATE_SECTION_SYSTEM_PROMPT = `${KAYA_CORE}
 
-Task: the patient is reading a three-section strain description and just tapped "✨ Ask Maya" on one section. Expand that section in more depth.
+Task: the patient is reading a three-section strain description and just tapped "✨ Ask Kaya" on one section. Expand that section in more depth.
 - The current section body is provided as "sectionBody". Do NOT contradict it — it is the short version the patient already sees; add depth, mechanism, or example, not a replacement.
 - Use the patient's saved ailments, medications, and relief-log history the same way the description does: speak directly ("for your insomnia…"), call out mismatches plainly, never advise stopping a prescription, calibrate to the relief log.
 - Keep the elaboration short and skimmable on a phone: 2-4 short paragraphs (1-2 sentences each), separated by a single "\\n\\n". No markdown, no inner headings, no bullet lists.
@@ -860,7 +860,7 @@ export function compareStrainPayload(s: StrainProfile) {
     effects: s.effects,
     description: s.description,
     communityNotes: s.communityNotes,
-    // Per-source attribution — Maya can audit any number she wants
+    // Per-source attribution — Kaya can audit any number she wants
     // to second-guess. Omitted entirely when every field was a clean
     // single-source copy.
     sourceAttribution: s.sourceAttribution,
@@ -1710,7 +1710,7 @@ function elaborateSectionPrompt(
 
 /**
  * Ask the AI to elaborate on a single section of a strain's tailored
- * description. Wired to the ✨ Ask Maya button on the web strain page.
+ * description. Wired to the ✨ Ask Kaya button on the web strain page.
  * Auth-gated: the caller must be signed in so we can pull their saved
  * ailments without exposing them to guest traffic. Guests hit the
  * rate-limited fallback in `clientIp`/`guestRateLimit` instead.
