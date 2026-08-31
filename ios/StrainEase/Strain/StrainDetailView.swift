@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct StrainDetailView: View {
     @Environment(\.strainAPI) private var api
@@ -17,8 +18,10 @@ struct StrainDetailView: View {
     @Environment(SavedMedicationsStore.self) private var medications
     @Environment(RecentlyViewedStore.self) private var recents
     @Environment(ReliefLogStore.self) private var relief
+    @Environment(CheckInStore.self) private var checkIns
     @Environment(AppNavigation.self) private var nav
     @Environment(CompareSelectionStore.self) private var compareStore
+    @State private var showCheckInSheet = false
 
     init(profile: StrainProfile) {
         _profile = State(initialValue: profile)
@@ -67,6 +70,7 @@ struct StrainDetailView: View {
                         hydratingSection(.sideEffects)
                     }
                     TriedNotesView(profile: profile)
+                    checkInCta
                     ReliefLogForm(strainName: profile.name, conditions: ailments.ailments)
                     ReliefHistoryList(logs: relief.logs(for: profile.name))
                     SharedNotesView(strainKey: profile.slug)
@@ -470,6 +474,73 @@ struct StrainDetailView: View {
                         .background(Palette.card, in: Capsule())
                         .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
                 }
+            }
+        }
+    }
+
+    /// "How are you today?" entry point. Renders nothing when the
+    /// user is signed out (the check-in sheet writes to
+    /// `users/{uid}/checkIns/{dateId}` so we need a UID first).
+    @ViewBuilder
+    private var checkInCta: some View {
+        if let _ = Auth.auth().currentUser {
+            let todayKey = CheckInStore.todayKey()
+            let logged = checkIns.checkIn(forKey: todayKey)
+            Button {
+                showCheckInSheet = true
+            } label: {
+                SWCard {
+                    HStack(spacing: 12) {
+                        Image(systemName: "heart.text.square")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Palette.primary)
+                            .frame(width: 36, height: 36)
+                            .background(Palette.primary.opacity(0.12), in: Circle())
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(logged == nil ? "How are you today?" : "Today's check-in logged")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Palette.foreground)
+                            Text(logged == nil
+                                ? "Track mood, sleep, pain, and anxiety. Dr. Kaya reads the trend."
+                                : "Tap to update or clear today's check-in."
+                            )
+                                .font(.system(size: 12))
+                                .foregroundStyle(Palette.mutedForeground)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Palette.mutedForeground)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showCheckInSheet) {
+                NavigationStack {
+                    ZStack {
+                        MeshBackground()
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 20) {
+                                SWCard {
+                                    CheckInPanel()
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                            .padding(.bottom, 32)
+                        }
+                    }
+                    .navigationTitle("Daily check-in")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbarBackground(.hidden, for: .navigationBar)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Done") { showCheckInSheet = false }
+                        }
+                    }
+                }
+                .presentationDetents([.large])
             }
         }
     }

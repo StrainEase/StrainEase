@@ -30,12 +30,20 @@
 		57CE374D4C206D84FBD2683A /* SavedMedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */; };
 		5C92B2D277E6C8FE7B1F452F /* StrainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF44B432B1D8D6241B90918C /* StrainModels.swift */; };
 		6007418917D701424C25AA68 /* AgeVerificationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D668CCEBCE155C0EEC7D2278 /* AgeVerificationStoreTests.swift */; };
+		FF665F6719214094BB7C8109 /* CheckInStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000AC9ADBA9C4AF99ABEE73F /* CheckInStoreTests.swift */; };
+		6ABDE4E6A2B149588228196F /* ReasoningTraceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5BD8AC7F3446A8B8F79718 /* ReasoningTraceTests.swift */; };
 		6FCB1E737742C825F6DB97A9 /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB555711154F6F8A10B4D57 /* AgeGateView.swift */; };
 		72A7E2127ADD11DF7EFD64F6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 99DCE5C0880FE59E5D994798 /* Assets.xcassets */; };
 		72D37CAAC930C993C289935D /* FindView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E47E2787F643CB812402CC1B /* FindView.swift */; };
 		731887FD36CB1357B7F6F3CB /* CompareSelectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43D446749B1FCC07DD3B881 /* CompareSelectionStoreTests.swift */; };
 		7680F372343D06DCA0AE6014 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E61024D2F69C6FE20A2B5C1 /* Components.swift */; };
 		77B51DD8666BAD58599631C1 /* SavedStrainsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990CED9E0E8C4ED69DC133F5 /* SavedStrainsStore.swift */; };
+		F142F6FB12794EA383F22A7C /* CheckInStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5315527753AF4C5281AE48EC /* CheckInStore.swift */; };
+		4D24F8A9F92C4C8EACE62031 /* CheckInForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15CEAA02E44E13968B9FB7 /* CheckInForm.swift */; };
+		3ECFFD33383D4394A18FAAF0 /* CheckInSparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57699126FE8E466089C8D304 /* CheckInSparkline.swift */; };
+		CAF8B1A761FA4D7BAF2E2A54 /* CheckInPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A28A2EC299D49D4839E0EF1 /* CheckInPanel.swift */; };
+		DABB3C4FEE444EB9A3172C81 /* CheckInHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1EB503399FF45DB9208DAA4 /* CheckInHistoryView.swift */; };
+		3126B75D94E8472CA419E9B0 /* ReasoningTraceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A735CCC031B4851969D72AA /* ReasoningTraceView.swift */; };
 		798AC0D7B44AEDD84F79CC04 /* StrainImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06951EF18E159E99848A0CCB /* StrainImageCache.swift */; };
 		7A322B759D93F9D1C6613BC7 /* StrainEaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7D82D46B66A8ADA43EB1AC /* StrainEaseApp.swift */; };
 		7A8309E8EA8D0E2364DEB179 /* StrainGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BDF10B70191C0BD228EBA60 /* StrainGridView.swift */; };
@@ -134,6 +142,12 @@
 		8CA874DA7CD5C58BD9E53558 /* RecentlyViewedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyViewedStore.swift; sourceTree = "<group>"; };
 		8EEBF06F21F01B07A8CF4000 /* StrainEase.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StrainEase.entitlements; sourceTree = "<group>"; };
 		990CED9E0E8C4ED69DC133F5 /* SavedStrainsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsStore.swift; sourceTree = "<group>"; };
+		5315527753AF4C5281AE48EC /* CheckInStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInStore.swift; sourceTree = "<group>"; };
+		8D15CEAA02E44E13968B9FB7 /* CheckInForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInForm.swift; sourceTree = "<group>"; };
+		57699126FE8E466089C8D304 /* CheckInSparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInSparkline.swift; sourceTree = "<group>"; };
+		8A28A2EC299D49D4839E0EF1 /* CheckInPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInPanel.swift; sourceTree = "<group>"; };
+		D1EB503399FF45DB9208DAA4 /* CheckInHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInHistoryView.swift; sourceTree = "<group>"; };
+		3A735CCC031B4851969D72AA /* ReasoningTraceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReasoningTraceView.swift; sourceTree = "<group>"; };
 		99DCE5C0880FE59E5D994798 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9BDF10B70191C0BD228EBA60 /* StrainGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainGridView.swift; sourceTree = "<group>"; };
 		A8E19C7E33E227D0EF7E49F2 /* ReliefHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefHistoryView.swift; sourceTree = "<group>"; };
@@ -151,6 +165,8 @@
 		C809CF642413F3D53A622162 /* StrainHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainHydration.swift; sourceTree = "<group>"; };
 		CE2940F6680CF248045D5473 /* PublicNotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicNotesStore.swift; sourceTree = "<group>"; };
 		D668CCEBCE155C0EEC7D2278 /* AgeVerificationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeVerificationStoreTests.swift; sourceTree = "<group>"; };
+		000AC9ADBA9C4AF99ABEE73F /* CheckInStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInStoreTests.swift; sourceTree = "<group>"; };
+		7C5BD8AC7F3446A8B8F79718 /* ReasoningTraceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReasoningTraceTests.swift; sourceTree = "<group>"; };
 		DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMedicationsCard.swift; sourceTree = "<group>"; };
 		DF98E803F69C77F3170B2697 /* CompareResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareResultsView.swift; sourceTree = "<group>"; };
 		E1B0426629D56FCDD5AB455F /* StrainPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainPoster.swift; sourceTree = "<group>"; };
@@ -202,6 +218,7 @@
 			isa = PBXGroup;
 			children = (
 				3242DCEB248AF1EB03D7D260 /* AgeVerificationStore.swift */,
+				5315527753AF4C5281AE48EC /* CheckInStore.swift */,
 				B8580E65316184FC977EA342 /* FirebaseBootstrap.swift */,
 				235892787F55F043A14105B9 /* LocationProvider.swift */,
 				E5556663A1E35ABD32618DF7 /* PreviewData.swift */,
@@ -265,6 +282,10 @@
 			isa = PBXGroup;
 			children = (
 				719373E37B4F3B019CF5EE80 /* AccountView.swift */,
+				8D15CEAA02E44E13968B9FB7 /* CheckInForm.swift */,
+				D1EB503399FF45DB9208DAA4 /* CheckInHistoryView.swift */,
+				8A28A2EC299D49D4839E0EF1 /* CheckInPanel.swift */,
+				57699126FE8E466089C8D304 /* CheckInSparkline.swift */,
 				A8E19C7E33E227D0EF7E49F2 /* ReliefHistoryView.swift */,
 				053157392C5DFFE9E6D0B84D /* ResearchHistoryView.swift */,
 				2FBA9F2DA24E3238FC0120D8 /* SavedAilmentsCard.swift */,
@@ -332,7 +353,9 @@
 			isa = PBXGroup;
 			children = (
 				D668CCEBCE155C0EEC7D2278 /* AgeVerificationStoreTests.swift */,
+				000AC9ADBA9C4AF99ABEE73F /* CheckInStoreTests.swift */,
 				B43D446749B1FCC07DD3B881 /* CompareSelectionStoreTests.swift */,
+				7C5BD8AC7F3446A8B8F79718 /* ReasoningTraceTests.swift */,
 				F9F47FC9A29B772C77E176A3 /* StrainEaseTests.swift */,
 			);
 			path = StrainEaseTests;
@@ -366,6 +389,7 @@
 				F5B020FE53FDE8A2FB99CDFB /* CompareSelectionStore.swift */,
 				768082826A2B68D9AC1CD490 /* CompareToggleButton.swift */,
 				AF07512E648F1012EF33C227 /* CompareTrayBar.swift */,
+				3A735CCC031B4851969D72AA /* ReasoningTraceView.swift */,
 				65979D7D0365186077E51DD4 /* RedditThreadsView.swift */,
 			);
 			path = Compare;
@@ -532,6 +556,12 @@
 				57CE374D4C206D84FBD2683A /* SavedMedicationsCard.swift in Sources */,
 				518E52AF5D6C47DDE5C38D4F /* SavedMedicationsStore.swift in Sources */,
 				77B51DD8666BAD58599631C1 /* SavedStrainsStore.swift in Sources */,
+				F142F6FB12794EA383F22A7C /* CheckInStore.swift in Sources */,
+				4D24F8A9F92C4C8EACE62031 /* CheckInForm.swift in Sources */,
+				3ECFFD33383D4394A18FAAF0 /* CheckInSparkline.swift in Sources */,
+				CAF8B1A761FA4D7BAF2E2A54 /* CheckInPanel.swift in Sources */,
+				DABB3C4FEE444EB9A3172C81 /* CheckInHistoryView.swift in Sources */,
+				3126B75D94E8472CA419E9B0 /* ReasoningTraceView.swift in Sources */,
 				AF4DA0F5D436F2B435F7A630 /* SavedStrainsView.swift in Sources */,
 				C493DBE22FB7744912D4ED0C /* SharedNotesView.swift in Sources */,
 				C871DAE6896A49E335358ABD /* ShopLinksView.swift in Sources */,
@@ -557,7 +587,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				6007418917D701424C25AA68 /* AgeVerificationStoreTests.swift in Sources */,
+				FF665F6719214094BB7C8109 /* CheckInStoreTests.swift in Sources */,
 				731887FD36CB1357B7F6F3CB /* CompareSelectionStoreTests.swift in Sources */,
+				6ABDE4E6A2B149588228196F /* ReasoningTraceTests.swift in Sources */,
 				FDFDA06400E36B4D4331A23B /* StrainEaseTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
