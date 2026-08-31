@@ -171,5 +171,18 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // Reference library: curated terpene + cannabinoid records.
+    // Public read (this is informational content, not user data);
+    // admin-SDK-only writes via the seedReferenceLibrary callable.
+    // Each document is a single record keyed by slug.
+    match /terpeneLibrary/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /cannabinoidLibrary/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

@@ -1,0 +1,166 @@
+{
+  "kind": "terpene",
+  "entries": [
+    {
+      "slug": "myrcene",
+      "displayName": "Myrcene",
+      "classDescription": "Monoterpene; the most abundant terpene in modern commercial cannabis.",
+      "aroma": "Earthy, musky, ripe mango, herbal.",
+      "commonSources": ["Mango", "Hops", "Lemongrass", "Thyme", "Basil"],
+      "mechanism": "Often described as mildly sedating and muscle-relaxing in patient reports. Binds to several non-cannabinoid receptors in vitro; in-vivo effects in humans are not well quantified.",
+      "commonlyReportedEffects": ["Sedation", "Muscle relaxation", "Couch-lock feel"],
+      "evidenceGrade": "anecdotal",
+      "sources": [
+        { "label": "NORML — Cannabis pharmacology overview", "url": "https://norml.org/marijuana/library/health-reports/", "kind": "nor.org" },
+        { "label": "PubMed search: myrcene pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=myrcene+pharmacology", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "limonene",
+      "displayName": "Limonene",
+      "classDescription": "Monoterpene; the second most abundant terpene in many strains.",
+      "aroma": "Bright citrus, lemon, orange rind.",
+      "commonSources": ["Lemon peel", "Orange peel", "Juniper", "Peppermint", "Rosemary"],
+      "mechanism": "Studied for mood-elevating and anxiolytic effects in small human and animal studies. The mechanism likely involves serotonin receptor modulation and increased adenosine signaling rather than direct cannabinoid-receptor binding.",
+      "commonlyReportedEffects": ["Mood elevation", "Stress relief", "Light euphoria"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: Limonene — anxiolytic and antidepressant-like effects (animal models)", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=limonene+anxiolytic", "kind": "pubmed" },
+        { "label": "NORML — Terpenes overview", "url": "https://norml.org/marijuana/library/health-reports/", "kind": "nor.org" }
+      ]
+    },
+    {
+      "slug": "caryophyllene",
+      "displayName": "Beta-caryophyllene",
+      "classDescription": "Sesquiterpene; the only terpene known to also act as a dietary cannabinoid (CB2 agonist).",
+      "aroma": "Black pepper, cloves, woody, spicy.",
+      "commonSources": ["Black pepper", "Cloves", "Cinnamon", "Copaiba"],
+      "mechanism": "Binds directly to the CB2 cannabinoid receptor in vitro. Studied in animal models for anti-inflammatory and analgesic effects; human clinical data is limited.",
+      "commonlyReportedEffects": ["Anti-inflammatory", "Pain modulation", "Calm without sedation"],
+      "evidenceGrade": "moderate",
+      "sources": [
+        { "label": "PubMed: beta-caryophyllene CB2 receptor agonist", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=beta-caryophyllene+CB2", "kind": "pubmed" },
+        { "label": "ProjectCBD — Cannabinoid science", "url": "https://projectcbd.org/science", "kind": "review" }
+      ]
+    },
+    {
+      "slug": "linalool",
+      "displayName": "Linalool",
+      "classDescription": "Monoterpene alcohol; a common sedative and anxiolytic in aromatherapy research.",
+      "aroma": "Floral, lavender, sweet, slightly citrus.",
+      "commonSources": ["Lavender", "Mint", "Cinnamon", "Birch bark"],
+      "mechanism": "Modulates GABA-A receptor activity (similar to some anxiolytics) and inhibits glutamate release in animal models. Studied for anti-anxiety and sedative effects, primarily via inhalation (aromatherapy) rather than oral.",
+      "commonlyReportedEffects": ["Anxiolytic", "Sedation", "Muscle relaxation"],
+      "evidenceGrade": "moderate",
+      "sources": [
+        { "label": "PubMed: linalool anxiolytic GABA", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=linalool+anxiolytic+GABA", "kind": "pubmed" },
+        { "label": "ProjectCBD — Terpenes", "url": "https://projectcbd.org/science", "kind": "review" }
+      ]
+    },
+    {
+      "slug": "pinene",
+      "displayName": "Alpha-pinene",
+      "classDescription": "Monoterpene; the most common terpene in nature and the namesake of pine trees.",
+      "aroma": "Pine, fresh evergreen, rosemary.",
+      "commonSources": ["Pine needles", "Rosemary", "Basil", "Dill", "Conifer resin"],
+      "mechanism": "Studied as a bronchodilator in human and animal models. In vitro evidence suggests it may counteract some short-term memory impairment associated with THC, though this is not established in clinical trials.",
+      "commonlyReportedEffects": ["Alertness", "Bronchodilation", "Memory support"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: alpha-pinene bronchodilator", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=alpha-pinene+bronchodilator", "kind": "pubmed" },
+        { "label": "NORML — Terpenes", "url": "https://norml.org/marijuana/library/health-reports/", "kind": "nor.org" }
+      ]
+    },
+    {
+      "slug": "terpinolene",
+      "displayName": "Terpinolene",
+      "classDescription": "Monoterpene; less common in modern commercial cannabis but characteristic of a few classic strains.",
+      "aroma": "Floral, herbal, piney, with a slightly sweet citrus edge.",
+      "commonSources": ["Lilac", "Tea tree", "Nutmeg", "Cumin"],
+      "mechanism": "Studied in vitro for antioxidant and mildly sedative properties; in-vivo human data is limited. Often associated with uplifting or mildly sedative subjective effects in patient reports.",
+      "commonlyReportedEffects": ["Mild uplift", "Light sedation at high doses", "Aromatic complexity"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: terpinolene pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=terpinolene", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "ocimene",
+      "displayName": "Ocimene",
+      "classDescription": "Monoterpene; common in aromatic herbs and many cannabis strains in trace amounts.",
+      "aroma": "Sweet, herbal, woody, with a tropical fruit edge.",
+      "commonSources": ["Basil", "Mint", "Mango", "Orchids", "Pepper"],
+      "mechanism": "Studied in vitro for anti-inflammatory and decongestant activity. No clinical trials in cannabis users; subjective effects in patients are not well characterized.",
+      "commonlyReportedEffects": ["Reported as uplifting", "Aromatic sweetener"],
+      "evidenceGrade": "anecdotal",
+      "sources": [
+        { "label": "PubMed: ocimene anti-inflammatory", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=ocimene", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "humulene",
+      "displayName": "Humulene",
+      "classDescription": "Sesquiterpene; namesake of hops and a common minor terpene in cannabis.",
+      "aroma": "Hoppy, earthy, woody, herbal.",
+      "commonSources": ["Hops", "Ginger", "Clove", "Sage"],
+      "mechanism": "Studied in animal models for anti-inflammatory activity and as an appetite suppressant (contrasts with THC's appetite-stimulating effect). Human clinical evidence is limited.",
+      "commonlyReportedEffects": ["Appetite suppression", "Anti-inflammatory feel", "Subtle sedation"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: humulene anti-inflammatory appetite", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=humulene+appetite", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "bisabolol",
+      "displayName": "Alpha-bisabolol",
+      "classDescription": "Sesquiterpene alcohol; common in chamomile and several cannabis cultivars.",
+      "aroma": "Floral, chamomile, sweet, slightly fruity.",
+      "commonSources": ["Chamomile", "Candied lemon", "Sage"],
+      "mechanism": "Studied in vitro for anti-inflammatory, antimicrobial, and skin-soothing effects. Used in cosmetic formulations as a delivery enhancer; subjective cannabis effects are not well characterized.",
+      "commonlyReportedEffects": ["Reported as calming", "Smooths high-THC effects anecdotally"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: alpha-bisabolol pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=alpha-bisabolol", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "valencene",
+      "displayName": "Valencene",
+      "classDescription": "Sesquiterpene; named for Valencia oranges.",
+      "aroma": "Sweet citrus, Valencia orange, herbal.",
+      "commonSources": ["Valencia oranges", "Grapefruit", "Tangerines"],
+      "mechanism": "Studied in vitro for anti-inflammatory activity. In-vivo data is limited; patient reports are sparse.",
+      "commonlyReportedEffects": ["Reported as mildly uplifting"],
+      "evidenceGrade": "anecdotal",
+      "sources": [
+        { "label": "PubMed: valencene pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=valencene", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "geraniol",
+      "displayName": "Geraniol",
+      "classDescription": "Monoterpene alcohol; common in rose, geranium, and several cannabis cultivars.",
+      "aroma": "Floral, rose, sweet, citrus.",
+      "commonSources": ["Rose", "Geranium", "Lemon", "Nutmeg"],
+      "mechanism": "Studied in vitro for anti-inflammatory, neuroprotective, and antioxidant activity. Limited in-vivo data; not widely studied in cannabis users.",
+      "commonlyReportedEffects": ["Reported as calming", "Floral aromatic"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: geraniol pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=geraniol+neuroprotective", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "eucalyptol",
+      "displayName": "Eucalyptol (1,8-cineole)",
+      "classDescription": "Monoterpene ether; dominant in eucalyptus and a minor terpene in some cannabis strains.",
+      "aroma": "Minty, eucalyptus, fresh, camphor.",
+      "commonSources": ["Eucalyptus", "Bay leaves", "Tea tree", "Sage"],
+      "mechanism": "Studied in human trials (outside cannabis) as a bronchodilator and mild anti-inflammatory. In cannabis, subjective effects are reported as cooling and clarifying but are not well characterized in clinical literature.",
+      "commonlyReportedEffects": ["Bronchodilation", "Reported as mentally clarifying", "Cooling feel"],
+      "evidenceGrade": "moderate",
+      "sources": [
+        { "label": "PubMed: eucalyptol 1,8-cineole bronchodilator", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=1%2C8-cineole+bronchodilator", "kind": "pubmed" }
+      ]
+    }
+  ]
+}

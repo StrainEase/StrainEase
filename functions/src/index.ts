@@ -489,6 +489,139 @@ export const submitStrainReview = onCall(
     };
   },
 );
+/* ── Reference library (terpenes + cannabinoids) ─────────────────── */
+
+/**
+ * Operator UIDs allowed to call `seedReferenceLibrary`. Hard-coded
+ * because the project has no admin-roles feature yet and a single
+ * env-driven list would be over-engineered for a few trusted
+ * accounts. Update this set when an operator joins or leaves.
+ */
+const REFERENCE_LIBRARY_OPERATOR_UIDS = new Set<string>([
+  // Populated when the first operator is set up. Empty by default —
+  // seedReferenceLibrary becomes a no-op until at least one UID is
+  // added. This is intentional; the seed is a one-time operation.
+]);
+
+import { validateSeedFile, type CannabinoidRecord, type TerpeneRecord } from "./reference-library";
+import terpeneSeedJson from "./seed/terpeneLibrary.json";
+import cannabinoidSeedJson from "./seed/cannabinoidLibrary.json";
+
+/**
+ * One-shot admin migration: load `functions/src/seed/*.json` and write
+ * each record into the matching Firestore collection. Idempotent —
+ * re-running overwrites existing documents with the same slug.
+ *
+ * Auth-gated to the hard-coded `REFERENCE_LIBRARY_OPERATOR_UIDS` set.
+ * Firestore rules deny client writes regardless; the admin SDK used
+ * here bypasses those rules.
+ */
+export const seedReferenceLibrary = onCall(
+  { timeoutSeconds: 60 },
+  async (request): Promise<{
+    ok: true;
+    terpeneCount: number;
+    cannabinoidCount: number;
+    writtenAt: number;
+  }> => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in first.");
+    }
+    if (!REFERENCE_LIBRARY_OPERATOR_UIDS.has(request.auth.uid)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only reference-library operators can run the seed migration.",
+      );
+    }
+
+    // Validate the bundled JSON before any Firestore write so a typo
+    // in the seed file surfaces as a 500 with a clear message, not as
+    // partial writes. validateSeedFile throws on shape errors and
+    // narrows the result to the validated record arrays.
+    const terpeneSeed = validateSeedFile(terpeneSeedJson);
+    const cannabinoidSeed = validateSeedFile(cannabinoidSeedJson);
+    if (terpeneSeed.kind !== "terpene" || cannabinoidSeed.kind !== "cannabinoid") {
+      // Unreachable: the seed JSON files are typed, but TS narrows the
+      // result of validateSeedFile so we have to disambiguate here.
+      throw new HttpsError("internal", "Seed file kinds are wrong.");
+    }
+
+    const db = getFirestore();
+    const batch = db.batch();
+    const now = Date.now();
+
+    for (const record of terpeneSeed.entries) {
+      const ref = db.collection("terpeneLibrary").doc(record.slug);
+      batch.set(ref, { ...record, seededAt: now });
+    }
+    for (const record of cannabinoidSeed.entries) {
+      const ref = db.collection("cannabinoidLibrary").doc(record.slug);
+      batch.set(ref, { ...record, seededAt: now });
+    }
+    await batch.commit();
+
+    return {
+      ok: true,
+      terpeneCount: terpeneSeed.entries.length,
+      cannabinoidCount: cannabinoidSeed.entries.length,
+      writtenAt: now,
+    };
+  },
+);
+
+/**
+ * Public, no-auth lookup for the reference library. Returns a list of
+ * records for the requested kind, or a single record when `slug` is
+ * given. The Firestore rules already gate the collection to public
+ * reads, so this callable is a thin convenience layer over the raw
+ * collection and gives us a typed shape on the client.
+ */
+export const getReferenceLibrary = onCall(
+  { timeoutSeconds: 15 },
+  async (
+    request,
+  ): Promise<{
+    terpenes: TerpeneRecord[];
+    cannabinoids: CannabinoidRecord[];
+  }> => {
+    const data = (request.data ?? {}) as {
+      kind?: unknown;
+      slug?: unknown;
+    };
+
+    const db = getFirestore();
+    const [terpeneSnap, cannabinoidSnap] = await Promise.all([
+      db.collection("terpeneLibrary").get(),
+      db.collection("cannabinoidLibrary").get(),
+    ]);
+
+    const terpenes: TerpeneRecord[] = terpeneSnap.docs.map(
+      (d) => d.data() as TerpeneRecord,
+    );
+    const cannabinoids: CannabinoidRecord[] = cannabinoidSnap.docs.map(
+      (d) => d.data() as CannabinoidRecord,
+    );
+
+    if (data.kind === "terpene" && typeof data.slug === "string") {
+      const target = data.slug.trim().toLowerCase();
+      const hit = terpenes.find((r) => r.slug === target);
+      return {
+        terpenes: hit ? [hit] : [],
+        cannabinoids: [],
+      };
+    }
+    if (data.kind === "cannabinoid" && typeof data.slug === "string") {
+      const target = data.slug.trim().toLowerCase();
+      const hit = cannabinoids.find((r) => r.slug === target);
+      return {
+        terpenes: [],
+        cannabinoids: hit ? [hit] : [],
+      };
+    }
+
+    return { terpenes, cannabinoids };
+  },
+);
 /* ── AI synthesis (auth-gated) ─────────────────────────────────────── */
 
 /**
