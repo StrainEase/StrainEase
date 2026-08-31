@@ -1,0 +1,114 @@
+{
+  "kind": "cannabinoid",
+  "entries": [
+    {
+      "slug": "thc",
+      "displayName": "THC (delta-9-tetrahydrocannabinol)",
+      "cb1Affinity": "High — partial agonist at the central CB1 receptor, the primary driver of the cannabis 'high'.",
+      "cb2Affinity": "Moderate — partial agonist at the peripheral CB2 receptor; contributes to anti-inflammatory effects.",
+      "psychoactivity": "high",
+      "mechanism": "Partial agonist at CB1 (central) and CB2 (peripheral) cannabinoid receptors. Modulates dopamine release, short-term memory, appetite, pain perception, and mood. Effects vary substantially with dose, route, prior exposure, and individual endocannabinoid system differences.",
+      "commonlyReportedEffects": ["Euphoria", "Pain modulation", "Appetite stimulation", "Anxiety at higher doses", "Short-term memory effects"],
+      "evidenceGrade": "strong",
+      "sources": [
+        { "label": "PubMed: THC pharmacology review", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=delta-9-THC+pharmacology+review", "kind": "pubmed" },
+        { "label": "NORML — THC", "url": "https://norml.org/marijuana/library/health-reports/", "kind": "nor.org" }
+      ]
+    },
+    {
+      "slug": "thca",
+      "displayName": "THCA (delta-9-tetrahydrocannabinolic acid)",
+      "cb1Affinity": "Negligible at CB1 in its raw form; becomes THC (and thus CB1-active) with heat (decarboxylation).",
+      "cb2Affinity": "Limited direct evidence of meaningful CB2 binding in vivo.",
+      "psychoactivity": "none",
+      "mechanism": "The acidic precursor to THC found in raw cannabis. Studied in vitro for anti-inflammatory and neuroprotective properties; does not produce a 'high' until heated. The majority of cannabinoid content in fresh flower is THCA, not THC.",
+      "commonlyReportedEffects": ["Anti-inflammatory in raw preparations (juicing, tinctures)", "Not intoxicating"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: THCA pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=THCA+pharmacology", "kind": "pubmed" },
+        { "label": "ProjectCBD — Raw cannabinoids", "url": "https://projectcbd.org/science", "kind": "review" }
+      ]
+    },
+    {
+      "slug": "cbd",
+      "displayName": "CBD (cannabidiol)",
+      "cb1Affinity": "Very low at CB1; does not produce a 'high'. May modulate THC's effects at CB1 indirectly.",
+      "cb2Affinity": "Low to moderate; interacts with multiple non-cannabinoid targets rather than binding CB2 strongly.",
+      "psychoactivity": "none",
+      "mechanism": "Multi-target compound. Modulates serotonin (5-HT1A), adenosine, and vanilloid (TRPV1) receptors; inhibits anandamide reuptake. FDA-approved as Epidiolex for certain pediatric epilepsy syndromes. Most other clinical claims have less robust evidence.",
+      "commonlyReportedEffects": ["Anxiolytic at moderate doses", "Anti-seizure (FDA-approved indication)", "May attenuate THC-induced anxiety at higher CBD:THC ratios"],
+      "evidenceGrade": "strong",
+      "sources": [
+        { "label": "PubMed: CBD pharmacology review", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=cannabidiol+pharmacology+review", "kind": "pubmed" },
+        { "label": "ProjectCBD — Cannabidiol", "url": "https://projectcbd.org/science", "kind": "review" }
+      ]
+    },
+    {
+      "slug": "cbdv",
+      "displayName": "CBDV (cannabidivarin)",
+      "cb1Affinity": "Very low; similar profile to CBD at the central receptor.",
+      "cb2Affinity": "Limited evidence of meaningful direct binding.",
+      "psychoactivity": "none",
+      "mechanism": "Propyl analog of CBD (shorter side chain). Studied primarily for anti-epileptic potential and for nausea modulation. Human clinical data is still early-stage; GW Pharmaceuticals ran trials in epilepsy that did not advance to approval.",
+      "commonlyReportedEffects": ["Anti-nausea in animal models", "Studied for seizure modulation"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: CBDV pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=cannabidivarin+CBDV", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "cbg",
+      "displayName": "CBG (cannabigerol)",
+      "cb1Affinity": "Low partial agonist at CB1; not intoxicating at typical cannabis concentrations.",
+      "cb2Affinity": "Low to moderate at CB2.",
+      "psychoactivity": "none",
+      "mechanism": "Often called the 'mother cannabinoid' because other cannabinoids (THC, CBD) are derived from its acidic form (CBGA) in the plant. Studied in vitro for antibacterial (notably MRSA), intraocular pressure reduction, and anti-inflammatory effects. Human clinical data is limited.",
+      "commonlyReportedEffects": ["Reported as mildly focusing without intoxication", "Studied for glaucoma and inflammation"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: CBG pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=cannabigerol+CBG", "kind": "pubmed" },
+        { "label": "ProjectCBD — Minor cannabinoids", "url": "https://projectcbd.org/science", "kind": "review" }
+      ]
+    },
+    {
+      "slug": "cbn",
+      "displayName": "CBN (cannabinol)",
+      "cb1Affinity": "Weak partial agonist at CB1 — much weaker than THC.",
+      "cb2Affinity": "Weak at CB2.",
+      "psychoactivity": "mild",
+      "mechanism": "A degradation product of THC; aged flower accumulates CBN. Studied in small trials for sleep, though the evidence is weaker than commonly reported. May have synergistic sedative effects when combined with THC rather than acting strongly on its own.",
+      "commonlyReportedEffects": ["Mildly sedating anecdotally", "Often reported in combination with THC for sleep"],
+      "evidenceGrade": "anecdotal",
+      "sources": [
+        { "label": "PubMed: CBN sleep pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=cannabinol+CBN+sleep", "kind": "pubmed" },
+        { "label": "ProjectCBD — Cannabinoids", "url": "https://projectcbd.org/science", "kind": "review" }
+      ]
+    },
+    {
+      "slug": "cbc",
+      "displayName": "CBC (cannabichromene)",
+      "cb1Affinity": "Very low direct binding; may act indirectly via anandamide uptake inhibition.",
+      "cb2Affinity": "Low to moderate.",
+      "psychoactivity": "none",
+      "mechanism": "Studied in vitro for anti-inflammatory, antidepressant-like, and analgesic effects, primarily through non-cannabinoid-receptor pathways. Human clinical data is limited.",
+      "commonlyReportedEffects": ["Reported anecdotally as mood-supporting", "Studied for anti-inflammatory"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: CBC pharmacology", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=cannabichromene+CBC", "kind": "pubmed" }
+      ]
+    },
+    {
+      "slug": "thcv",
+      "displayName": "THCV (tetrahydrocannabivarin)",
+      "cb1Affinity": "At low doses: neutral antagonist. At higher doses: partial agonist (mildly psychoactive).",
+      "cb2Affinity": "Moderate; partial agonist.",
+      "psychoactivity": "mild",
+      "mechanism": "Propyl analog of THC with a dose-dependent effect at CB1. Studied in small human trials for appetite suppression and blood-glucose modulation in type 2 diabetes. Subjective effects in cannabis users are reported as shorter-duration, clearer, and less anxiogenic than THC.",
+      "commonlyReportedEffects": ["Appetite suppression (in contrast to THC)", "Reported as clearer and shorter-acting than THC"],
+      "evidenceGrade": "limited",
+      "sources": [
+        { "label": "PubMed: THCV pharmacology and diabetes", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=tetrahydrocannabivarin+THCV", "kind": "pubmed" }
+      ]
+    }
+  ]
+}
