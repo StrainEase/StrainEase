@@ -111,7 +111,7 @@ export function AnalysisPanel({
               <SWCard key={`${strain}-${note.source}`} innerClassName="px-3 py-3 sm:px-4">
                 <Quote className="mb-2 size-3.5 text-primary/60" />
                 <p className="text-sm leading-6 text-foreground/90">
-                  "{note.text}"
+                  “{note.text}”
                 </p>
                 <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
                   {strain} · {note.source}

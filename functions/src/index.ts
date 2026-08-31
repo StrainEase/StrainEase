@@ -1419,7 +1419,6 @@ export function describePrompt(
 }
 
 /**
-/**
  * The LLM sometimes emits double-escaped newlines — the literal two
  * characters backslash-n ("\\n") — inside its JSON strings. JSON parsing
  * turns those into real backslash-n text, which clients then render as
