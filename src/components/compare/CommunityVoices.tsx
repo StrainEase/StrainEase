@@ -152,12 +152,8 @@ function SourceRatingCard({
   );
 }
 
-/** Per-source cap on community notes in the cannabis channel. Matches
- *  the backend consolidator's NOTES_PER_SOURCE so a future wire push
- *  can't quietly dump the whole list into the UI. */
-const NOTES_PER_SOURCE = 5;
-
-function capCannabisBySource(notes: QuoteNote[]): QuoteNote[] {
+/** Sort cannabis-channel notes by source kind for consistent ordering. */
+function sortCannabisBySource(notes: QuoteNote[]): QuoteNote[] {
   const buckets: Record<string, QuoteNote[]> = {
     leafly: [],
     weedmaps: [],
@@ -170,7 +166,7 @@ function capCannabisBySource(notes: QuoteNote[]): QuoteNote[] {
   }
   const out: QuoteNote[] = [];
   for (const key of ["leafly", "weedmaps", "allbud", "other"] as const) {
-    out.push(...buckets[key].slice(0, NOTES_PER_SOURCE));
+    out.push(...buckets[key]);
   }
   return out;
 }
@@ -609,7 +605,7 @@ export function CommunityVoices({
     kind: "other",
   }));
 
-  const cannabis = capCannabisBySource(
+  const cannabis = sortCannabisBySource(
     notesForChannel(mergedNotes, "cannabis"),
   );
   const reddit = notesForChannel(mergedNotes, "reddit");

@@ -4,18 +4,14 @@
 // knowledge base carried. The consolidator does the per-source
 // caching, the numeric averaging, and the source attribution in
 // one pass; this file adds Reddit quotes and the AI fallback on top.
-import { fetchProfile } from "./leafly";
 import { callGroq, extractJsonObject } from "./groq";
 import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
 import type {
   CommunityNote,
   CommunityNoteKind,
   StrainProfile,
-  StrainType,
 } from "./types";
 import { consolidateStrain } from "./consolidate";
-import { fetchWeedmapsProfile } from "./weedmaps";
-import { fetchAllbudProfile } from "./allbud";
 
 const AILMENT_ALIASES: Record<string, string[]> = {
   insomnia: ["insomnia", "sleep", "asleep", "sleeping"],

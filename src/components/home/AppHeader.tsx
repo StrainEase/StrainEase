@@ -118,7 +118,7 @@ export function AppHeader({
           ) : (
             <Link
               to="/auth"
-              className="rounded-full border border-border/70 px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="signin-glow rounded-full border px-3.5 py-1.5 text-sm font-medium transition-shadow duration-500 hover:text-foreground"
             >
               Sign in
             </Link>

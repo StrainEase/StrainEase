@@ -21,7 +21,6 @@ import {
   setDoc,
   serverTimestamp,
   where,
-  limit as fsLimit,
   type Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";

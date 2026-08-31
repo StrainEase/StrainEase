@@ -576,8 +576,6 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-const POPULAR_SLUG = "__popular__";
-
 /** Pause for `ms` milliseconds. Used between Leafly page fetches to stay polite. */
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
