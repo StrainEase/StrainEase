@@ -90,7 +90,7 @@ function LoadingScreen() {
 function Gate({
   initialReason,
   onVerify,
-  onReset,
+  onReset: _onReset,
 }: {
   initialReason?: import("@/lib/age-policy").AgeCheckFailure;
   onVerify: (

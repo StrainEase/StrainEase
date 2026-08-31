@@ -222,12 +222,7 @@ function buildRatingAttribution(
 
 /**
  * Per-source cap on patient community notes. Keeps the strain detail
- * surface honest — 5 from each of Leafly / Weedmaps / Allbud is enough
- * variety without scrolling past the same aggregate card. The
- * consolidator also caps total output at 5 × sources.length, so a
- * strain with all three sources shows at most 15 notes.
  */
-const NOTES_PER_SOURCE = 5;
 
 function unionNotes(
   cache: Partial<Record<SourceId, StrainProfile | null>>,
@@ -237,9 +232,7 @@ function unionNotes(
   for (const s of SOURCE_ORDER) {
     const profile = cache[s];
     if (!profile?.communityNotes) continue;
-    let keptForSource = 0;
     for (const note of profile.communityNotes) {
-      if (keptForSource >= NOTES_PER_SOURCE) break;
       const key = `${note.source}|${note.text.slice(0, 80)}`.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -248,7 +241,6 @@ function unionNotes(
         text: note.text,
         kind: note.kind ?? detectSourceKind(note.source),
       });
-      keptForSource++;
     }
   }
   return out;

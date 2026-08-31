@@ -230,6 +230,46 @@
   }
 }
 
+/* Green glow pulse for the Sign-in button — matches the BrandLogo's
+ * radial-gradient glow in the hero (oklch hue 158). Two-layer box-shadow
+ * gives a tight inner halo plus a softer outer bloom that breathes. */
+@keyframes signin-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 10px oklch(0.43 0.1 158 / 0.25),
+      0 0 24px oklch(0.43 0.1 158 / 0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 14px oklch(0.43 0.1 158 / 0.45),
+      0 0 36px oklch(0.43 0.1 158 / 0.22);
+  }
+}
+.dark .signin-glow {
+  animation-name: signin-glow-dark;
+}
+@keyframes signin-glow-dark {
+  0%, 100% {
+    box-shadow:
+      0 0 10px oklch(0.74 0.1 158 / 0.25),
+      0 0 24px oklch(0.74 0.1 158 / 0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 14px oklch(0.74 0.1 158 / 0.45),
+      0 0 36px oklch(0.74 0.1 158 / 0.22);
+  }
+}
+.signin-glow {
+  border-color: oklch(0.43 0.1 158 / 0.35) !important;
+  color: oklch(0.43 0.1 158) !important;
+  animation: signin-glow 3s ease-in-out infinite;
+}
+.dark .signin-glow {
+  border-color: oklch(0.74 0.1 158 / 0.35) !important;
+  color: oklch(0.74 0.1 158) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -237,11 +277,11 @@
   .tilt-card {
     transform: none !important;
     transition: none !important;
-  }
-  .skeleton-line,
-  .shimmer-text {
-    animation-duration: 0s !important;
-  }
+  }  .skeleton-line,
+    .shimmer-text,
+    .signin-glow {
+      animation-duration: 0s !important;
+    }
 }
 
 /* Gradient shimmer for placeholder lines. The gradient sweeps left to right

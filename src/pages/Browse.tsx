@@ -16,7 +16,7 @@ import { Link, Navigate, useParams } from "react-router";
 export default function Browse() {
   const { section, ailment } = useParams();
   const parsed = parseBrowseParams(section, ailment);
-  const { popular: apiPopular, isLoading } = usePopularStrains();
+  const { popular: apiPopular } = usePopularStrains();
   // Start with the curated catalog so the grid renders instantly while the
   // Leafly scrape finishes in the background.
   const popular = apiPopular.length > 0 ? apiPopular : CATALOG;

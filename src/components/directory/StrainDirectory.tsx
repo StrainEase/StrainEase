@@ -1,10 +1,9 @@
 import { browseStrains, type StrainPreview } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
-import { CONDITIONS, TYPE_LABEL, matchesCondition, typeBadgeClass } from "@/lib/strain-ui";
+import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import type { StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { Loader2, Search, Sparkles, X } from "lucide-react";
 import { Link } from "react-router";

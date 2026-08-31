@@ -1,7 +1,6 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
 import {
-  HYDRATING_SECTION_LABEL,
   HydratingLine,
   HydratingSection,
   type StrainHydrationSection,
@@ -77,14 +76,11 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import {
-  collection,
   doc,
   onSnapshot,
-  query,
-  where,
   type Unsubscribe,
 } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 
 export default function Strain() {

@@ -246,7 +246,7 @@ export const redditThreadsForStrain = onCall(
  * Guard a callable: throws HttpsError if the request has no auth or the
  * ageVerified custom claim is absent/expired.
  */
-async function requireAgeVerified(
+async function _requireAgeVerified(
   request: { auth?: { uid: string; token?: { ageVerifiedExpiresAt?: number } } },
   HttpsErrorClass: typeof HttpsError,
 ): Promise<{ uid: string }> {

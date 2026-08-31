@@ -1,4 +1,22 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+
+// Mock firebase-admin/firestore before importing the module under test.
+// Without this mock, readFirestoreDoc hits a real Firestore instance when
+// one is reachable from the test environment, causing the "cold miss" test
+// to unexpectedly find data. The mock ensures every .get() returns
+// { exists: false } so the cache layer behaves as if Firestore is empty.
+const mockGet = mock(() =>
+  Promise.resolve({ exists: false, data: () => undefined }),
+);
+const mockDoc = mock(() => ({ get: mockGet, set: mock(() => Promise.resolve()) }));
+const mockCollection = mock(() => ({ doc: mockDoc }));
+
+mock.module("firebase-admin/firestore", () => ({
+  getFirestore: mock(() => ({
+    collection: mockCollection,
+  })),
+}));
+
 import {
   clearStrainInfoCacheForTest,
   getCachedStrainProfile,
@@ -6,10 +24,6 @@ import {
   strainInfoCacheStats,
 } from "./strain-info-cache";
 import type { StrainProfile } from "./types";
-
-// The cache reads/writes Firestore via the admin SDK. We don't bring up
-// Firebase in unit tests — the cache reads will return null, but the
-// in-memory layer is testable on its own.
 
 const sampleProfile: StrainProfile = {
   name: "Blue Dream",
@@ -23,6 +37,9 @@ const sampleProfile: StrainProfile = {
 
 beforeEach(() => {
   clearStrainInfoCacheForTest();
+  mockGet.mockClear();
+  mockDoc.mockClear();
+  mockCollection.mockClear();
 });
 
 afterEach(() => {
