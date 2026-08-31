@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
+import { ReliefInsightsPanel } from "@/components/saved/ReliefInsightsPanel";
 import {
   Bookmark,
   ChevronDown,
@@ -140,6 +141,8 @@ export function SavedStrainsPanel() {
 
   return (
     <div className="space-y-4">
+      <ReliefInsightsPanel logs={logs} />
+
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         <Bookmark className="size-3.5 text-primary" />
         {saved.length} saved {saved.length === 1 ? "strain" : "strains"}
