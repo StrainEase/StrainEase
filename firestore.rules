@@ -172,6 +172,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Vetted Reddit pool. Public clients may read only records that
+    // have been approved by an operator; all writes go through the
+    // Admin SDK-backed vetting callables.
+    match /redditThreads/{threadId} {
+      allow read: if resource.data.vettedAt != null
+        && resource.data.vettedBy is string
+        && resource.data.vettedBy.size() > 0;
+      allow write: if false;
+    }
+
     // Reference library: curated terpene + cannabinoid records.
     // Public read (this is informational content, not user data);
     // admin-SDK-only writes via the seedReferenceLibrary callable.
