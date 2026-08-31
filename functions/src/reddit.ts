@@ -19,6 +19,7 @@ import {
   writeRedditQuotes,
   type RedditQuoteSource,
 } from "./reddit-cache";
+import { extractThreadId, normalizeRedditUrl } from "./reddit-pool";
 
 const PULLPUSH = "https://api.pullpush.io/reddit/search/comment/";
 const ARCTIC_SHIFT = "https://arctic-shift.photon-reddit.com/api/comments/search";
@@ -100,6 +101,9 @@ type RawComment = {
   score?: number;
   author?: string;
   permalink?: string;
+  /** Thread title. PullPush comment payloads include it; Arctic Shift
+   *  may omit it — those candidates are skipped for the pool. */
+  link_title?: string;
 };
 
 function expandAilment(condition: string): string[] {
@@ -303,6 +307,120 @@ function pickQuotes(
 }
 
 /**
+ * Fetch live Reddit comments for a strain. PullPush first (full-text
+ * search across all subs), falling back to an Arctic Shift per-subreddit
+ * scan. Shared by the quotes path and the vetted-pool candidate path so
+ * both derive from the same upstream shape and semantics.
+ */
+async function fetchLiveComments(
+  name: string,
+  focus: string[],
+): Promise<{
+  comments: RawComment[];
+  source: Exclude<RedditQuoteSource, "cache">;
+}> {
+  const query =
+    focus.length > 0 ? `"${name}" ${focus.slice(0, 2).join(" ")}` : `"${name}"`;
+  let comments = await searchPullPush(query);
+  if (comments.length === 0) {
+    comments = await searchPullPush(`"${name}"`);
+  }
+  if (comments.length === 0) {
+    const arctic = await searchArcticShift(name);
+    if (arctic.length > 0) {
+      return { comments: arctic, source: "arctic-shift" };
+    }
+  }
+  return { comments, source: "pullpush" };
+}
+
+/**
+ * A candidate Reddit thread shaped the way `validateCandidateThread`
+ * expects, ready to be written into the vetted pool for operator review.
+ */
+export type RedditCandidateInput = {
+  url: string;
+  subreddit: string;
+  title: string;
+  snippet?: string;
+  score?: number;
+  applicableConditions: string[];
+  applicableStrains: string[];
+};
+
+/** Max candidates collected per strain by the daily refresh cron. */
+export const MAX_CANDIDATES_PER_STRAIN = 5;
+
+/**
+ * Map a raw PullPush / Arctic Shift comment to a candidate thread.
+ * Returns null when the payload can't become a valid pool record
+ * (missing permalink, thread title, or subreddit; deleted/removed
+ * bodies) — those are skipped rather than guessed at.
+ */
+export function commentToCandidate(
+  comment: RawComment,
+  strainName: string,
+): RedditCandidateInput | null {
+  const permalink =
+    typeof comment.permalink === "string" ? comment.permalink.trim() : "";
+  const title =
+    typeof comment.link_title === "string" ? comment.link_title.trim() : "";
+  const subreddit =
+    typeof comment.subreddit === "string" ? comment.subreddit.trim() : "";
+  const body = typeof comment.body === "string" ? comment.body.trim() : "";
+  if (!permalink || !title || !subreddit) return null;
+  if (body === "" || body === "[deleted]" || body === "[removed]") return null;
+  const strain = strainName.trim();
+  return {
+    url: permalink,
+    subreddit: subreddit.slice(0, 100),
+    title: title.slice(0, 300),
+    snippet: clipQuote(body, 500),
+    score: typeof comment.score === "number" ? comment.score : undefined,
+    applicableConditions: [],
+    applicableStrains: strain ? [strain] : [],
+  };
+}
+
+/**
+ * Dedupe candidate threads by their normalized thread id (many comments
+ * come from the same thread) and cap the per-strain batch. Pure so the
+ * cron behavior is unit-testable without the network.
+ */
+export function uniqueCandidatesByThread(
+  candidates: RedditCandidateInput[],
+  limit: number = MAX_CANDIDATES_PER_STRAIN,
+): RedditCandidateInput[] {
+  const byThread = new Map<string, RedditCandidateInput>();
+  for (const candidate of candidates) {
+    const threadId = extractThreadId(normalizeRedditUrl(candidate.url));
+    if (!threadId || byThread.has(threadId)) continue;
+    byThread.set(threadId, candidate);
+  }
+  return [...byThread.values()].slice(0, limit);
+}
+
+/**
+ * Fetch candidate threads for one strain from the live upstreams,
+ * deduped by thread and capped. Used by the daily refresh cron to
+ * grow the vetted pool; unvetted records await operator review.
+ */
+export async function fetchRedditCandidates(
+  strainName: string,
+  limit: number = MAX_CANDIDATES_PER_STRAIN,
+): Promise<RedditCandidateInput[]> {
+  const name = strainName.trim();
+  if (!name) return [];
+  const { comments } = await fetchLiveComments(name, []);
+  const candidates: RedditCandidateInput[] = [];
+  for (const comment of comments) {
+    const candidate = commentToCandidate(comment, name);
+    if (candidate) candidates.push(candidate);
+  }
+  return uniqueCandidatesByThread(candidates, limit);
+}
+
+/**
  * Fetch community quotes for one strain. Tries the in-memory cache
  * first, then the Firestore cache, then PullPush live, then Arctic
  * Shift as a fallback. Always falls back to the Firestore cache (even
@@ -339,23 +457,9 @@ export async function fetchRedditQuotes(
     return notes;
   }
 
-  // 3. Live: PullPush first (it has full-text search across all subs).
-  const query =
-    focus.length > 0 ? `"${name}" ${focus.slice(0, 2).join(" ")}` : `"${name}"`;
-  let liveSource: Exclude<RedditQuoteSource, "cache"> = "pullpush";
-  let comments = await searchPullPush(query);
-  if (comments.length === 0) {
-    comments = await searchPullPush(`"${name}"`);
-  }
-
-  // 4. Fallback: Arctic Shift per-subreddit scan.
-  if (comments.length === 0) {
-    const arctic = await searchArcticShift(name);
-    if (arctic.length > 0) {
-      comments = arctic;
-      liveSource = "arctic-shift";
-    }
-  }
+  // 3. Live: PullPush first (it has full-text search across all subs),
+  //    then Arctic Shift as a fallback.
+  const { comments, source: liveSource } = await fetchLiveComments(name, focus);
 
   notes = pickQuotes(comments, name, focus);
   memoryCache.set(cacheKey, { at: Date.now(), notes, source: "live" });
