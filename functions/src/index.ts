@@ -503,9 +503,16 @@ const REFERENCE_LIBRARY_OPERATOR_UIDS = new Set<string>([
   // added. This is intentional; the seed is a one-time operation.
 ]);
 
-import { validateSeedFile, type CannabinoidRecord, type TerpeneRecord } from "./reference-library";
+import {
+  validateSeedFile,
+  lookupInteractions,
+  type CannabinoidRecord,
+  type InteractionRecord,
+  type TerpeneRecord,
+} from "./reference-library";
 import terpeneSeedJson from "./seed/terpeneLibrary.json";
 import cannabinoidSeedJson from "./seed/cannabinoidLibrary.json";
+import interactionSeedJson from "./seed/interactionLibrary.json";
 
 /**
  * One-shot admin migration: load `functions/src/seed/*.json` and write
@@ -622,6 +629,76 @@ export const getReferenceLibrary = onCall(
     return { terpenes, cannabinoids };
   },
 );
+/* ── Drug interaction library ─────────────────────────────────────── */
+
+/** Seed the curated drug-interaction collection idempotently. */
+export const seedInteractionLibrary = onCall(
+  { timeoutSeconds: 60 },
+  async (request): Promise<{
+    ok: true;
+    interactionCount: number;
+    writtenAt: number;
+  }> => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in first.");
+    }
+    if (!REFERENCE_LIBRARY_OPERATOR_UIDS.has(request.auth.uid)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only reference-library operators can run the seed migration.",
+      );
+    }
+
+    // Validate before any write; the schema enforces the prescriber guardrail.
+    const interactionSeed = validateSeedFile(interactionSeedJson);
+    if (interactionSeed.kind !== "interaction") {
+      throw new HttpsError("internal", "Interaction seed file kind is wrong.");
+    }
+
+    const db = getFirestore();
+    const batch = db.batch();
+    const now = Date.now();
+
+    for (const record of interactionSeed.entries) {
+      const ref = db.collection("interactionLibrary").doc(record.slug);
+      batch.set(ref, { ...record, seededAt: now });
+    }
+    await batch.commit();
+
+    return {
+      ok: true,
+      interactionCount: interactionSeed.entries.length,
+      writtenAt: now,
+    };
+  },
+);
+
+/** Public lookup for interaction records; unknown drugs return []. */
+export const getDrugInteractions = onCall(
+  { timeoutSeconds: 15 },
+  async (request): Promise<{ interactions: InteractionRecord[] }> => {
+    const data = (request.data ?? {}) as { drugs?: unknown };
+
+    if (!Array.isArray(data.drugs)) {
+      return { interactions: [] };
+    }
+    const drugs = data.drugs.filter(
+      (d): d is string => typeof d === "string",
+    );
+    if (drugs.length === 0) {
+      return { interactions: [] };
+    }
+
+    const db = getFirestore();
+    const snap = await db.collection("interactionLibrary").get();
+    const records: InteractionRecord[] = snap.docs.map(
+      (d) => d.data() as InteractionRecord,
+    );
+
+    return { interactions: lookupInteractions(records, drugs) };
+  },
+);
+
 /* ── AI synthesis (auth-gated) ─────────────────────────────────────── */
 
 /**
