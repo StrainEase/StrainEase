@@ -16,10 +16,11 @@
 //   pool has sufficient coverage.
 //
 // - Vetting workflow: candidate threads are written to the pool with
-//   `vettedAt = null` by the daily refresh cron (`reddit-refresh.ts`)
-//   or by an operator via the `vetRedditThread` callable. Only threads
-//   with a non-null `vettedAt` and a non-empty `vettedBy` are served
-//   to clients. Unvetted records are invisible to the public.
+//   `vettedAt = null` by the daily refresh cron (`reddit-refresh.ts`,
+//   whenever the upstreams are reachable) or by an operator via the
+//   `vetRedditThread` callable. Only threads with a non-null `vettedAt`
+//   and a non-empty `vettedBy` are served to clients. Unvetted records
+//   are invisible to the public.
 //
 // - Pure data module: no AI in the loop. The vetting is deterministic
 //   — a thread either has been approved by an operator or it hasn't.
@@ -346,6 +347,28 @@ export function buildVettedWrite(
     vettedAt,
     vettedBy,
     ...(vettedNotes ? { vettedNotes } : { vettedNotes: null }),
+  };
+}
+
+/**
+ * Compute the Firestore document fields for an unvetted candidate
+ * written by the daily refresh cron. Idempotent on re-write: the
+ * original `addedAt` is preserved so a candidate keeps its queue
+ * position across daily re-writes, and vetting fields stay null until
+ * an operator approves it. Pure so cron idempotency is unit-testable.
+ */
+export function buildCandidateWrite(
+  candidate: PendingRedditThread,
+  existing: Partial<VettedRedditThread> | undefined,
+): Record<string, unknown> {
+  return {
+    ...candidate,
+    addedAt:
+      typeof existing?.addedAt === "number"
+        ? existing.addedAt
+        : candidate.addedAt,
+    vettedAt: null,
+    vettedBy: null,
   };
 }
 

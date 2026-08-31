@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildCandidateWrite,
   buildVettedWrite,
   extractThreadId,
   filterVettedThreads,
@@ -270,5 +271,45 @@ describe("buildVettedWrite (idempotent re-vet)", () => {
       "Verified against the OP.",
     );
     expect(doc.vettedNotes).toBe("Verified against the OP.");
+  });
+});
+
+describe("buildCandidateWrite (cron pool writes)", () => {
+  function pending(overrides: Partial<PendingRedditThread> = {}): PendingRedditThread {
+    return {
+      threadId: "abcd1234",
+      url: "https://old.reddit.com/r/trees/comments/abcd1234/good-thread/",
+      subreddit: "trees",
+      title: "A good thread",
+      snippet: "A useful community discussion.",
+      score: 42,
+      applicableConditions: ["insomnia"],
+      applicableStrains: ["Granddaddy Purple"],
+      vettedAt: null,
+      vettedBy: null,
+      addedAt: 1000,
+      ...overrides,
+    };
+  }
+
+  test("writes the candidate fields with vetting left null", () => {
+    const doc = buildCandidateWrite(pending(), undefined);
+    expect(doc.threadId).toBe("abcd1234");
+    expect(doc.vettedAt).toBeNull();
+    expect(doc.vettedBy).toBeNull();
+    expect(doc.applicableStrains).toEqual(["Granddaddy Purple"]);
+  });
+
+  test("preserves the original addedAt across daily re-writes", () => {
+    const existing = vetted({ addedAt: 500 });
+    const doc = buildCandidateWrite(pending({ addedAt: 2000 }), existing);
+    expect(doc.addedAt).toBe(500);
+    expect(doc.vettedAt).toBeNull();
+    expect(doc.vettedBy).toBeNull();
+  });
+
+  test("falls back to the candidate addedAt for a fresh write", () => {
+    const doc = buildCandidateWrite(pending({ addedAt: 777 }), undefined);
+    expect(doc.addedAt).toBe(777);
   });
 });
