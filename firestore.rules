@@ -184,5 +184,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // Drug interaction library: curated cannabis-drug interaction
+    // records. Public read (informational content); admin-SDK-only
+    // writes via the seedInteractionLibrary callable. Each document
+    // is a single record keyed by slug.
+    match /interactionLibrary/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
