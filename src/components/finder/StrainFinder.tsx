@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
+import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
 import { slugify } from "@/lib/saved-strains";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
@@ -579,6 +580,7 @@ export function StrainFinder({
                         </span>
                       )}
                     </div>
+                    <ReasoningTrace reasoning={r.reasoning} />
                   </div>
                 );
               })}

@@ -96,6 +96,7 @@ export default function Strain() {
   const [savedNames, setSavedNames] = useState<string[]>([]);
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
   const [reddit, setReddit] = useState<RedditSource[]>([]);
+  const [redditLoading, setRedditLoading] = useState(true);
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
   const featuredProfile = getFeaturedStrainProfile(slug);
@@ -185,10 +186,16 @@ export default function Strain() {
     const name = catalogHit?.name ?? slug.replace(/-/g, " ");
     void fetchRedditThreads({ name, conditions: [] })
       .then((list) => {
-        if (!cancelled) setReddit(list);
+        if (!cancelled) {
+          setReddit(list);
+          setRedditLoading(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setReddit([]);
+        if (!cancelled) {
+          setReddit([]);
+          setRedditLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -478,13 +485,12 @@ export default function Strain() {
           ) : null}
 
           {/* Reddit threads for this strain — curated list, no live scrape. */}
-          {reddit.length > 0 ? (
-            <RedditThreads
-              sources={reddit}
-              title="Reddit threads for this strain"
-              description="Public threads mentioning this strain — pulled from a curated list, not live-scraped."
-            />
-          ) : null}
+          <RedditThreads
+            sources={reddit}
+            loading={redditLoading}
+            title="Reddit threads for this strain"
+            description="Public threads mentioning this strain — pulled from a curated list, not live-scraped."
+          />
 
           {/* AI-researched missing-state callout. Only shown once the
               lookup has settled so it doesn't flash on every page. */}

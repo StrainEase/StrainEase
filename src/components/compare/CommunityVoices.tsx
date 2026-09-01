@@ -228,6 +228,41 @@ function LeaflyAllbudRatingCard({
  * SOURCE_ORDER (Leafly → Weedmaps → Allbud). Leafly and Allbud are
  * merged into a single two-column card; Weedmaps keeps its own card.
  */
+/**
+ * Single-source card that matches the LeaflyAllbudRatingCard design
+ * (source label, stars, numeric rating, divider, review count) but with
+ * a single centered column instead of a two-column grid.
+ */
+function SingleSourceRatingCard({
+  source,
+  stars,
+  reviewCount,
+}: {
+  source: string;
+  stars: number;
+  reviewCount: number | null;
+}) {
+  return (
+    <SWCard innerClassName="flex justify-center px-4 py-3.5">
+      <div className="flex max-w-[140px] flex-col items-center gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+          {source}
+        </span>
+        <StarStrip value={stars} />
+        <span className="text-sm font-semibold tabular-nums">
+          {stars.toFixed(1)}
+        </span>
+        <div className="w-full border-t border-border" />
+        <span className="text-[11px] text-muted-foreground">
+          {reviewCount !== null
+            ? `${reviewCount.toLocaleString("en-US")} reviews`
+            : "Rating only"}
+        </span>
+      </div>
+    </SWCard>
+  );
+}
+
 function RatingCards({
   leaflyRating,
   leaflyReviewCount,
@@ -259,20 +294,20 @@ function RatingCards({
           allbudCount={allbudReviewCount ?? null}
         />
       ) : hasLeafly ? (
-        <SourceRatingCard
+        <SingleSourceRatingCard
           source="Leafly"
           stars={leaflyRating!}
           reviewCount={leaflyReviewCount ?? null}
         />
       ) : hasAllbud ? (
-        <SourceRatingCard
+        <SingleSourceRatingCard
           source="Allbud"
           stars={allbudRating!}
           reviewCount={allbudReviewCount ?? null}
         />
       ) : null}
       {hasWeedmaps && (
-        <SourceRatingCard
+        <SingleSourceRatingCard
           source="Weedmaps"
           stars={weedmapsRating!}
           reviewCount={weedmapsReviewCount ?? null}
