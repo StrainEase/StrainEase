@@ -77,6 +77,20 @@ fun MainTabView() {
     val savedStrains = remember { ai.strainease.app.data.SavedStrainsStore(app) }
     val relief = remember { ai.strainease.app.data.ReliefLogStore(app) }
     val checkIns = remember { ai.strainease.app.data.CheckInStore(app) }
+    val authSession = ai.strainease.app.auth.LocalAuthSession.current
+    val signedInUid = authSession.user?.uid
+
+    // Open / close the CheckInStore Firestore listener around the
+    // signed-in user's UID. The store handles no-op on re-entry, so
+    // this LaunchedEffect can fire safely on every auth state change.
+    androidx.compose.runtime.LaunchedEffect(signedInUid) {
+        val uid = signedInUid
+        if (uid != null) {
+            checkIns.start(uid)
+        } else {
+            checkIns.stop()
+        }
+    }
     val ageStore = remember { ai.strainease.app.compliance.AgeVerificationStore(app) }
     val researchHistory = remember { ai.strainease.app.data.ResearchHistoryStore() }
 
