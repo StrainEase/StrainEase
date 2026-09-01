@@ -32,6 +32,9 @@ functions/lib
 # Git worktrees (created by orchestration tooling)
 .worktrees/
 
+# Worktree pool managed by freebuff (not source, not deployable)
+.freebuff/worktrees/
+
 # Local env (Vite reads .env; secrets stay off git)
 .env
 .env.*
