@@ -51,6 +51,29 @@ protocol StrainServicing {
         name: String,
         conditions: [String]
     ) async throws -> [RedditSource]
+
+    /// Server-rendered Clinician Report PDF. The backend reads the
+    /// patient's data via the Admin SDK, calls Groq for Dr. Kaya's
+    /// prose section, and renders a PDF with Puppeteer. Returns the
+    /// PDF bytes (100KB-2MB) plus a safe filename for "Save to
+    /// Files" / share sheet / preview. Mirrors the web `/report`
+    /// page so every platform downloads the same document.
+    func clinicianReportPdf(
+        language: String,
+        includeKayaSummary: Bool
+    ) async throws -> ClinicianReportPdf
+}
+
+/// Result of a `clinicianReportPdf` call. The PDF comes back as
+/// base64 because a single report easily fits inside the 10MB
+/// callable response limit, and decoding straight to `Data` is
+/// cheaper than juggling a signed URL.
+struct ClinicianReportPdf: Sendable {
+    let pdfData: Data
+    let filename: String
+    let contentType: String
+    let byteLength: Int
+    let kayaIncluded: Bool
 }
 
 /// Default language for AI-written responses. The backend pins output
@@ -232,6 +255,34 @@ struct LiveStrainAPI: StrainServicing {
             ? ["name": trimmedName]
             : ["name": trimmedName, "conditions": cleanedConditions]
         return try await call("redditThreadsForStrain", data: payload)
+    }
+
+    func clinicianReportPdf(
+        language: String,
+        includeKayaSummary: Bool
+    ) async throws -> ClinicianReportPdf {
+        let payload: [String: Any] = [
+            "language": language,
+            "includeKayaSummary": includeKayaSummary,
+        ]
+        struct Wire: Decodable {
+            let pdfBase64: String
+            let filename: String
+            let contentType: String
+            let byteLength: Int
+            let kayaIncluded: Bool
+        }
+        let wire: Wire = try await call("generateClinicianReportPdf", data: payload)
+        guard let data = Data(base64Encoded: wire.pdfBase64) else {
+            throw StrainAPIError.message("Report payload was not valid base64.")
+        }
+        return ClinicianReportPdf(
+            pdfData: data,
+            filename: wire.filename,
+            contentType: wire.contentType,
+            byteLength: wire.byteLength,
+            kayaIncluded: wire.kayaIncluded
+        )
     }
 
     /// Encode the strain into a plain `[String: Any]` so the backend

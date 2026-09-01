@@ -13,6 +13,7 @@ import ai.strainease.app.models.StrainDescription
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.models.RecommendationResult
 import ai.strainease.app.services.FirebaseBootstrap
+import android.util.Base64
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -177,6 +178,40 @@ class LiveStrainAPI(
             }
         }
         return call<List<RedditSource>>("redditThreadsForStrain", payload)
+    }
+
+    override suspend fun clinicianReportPdf(
+        language: String,
+        includeKayaSummary: Boolean,
+    ): ClinicianReportPdf {
+        val payload = buildJsonObject {
+            put("language", language)
+            put("includeKayaSummary", includeKayaSummary)
+        }
+        data class Wire(
+            val pdfBase64: String,
+            val filename: String,
+            val contentType: String,
+            val byteLength: Int,
+            val kayaIncluded: Boolean,
+        )
+        val wire = call<Wire>("generateClinicianReportPdf", payload)
+        val bytes = Base64.decode(wire.pdfBase64, Base64.DEFAULT)
+        if (bytes.size != wire.byteLength) {
+            // Decode mismatch usually means the base64 alphabet is
+            // wrong or the server miscounted. Surface as a normal
+            // StrainAPIException so the caller can show a toast.
+            throw StrainAPIException(
+                "Report payload size mismatch (got ${bytes.size}, expected ${wire.byteLength})."
+            )
+        }
+        return ClinicianReportPdf(
+            pdfBytes = bytes,
+            filename = wire.filename,
+            contentType = wire.contentType,
+            byteLength = wire.byteLength,
+            kayaIncluded = wire.kayaIncluded,
+        )
     }
 
     /** Encode the strain into a plain JSON object so the backend

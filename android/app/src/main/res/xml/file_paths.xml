@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider paths for the Clinician Report PDF. Exposes the
+  `cache/reports/` subdirectory used by `ClinicianReportScreen` so
+  it can hand the rendered PDF to the system PDF viewer via an
+  `ACTION_VIEW` intent with a `content://` URI.
+-->
+<paths>
+    <cache-path name="reports" path="reports/" />
+</paths>

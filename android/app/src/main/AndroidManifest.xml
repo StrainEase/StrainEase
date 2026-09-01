@@ -60,5 +60,19 @@
                     android:host="oauth" />
             </intent-filter>
         </activity>
+
+        <!-- FileProvider for the Clinician Report PDF. Exposes the
+             `cache/reports/` directory (see res/xml/file_paths.xml)
+             so the screen can hand the rendered PDF to the system
+             PDF viewer via an `ACTION_VIEW` intent. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

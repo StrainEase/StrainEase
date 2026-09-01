@@ -7,6 +7,7 @@
 //   without `request.auth`.
 import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import { logger } from "firebase-functions";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
@@ -43,6 +44,15 @@ import {
 } from "./reddit-pool";
 import { PoolOperatorError } from "./reddit-pool";
 import { clientIp, guestRateLimit, persistResult } from "./results";
+import {
+  loadClinicianReport,
+  serializeReportForModel,
+  type ClinicianReport,
+} from "./clinician-report-data";
+import {
+  renderClinicianReportHtml,
+} from "./clinician-report-html";
+import { buildReportFilename, renderHtmlToPdf } from "./clinician-report-pdf";
 import type {
   Citation,
   RecommendationResult,
@@ -2379,11 +2389,138 @@ export const clinicianReportSummary = onCall(
   },
 );
 
+/**
+ * Server-side PDF generator. Reads the patient snapshot via the
+ * Admin SDK, calls Groq for Dr. Kaya's prose section, and renders a
+ * PDF with Puppeteer + @sparticuz/chromium. Returns the PDF as
+ * base64 so the callable fits inside the 10MB response limit (a
+ * single patient's report is typically 100KB-2MB).
+ *
+ * This is the canonical "generate report" path for every client
+ * (web, iOS, Android). The standalone `clinicianReportSummary`
+ * callable above stays for backwards compatibility but the
+ * `/report` page and the iOS/Android surfaces should call this.
+ */
+export const generateClinicianReportPdf = onCall(
+  {
+    ...AI_OPTIONS,
+    memory: "1GiB",
+    timeoutSeconds: 180,
+    cpu: 1,
+  },
+  async (request): Promise<{
+    pdfBase64: string;
+    filename: string;
+    contentType: "application/pdf";
+    byteLength: number;
+    kayaIncluded: boolean;
+  }> => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Sign in to generate a clinician report.",
+      );
+    }
+    const data = (request.data ?? {}) as { language?: unknown; includeKayaSummary?: unknown };
+    const language = parseOutputLanguage(data.language);
+    const includeKaya = data.includeKayaSummary !== false;
+    const uid = request.auth.uid;
+
+    const report = await loadClinicianReport(uid);
+
+    const kaya = includeKaya
+      ? await safeKayaSummary(report, language, GROQ_API_KEY.value())
+      : null;
+
+    const html = renderClinicianReportHtml(report, kaya, loadBrandLogoSvg());
+    const pdf = await renderHtmlToPdf(html);
+    const filename = buildReportFilename(
+      report.patient.displayName,
+      report.patient.generatedOn,
+    );
+    return {
+      pdfBase64: pdf.toString("base64"),
+      filename,
+      contentType: "application/pdf",
+      byteLength: pdf.byteLength,
+      kayaIncluded: kaya !== null,
+    };
+  },
+);
+
 /* ── Background jobs ──────────────────────────────────────────────── */
 
 export { redditCacheRefresh } from "./reddit-refresh";
 
 /* ── Test re-exports (keep last) ──────────────────────────────────── */
+
+/**
+ * Generate the Kaya prose section for the PDF. Mirrors the standalone
+ * `clinicianReportSummary` callable but is fault-tolerant: if the
+ * model call fails or times out, we ship the PDF without the prose
+ * section rather than failing the whole request.
+ */
+async function safeKayaSummary(
+  report: ClinicianReport,
+  language: string,
+  apiKey: string,
+): Promise<{ summary: string; considerations: string[] } | null> {
+  try {
+    const content = await callGroq(apiKey, [
+      {
+        role: "system",
+        content: withLanguageClause(CLINICIAN_REPORT_SYSTEM_PROMPT, language),
+      },
+      {
+        role: "user",
+        content: clinicianReportPrompt(serializeReportForModel(report), language),
+      },
+    ]);
+    return normalizeClinicianReport(content);
+  } catch (err) {
+    logger.warn("Kaya summary failed; rendering PDF without it", err as Error);
+    return null;
+  }
+}
+
+/**
+ * Lazily read the brand SVG used in the PDF header. The build
+ * script copies `src/assets/clinician-report-logo.svg` next to the
+ * compiled JS so this read is fully self-contained inside the
+ * function's `lib/` directory.
+ */
+let cachedBrandLogo: string | null = null;
+function loadBrandLogoSvg(): string {
+  if (cachedBrandLogo !== null) return cachedBrandLogo;
+  // The compiled function lives at functions/lib/index.js; the SVG
+  // is at functions/lib/clinician-report-logo.svg (copied by
+  // scripts/copy-assets.mjs after tsc).
+  const candidates = [
+    "./clinician-report-logo.svg",
+    "./lib/clinician-report-logo.svg",
+  ];
+  // Lazy require to avoid pulling fs into the hot path.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const fs = require("node:fs") as typeof import("node:fs");
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const path = require("node:path") as typeof import("node:path");
+  for (const rel of candidates) {
+    try {
+      const resolved = path.resolve(__dirname, rel);
+      cachedBrandLogo = fs.readFileSync(resolved, "utf8");
+      return cachedBrandLogo;
+    } catch {
+      // try next
+    }
+  }
+  logger.warn("Brand SVG not found in lib/; using inline fallback");
+  cachedBrandLogo =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">` +
+    `<rect width="1024" height="1024" rx="200" fill="#0c5238"/>` +
+    `<text x="512" y="640" text-anchor="middle" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="640" font-weight="700" fill="#ffffff">S</text>` +
+    `</svg>`;
+  return cachedBrandLogo;
+}
 
 export const __testing = {
   normalizeDescriptionSections,

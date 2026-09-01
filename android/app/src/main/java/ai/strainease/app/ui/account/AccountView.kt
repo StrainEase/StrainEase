@@ -20,7 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +85,7 @@ fun AccountView(
     ageStore: AgeVerificationStore,
     onDismiss: () -> Unit,
     onOpenStrain: (ai.strainease.app.models.StrainProfile) -> Unit,
+    onOpenClinicianReport: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val session = LocalAuthSession.current
@@ -164,6 +167,7 @@ fun AccountView(
                 CheckInPanel(store = checkIns, compact = true)
             }
             ReliefHistoryView(log = log)
+            ClinicianReportCard(onOpen = onOpenClinicianReport)
             ComplianceFooter(
                 ageStore = ageStore,
                 onReset = { scope.launch { ageStore.reset() } },
@@ -548,3 +552,47 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
     cursorColor = MaterialTheme.colorScheme.primary,
 )
+
+/**
+ * Entry point on the Account sheet for the Clinician Report PDF.
+ * Tapping the card dismisses the account sheet and opens the
+ * dedicated report screen (which builds the PDF on the server and
+ * hands it to the system PDF viewer). Mirrors the iOS
+ * `ClinicianReportView` NavigationLink in `AccountView.swift`.
+ */
+@Composable
+private fun ClinicianReportCard(onOpen: () -> Unit) {
+    SWCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Clinician report",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "A one-page PDF for your doctor",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = Icons.Filled.Description,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}

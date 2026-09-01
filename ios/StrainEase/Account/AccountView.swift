@@ -85,6 +85,31 @@ struct AccountView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        NavigationLink {
+                            ClinicianReportView()
+                        } label: {
+                            SWCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Clinician report")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Palette.foreground)
+                                        Text("A one-page PDF for your doctor")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Palette.mutedForeground)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "doc.text")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(Palette.primary)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Palette.mutedForeground)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("account.clinicianReport")
 
                         SWCard {
                             VStack(alignment: .leading, spacing: 10) {
