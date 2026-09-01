@@ -19,8 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Maximize
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +42,9 @@ import kotlinx.coroutines.flow.collect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.data.RecentlyViewedStore
@@ -63,6 +68,8 @@ import ai.strainease.app.ui.components.SectionLabel
 import ai.strainease.app.ui.components.StrainPhoto
 import ai.strainease.app.ui.components.TypeBadge
 import ai.strainease.app.ui.theme.StrainEaseTypography
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import kotlinx.coroutines.launch
 
 /**
@@ -100,6 +107,7 @@ fun StrainDetailView(
     var current by remember(profile.slug) { mutableStateOf(profile) }
     var isHydrating by remember(profile.slug) { mutableStateOf(profile.pendingHydrationSections.isNotEmpty()) }
     var expandedTerpene by remember { mutableStateOf<String?>(null) }
+    var showPhotoZoom by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -165,6 +173,7 @@ fun StrainDetailView(
                 onToggleSave = {
                     scope.launch { savedStrains.toggle(profile) }
                 },
+                onPhotoClick = { showPhotoZoom = true },
             )
             descriptionBlock(
                 profile = current,
@@ -217,10 +226,61 @@ fun StrainDetailView(
             error?.let { SWErrorBanner(message = it) }
         }
     }
+
+    // Photo zoom overlay
+    if (showPhotoZoom) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.9f))
+                .clickable { showPhotoZoom = false },
+            contentAlignment = Alignment.Center,
+        ) {
+            val hasUrl = !current.imageUrl.isNullOrEmpty()
+            if (hasUrl) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(current.imageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Full-size ${current.name} photo",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                )
+            } else {
+                Text(
+                    text = "No photo available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.5f),
+                )
+            }
+            // Close button
+            Surface(
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .clickable { showPhotoZoom = false }
+                    .size(36.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: CompareSelectionStore, savedStrains: SavedStrainsStore, onToggleSave: () -> Unit) {
+private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: CompareSelectionStore, savedStrains: SavedStrainsStore, onToggleSave: () -> Unit, onPhotoClick: () -> Unit = {}) {
     val score = StrainMeaning.dayNightScore(profile)
     val dayNightLabel = StrainMeaning.labelFor(score)
     val compareNames by compareStore.names.collectAsState()
@@ -237,7 +297,29 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                 type = profile.type,
                 height = 220.dp,
                 cornerRadius = 22.dp,
+                modifier = Modifier.clickable { onPhotoClick() },
             )
+            // Zoom icon in the bottom-right corner
+            val hasPhoto = !profile.imageUrl.isNullOrEmpty()
+            if (hasPhoto) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
+                        .size(32.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.Maximize,
+                            contentDescription = "View full-size photo",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }
             androidx.compose.foundation.layout.Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
