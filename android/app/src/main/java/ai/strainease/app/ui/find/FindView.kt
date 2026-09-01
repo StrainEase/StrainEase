@@ -435,5 +435,6 @@ private fun RecommendationBlurb(rec: StrainRecommendation) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        ReasoningTraceSection(reasoning = rec.reasoning)
     }
 }

@@ -230,8 +230,77 @@ struct StrainRecommendation: Codable, Hashable, Identifiable, Sendable {
     var reason: String
     var bestFor: String
     var caution: String
+    /// Auditable evidence ledger. Present for every recommendation
+    /// emitted by the updated prompt; older model responses may
+    /// omit it. The `ReasoningTraceView` hides itself when this
+    /// is `nil`. 1:1 with the web `ReasoningEvidence` type.
+    var reasoning: ReasoningEvidence?
 
     var id: String { strainName.lowercased() }
+}
+
+// MARK: - "Why this strain" reasoning trace
+
+/// Source-anchored evidence bullet. `source` is one of the
+/// closed enum values below so the UI can color-code each bullet
+/// without parsing the string. `quote` is a 1-sentence reference
+/// to a fact actually in the AI's inputs (never invented).
+struct ReasoningEvidenceItem: Codable, Hashable, Sendable {
+    var source: ReasoningSource
+    var quote: String
+}
+
+/// Where a piece of evidence came from. Closed enum so the
+/// server's normalizer can drop anything that doesn't match.
+enum ReasoningSource: String, Codable, Hashable, Sendable, CaseIterable {
+    case leafly = "Leafly"
+    case weedmaps = "Weedmaps"
+    case allbud = "Allbud"
+    case reddit = "Reddit"
+    case aggregated = "Aggregated"
+    case patientHistory = "Patient history"
+
+    /// Display order for the source-anchored evidence section
+    /// (the model emits a flat list, the UI groups by source).
+    var sortOrder: Int {
+        switch self {
+        case .leafly: return 0
+        case .weedmaps: return 1
+        case .allbud: return 2
+        case .reddit: return 3
+        case .aggregated: return 4
+        case .patientHistory: return 5
+        }
+    }
+}
+
+/// One recommendation's auditable evidence ledger. All four
+/// sub-fields can be empty arrays — the UI hides the whole
+/// `ReasoningTraceView` when total bullets == 0.
+struct ReasoningEvidence: Codable, Hashable, Sendable {
+    /// The patient's conditions this strain addresses (copied
+    /// from the saved ailments).
+    var matchedConditions: [String]
+    /// Each patient context the model honored for this strain
+    /// (potency, time of day, THC sensitivity, etc.).
+    var preferencesApplied: [String]
+    /// 2-5 short bullets grounding the pick in real data the
+    /// model was given. `source` is constrained; `quote` must
+    /// reference a fact actually in the inputs.
+    var evidence: [ReasoningEvidenceItem]
+    /// 0-3 short practical cautions the patient should weigh
+    /// before trying (potency, time-of-day, side-effects, drug
+    /// class). Distinct from the top-level `caution` line.
+    var considerations: [String]
+
+    var totalBullets: Int {
+        matchedConditions.count
+            + preferencesApplied.count
+            + evidence.count
+            + considerations.count
+    }
+
+    var isEmpty: Bool { totalBullets == 0 }
 }
 
 struct RecommendationResult: Codable, Hashable, Sendable {

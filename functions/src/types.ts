@@ -104,6 +104,22 @@ export type FieldAttribution = {
   averaged: boolean;
 };
 
+export type CitationKind =
+  | "pubmed"
+  | "review"
+  | "nor.org"
+  | "leafly"
+  | "weedmaps"
+  | "allbud"
+  | "reddit";
+
+export type Citation = {
+  id: string;
+  source: string;
+  label: string;
+  kind: CitationKind;
+};
+
 export type StrainAnalysis = {
   headline: string;
   summary: string;
@@ -116,8 +132,10 @@ export type StrainAnalysis = {
   commonGround: string[];
   cautions: string[];
   // Reddit threads surfaced for the comparison, deduped across strains.
-  // Sources come from the LLM's training knowledge, not a live scrape.
+  // Sources come from the vetted pool, not an unrestricted LLM URL lookup.
   redditSources?: RedditSource[];
+  /** Auditable source references emitted by the citation-aware prompt. */
+  citations?: Citation[];
 };
 
 export type StrainComparison = {
@@ -130,6 +148,45 @@ export type StrainRecommendation = {
   reason: string;
   bestFor: string;
   caution: string;
+  /**
+   * Auditable evidence ledger. The model emits this for every
+   * recommendation so the client can show the patient the chain of
+   * reasoning that produced the pick (matched conditions, honored
+   * preferences, evidence quotes tied to specific input sources, and
+   * considerations the patient should weigh).
+   *
+   * Optional for backwards compatibility with older models that don't
+   * emit the field — the UI hides the trace block when it's missing.
+   */
+  reasoning?: ReasoningEvidence;
+};
+
+/**
+ * One bullet of source-anchored evidence. `source` is the literal label
+ * for the data feed the model quoted from (Leafly / Weedmaps / Allbud /
+ * Reddit / Aggregated / Patient history). `quote` is a short restatement
+ * of a fact actually present in the user message — never an invention.
+ */
+export type ReasoningEvidenceItem = {
+  source:
+    | "Leafly"
+    | "Weedmaps"
+    | "Allbud"
+    | "Reddit"
+    | "Aggregated"
+    | "Patient history";
+  quote: string;
+};
+
+export type ReasoningEvidence = {
+  /** Conditions from the patient's request this strain addresses. */
+  matchedConditions: string[];
+  /** Patient context the model honored for this strain (e.g. "THC-sensitive"). */
+  preferencesApplied: string[];
+  /** 2-5 source-anchored bullets backing the pick. */
+  evidence: ReasoningEvidenceItem[];
+  /** 0-3 practical considerations the patient should weigh. */
+  considerations: string[];
 };
 
 export type RecommendationResult = {
@@ -138,4 +195,6 @@ export type RecommendationResult = {
   recommendations: StrainRecommendation[];
   strains: StrainProfile[];
   redditSources?: RedditSource[];
+  /** Auditable source references emitted by the citation-aware prompt. */
+  citations?: Citation[];
 };

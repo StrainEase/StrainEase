@@ -41,6 +41,36 @@ export type CannabinoidRecord = {
   sources: ReferenceSource[];
 };
 
+export type DrugClass =
+  | "SSRI"
+  | "benzodiazepine"
+  | "opioid"
+  | "anticoagulant"
+  | "antihistamine"
+  | "stimulant"
+  | "other";
+
+export type InteractionSeverity =
+  | "low"
+  | "moderate"
+  | "high"
+  | "theoretical";
+
+export type CannabisInteraction = {
+  severity: InteractionSeverity;
+  mechanism: string;
+  commonGuidance: string;
+  discussWithPrescriber: boolean;
+};
+
+export type InteractionRecord = {
+  slug: string;
+  drugName: string;
+  drugClass: DrugClass;
+  cannabisInteraction: CannabisInteraction;
+  sources: ReferenceSource[];
+};
+
 export type ReferenceLibrary = {
   terpenes: TerpeneRecord[];
   cannabinoids: CannabinoidRecord[];
@@ -108,4 +138,69 @@ export async function fetchCannabinoidBySlug(
     ReferenceLibrary
   >("getReferenceLibrary", { kind: "cannabinoid", slug });
   return result.cannabinoids[0] ?? null;
+}
+
+/**
+ * Fetch cannabis-drug interaction records for a list of drug names.
+ * Returns an array of matching records; unknown drug names are
+ * silently dropped (the server never throws on an unknown drug).
+ * Every returned record has `discussWithPrescriber === true` — the
+ * UI must surface that line verbatim. This is a literature pointer,
+ * not medical advice.
+ */
+export function fetchDrugInteractions(
+  drugs: string[],
+): Promise<InteractionRecord[]> {
+  return call<{ drugs: string[] }, { interactions: InteractionRecord[] }>(
+    "getDrugInteractions",
+    { drugs },
+  ).then((res) => res.interactions);
+}
+
+/* ── Operator-only migrations ─────────────────────────────────────── */
+
+/**
+ * Server result for the `seedReferenceLibrary` migration. Identical
+ * to the cloud function return type so the admin UI can render the
+ * counts after a successful seed.
+ */
+export type SeedReferenceLibraryResult = {
+  ok: true;
+  terpeneCount: number;
+  cannabinoidCount: number;
+  writtenAt: number;
+};
+
+/**
+ * One-shot migration that writes the bundled terpene + cannabinoid
+ * seed files into Firestore. Operator-gated on the server. Idempotent
+ * — re-running it overwrites the same `slug` documents with the
+ * latest `seededAt` timestamp.
+ */
+export function seedReferenceLibrary(): Promise<SeedReferenceLibraryResult> {
+  return call<Record<string, never>, SeedReferenceLibraryResult>(
+    "seedReferenceLibrary",
+    {},
+  );
+}
+
+/**
+ * Server result for the `seedInteractionLibrary` migration.
+ */
+export type SeedInteractionLibraryResult = {
+  ok: true;
+  interactionCount: number;
+  writtenAt: number;
+};
+
+/**
+ * One-shot migration that writes the bundled drug-interaction seed
+ * file into Firestore. Operator-gated on the server. Idempotent —
+ * re-running it overwrites the same `slug` documents.
+ */
+export function seedInteractionLibrary(): Promise<SeedInteractionLibraryResult> {
+  return call<Record<string, never>, SeedInteractionLibraryResult>(
+    "seedInteractionLibrary",
+    {},
+  );
 }

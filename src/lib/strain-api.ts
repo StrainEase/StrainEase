@@ -3,6 +3,22 @@ import { functions } from "./firebase";
 import type { ResearchPrefs } from "./research-prefs";
 import type { RedditSource, StrainProfile } from "./strain-profile";
 
+export type CitationKind =
+  | "pubmed"
+  | "review"
+  | "nor.org"
+  | "leafly"
+  | "weedmaps"
+  | "allbud"
+  | "reddit";
+
+export type Citation = {
+  id: string;
+  source: string;
+  label: string;
+  kind: CitationKind;
+};
+
 // Response shapes returned by the Firebase Functions backend (functions/src).
 export type StrainAnalysis = {
   headline: string;
@@ -16,6 +32,7 @@ export type StrainAnalysis = {
   commonGround: string[];
   cautions: string[];
   redditSources?: RedditSource[];
+  citations?: Citation[];
 };
 
 export type StrainComparison = {
@@ -24,11 +41,37 @@ export type StrainComparison = {
   resultId?: string;
 };
 
+export type ReasoningSource =
+  | "Leafly"
+  | "Weedmaps"
+  | "Allbud"
+  | "Reddit"
+  | "Aggregated"
+  | "Patient history";
+
+export type ReasoningEvidenceItem = {
+  source: ReasoningSource;
+  quote: string;
+};
+
+export type ReasoningEvidence = {
+  matchedConditions: string[];
+  preferencesApplied: string[];
+  evidence: ReasoningEvidenceItem[];
+  considerations: string[];
+};
+
 export type StrainRecommendation = {
   strainName: string;
   reason: string;
   bestFor: string;
   caution: string;
+  /**
+   * Auditable evidence ledger. Present for every recommendation emitted
+   * by the updated prompt; older model responses may omit it. The
+   * `ReasoningTrace` component hides itself when this is undefined.
+   */
+  reasoning?: ReasoningEvidence;
 };
 
 export type RecommendationResult = {
@@ -37,6 +80,7 @@ export type RecommendationResult = {
   recommendations: StrainRecommendation[];
   strains: StrainProfile[];
   redditSources?: RedditSource[];
+  citations?: Citation[];
   resultId?: string;
 };
 
@@ -67,8 +111,8 @@ export function searchStrain(name: string): Promise<StrainProfile | null> {
 
 /**
  * Curated Reddit threads relevant to a single strain, drawn from the
- * vetted `reddit-seed` pool (no LLM in the loop). Returns up to 5
- * threads; empty when nothing matches. Public callable, so the
+ * Firestore-backed vetted pool with a static seed fallback. Returns up
+ * to 5 threads; empty when nothing matches. Public callable, so the
  * strain detail can prefetch it before the user signs in.
  */
 export function redditThreads(args: {
@@ -79,6 +123,60 @@ export function redditThreads(args: {
     "redditThreadsForStrain",
     args,
   );
+}
+
+/** Vet a Reddit candidate (operator callable; use src/lib/reddit-admin.ts). */
+export function vetRedditThread(args: {
+  threadId?: string;
+  url: string;
+  permalink?: string;
+  subreddit: string;
+  title: string;
+  snippet?: string;
+  selftext?: string;
+  score?: number;
+  applicableConditions: string[];
+  applicableStrains: string[];
+  vettedNotes?: string;
+}): Promise<{ ok: true; threadId: string; vettedAt: number }> {
+  return call<typeof args, { ok: true; threadId: string; vettedAt: number }>(
+    "vetRedditThread",
+    args,
+  );
+}
+
+export type PendingRedditThread = {
+  threadId: string;
+  url: string;
+  subreddit: string;
+  title: string;
+  snippet?: string;
+  score?: number;
+  applicableConditions: string[];
+  applicableStrains: string[];
+  vettedAt: null;
+  vettedBy: null;
+  addedAt: number;
+};
+
+/** List Reddit candidates awaiting operator review. */
+export function listPendingRedditThreads(): Promise<{
+  threads: PendingRedditThread[];
+}> {
+  return call<Record<string, never>, { threads: PendingRedditThread[] }>(
+    "listPendingRedditThreads",
+    {},
+  );
+}
+
+/** Remove a thread's approval and return it to the review queue. */
+export function unvetRedditThread(
+  threadId: string,
+): Promise<{ ok: true; threadId: string; existed: boolean }> {
+  return call<
+    { threadId: string },
+    { ok: true; threadId: string; existed: boolean }
+  >("unvetRedditThread", { threadId });
 }
 
 /** Side-by-side comparison (auth-gated callable). */
@@ -120,6 +218,7 @@ export type StrainDescriptionSection = {
  */
 export type StrainDescription = {
   sections: [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection];
+  citations?: Citation[];
 };
 
 /**
@@ -150,6 +249,36 @@ export type CachedStrainImage = {
   bytes: number;
   source: "memory" | "storage" | "network";
 };
+
+/**
+ * Dr. Kaya's prose section of the clinician report. Auth-gated; the
+ * client composes the structured snapshot locally and ships it to the
+ * callable so the model only writes the prose and never invents
+ * patient data.
+ */
+export type ClinicianReportSummary = {
+  /** 2-3 short paragraphs of prose, separated by blank lines. */
+  summary: string;
+  /** 3-5 short clinical-style considerations (one per line). */
+  considerations: string[];
+};
+
+/**
+ * Generate the prose section of the clinician report. The page composes
+ * the structured snapshot locally (see `buildClinicianReport`) and only
+ * ships it here for the AI to write the prose. The callable is auth-gated
+ * because the snapshot includes the patient's saved ailments, medications,
+ * and relief log.
+ */
+export function clinicianReportSummary(args: {
+  snapshot: unknown;
+  language?: string;
+}): Promise<ClinicianReportSummary> {
+  return call<typeof args, ClinicianReportSummary>(
+    "clinicianReportSummary",
+    args,
+  );
+}
 
 /**
  * Cache a strain image and return a signed URL the browser can fetch
