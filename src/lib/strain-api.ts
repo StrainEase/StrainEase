@@ -3,6 +3,22 @@ import { functions } from "./firebase";
 import type { ResearchPrefs } from "./research-prefs";
 import type { RedditSource, StrainProfile } from "./strain-profile";
 
+export type CitationKind =
+  | "pubmed"
+  | "review"
+  | "nor.org"
+  | "leafly"
+  | "weedmaps"
+  | "allbud"
+  | "reddit";
+
+export type Citation = {
+  id: string;
+  source: string;
+  label: string;
+  kind: CitationKind;
+};
+
 // Response shapes returned by the Firebase Functions backend (functions/src).
 export type StrainAnalysis = {
   headline: string;
@@ -16,6 +32,7 @@ export type StrainAnalysis = {
   commonGround: string[];
   cautions: string[];
   redditSources?: RedditSource[];
+  citations?: Citation[];
 };
 
 export type StrainComparison = {
@@ -63,6 +80,7 @@ export type RecommendationResult = {
   recommendations: StrainRecommendation[];
   strains: StrainProfile[];
   redditSources?: RedditSource[];
+  citations?: Citation[];
   resultId?: string;
 };
 
@@ -93,8 +111,8 @@ export function searchStrain(name: string): Promise<StrainProfile | null> {
 
 /**
  * Curated Reddit threads relevant to a single strain, drawn from the
- * vetted `reddit-seed` pool (no LLM in the loop). Returns up to 5
- * threads; empty when nothing matches. Public callable, so the
+ * Firestore-backed vetted pool with a static seed fallback. Returns up
+ * to 5 threads; empty when nothing matches. Public callable, so the
  * strain detail can prefetch it before the user signs in.
  */
 export function redditThreads(args: {
@@ -105,6 +123,60 @@ export function redditThreads(args: {
     "redditThreadsForStrain",
     args,
   );
+}
+
+/** Vet a Reddit candidate (operator callable; use src/lib/reddit-admin.ts). */
+export function vetRedditThread(args: {
+  threadId?: string;
+  url: string;
+  permalink?: string;
+  subreddit: string;
+  title: string;
+  snippet?: string;
+  selftext?: string;
+  score?: number;
+  applicableConditions: string[];
+  applicableStrains: string[];
+  vettedNotes?: string;
+}): Promise<{ ok: true; threadId: string; vettedAt: number }> {
+  return call<typeof args, { ok: true; threadId: string; vettedAt: number }>(
+    "vetRedditThread",
+    args,
+  );
+}
+
+export type PendingRedditThread = {
+  threadId: string;
+  url: string;
+  subreddit: string;
+  title: string;
+  snippet?: string;
+  score?: number;
+  applicableConditions: string[];
+  applicableStrains: string[];
+  vettedAt: null;
+  vettedBy: null;
+  addedAt: number;
+};
+
+/** List Reddit candidates awaiting operator review. */
+export function listPendingRedditThreads(): Promise<{
+  threads: PendingRedditThread[];
+}> {
+  return call<Record<string, never>, { threads: PendingRedditThread[] }>(
+    "listPendingRedditThreads",
+    {},
+  );
+}
+
+/** Remove a thread's approval and return it to the review queue. */
+export function unvetRedditThread(
+  threadId: string,
+): Promise<{ ok: true; threadId: string; existed: boolean }> {
+  return call<
+    { threadId: string },
+    { ok: true; threadId: string; existed: boolean }
+  >("unvetRedditThread", { threadId });
 }
 
 /** Side-by-side comparison (auth-gated callable). */
@@ -146,6 +218,7 @@ export type StrainDescriptionSection = {
  */
 export type StrainDescription = {
   sections: [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection];
+  citations?: Citation[];
 };
 
 /**

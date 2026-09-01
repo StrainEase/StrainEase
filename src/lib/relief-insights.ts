@@ -1,49 +1,139 @@
-// Deterministic, client-side pattern analysis over a patient's relief logs.
-//
-// Everything in this file is pure — no AI call, no network, no randomness —
-// so the same log list always renders the same insights. The Patient tab on
-// the dashboard renders the output verbatim, and the test file locks the
-// behavior in.
-//
-// Five lenses:
-//   1. topStrainsForCondition — which strains actually relieved each condition
-//   2. avoidStrains           — strains that were "too strong" more than once
-//   3. reliefTrend            — average relief bucketed by day for the last N days
-//   4. timeOfDayPattern       — average relief bucketed by hour of day
-//   5. summarizeInsights      — short prose line that lands in the AI prompt
-//
-// "Conditions" inside a log are free-text (the ReliefLogButton lets the user
-// type one), so we match case-insensitively against the user's saved
-// ailments first, then fall back to the raw log value.
+import type { ReliefFit, ReliefLog } from "./relief-log";
 
-import type { ReliefLog } from "./relief-log";
+export type ReliefTrend = "improving" | "steady" | "declining" | "insufficient-data";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-const MIN_LOGS_PER_BUCKET = 1; // 0 → bucket hidden, 1 → render with caveat
-const TREND_DAYS = 14;
-const TREND_BAR_WIDTH = 4; // rendered cells per day in the trend bar
-
-const HOUR_LABELS = [
-  "Morning (6–11)",
-  "Afternoon (12–17)",
-  "Evening (18–22)",
-  "Night (23–5)",
-];
-
-export type StrainScore = {
-  strainName: string;
-  /** Mean relief rating across the logs (1–5). */
-  avgRelief: number;
-  /** Fraction of logs where the patient rated the strain "just-right". */
-  justRightRate: number;
-  /** Total logs used in the score. */
-  logCount: number;
+export type ReliefInsight = {
+  title: string;
+  detail: string;
+  tone: "positive" | "neutral" | "caution";
 };
 
+export type StrainReliefSummary = {
+  strainName: string;
+  entries: number;
+  averageRelief: number;
+  justRightRate: number;
+};
+
+export type ReliefInsights = {
+  totalEntries: number;
+  averageRelief: number | null;
+  trend: ReliefTrend;
+  bestStrains: StrainReliefSummary[];
+  fitCounts: Record<ReliefFit, number>;
+  insights: ReliefInsight[];
+};
+
+const emptyFitCounts = (): Record<ReliefFit, number> => ({
+  "too-strong": 0,
+  "just-right": 0,
+  "too-weak": 0,
+});
+
+const round = (value: number, digits = 1) =>
+  Number(value.toFixed(digits));
+
+function average(values: number[]): number {
+  return values.length === 0
+    ? 0
+    : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function normalizedName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+export function analyzeReliefLogs(logs: ReliefLog[]): ReliefInsights {
+  const ordered = [...logs].sort((a, b) => a.createdAt - b.createdAt);
+  const fitCounts = emptyFitCounts();
+  ordered.forEach((log) => {
+    fitCounts[log.fit] += 1;
+  });
+
+  const averageRelief = ordered.length > 0
+    ? round(average(ordered.map((log) => log.relief)))
+    : null;
+
+  let trend: ReliefTrend = "insufficient-data";
+  if (ordered.length >= 4) {
+    const midpoint = Math.floor(ordered.length / 2);
+    const first = average(ordered.slice(0, midpoint).map((log) => log.relief));
+    const recent = average(ordered.slice(midpoint).map((log) => log.relief));
+    const delta = recent - first;
+    trend = delta >= 0.5 ? "improving" : delta <= -0.5 ? "declining" : "steady";
+  }
+
+  const byStrain = new Map<string, ReliefLog[]>();
+  ordered.forEach((log) => {
+    const key = normalizedName(log.strainName);
+    const current = byStrain.get(key) ?? [];
+    current.push(log);
+    byStrain.set(key, current);
+  });
+
+  const bestStrains = [...byStrain.values()]
+    .filter((entries) => entries.length >= 2)
+    .map((entries) => ({
+      strainName: entries[entries.length - 1].strainName,
+      entries: entries.length,
+      averageRelief: round(average(entries.map((log) => log.relief))),
+      justRightRate: round(
+        entries.filter((log) => log.fit === "just-right").length / entries.length,
+        2,
+      ),
+    }))
+    .sort((a, b) => b.averageRelief - a.averageRelief || b.entries - a.entries)
+    .slice(0, 5);
+
+  const insights: ReliefInsight[] = [];
+  if (bestStrains[0]) {
+    insights.push({
+      title: `${bestStrains[0].strainName} is your strongest pattern`,
+      detail: `${bestStrains[0].averageRelief}/5 average relief across ${bestStrains[0].entries} logs.`,
+      tone: "positive",
+    });
+  }
+  if (fitCounts["too-strong"] > 0) {
+    insights.push({
+      title: "Watch for intensity",
+      detail: `${fitCounts["too-strong"]} log${fitCounts["too-strong"] === 1 ? " is" : "s are"} marked too strong.`,
+      tone: "caution",
+    });
+  }
+  if (trend !== "insufficient-data") {
+    insights.push({
+      title: trend === "improving" ? "Recent relief is improving" : trend === "declining" ? "Recent relief is lower" : "Relief is holding steady",
+      detail: "This compares the earlier half of your logs with the more recent half.",
+      tone: trend === "declining" ? "caution" : trend === "improving" ? "positive" : "neutral",
+    });
+  }
+
+  return {
+    totalEntries: ordered.length,
+    averageRelief,
+    trend,
+    bestStrains,
+    fitCounts,
+    insights,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Legacy adapter — exposes the broader shape that pre-#215 callers
+// (`useReliefSummary`, `clinicianReport`) were built around. Built on top of
+// the canonical `analyzeReliefLogs` so the two stay in sync and the panel
+// rendered by the canonical analysis is the same data the report ships.
+//
+// Kept in this file so the import surface for the legacy callers doesn't
+// change as we re-shape the canonical API. The adapter is intentionally
+// a thin projection: every field is derived from `analyzeReliefLogs`.
+// ---------------------------------------------------------------------------
+
+const TREND_DAYS = 14;
+
 export type TopStrainForCondition = {
-  condition: string;
   strain: string;
+  condition: string;
   avgRelief: number;
   logCount: number;
 };
@@ -57,335 +147,196 @@ export type AvoidStrain = {
 };
 
 export type TrendPoint = {
-  /** Midnight of the day this bucket represents, in ms. */
-  dayMs: number;
-  /** Average relief on this day, or null when no logs that day. */
-  avgRelief: number | null;
-  /** Number of logs on this day. */
-  logCount: number;
+  date: string;
+  averageRelief: number | null;
+  count: number;
 };
 
 export type TimeOfDayBucket = {
-  label: string;
-  avgRelief: number | null;
-  logCount: number;
+  band: "morning" | "afternoon" | "evening" | "night";
+  averageRelief: number | null;
+  count: number;
 };
 
-export type ReliefInsights = {
-  /** Strains that have repeatedly helped for a given condition. */
+export type LegacyReliefInsights = {
   topStrains: TopStrainForCondition[];
-  /** Strains marked "too strong" >= 2 times — worth flagging to the next search. */
   avoid: AvoidStrain[];
-  /** Per-day average relief for the last TREND_DAYS days, oldest → newest. */
   trend: TrendPoint[];
-  /** Average relief grouped into 4 time-of-day bands. */
   timeOfDay: TimeOfDayBucket[];
-  /** True when there are at least 2 logs to derive a meaningful insight. */
   hasEnoughData: boolean;
-  /** Total number of logs that contributed to the insights. */
   totalLogs: number;
-  /** Short prose summary — reused as `reliefSummary` in the AI prompt. */
   proseSummary: string;
 };
 
-function normalizeCondition(raw: string): string {
-  return raw.trim();
+function todayKey(now: number): string {
+  const d = new Date(now);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function conditionKey(name: string): string {
-  return name.toLowerCase();
+function addDays(key: string, delta: number): string {
+  const [y, m, d] = key.split("-").map((s) => Number(s));
+  const date = new Date(Date.UTC(y, m - 1, d));
+  date.setUTCDate(date.getUTCDate() + delta);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
-function strainKey(name: string): string {
-  return name.trim().toLowerCase();
+function hourBand(date: Date): 0 | 1 | 2 | 3 {
+  const h = date.getHours();
+  if (h < 6) return 3; // night
+  if (h < 12) return 0; // morning
+  if (h < 18) return 1; // afternoon
+  return 2; // evening
 }
 
-/**
- * Roll up per-strain stats for a single condition (or for any condition
- * when `condition` is undefined). A "win" requires the fit was "just-right"
- * and the relief was 4 or 5 — pure ratings don't tell us how it sat with
- * the patient.
- */
-export function topStrainsForCondition(
+function startOfDayKey(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function buildReliefInsights(
   logs: ReliefLog[],
-  condition?: string,
-  limit = 3,
-): TopStrainForCondition[] {
-  const want = condition ? conditionKey(condition) : null;
-  const buckets = new Map<string, { strain: string; totalRelief: number; count: number }>();
+  now: number = Date.now(),
+): LegacyReliefInsights {
+  const analysis = analyzeReliefLogs(logs);
+
+  // Top strains, grouped by condition. A "win" requires the fit was
+  // "just-right" and the relief was 4 or 5 — pure ratings don't tell
+  // us how it sat with the patient.
+  const buckets = new Map<
+    string,
+    { strain: string; condition: string; totalRelief: number; count: number }
+  >();
   for (const log of logs) {
-    if (want !== null) {
-      const matched = log.conditions.some(
-        (c) => conditionKey(c) === want,
-      );
-      if (!matched) continue;
-    }
-    const k = strainKey(log.strainName);
-    if (k === "") continue;
-    const existing = buckets.get(k);
+    if (log.fit !== "just-right" || log.relief < 4) continue;
+    const condition = log.conditions[0]?.trim() || "general";
+    const key = `${normalizedName(log.strainName)}|${condition.toLowerCase()}`;
+    const existing = buckets.get(key);
     if (existing) {
       existing.totalRelief += log.relief;
       existing.count += 1;
     } else {
-      buckets.set(k, {
+      buckets.set(key, {
         strain: log.strainName.trim(),
+        condition,
         totalRelief: log.relief,
         count: 1,
       });
     }
   }
-  const out: TopStrainForCondition[] = [];
-  for (const entry of buckets.values()) {
-    if (entry.count < 2) continue; // single log = noise
-    out.push({
-      condition: condition ?? "any",
-      strain: entry.strain,
-      avgRelief: entry.totalRelief / entry.count,
-      logCount: entry.count,
-    });
-  }
-  out.sort((a, b) => {
-    if (b.avgRelief !== a.avgRelief) return b.avgRelief - a.avgRelief;
-    return b.logCount - a.logCount;
-  });
-  return out.slice(0, limit);
-}
+  const topStrains: TopStrainForCondition[] = [...buckets.values()]
+    .filter((b) => b.count >= 2)
+    .map((b) => ({
+      strain: b.strain,
+      condition: b.condition,
+      avgRelief: round(b.totalRelief / b.count),
+      logCount: b.count,
+    }))
+    .sort((a, b) => b.avgRelief - a.avgRelief || b.logCount - a.logCount)
+    .slice(0, 5);
 
-/**
- * Strains the patient has marked "too strong" two or more times. Surfaced
- * in the insights panel so the next search can deprioritize them.
- */
-export function avoidStrains(logs: ReliefLog[]): AvoidStrain[] {
-  const buckets = new Map<
-    string,
-    { strain: string; harsh: number; total: number }
-  >();
+  // Avoid list — strains marked "too strong" at least twice.
+  const totalsByStrain = new Map<string, { strain: string; harsh: number; total: number }>();
   for (const log of logs) {
-    const k = strainKey(log.strainName);
-    if (k === "") continue;
-    const existing = buckets.get(k);
-    if (existing) {
-      existing.total += 1;
-      if (log.fit === "too-strong") existing.harsh += 1;
-    } else {
-      buckets.set(k, {
-        strain: log.strainName.trim(),
-        harsh: log.fit === "too-strong" ? 1 : 0,
-        total: 1,
+    const key = normalizedName(log.strainName);
+    const existing = totalsByStrain.get(key) ?? {
+      strain: log.strainName.trim(),
+      harsh: 0,
+      total: 0,
+    };
+    existing.total += 1;
+    if (log.fit === "too-strong") existing.harsh += 1;
+    totalsByStrain.set(key, existing);
+  }
+  const avoid: AvoidStrain[] = [...totalsByStrain.values()]
+    .filter((s) => s.harsh >= 2)
+    .sort((a, b) => b.harsh - a.harsh)
+    .map((s) => ({
+      strainName: s.strain,
+      harshCount: s.harsh,
+      totalCount: s.total,
+    }));
+
+  // Per-day average relief for the last TREND_DAYS days, oldest → newest.
+  const today = todayKey(now);
+  const start = addDays(today, -(TREND_DAYS - 1));
+  const byDate = new Map<string, ReliefLog[]>();
+  for (const log of logs) {
+    const date = startOfDayKey(log.createdAt);
+    const existing = byDate.get(date) ?? [];
+    existing.push(log);
+    byDate.set(date, existing);
+  }
+  const trend: TrendPoint[] = [];
+  for (let i = 0; i < TREND_DAYS; i += 1) {
+    const date = addDays(start, i);
+    const dayLogs = byDate.get(date) ?? [];
+    if (dayLogs.length > 0) {
+      trend.push({
+        date,
+        averageRelief: round(average(dayLogs.map((l) => l.relief))),
+        count: dayLogs.length,
       });
+    } else {
+      trend.push({ date, averageRelief: null, count: 0 });
     }
   }
-  const out: AvoidStrain[] = [];
-  for (const entry of buckets.values()) {
-    if (entry.harsh < 2) continue;
-    out.push({
-      strainName: entry.strain,
-      harshCount: entry.harsh,
-      totalCount: entry.total,
-    });
-  }
-  out.sort((a, b) => b.harshCount - a.harshCount);
-  return out;
-}
 
-/**
- * Bucketed per-day average relief for the last `days` days, oldest → newest.
- * Days with no logs are kept in the result as `avgRelief: null` so callers
- * can render the gap in a trend bar.
- */
-export function reliefTrend(
-  logs: ReliefLog[],
-  now: number = Date.now(),
-  days: number = TREND_DAYS,
-): TrendPoint[] {
-  const today = startOfDay(now);
-  const start = today - (days - 1) * MS_PER_DAY;
-  const buckets = new Map<number, { total: number; count: number }>();
-  for (let i = 0; i < days; i += 1) {
-    buckets.set(start + i * MS_PER_DAY, { total: 0, count: 0 });
-  }
-  for (const log of logs) {
-    const dayMs = startOfDay(log.createdAt);
-    if (dayMs < start || dayMs > today) continue;
-    const bucket = buckets.get(dayMs);
-    if (!bucket) continue;
-    bucket.total += log.relief;
-    bucket.count += 1;
-  }
-  const out: TrendPoint[] = [];
-  for (let i = 0; i < days; i += 1) {
-    const dayMs = start + i * MS_PER_DAY;
-    const b = buckets.get(dayMs)!;
-    out.push({
-      dayMs,
-      avgRelief: b.count > 0 ? b.total / b.count : null,
-      logCount: b.count,
-    });
-  }
-  return out;
-}
-
-function startOfDay(ts: number): number {
-  const d = new Date(ts);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-
-function hourBand(date: Date): 0 | 1 | 2 | 3 {
-  const h = date.getHours();
-  if (h >= 6 && h <= 11) return 0;
-  if (h >= 12 && h <= 17) return 1;
-  if (h >= 18 && h <= 22) return 2;
-  return 3;
-}
-
-/**
- * Four-band time-of-day split. The labels are short enough for a single
- * card row and the band boundaries match how the relief-log tooltip
- * already talks about "morning" / "night".
- */
-export function timeOfDayPattern(logs: ReliefLog[]): TimeOfDayBucket[] {
-  const totals = [0, 0, 0, 0];
-  const counts = [0, 0, 0, 0];
+  // 4-band time-of-day pattern.
+  const bands: { sum: number; count: number }[] = [
+    { sum: 0, count: 0 },
+    { sum: 0, count: 0 },
+    { sum: 0, count: 0 },
+    { sum: 0, count: 0 },
+  ];
   for (const log of logs) {
     const band = hourBand(new Date(log.createdAt));
-    totals[band] += log.relief;
-    counts[band] += 1;
+    bands[band].sum += log.relief;
+    bands[band].count += 1;
   }
-  return HOUR_LABELS.map((label, i) => ({
-    label,
-    avgRelief: counts[i] >= MIN_LOGS_PER_BUCKET ? totals[i] / counts[i] : null,
-    logCount: counts[i],
+  const labels: TimeOfDayBucket["band"][] = ["morning", "afternoon", "evening", "night"];
+  const timeOfDay: TimeOfDayBucket[] = labels.map((band, i) => ({
+    band,
+    averageRelief: bands[i].count > 0 ? round(bands[i].sum / bands[i].count) : null,
+    count: bands[i].count,
   }));
-}
 
-function formatRelief(n: number): string {
-  return n.toFixed(1);
-}
+  // Prose summary. Empty when there are no logs (callers fall back to a
+  // one-liner). When there are logs but only 1, the patient hasn't
+  // generated a real pattern yet — leave proseSummary empty and let the
+  // caller's fallback take over.
+  const proseSummary = analysis.totalEntries >= 2 ? summarizeAnalysis(analysis, topStrains, avoid) : "";
 
-function formatStrainList(items: TopStrainForCondition[], max: number): string {
-  const slice = items.slice(0, max);
-  return slice
-    .map((item) => `${item.strain} (${formatRelief(item.avgRelief)}/5, ${item.logCount}×)`)
-    .join("; ");
-}
-
-/**
- * Short prose summary — used both as the insight card body and as the
- * `reliefSummary` field the next AI search consumes.
- */
-export function summarizeInsights(insights: ReliefInsights): string {
-  if (!insights.hasEnoughData) return "";
-  const parts: string[] = [];
-  if (insights.topStrains.length > 0) {
-    parts.push(`Top strains: ${formatStrainList(insights.topStrains, 3)}`);
-  }
-  if (insights.avoid.length > 0) {
-    const avoidList = insights.avoid
-      .map((a) => `${a.strainName} (${a.harshCount}× too strong)`)
-      .join(", ");
-    parts.push(`Avoid: ${avoidList}`);
-  }
-  const bestBand = insights.timeOfDay
-    .filter((b) => b.avgRelief !== null)
-    .sort((a, b) => (b.avgRelief ?? 0) - (a.avgRelief ?? 0))[0];
-  if (bestBand) {
-    parts.push(`Best window: ${bestBand.label} (${formatRelief(bestBand.avgRelief ?? 0)}/5)`);
-  }
-  return parts.join("; ");
-}
-
-/**
- * Build the full insights payload for a list of relief logs. Always safe
- * to call with an empty list — the returned object simply has empty
- * collections and `hasEnoughData: false`.
- */
-export function buildReliefInsights(
-  logs: ReliefLog[],
-  now: number = Date.now(),
-): ReliefInsights {
-  // Use a stable per-condition ordering: for each saved condition, compute
-  // the top strains; then add an "any" lens for the wild-card symptoms
-  // the patient typed in that we don't have on the chip list.
-  const conditionsSeen = new Set<string>();
-  for (const log of logs) {
-    for (const c of log.conditions) {
-      const key = conditionKey(c);
-      if (key !== "") conditionsSeen.add(key);
-    }
-  }
-  const topStrains: TopStrainForCondition[] = [];
-  for (const key of conditionsSeen) {
-    const conditionName = [...logs]
-      .flatMap((l) => l.conditions)
-      .find((c) => conditionKey(c) === key) ?? key;
-    topStrains.push(...topStrainsForCondition(logs, normalizeCondition(conditionName)));
-  }
-  topStrains.sort((a, b) => {
-    if (b.avgRelief !== a.avgRelief) return b.avgRelief - a.avgRelief;
-    return b.logCount - a.logCount;
-  });
-
-  const avoid = avoidStrains(logs);
-  const trend = reliefTrend(logs, now);
-  const tod = timeOfDayPattern(logs);
-  const hasEnoughData = logs.length >= 2;
-
-  const draft: ReliefInsights = {
+  return {
     topStrains,
     avoid,
     trend,
-    timeOfDay: tod,
-    hasEnoughData,
-    totalLogs: logs.length,
-    proseSummary: "",
-  };
-  draft.proseSummary = summarizeInsights(draft);
-  return draft;
-}
-
-/**
- * Score a strain against the patient's logs. Currently used by the
- * Reasoning Trace (Feature 3) to add a one-line "matched your past
- * relief for X" hint, but kept in the insights module because the
- * scoring is a derivation of the log data, not the AI output.
- */
-export function strainPersonalFit(
-  logs: ReliefLog[],
-  strainName: string,
-): StrainScore | null {
-  const k = strainKey(strainName);
-  if (k === "") return null;
-  let totalRelief = 0;
-  let count = 0;
-  let justRight = 0;
-  for (const log of logs) {
-    if (strainKey(log.strainName) !== k) continue;
-    totalRelief += log.relief;
-    count += 1;
-    if (log.fit === "just-right") justRight += 1;
-  }
-  if (count === 0) return null;
-  return {
-    strainName: logName(logs, k) ?? strainName.trim(),
-    avgRelief: totalRelief / count,
-    justRightRate: justRight / count,
-    logCount: count,
+    timeOfDay,
+    hasEnoughData: analysis.totalEntries >= 2,
+    totalLogs: analysis.totalEntries,
+    proseSummary,
   };
 }
 
-function logName(logs: ReliefLog[], k: string): string | null {
-  for (const log of logs) {
-    if (strainKey(log.strainName) === k) return log.strainName.trim();
+function summarizeAnalysis(
+  analysis: ReliefInsights,
+  topStrains: TopStrainForCondition[],
+  avoid: AvoidStrain[],
+): string {
+  const parts: string[] = [];
+  if (analysis.totalEntries > 0 && analysis.averageRelief !== null) {
+    parts.push(`${analysis.totalEntries} log${analysis.totalEntries === 1 ? "" : "s"}, avg relief ${analysis.averageRelief}/5`);
   }
-  return null;
+  if (topStrains[0]) {
+    const top = topStrains[0];
+    parts.push(
+      `top strain ${top.strain} for ${top.condition} (${top.avgRelief}/5 across ${top.logCount})`,
+    );
+  }
+  if (avoid[0]) {
+    parts.push(`avoid ${avoid.map((a) => a.strainName).join(", ")} (too strong)`);
+  }
+  if (analysis.trend === "improving") parts.push("recent relief is improving");
+  if (analysis.trend === "declining") parts.push("recent relief is lower");
+  return parts.join("; ");
 }
 
-// Re-exported for the test file so the assertion side can build the same
-// fixture without re-deriving the day boundaries.
-export const __test = {
-  TREND_DAYS,
-  TREND_BAR_WIDTH,
-  startOfDay,
-  hourBand,
-};

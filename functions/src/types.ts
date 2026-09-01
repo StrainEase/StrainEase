@@ -104,6 +104,22 @@ export type FieldAttribution = {
   averaged: boolean;
 };
 
+export type CitationKind =
+  | "pubmed"
+  | "review"
+  | "nor.org"
+  | "leafly"
+  | "weedmaps"
+  | "allbud"
+  | "reddit";
+
+export type Citation = {
+  id: string;
+  source: string;
+  label: string;
+  kind: CitationKind;
+};
+
 export type StrainAnalysis = {
   headline: string;
   summary: string;
@@ -116,8 +132,10 @@ export type StrainAnalysis = {
   commonGround: string[];
   cautions: string[];
   // Reddit threads surfaced for the comparison, deduped across strains.
-  // Sources come from the LLM's training knowledge, not a live scrape.
+  // Sources come from the vetted pool, not an unrestricted LLM URL lookup.
   redditSources?: RedditSource[];
+  /** Auditable source references emitted by the citation-aware prompt. */
+  citations?: Citation[];
 };
 
 export type StrainComparison = {
@@ -177,4 +195,6 @@ export type RecommendationResult = {
   recommendations: StrainRecommendation[];
   strains: StrainProfile[];
   redditSources?: RedditSource[];
+  /** Auditable source references emitted by the citation-aware prompt. */
+  citations?: Citation[];
 };
