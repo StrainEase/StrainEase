@@ -64,6 +64,27 @@ struct AccountView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        NavigationLink {
+                            CheckInHistoryView()
+                        } label: {
+                            SWCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Daily check-in")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Palette.foreground)
+                                        Text("Mood, sleep, pain, and anxiety over time")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Palette.mutedForeground)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Palette.mutedForeground)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
 
                         SWCard {
                             VStack(alignment: .leading, spacing: 10) {

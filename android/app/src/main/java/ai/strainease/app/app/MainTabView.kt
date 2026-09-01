@@ -76,6 +76,7 @@ fun MainTabView() {
     val savedMedications = remember { ai.strainease.app.data.SavedMedicationsStore(app) }
     val savedStrains = remember { ai.strainease.app.data.SavedStrainsStore(app) }
     val relief = remember { ai.strainease.app.data.ReliefLogStore(app) }
+    val checkIns = remember { ai.strainease.app.data.CheckInStore(app) }
     val ageStore = remember { ai.strainease.app.compliance.AgeVerificationStore(app) }
     val researchHistory = remember { ai.strainease.app.data.ResearchHistoryStore() }
 
@@ -191,6 +192,7 @@ fun MainTabView() {
                         savedMedications = savedMedications,
                         savedStrains = savedStrains,
                         compareStore = compareStore,
+                        checkIns = checkIns,
                         modifier = Modifier.fillMaxSize(),
                     )
                     // Floating back chevron — mirrors the iOS navigation
@@ -229,6 +231,7 @@ fun MainTabView() {
                     savedMedications = savedMedications,
                     savedStrains = savedStrains,
                     relief = relief,
+                    checkIns = checkIns,
                     ageStore = ageStore,
                     onDismiss = closeAccount,
                     onOpenStrain = { openProfile = it },

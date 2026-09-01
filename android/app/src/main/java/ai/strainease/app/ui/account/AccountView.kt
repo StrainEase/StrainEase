@@ -45,6 +45,8 @@ import ai.strainease.app.auth.LocalAuthSession
 import ai.strainease.app.compliance.AgeVerificationStore
 import ai.strainease.app.data.ReliefLog
 import ai.strainease.app.data.ReliefLogStore
+import ai.strainease.app.data.CheckInStore
+import ai.strainease.app.ui.checkin.CheckInPanel
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.data.SavedMedicationsStore
 import ai.strainease.app.data.SavedStrain
@@ -77,6 +79,7 @@ fun AccountView(
     savedMedications: SavedMedicationsStore,
     savedStrains: SavedStrainsStore,
     relief: ReliefLogStore,
+    checkIns: CheckInStore,
     ageStore: AgeVerificationStore,
     onDismiss: () -> Unit,
     onOpenStrain: (ai.strainease.app.models.StrainProfile) -> Unit,
@@ -98,6 +101,7 @@ fun AccountView(
         savedMedications.refresh()
         savedStrains.refresh()
         relief.refresh()
+        checkIns.refresh()
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -156,6 +160,9 @@ fun AccountView(
                 onOpen = onOpenStrain,
                 onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
             )
+            SWCard {
+                CheckInPanel(store = checkIns, compact = true)
+            }
             ReliefHistoryView(log = log)
             ComplianceFooter(
                 ageStore = ageStore,

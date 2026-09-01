@@ -41,11 +41,37 @@ export type StrainComparison = {
   resultId?: string;
 };
 
+export type ReasoningSource =
+  | "Leafly"
+  | "Weedmaps"
+  | "Allbud"
+  | "Reddit"
+  | "Aggregated"
+  | "Patient history";
+
+export type ReasoningEvidenceItem = {
+  source: ReasoningSource;
+  quote: string;
+};
+
+export type ReasoningEvidence = {
+  matchedConditions: string[];
+  preferencesApplied: string[];
+  evidence: ReasoningEvidenceItem[];
+  considerations: string[];
+};
+
 export type StrainRecommendation = {
   strainName: string;
   reason: string;
   bestFor: string;
   caution: string;
+  /**
+   * Auditable evidence ledger. Present for every recommendation emitted
+   * by the updated prompt; older model responses may omit it. The
+   * `ReasoningTrace` component hides itself when this is undefined.
+   */
+  reasoning?: ReasoningEvidence;
 };
 
 export type RecommendationResult = {
@@ -223,6 +249,36 @@ export type CachedStrainImage = {
   bytes: number;
   source: "memory" | "storage" | "network";
 };
+
+/**
+ * Dr. Kaya's prose section of the clinician report. Auth-gated; the
+ * client composes the structured snapshot locally and ships it to the
+ * callable so the model only writes the prose and never invents
+ * patient data.
+ */
+export type ClinicianReportSummary = {
+  /** 2-3 short paragraphs of prose, separated by blank lines. */
+  summary: string;
+  /** 3-5 short clinical-style considerations (one per line). */
+  considerations: string[];
+};
+
+/**
+ * Generate the prose section of the clinician report. The page composes
+ * the structured snapshot locally (see `buildClinicianReport`) and only
+ * ships it here for the AI to write the prose. The callable is auth-gated
+ * because the snapshot includes the patient's saved ailments, medications,
+ * and relief log.
+ */
+export function clinicianReportSummary(args: {
+  snapshot: unknown;
+  language?: string;
+}): Promise<ClinicianReportSummary> {
+  return call<typeof args, ClinicianReportSummary>(
+    "clinicianReportSummary",
+    args,
+  );
+}
 
 /**
  * Cache a strain image and return a signed URL the browser can fetch
