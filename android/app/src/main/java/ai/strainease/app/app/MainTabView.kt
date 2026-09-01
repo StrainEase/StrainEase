@@ -64,6 +64,7 @@ fun MainTabView() {
     // warm and the user has a way to reach account settings.
     var showAccount by remember { mutableStateOf(false) }
     var showSaved by remember { mutableStateOf(false) }
+    var showReport by remember { mutableStateOf(false) }
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext
         as ai.strainease.app.StrainEaseApplication
     val homeModel = remember { ai.strainease.app.ui.home.HomeModel() }
@@ -98,9 +99,11 @@ fun MainTabView() {
     val closeStrain: () -> Unit = { openProfile = null }
     val closeAccount: () -> Unit = { showAccount = false }
     val closeSaved: () -> Unit = { showSaved = false }
+    val closeReport: () -> Unit = { showReport = false }
     // Hardware / gesture back closes the deepest open surface so
     // the user is never trapped behind a sheet / overlay.
     BackHandler(enabled = openProfile != null) { closeStrain() }
+    BackHandler(enabled = showReport) { closeReport() }
     BackHandler(enabled = showAccount) { closeAccount() }
     BackHandler(enabled = showSaved) { closeSaved() }
 
@@ -249,6 +252,10 @@ fun MainTabView() {
                     ageStore = ageStore,
                     onDismiss = closeAccount,
                     onOpenStrain = { openProfile = it },
+                    onOpenClinicianReport = {
+                        showAccount = false
+                        showReport = true
+                    },
                 )
             }
         }
@@ -261,6 +268,16 @@ fun MainTabView() {
                     savedStrains = savedStrains,
                     onOpen = { openProfile = it },
                     onDismiss = closeSaved,
+                )
+            }
+        }
+
+        if (showReport) {
+            ModalBottomSheet(
+                onDismissRequest = closeReport,
+            ) {
+                ai.strainease.app.ui.report.ClinicianReportScreen(
+                    onDismiss = closeReport,
                 )
             }
         }

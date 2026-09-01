@@ -281,6 +281,40 @@ export function clinicianReportSummary(args: {
 }
 
 /**
+ * Result of a `generateClinicianReportPdf` call. The PDF comes back
+ * as base64 because a single patient report is 100KB-2MB, which fits
+ * well inside the callable response size limit and lets the client
+ * trigger a download with a data URL or `Blob` round-trip.
+ */
+export type ClinicianReportPdf = {
+  pdfBase64: string;
+  filename: string;
+  contentType: "application/pdf";
+  byteLength: number;
+  kayaIncluded: boolean;
+};
+
+/**
+ * Server-side Clinician Report PDF. Reads the patient snapshot,
+ * calls Groq for Dr. Kaya's prose, renders the HTML to a PDF via
+ * Puppeteer + @sparticuz/chromium, and returns the bytes. Auth-gated.
+ *
+ * This is the canonical "generate report" path used by the web
+ * `/report` page and the iOS / Android report screens — every
+ * platform downloads the same PDF.
+ */
+export function generateClinicianReportPdf(args?: {
+  language?: string;
+  /** When false, skip the LLM call and ship a structured-only PDF. */
+  includeKayaSummary?: boolean;
+}): Promise<ClinicianReportPdf> {
+  return call<typeof args, ClinicianReportPdf>(
+    "generateClinicianReportPdf",
+    args ?? {},
+  );
+}
+
+/**
  * Cache a strain image and return a signed URL the browser can fetch
  * directly. Repeated calls for the same URL hit the Storage copy
  * instead of re-downloading from Leafly, so images load much faster

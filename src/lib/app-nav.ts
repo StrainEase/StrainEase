@@ -15,6 +15,7 @@ export const DOCTORS_HREF = "/doctors";
 export const SAVED_HREF = "/dashboard?mode=saved";
 export const HISTORY_HREF = "/dashboard?mode=history";
 export const CHECKINS_HREF = "/dashboard?mode=checkins";
+export const REPORT_HREF = "/report";
 
 export const APP_NAV: { id: AppNavId; to: string; label: string }[] = [
   { id: "home", to: HOME_HREF, label: "Home" },
