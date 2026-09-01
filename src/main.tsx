@@ -22,6 +22,7 @@ const StrainPage = lazy(() => import("./pages/Strain.tsx"));
 const TerpenePage = lazy(() => import("./pages/Terpene.tsx"));
 const DoctorsPage = lazy(() => import("./pages/Doctors.tsx"));
 const ClinicianReportPage = lazy(() => import("./pages/ClinicianReport.tsx"));
+const AdminPage = lazy(() => import("./pages/Admin.tsx"));
 const LegalPage = lazy(() => import("./pages/Legal.tsx"));
 const TermsPage = lazy(() => import("./pages/Terms.tsx"));
 const PrivacyPage = lazy(() => import("./pages/Privacy.tsx"));
@@ -145,6 +146,14 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <ClinicianReportPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAuth>
+                    <AdminPage />
                   </RequireAuth>
                 }
               />

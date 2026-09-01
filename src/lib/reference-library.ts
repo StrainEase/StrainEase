@@ -156,3 +156,51 @@ export function fetchDrugInteractions(
     { drugs },
   ).then((res) => res.interactions);
 }
+
+/* ── Operator-only migrations ─────────────────────────────────────── */
+
+/**
+ * Server result for the `seedReferenceLibrary` migration. Identical
+ * to the cloud function return type so the admin UI can render the
+ * counts after a successful seed.
+ */
+export type SeedReferenceLibraryResult = {
+  ok: true;
+  terpeneCount: number;
+  cannabinoidCount: number;
+  writtenAt: number;
+};
+
+/**
+ * One-shot migration that writes the bundled terpene + cannabinoid
+ * seed files into Firestore. Operator-gated on the server. Idempotent
+ * — re-running it overwrites the same `slug` documents with the
+ * latest `seededAt` timestamp.
+ */
+export function seedReferenceLibrary(): Promise<SeedReferenceLibraryResult> {
+  return call<Record<string, never>, SeedReferenceLibraryResult>(
+    "seedReferenceLibrary",
+    {},
+  );
+}
+
+/**
+ * Server result for the `seedInteractionLibrary` migration.
+ */
+export type SeedInteractionLibraryResult = {
+  ok: true;
+  interactionCount: number;
+  writtenAt: number;
+};
+
+/**
+ * One-shot migration that writes the bundled drug-interaction seed
+ * file into Firestore. Operator-gated on the server. Idempotent —
+ * re-running it overwrites the same `slug` documents.
+ */
+export function seedInteractionLibrary(): Promise<SeedInteractionLibraryResult> {
+  return call<Record<string, never>, SeedInteractionLibraryResult>(
+    "seedInteractionLibrary",
+    {},
+  );
+}
