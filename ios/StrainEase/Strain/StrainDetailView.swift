@@ -19,6 +19,7 @@ struct StrainDetailView: View {
     @Environment(ReliefLogStore.self) private var relief
     @Environment(AppNavigation.self) private var nav
     @Environment(CompareSelectionStore.self) private var compareStore
+    @State private var showPhotoZoom = false
 
     init(profile: StrainProfile) {
         _profile = State(initialValue: profile)
@@ -123,6 +124,9 @@ struct StrainDetailView: View {
         }
         .task(id: profile.slug) {
             await fetchRedditThreads()
+        }
+        .sheet(isPresented: $showPhotoZoom) {
+            PhotoZoomView(urlString: profile.imageUrl)
         }
         .onChange(of: ailments.ailments) { _, _ in
             Task { await fetchTailoredDescription() }
@@ -362,12 +366,30 @@ struct StrainDetailView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            StrainPhoto(
-                urlString: profile.imageUrl,
-                type: profile.type,
-                height: 248,
-                cornerRadius: 20
-            )
+            ZStack(alignment: .bottomTrailing) {
+                StrainPhoto(
+                    urlString: profile.imageUrl,
+                    type: profile.type,
+                    height: 248,
+                    cornerRadius: 20
+                )
+                .onTapGesture { showPhotoZoom = true }
+                .accessibilityLabel("View full-size photo")
+
+                // Zoom icon in the bottom-right corner
+                if profile.imageUrl != nil && !(profile.imageUrl ?? "").isEmpty {
+                    Circle()
+                        .fill(.black.opacity(0.5))
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white)
+                        )
+                        .padding(10)
+                        .allowsHitTesting(false)
+                }
+            }
             HStack(spacing: 8) {
                 TypeBadge(type: profile.type)
                 if !profile.inKnowledgeBase {
@@ -1156,4 +1178,62 @@ private struct TerpeneRow: View {
     .environment(AppNavigation())
     .environment(CompareSelectionStore())
     .preferredColorScheme(.dark)
+}
+
+// MARK: - Photo Zoom
+
+/// Full-screen photo viewer presented from the strain detail hero.
+/// Dismissed by swiping down or tapping the close button.
+private struct PhotoZoomView: View {
+    let urlString: String?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            if let urlString, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .transition(.opacity)
+                    case .failure:
+                        fallback
+                    case .empty:
+                        ProgressView()
+                            .tint(.white)
+                    @unknown default:
+                        fallback
+                    }
+                }
+            } else {
+                fallback
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(.black.opacity(0.5), in: Circle())
+            }
+            .padding(16)
+        }
+    }
+
+    private var fallback: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "photo")
+                .font(.system(size: 32))
+                .foregroundStyle(.white.opacity(0.5))
+            Text("No photo available")
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.5))
+        }
+    }
 }
