@@ -121,12 +121,12 @@ fun CommunityVoicesSection(
                         allbudCount = allbud.reviewCount,
                     )
                 } else if (leafly != null) {
-                    SourceRatingCard(rating = leafly)
+                    SingleSourceRatingCard(rating = leafly)
                 } else if (allbud != null) {
-                    SourceRatingCard(rating = allbud)
+                    SingleSourceRatingCard(rating = allbud)
                 }
                 others.forEach { rating ->
-                    SourceRatingCard(rating = rating)
+                    SingleSourceRatingCard(rating = rating)
                 }
             }
         }
@@ -315,6 +315,54 @@ private fun StarStrip(value: Double) {
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+/**
+ * Single-source rating card that matches the LeaflyAllbudRatingCard
+ * design — source label, stars, numeric rating, divider, review count
+ * stacked vertically and centered — for when only one source is available.
+ */
+@Composable
+private fun SingleSourceRatingCard(rating: SourceRating) {
+    val dividerColor = MaterialTheme.colorScheme.outline
+    SWCard {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = rating.source,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    letterSpacing = 1.2.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = MaterialTheme.colorScheme.primary,
+            )
+            StarStrip(value = rating.stars)
+            Text(
+                text = "%.1f".format(rating.stars),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Divider(
+                color = dividerColor,
+                thickness = 1.dp,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "${rating.reviewCount?.let { "%,d".format(it) } ?: "0"} reviews",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
