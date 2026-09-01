@@ -456,7 +456,6 @@ struct PreviewStrainAPI: StrainServicing {
             kayaIncluded: false
         )
     }
-
 }
 
 /// Preview helper that never resolves so strain-detail placeholders stay visible.
