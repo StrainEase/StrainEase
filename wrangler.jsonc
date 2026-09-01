@@ -8,14 +8,5 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
-  },
-  "vars": {
-    "VITE_FIREBASE_API_KEY": "AIzaSyCLPCkkqB_fgucLWGcZy4pEj2fNh0KDT8o",
-    "VITE_FIREBASE_AUTH_DOMAIN": "strainfinder-84a9b.firebaseapp.com",
-    "VITE_FIREBASE_PROJECT_ID": "strainfinder-84a9b",
-    "VITE_FIREBASE_STORAGE_BUCKET": "strainfinder-84a9b.firebasestorage.app",
-    "VITE_FIREBASE_MESSAGING_SENDER_ID": "89734321536",
-    "VITE_FIREBASE_APP_ID": "1:89734321536:web:1636d8cfd4f7cf86e31d65"
   }
-
 }
