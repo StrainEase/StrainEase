@@ -7,6 +7,20 @@ import {
 } from "@/lib/image-blob-cache";
 
 /**
+ * Wrapper that catches Safari-specific DOM errors during blob URL revocation.
+ * Safari sometimes throws "insertBefore@[native code]" errors when revoking
+ * blob URLs during React's render cycle or Framer Motion animations. These
+ * errors are harmless but can pollute the console.
+ */
+function safeReleaseImage(url: string | undefined): void {
+  try {
+    releaseImage(url);
+  } catch {
+    // Already handled in releaseImage, but this catches any edge cases
+  }
+}
+
+/**
  * Resolve a strain image through three layered caches:
  *
  *   1. **IndexedDB blob cache** (`getCachedImage`) — on-device, instant
@@ -85,7 +99,7 @@ export function useStrainImage(src: string | undefined): {
       // src before the old object URL is invalidated.
       if (previousBlob && previousBlob !== next) {
         requestAnimationFrame(() => {
-          releaseImage(previousBlob);
+          safeReleaseImage(previousBlob);
         });
       }
     };
@@ -143,7 +157,7 @@ export function useStrainImage(src: string | undefined): {
         // Defer so any in-flight <img> load from this same effect can
         // finish painting before the object URL disappears.
         requestAnimationFrame(() => {
-          releaseImage(blob);
+          safeReleaseImage(blob);
         });
       }
     };

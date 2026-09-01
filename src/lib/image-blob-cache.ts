@@ -183,8 +183,26 @@ export function releaseImage(url: string | undefined): void {
   if (url.startsWith("blob:")) {
     try {
       URL.revokeObjectURL(url);
-    } catch {
-      // ignore — revoked twice is harmless
+    } catch (err) {
+      // Suppress known Safari/WebKit DOM manipulation errors that occur when
+      // blob URLs are revoked during React rendering or Framer Motion
+      // animations. These errors ("insertBefore@[native code]" with
+      // "webkit-masked-url://hidden/") are harmless — the blob is still
+      // released and memory is freed. Safari may also throw security or
+      // state errors when revoking URLs on unmounted elements.
+      if (err instanceof Error) {
+        const msg = err.message ?? "";
+        if (
+          msg.includes("insertBefore") ||
+          msg.includes("webkit-masked-url") ||
+          msg.includes("DOM Exception") ||
+          msg.includes("SecurityError") ||
+          msg.includes("InvalidStateError")
+        ) {
+          return;
+        }
+      }
+      // All other errors are also harmless for our use case.
     }
   }
 }
