@@ -834,13 +834,13 @@ private struct CommunityVoicesSection: View {
                 allbudCount: allbud.count
             )
         } else if let leafly {
-            SourceRatingCard(rating: leafly)
+            SingleSourceRatingCard(rating: leafly)
         } else if let allbud {
-            SourceRatingCard(rating: allbud)
+            SingleSourceRatingCard(rating: allbud)
         }
 
         ForEach(others, id: \.source) { rating in
-            SourceRatingCard(rating: rating)
+            SingleSourceRatingCard(rating: rating)
         }
     }
 }
@@ -893,6 +893,51 @@ private struct SourceRatingCard: View {
             return "\(rating.source) rating \(value) from \(count.formatted()) reviews"
         }
         return "\(rating.source) rating \(value)"
+    }
+}
+
+/// Single-source rating card that matches the LeaflyAllbudRatingCard
+/// design — source label, stars, numeric rating, divider, review count
+/// stacked vertically and centered — for when only one source is available.
+private struct SingleSourceRatingCard: View {
+    let rating: SourceRating
+
+    var body: some View {
+        SWCard {
+            VStack(spacing: 6) {
+                Text(rating.source)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(Palette.primary)
+                    .frame(maxWidth: .infinity)
+                starStrip(value: rating.stars)
+                Text(String(format: "%.1f", rating.stars))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Palette.foreground)
+                Rectangle()
+                    .fill(Palette.border)
+                    .frame(height: 1)
+                Text("\(rating.count?.formatted() ?? "0") reviews")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Palette.mutedForeground)
+            }
+            .padding(.vertical, 8)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(rating.source) rating \(String(format: "%.1f", rating.stars)) from \(rating.count?.formatted() ?? "0") reviews")
+    }
+
+    @ViewBuilder
+    private func starStrip(value: Double) -> some View {
+        HStack(spacing: 3) {
+            ForEach(0..<5, id: \.self) { index in
+                let fill = min(1, max(0, value - Double(index)))
+                Image(systemName: fill >= 0.75 ? "star.fill" : fill >= 0.25 ? "star.leadinghalf.filled" : "star")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.primary)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
