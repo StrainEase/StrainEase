@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.models.StrainProfile
+import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.SectionLabel
 
 /**
@@ -42,6 +43,7 @@ fun StrainRail(
     modifier: Modifier = Modifier,
     index: Int? = null,
     emptyText: String? = null,
+    compareStore: CompareSelectionStore? = null,
     onSeeMore: (() -> Unit)? = null,
     onSelect: (StrainProfile) -> Unit = {},
 ) {
@@ -76,7 +78,11 @@ fun StrainRail(
             ) {
                 items(items = strains, key = { it.slug }) { profile ->
                     Box(modifier = Modifier.width(160.dp)) {
-                        StrainPoster(profile = profile, onClick = { onSelect(profile) })
+                        StrainPoster(
+                            profile = profile,
+                            onClick = { onSelect(profile) },
+                            compareStore = compareStore,
+                        )
                     }
                 }
             }

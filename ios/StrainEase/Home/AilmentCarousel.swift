@@ -108,6 +108,7 @@ private struct AilmentPage: View {
                     onSelect(profile)
                 } label: {
                     StrainPoster(profile: profile, compact: true, photoHeight: 72)
+                        .compareHoldable(profile.name)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)

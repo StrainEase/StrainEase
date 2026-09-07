@@ -24,6 +24,7 @@ import ai.strainease.app.data.RecentStrain
 import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.models.StrainProfile
+import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
 import ai.strainease.app.ui.theme.StrainEaseTypography
@@ -44,6 +45,7 @@ fun HomeView(
     recentlyViewed: RecentlyViewedStore,
     savedAilments: SavedAilmentsStore,
     modifier: Modifier = Modifier,
+    compareStore: CompareSelectionStore? = null,
     onOpenProfile: (StrainProfile) -> Unit = {},
     onOpenGrid: (HomeSection, List<StrainProfile>) -> Unit = { _, _ -> },
 ) {
@@ -82,6 +84,7 @@ fun HomeView(
                     title = HomeSection.ForYou.title,
                     index = 1,
                     strains = model.preview(HomeSection.ForYou),
+                    compareStore = compareStore,
                     onSeeMore = { onOpenGrid(HomeSection.ForYou, model.strains(HomeSection.ForYou)) },
                     onSelect = onOpenProfile,
                 )
@@ -90,30 +93,35 @@ fun HomeView(
                 title = HomeSection.Popular.title,
                 index = if (model.hasSavedAilments) 2 else 1,
                 strains = model.preview(HomeSection.Popular),
+                compareStore = compareStore,
                 onSeeMore = { onOpenGrid(HomeSection.Popular, model.strains(HomeSection.Popular)) },
                 onSelect = onOpenProfile,
             )
             AilmentCarousel(
                 ailments = model.ailmentsForCarousel,
                 preview = { name -> model.preview(HomeSection.Ailment(name)) },
+                compareStore = compareStore,
                 onSeeMore = { name -> onOpenGrid(HomeSection.Ailment(name), model.strains(HomeSection.Ailment(name))) },
                 onSelect = onOpenProfile,
             )
             StrainRail(
                 title = HomeSection.Sativa.title,
                 strains = model.preview(HomeSection.Sativa),
+                compareStore = compareStore,
                 onSeeMore = { onOpenGrid(HomeSection.Sativa, model.strains(HomeSection.Sativa)) },
                 onSelect = onOpenProfile,
             )
             StrainRail(
                 title = HomeSection.Hybrid.title,
                 strains = model.preview(HomeSection.Hybrid),
+                compareStore = compareStore,
                 onSeeMore = { onOpenGrid(HomeSection.Hybrid, model.strains(HomeSection.Hybrid)) },
                 onSelect = onOpenProfile,
             )
             StrainRail(
                 title = HomeSection.Indica.title,
                 strains = model.preview(HomeSection.Indica),
+                compareStore = compareStore,
                 onSeeMore = { onOpenGrid(HomeSection.Indica, model.strains(HomeSection.Indica)) },
                 onSelect = onOpenProfile,
             )
@@ -121,6 +129,7 @@ fun HomeView(
                 title = HomeSection.Recents.title,
                 strains = recents.map { it.toProfile() }.take(model.previewLimit),
                 emptyText = "Open a strain and it'll land here.",
+                compareStore = compareStore,
                 onSeeMore = { onOpenGrid(HomeSection.Recents, recents.map { it.toProfile() }) },
                 onSelect = onOpenProfile,
             )

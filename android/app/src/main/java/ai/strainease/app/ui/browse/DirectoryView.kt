@@ -40,6 +40,7 @@ import ai.strainease.app.ui.components.MeshBackground
 import ai.strainease.app.ui.components.SWChip
 import ai.strainease.app.ui.components.SWFlowRow
 import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.home.StrainPoster
 import ai.strainease.app.ui.theme.StrainEaseTypography
 
@@ -59,6 +60,7 @@ import ai.strainease.app.ui.theme.StrainEaseTypography
 fun DirectoryView(
     model: DirectoryModel,
     modifier: Modifier = Modifier,
+    compareStore: CompareSelectionStore? = null,
     onOpenProfile: (StrainProfile) -> Unit = {},
 ) {
     val query by model.query.collectAsState()
@@ -167,7 +169,11 @@ fun DirectoryView(
                 }
             }
             items(items = results, key = { it.slug }) { profile ->
-                StrainPoster(profile = profile, onClick = { onOpenProfile(profile) })
+                StrainPoster(
+                    profile = profile,
+                    onClick = { onOpenProfile(profile) },
+                    compareStore = compareStore,
+                )
             }
         }
     }

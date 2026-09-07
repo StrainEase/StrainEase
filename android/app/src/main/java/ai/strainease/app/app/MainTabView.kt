@@ -137,6 +137,7 @@ fun MainTabView() {
                         model = homeModel,
                         recentlyViewed = recents,
                         savedAilments = savedAilments,
+                        compareStore = compareStore,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
@@ -152,6 +153,7 @@ fun MainTabView() {
                     )
                     AppTab.Browse -> ai.strainease.app.ui.browse.DirectoryView(
                         model = directoryModel,
+                        compareStore = compareStore,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
@@ -244,6 +246,7 @@ fun MainTabView() {
                     savedStrains = savedStrains,
                     onOpen = { openProfile = it },
                     onDismiss = closeSaved,
+                    compareStore = compareStore,
                 )
             }
         }

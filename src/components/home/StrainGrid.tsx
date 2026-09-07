@@ -1,4 +1,4 @@
-import { StrainPoster } from "@/components/home/StrainPoster";
+import { ComparableStrainPoster } from "@/components/strain/ComparableStrainPoster";
 import { profileSlug } from "@/lib/strain-catalog";
 import type { StrainProfile } from "@/lib/strain-profile";
 
@@ -19,7 +19,7 @@ export function StrainGrid({ strains }: { strains: StrainProfile[] }) {
   return (
     <div className="grid grid-cols-2 gap-4">
       {strains.map((profile) => (
-        <StrainPoster
+        <ComparableStrainPoster
           key={profileSlug(profile)}
           profile={profile}
           className="min-w-0"

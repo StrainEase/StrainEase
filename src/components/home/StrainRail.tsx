@@ -1,4 +1,4 @@
-import { StrainPoster } from "@/components/home/StrainPoster";
+import { ComparableStrainPoster } from "@/components/strain/ComparableStrainPoster";
 import { StrainSectionHeader } from "@/components/home/StrainSectionHeader";
 import { profileSlug } from "@/lib/strain-catalog";
 import type { StrainProfile } from "@/lib/strain-profile";
@@ -28,7 +28,7 @@ export function StrainRail({
         <div className="-mx-6 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex gap-3">
             {strains.map((profile) => (
-              <StrainPoster
+              <ComparableStrainPoster
                 key={profileSlug(profile)}
                 profile={profile}
                 className="w-[148px] shrink-0 sm:w-[160px]"

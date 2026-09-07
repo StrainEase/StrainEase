@@ -176,6 +176,7 @@ struct StrainRail: View {
                                 onSelect(profile)
                             } label: {
                                 StrainPoster(profile: profile)
+                                    .compareHoldable(profile.name)
                                     .frame(width: 148, alignment: .leading)
                             }
                             .buttonStyle(.plain)
