@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.ReliefLogStore
@@ -352,16 +353,34 @@ private fun descriptionBlock(
         reliefHistory = reliefHistory,
     )
     // The full, non-processed description always renders below the
-    // tailored cards when one exists — iOS + web match.
+    // tailored cards when one exists — iOS + web match. It starts
+    // collapsed to two lines; tap Show more / Show less to expand.
     val description = profile.description
     if (description.isNullOrEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionLabel(title = "Full Description")
-        SWCard {
+    var expanded by remember { mutableStateOf(false) }
+    SWCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Header inside the card, matching the tailored section
+            // cards' bold heading style.
+            Text(
+                text = "Full Description",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = if (expanded) Int.MAX_VALUE else 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = if (expanded) "Show less" else "Show more",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { expanded = !expanded },
             )
         }
     }
