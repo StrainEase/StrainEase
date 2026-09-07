@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -149,8 +150,12 @@ fun StrainDetailView(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // The detail overlay lives outside the Scaffold, so it
+                // must pad itself below the status bar (edge-to-edge).
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                // Bottom margin matches the iOS detail page (48pt).
+                .padding(horizontal = 20.dp, top = 8.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             header(
@@ -301,7 +306,7 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "%.1f".format(rating.stars),
+                    text = java.util.Locale.US.let { "%.1f".format(it, rating.stars) },
                     style = StrainEaseTypography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -346,15 +351,19 @@ private fun descriptionBlock(
         medications = medications,
         reliefHistory = reliefHistory,
     )
-    // If TailoredDescriptionView shows nothing (no AI result yet and not loading),
-    // fall back to the static description so the user sees something immediately.
-    if (profile.description.isNullOrEmpty()) return
-    SWCard {
-        Text(
-            text = profile.description,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+    // The full, non-processed description always renders below the
+    // tailored cards when one exists — iOS + web match.
+    val description = profile.description
+    if (description.isNullOrEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionLabel(title = "Full Description")
+        SWCard {
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 

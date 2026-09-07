@@ -22,6 +22,7 @@ import ai.strainease.app.data.PublicNote
 import ai.strainease.app.data.PublicNotesStore
 import ai.strainease.app.ui.components.SectionLabel
 import ai.strainease.app.ui.components.SWCard
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 
 /**
@@ -41,7 +42,11 @@ fun SharedNotesView(
     var notes by remember { mutableStateOf<List<PublicNote>>(emptyList()) }
 
     LaunchedEffect(strainSlug) {
-        store.notesFlow(strainSlug).collectLatest { notes = it }
+        // A Firestore listen failure (permission denied, offline) must
+        // never crash the detail screen — degrade to no notes.
+        store.notesFlow(strainSlug)
+            .catch { /* handled above; render nothing */ }
+            .collectLatest { notes = it }
     }
 
     DisposableEffect(Unit) {

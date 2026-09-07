@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -173,14 +174,20 @@ fun MainTabView() {
                 // floats over the screen but never covers the
                 // strain detail overlay (which renders its own
                 // back chevron).
-                AppChromeButtons(
-                    showSaved = showSaved,
-                    onOpenSaved = { showSaved = true },
-                    onOpenAccount = { showAccount = true },
+                // Inset below the status bar — these float outside the
+                // Scaffold, which is the only inset-aware surface.
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 12.dp, end = 12.dp),
-                )
+                        .statusBarsPadding(),
+                ) {
+                    AppChromeButtons(
+                        showSaved = showSaved,
+                        onOpenSaved = { showSaved = true },
+                        onOpenAccount = { showAccount = true },
+                        modifier = Modifier.padding(top = 12.dp, end = 12.dp),
+                    )
+                }
             }
             if (profile != null) {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -199,23 +206,29 @@ fun MainTabView() {
                     // bar's back button so the user has a visible
                     // affordance to return to the previous tab. The
                     // system back gesture already works via the
-                    // BackHandler above.
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    // BackHandler above. Inset below the status bar so
+                    // it's neither hidden behind it nor unclickable.
+                    Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(start = 12.dp, top = 12.dp)
-                            .size(40.dp)
-                            .clickable { closeStrain() },
+                            .statusBarsPadding(),
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            modifier = Modifier
+                                .padding(start = 12.dp, top = 12.dp)
+                                .size(40.dp)
+                                .clickable { closeStrain() },
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                         }
                     }
                 }

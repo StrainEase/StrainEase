@@ -68,7 +68,7 @@ fun StrainPhoto(
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(cornerRadius)),
@@ -82,8 +82,16 @@ fun StrainPhoto(
                         )
                     }
                     is AsyncImagePainter.State.Error -> {
-                        // Fall back to the type-tinted block on error
-                        Box(modifier = Modifier.fillMaxSize().background(tint))
+                        // Fall back to the type-tinted block on error;
+                        // Fit-style centering keeps it consistent with the
+                        // loaded-image scale so the aspect behavior doesn't
+                        // jump between states.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(tint),
+                            contentAlignment = Alignment.Center,
+                        ) {}
                     }
                     else -> SubcomposeAsyncImageContent()
                 }

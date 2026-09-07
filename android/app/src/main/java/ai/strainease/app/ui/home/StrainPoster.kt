@@ -72,14 +72,24 @@ fun StrainPoster(
         ?.collectAsState(initial = emptyList())
         ?.value
         .orEmpty()
-    val inCompare = selectedNames.contains(profile.name)
+    val inCompare = selectedNames.any { it.equals(profile.name, ignoreCase = true) }
 
     fun addToCompare() {
         val store = compareStore ?: return
-        if (!store.isIn(profile.name) && !store.atCap) {
-            store.toggle(profile.name) // adds: guarded to the not-in, not-at-cap case
+        if (store.isIn(profile.name)) {
+            // Already in the tray — light confirmation so the gesture never
+            // feels dead; the badge already shows the state.
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            return
         }
+        if (store.atCap) {
+            // Tray is full (3/3) — soft "unavailable" tick so the completed
+            // hold isn't silent; remove a strain from the tray to add another.
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            return
+        }
+        store.toggle(profile.name) // adds: guarded to the not-in, not-at-cap case
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
     Box(modifier = modifier) {
