@@ -61,18 +61,15 @@ export function ReliefLogButton({
     }
   };
 
+  // On the strain detail page (variant "button") the logging
+  // experience card is always expanded — no "How did this go?" toggle,
+  // matching iOS. The inline "link" variant used in the Saved panel
+  // keeps its expand/collapse trigger.
+  const expanded = variant === "button" || open;
+
   return (
     <div>
-      {variant === "button" ? (
-        <Button
-          type="button"
-          variant={open ? "outline" : "default"}
-          onClick={() => setOpen((v) => !v)}
-          className="w-full cursor-pointer rounded-full"
-        >
-          {open ? "Cancel" : "How did this go?"}
-        </Button>
-      ) : (
+      {variant === "link" && (
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -81,8 +78,13 @@ export function ReliefLogButton({
           {open ? "Cancel" : "How did this go?"}
         </button>
       )}
-      {open && (
-        <div className="mt-3 space-y-3 rounded-xl border border-border/70 bg-background p-3">
+      {expanded && (
+        <div
+          className={cn(
+            "space-y-3 rounded-xl border border-border/70 bg-background p-3",
+            variant === "link" && "mt-3",
+          )}
+        >
           <div className="flex flex-wrap gap-1.5">
             {FITS.map((opt) => (
               <button
