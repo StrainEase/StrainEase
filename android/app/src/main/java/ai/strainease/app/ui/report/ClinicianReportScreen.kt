@@ -37,7 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import ai.strainease.app.StrainAILanguage
+import ai.strainease.app.data.StrainAILanguage
 import ai.strainease.app.StrainEaseApplication
 import ai.strainease.app.data.ClinicianReportPdf
 import ai.strainease.app.ui.components.Eyebrow
