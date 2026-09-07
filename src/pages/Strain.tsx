@@ -62,6 +62,7 @@ import {
   Activity,
   ArrowLeft,
   Droplets,
+  FileText,
   GitCompareArrows,
   HeartPulse,
   MessageCircle,
@@ -577,29 +578,33 @@ function DescriptionCards({ profile }: { profile: StrainProfile }) {
   const { names: medications } = useMedications();
   const { summary: reliefHistory } = useReliefSummary();
   const { description: tailored } = useTailoredDescription(profile);
+  const hasFullDescription =
+    !!profile.description && profile.description.trim().length > 0;
 
-  if (tailored) {
-    return (
-      <StrainDescriptionView
-        description={tailored}
-        strain={profile}
-        ailments={ailments}
-        medications={medications}
-        reliefHistory={reliefHistory}
-        isAuthenticated={isAuthenticated}
-      />
-    );
-  }
-  if (profile.description && profile.description.trim().length > 0) {
-    return (
-      <SWCard innerClassName="p-5">
-        <p className="text-sm leading-6 text-foreground/85">
-          {profile.description}
-        </p>
-      </SWCard>
-    );
-  }
-  return null;
+  return (
+    <>
+      {tailored && (
+        <StrainDescriptionView
+          description={tailored}
+          strain={profile}
+          ailments={ailments}
+          medications={medications}
+          reliefHistory={reliefHistory}
+          isAuthenticated={isAuthenticated}
+        />
+      )}
+      {hasFullDescription && (
+        <section>
+          <SectionEyebrow icon={FileText} label="Full Description" />
+          <SWCard innerClassName="p-5">
+            <p className="text-sm leading-6 text-foreground/85">
+              {profile.description}
+            </p>
+          </SWCard>
+        </section>
+      )}
+    </>
+  );
 }
 
 function DayNightCard({ score }: { score: number }) {

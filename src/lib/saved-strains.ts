@@ -23,6 +23,8 @@ export type SavedNote = {
   createdAt: number;
   /** id of the doc in the publicNotes collection when this note is public. */
   publicId?: string;
+  /** 1–5 star rating left with the note (matches Android ReliefLogForm). */
+  rating?: number;
 };
 
 export type SavedStrain = {
@@ -140,6 +142,7 @@ export async function addNote(
   isPublic: boolean,
   authorName: string,
   strainName: string,
+  rating = 0,
 ): Promise<SavedNote> {
   const trimmed = clipPublicNote(text);
   if (trimmed === "") throw new Error("Note can't be empty.");
@@ -149,6 +152,7 @@ export async function addNote(
     text: trimmed,
     isPublic: false,
     createdAt: Date.now(),
+    rating: Math.min(5, Math.max(0, Math.round(rating))),
   };
 
   if (isPublic) {

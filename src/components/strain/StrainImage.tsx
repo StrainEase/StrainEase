@@ -85,7 +85,7 @@ export function StrainImage({
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center overflow-hidden bg-white",
+        "relative flex items-center justify-center bg-white overflow-hidden",
         className,
       )}
     >

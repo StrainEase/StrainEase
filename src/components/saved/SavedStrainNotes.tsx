@@ -46,6 +46,7 @@ export function SavedStrainNotes({
   const [notes, setNotes] = useState<SavedNote[]>([]);
   const [draft, setDraft] = useState("");
   const [makePublic, setMakePublic] = useState(false);
+  const [rating, setRating] = useState(0);
   const [busy, setBusy] = useState(false);
   const [notesLoaded, setNotesLoaded] = useState(false);
 
@@ -100,9 +101,10 @@ export function SavedStrainNotes({
           inKnowledgeBase: false,
         });
       }
-      await addNote(user.uid, slug, text, makePublic, user.name, strainName);
+      await addNote(user.uid, slug, text, makePublic, user.name, strainName, rating);
       setDraft("");
       setMakePublic(false);
+      setRating(0);
       toast.success("Note saved.");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Could not save the note.");
@@ -130,6 +132,14 @@ export function SavedStrainNotes({
               className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background px-4 py-3"
             >
               <div className="min-w-0">
+                {note.rating ? (
+                  <p className="mb-1 text-[13px] leading-none text-primary">
+                    {"★".repeat(note.rating)}
+                    <span className="text-muted-foreground/35">
+                      {"★".repeat(5 - note.rating)}
+                    </span>
+                  </p>
+                ) : null}
                 <p className="text-sm leading-6">{note.text}</p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {formatDate(note.createdAt)}
@@ -186,7 +196,35 @@ export function SavedStrainNotes({
         </ul>
       )}
 
-      <div className="mt-4 flex items-center gap-2">
+      {/* Star rating — 1–5, mirrors Android ReliefLogForm. Tapping the
+          selected star again clears it. */}
+      <div className="mt-4 flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setRating(value === rating ? 0 : value)}
+            aria-label={`Rate ${value} of 5`}
+            aria-pressed={value <= rating}
+            className="cursor-pointer p-0.5 text-lg leading-none transition-colors"
+          >
+            <span
+              className={
+                value <= rating
+                  ? "text-primary"
+                  : "text-muted-foreground/40 hover:text-muted-foreground"
+              }
+            >
+              ★
+            </span>
+          </button>
+        ))}
+        {rating > 0 && (
+          <span className="ml-1 text-xs text-muted-foreground">{rating}/5</span>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
