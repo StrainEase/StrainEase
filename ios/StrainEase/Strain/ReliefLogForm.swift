@@ -18,9 +18,16 @@ struct ReliefLogForm: View {
             VStack(alignment: .leading, spacing: 12) {
                 // In-card heading, matching the other section cards'
                 // bold heading style.
-                Text("How did this go?")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Palette.foreground)
+                // In-card heading, matching the other section cards'
+                // bold heading style, with the AI sparkle marker.
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.primary)
+                    Text("How'd this work for you?")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.foreground)
+                }
                 FlowLayout(spacing: 8) {
                     ForEach(ReliefFit.allCases) { option in
                         SWChip(title: option.label, isOn: fit == option) {
