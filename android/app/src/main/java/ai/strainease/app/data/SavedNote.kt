@@ -11,12 +11,13 @@ import kotlinx.serialization.Serializable
  *
  * - [text] is the body (max 1999 chars on iOS; the Firestore
  *   `publicNotes` rule caps the published copy at 2000).
- * - [isPublic] flips the note between private (only the user sees
- *   it) and public (re-published into the global `publicNotes/{id}`
- *   collection for other patients to read).
- * - [publicId] is the `publicNotes/{id}` doc id, set when the note
- *   was first published. Used to delete the public copy when the
- *   note is un-shared or removed.
+ * - Notes are public "Review" card entries; [isPublic] is always true
+ *   and [anonymous] decides whether the author name is shown or the
+ *   review appears from "A patient".
+ * - [publicId] is the `publicNotes/{id}` doc id when the review has
+ *   been published to the shared collection.
+ * - [rating] (1–5 stars) and [intensity] (1–5 dots) record how well
+ *   it worked and how strong it felt, matching the iOS/web cards.
  * - [createdAt] is milliseconds since epoch; the iOS code uses the
  *   same epoch-ms int wire format.
  */
@@ -24,7 +25,10 @@ import kotlinx.serialization.Serializable
 data class SavedNote(
     val id: String,
     val text: String,
-    val isPublic: Boolean = false,
+    val isPublic: Boolean = true,
     val createdAt: Long,
     val publicId: String? = null,
+    val anonymous: Boolean = true,
+    val rating: Int = 0,
+    val intensity: Int = 0,
 )

@@ -285,7 +285,7 @@ private fun SourceRatingCard(rating: SourceRating) {
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "%.1f".format(rating.stars),
+                    text = java.util.Locale.US.let { "%.1f".format(it, rating.stars) },
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -354,7 +354,7 @@ private fun LeaflyAllbudRatingCard(
                     )
                     StarStrip(value = leaflyStars)
                     Text(
-                        text = "%.1f".format(leaflyStars),
+                        text = java.util.Locale.US.let { "%.1f".format(it, leaflyStars) },
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -367,7 +367,7 @@ private fun LeaflyAllbudRatingCard(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
-                        text = "${leaflyCount?.let { "%,d".format(it) } ?: "0"} reviews",
+                        text = "${leaflyCount?.let { java.util.Locale.US.let { l -> "%,d".format(l, it) } } ?: "0"} reviews",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -399,7 +399,7 @@ private fun LeaflyAllbudRatingCard(
                     )
                     StarStrip(value = allbudStars)
                     Text(
-                        text = "%.1f".format(allbudStars),
+                        text = java.util.Locale.US.let { "%.1f".format(it, allbudStars) },
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -412,7 +412,7 @@ private fun LeaflyAllbudRatingCard(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
-                        text = "${allbudCount?.let { "%,d".format(it) } ?: "0"} reviews",
+                        text = "${allbudCount?.let { java.util.Locale.US.let { l -> "%,d".format(l, it) } } ?: "0"} reviews",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

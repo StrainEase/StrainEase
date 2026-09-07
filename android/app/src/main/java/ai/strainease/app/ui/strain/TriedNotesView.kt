@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import ai.strainease.app.auth.LocalAuthSession
 import ai.strainease.app.data.SavedNote
 import ai.strainease.app.data.SavedStrainsStore
@@ -50,22 +51,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Per-strain "Your notes" editor. 1:1 port of the iOS
+ * Per-strain public "Review" card. 1:1 port of the iOS
  * `TriedNotesView` (Strain/TriedNotesView.swift).
  *
- * - Lists the signed-in user's notes for this strain (read from
- *   the `SavedStrainsStore.notesFor(slug)` projection, which
- *   is backed by the `users/{uid}/savedStrains/{slug}` Firestore
- *   document's embedded `notes[]` array).
- * - Each note has a public / private toggle (globe vs. lock).
- *   Public notes are mirrored to `publicNotes/{id}` via
- *   [SavedStrainsStore.setNotePublic]; private notes stay local
- *   to the user's doc.
- * - Each note has a delete button.
- * - The draft row at the bottom writes a new note via
- *   [SavedStrainsStore.addNote] with an optional public flag.
- * - A "Note saved" toast surfaces for ~1.8s after a successful
- *   write (mirrors the iOS overlay + `sensoryFeedback(.success)`).
+ * - Notes are reviews: always public on the strain's page. The
+ *   lock / person toggle controls whether the author name is shown
+ *   or the review appears from "A patient".
+ * - Rating (stars) and Intensity (dots) are recorded separately in
+ *   two centered columns above the note row.
+ * - The draft row writes a new review via [SavedStrainsStore.addNote]
+ *   with an optional anonymous flag.
+ * - A "Note saved" toast surfaces for ~1.8s after a successful write
+ *   (mirrors the iOS overlay + `sensoryFeedback(.success)`).
  */
 @Composable
 fun TriedNotesView(
@@ -80,7 +77,9 @@ fun TriedNotesView(
         saved.firstOrNull { it.slug == profile.slug }?.notes ?: emptyList()
     }
     var draft by remember { mutableStateOf("") }
-    var draftPublic by remember { mutableStateOf(false) }
+    var draftAnonymous by remember { mutableStateOf(true) }
+    var draftRating by remember { mutableStateOf(0) }
+    var draftIntensity by remember { mutableStateOf(0) }
     var savedAt by remember { mutableStateOf(0L) }
     val scope = rememberCoroutineScope()
 
@@ -92,30 +91,30 @@ fun TriedNotesView(
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionLabel(title = "Your notes", index = 7)
+        SectionLabel(title = "Review", index = 7)
         SWCard {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Notes on how this strain felt when you tried it. Public notes are shared anonymously with other patients.",
+                    text = "Write a review of how this strain felt — it's public on this strain's page. Toggle the lock to stay anonymous (shown as \"A patient\").",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (notes.isEmpty()) {
                     Text(
-                        text = "Nothing here yet — one sentence is enough to start a record.",
+                        text = "Nothing here yet — one sentence is enough to start a review.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     notes.forEach { note ->
-                        NoteRow(
+                        ReviewNoteRow(
                             note = note,
-                            onTogglePublic = { isPublic ->
+                            onToggleAnonymous = {
                                 scope.launch {
-                                    savedStrains.setNotePublic(
+                                    savedStrains.setNoteAnonymous(
                                         slug = profile.slug,
                                         noteId = note.id,
-                                        isPublic = isPublic,
+                                        anonymous = !note.anonymous,
                                         authorName = authorName,
                                         strainName = profile.name,
                                     )
@@ -129,33 +128,99 @@ fun TriedNotesView(
                         )
                     }
                 }
-                // Draft row: text field + public toggle + Save.
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Rating (stars) and Intensity (dots) recorded separately,
+                // two centered columns — mirrors the iOS/web Review card.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = "Rating",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            (1..5).forEach { i ->
+                                Text(
+                                    text = "★",
+                                    style = StrainEaseTypography.titleLarge.copy(
+                                        color = if (i <= draftRating) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline,
+                                    ),
+                                    modifier = Modifier
+                                        .clickable { draftRating = i },
+                                )
+                            }
+                        }
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = "Intensity",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            (1..5).forEach { i ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (i <= draftIntensity) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                        )
+                                        .clickable { draftIntensity = i },
+                                )
+                            }
+                        }
+                    }
+                }
+                // Draft row: note text + name-visibility toggle + Save.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     SWField(
                         value = draft,
                         onValueChange = { draft = it.take(1999) },
                         placeholder = "How did this one treat you?",
                         modifier = Modifier.weight(1f),
                     )
-                    PublicToggleChip(
-                        isPublic = draftPublic,
+                    ReviewNameChip(
+                        anonymous = draftAnonymous,
                         enabled = draft.isNotBlank(),
-                        onToggle = { draftPublic = !draftPublic },
+                        onToggle = { draftAnonymous = !draftAnonymous },
                     )
                     SWPrimaryButton(
                         title = "Save",
                         enabled = draft.isNotBlank(),
                         onClick = {
                             val text = draft
-                            val isPublic = draftPublic
+                            val anonymous = draftAnonymous
+                            val rating = draftRating
+                            val intensity = draftIntensity
                             draft = ""
-                            draftPublic = false
+                            draftAnonymous = true
+                            draftRating = 0
+                            draftIntensity = 0
                             scope.launch {
                                 savedStrains.addNote(
                                     profile = profile,
                                     text = text,
-                                    isPublic = isPublic,
+                                    anonymous = anonymous,
                                     authorName = authorName,
+                                    rating = rating,
+                                    intensity = intensity,
                                 )
                                 savedAt = System.currentTimeMillis()
                             }
@@ -199,13 +264,40 @@ fun TriedNotesView(
 }
 
 @Composable
-private fun NoteRow(
+private fun ReviewNoteRow(
     note: SavedNote,
-    onTogglePublic: (Boolean) -> Unit,
+    onToggleAnonymous: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (note.rating > 0 || note.intensity > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (note.rating > 0) {
+                        repeat(note.rating) {
+                            Text(
+                                text = "★",
+                                style = StrainEaseTypography.titleSmall.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                        }
+                    }
+                    if (note.intensity > 0) {
+                        (1..5).forEach { i ->
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (i <= note.intensity) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    ),
+                            )
+                        }
+                    }
+                }
+            }
             Text(
                 text = note.text,
                 style = MaterialTheme.typography.bodyMedium,
@@ -218,10 +310,10 @@ private fun NoteRow(
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            PublicToggleChip(
-                isPublic = note.isPublic,
+            ReviewNameChip(
+                anonymous = note.anonymous,
                 enabled = true,
-                onToggle = { onTogglePublic(!note.isPublic) },
+                onToggle = onToggleAnonymous,
             )
             Box(
                 modifier = Modifier
@@ -242,22 +334,27 @@ private fun NoteRow(
     }
 }
 
+/**
+ * Lock / person chip for the Review card. `anonymous = true` hides
+ * the author's name ("Anonymous"); false shows it ("Your name").
+ */
 @Composable
-private fun PublicToggleChip(
-    isPublic: Boolean,
+private fun ReviewNameChip(
+    anonymous: Boolean,
     enabled: Boolean,
     onToggle: () -> Unit,
 ) {
-    val label = if (isPublic) "Public" else "Private"
-    val icon = if (isPublic) Icons.Filled.Public else Icons.Filled.Lock
-    val tint = if (isPublic) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val label = if (anonymous) "Anonymous" else "Your name"
+    val icon = if (anonymous) Icons.Filled.Lock else Icons.Filled.Person
+    val nameShown = !anonymous
+    val tint = if (nameShown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .background(
-                if (isPublic) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                if (nameShown) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 else MaterialTheme.colorScheme.surface
             )
             .clickable(enabled = enabled, onClick = onToggle)

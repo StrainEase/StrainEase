@@ -33,6 +33,12 @@ class StrainProfileTest {
     }
 
     @Test
+    fun slugIsNeverEmpty() {
+        val p = sample(name = "!!!")
+        assertTrue("Slug should not be empty even for punctuation-only names", p.slug.isNotEmpty())
+    }
+
+    @Test
     fun isPartialTrueWhenDescriptionAndEffectsEmpty() {
         val p = sample(name = "Stub", description = null, effects = null, terpenes = null)
         assertTrue(p.isPartial)
