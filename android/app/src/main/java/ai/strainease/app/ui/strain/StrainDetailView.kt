@@ -156,7 +156,7 @@ fun StrainDetailView(
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
                 // Bottom margin matches the iOS detail page (48pt).
-                .padding(horizontal = 20.dp, top = 8.dp, bottom = 48.dp),
+                .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             header(
