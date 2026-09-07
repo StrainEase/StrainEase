@@ -372,11 +372,19 @@ export function SavedStrainsPanel() {
                             className="rounded-xl border border-border/60 bg-background px-4 py-3"
                           >
                             <div className="flex items-center justify-between gap-2 text-xs">
-                              <span className="font-medium capitalize">
+                              <span className="flex items-center gap-1.5 font-medium capitalize">
+                                {log.rating ? (
+                                  <span className="text-primary" aria-label={`Rated ${log.rating} of 5`}>
+                                    {"★".repeat(log.rating)}
+                                    <span className="text-muted-foreground/35">
+                                      {"★".repeat(5 - log.rating)}
+                                    </span>
+                                  </span>
+                                ) : null}
                                 {log.fit.replace("-", " ")}
                               </span>
                               <span className="text-muted-foreground">
-                                {log.relief}/5 relief
+                                Intensity {log.relief}/5
                               </span>
                             </div>
                             {log.conditions.length > 0 && (

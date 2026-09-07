@@ -14,6 +14,9 @@ export type ReliefLog = {
   strainName: string;
   conditions: string[];
   fit: ReliefFit;
+  /** 1–5 star rating left with the log (mirrors Android ReliefLogForm). */
+  rating?: number;
+  /** 1–5 intensity scale — how strong it felt. */
   relief: number;
   note?: string;
   createdAt: number;
@@ -30,7 +33,15 @@ export function reliefLogCreateData(
   input: Omit<ReliefLog, "id" | "createdAt">,
   createdAt = Date.now(),
 ) {
-  return {
+  const doc: {
+    strainName: string;
+    conditions: string[];
+    fit: ReliefFit;
+    relief: number;
+    note: string;
+    rating?: number;
+    createdAt: number;
+  } = {
     strainName: clipReliefStrainName(input.strainName),
     conditions: input.conditions.slice(0, 6),
     fit: input.fit,
@@ -38,6 +49,12 @@ export function reliefLogCreateData(
     note: input.note?.slice(0, 400) ?? "",
     createdAt,
   };
+  // Only write rating when it was actually chosen so old Firestore
+  // rules / clients don't see an unexpected key on older logs.
+  if (input.rating && input.rating > 0) {
+    doc.rating = Math.max(1, Math.min(5, Math.round(input.rating)));
+  }
+  return doc;
 }
 
 export async function addReliefLog(
@@ -74,7 +91,8 @@ export function summarizeLogs(logs: ReliefLog[]): string {
     .slice(0, 8)
     .map((l) => {
       const cond = l.conditions[0] ?? "general";
-      return `${l.strainName} for ${cond}: ${l.fit}, relief ${l.relief}/5`;
+      const rated = l.rating && l.rating > 0 ? `, rating ${l.rating}/5` : "";
+      return `${l.strainName} for ${cond}: ${l.fit}, intensity ${l.relief}/5${rated}`;
     })
     .join("; ");
 }
