@@ -200,12 +200,16 @@ fun StrainDetailView(
                     items = current.sideEffects!!,
                 )
             }
-            triedNotesSection(triedNotes)
+            TriedNotesView(
+                profile = current,
+                savedStrains = savedStrains,
+            )
             ReliefLogForm(
                 strainName = profile.name,
                 strainSlug = profile.slug,
                 relief = relief,
             )
+            triedNotesSection(triedNotes)
             CommunityVoicesSection(
                 ratings = current.resolvedCommunityRatings,
                 quotes = current.quoteNotes,
