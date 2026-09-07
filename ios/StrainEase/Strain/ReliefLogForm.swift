@@ -6,6 +6,7 @@ struct ReliefLogForm: View {
     @Environment(ReliefLogStore.self) private var logs
     @State private var open = false
     @State private var fit: ReliefFit = .justRight
+    @State private var rating = 0
     @State private var relief = 4
     @State private var note = ""
     @State private var extraCondition = ""
@@ -39,15 +40,44 @@ struct ReliefLogForm: View {
                             }
                         }
                     }
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Relief \(relief)/5")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Palette.mutedForeground)
-                        Slider(value: Binding(
-                            get: { Double(relief) },
-                            set: { relief = Int($0.rounded()) }
-                        ), in: 1...5, step: 1)
-                        .tint(Palette.primary)
+                    // Rating (stars) and Intensity (relief scale) recorded
+                    // separately, two centered columns — mirrors the
+                    // Android/web two-column layout.
+                    HStack(alignment: .center, spacing: 24) {
+                        VStack(spacing: 6) {
+                            Text("Rating")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Palette.mutedForeground)
+                            HStack(spacing: 4) {
+                                ForEach(1...5, id: \.self) { star in
+                                    Button {
+                                        rating = star == rating ? 0 : star
+                                    } label: {
+                                        Image(systemName: star <= rating ? "star.fill" : "star")
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundStyle(star <= rating ? Palette.primary : Palette.mutedForeground)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("\(star) star\(star == 1 ? "" : "s")")
+                                    .accessibilityAddTraits(star <= rating ? .isSelected : [])
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        VStack(spacing: 6) {
+                            Text("Intensity \(relief)/5")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Palette.mutedForeground)
+                            Slider(value: Binding(
+                                get: { Double(relief) },
+                                set: { relief = Int($0.rounded()) }
+                            ), in: 1...5, step: 1)
+                            .tint(Palette.primary)
+                            .accessibilityLabel("Intensity")
+                            .accessibilityValue("\(relief) out of 5")
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                     TextField("Optional note — e.g. slept 6 hours", text: $note)
                         .textInputAutocapitalization(.sentences)
@@ -88,11 +118,13 @@ struct ReliefLogForm: View {
             strainName: strainName,
             conditions: merged,
             fit: fit,
+            rating: rating,
             relief: relief,
             note: note
         )
         open = false
         note = ""
+        rating = 0
         extraCondition = ""
     }
 }
@@ -110,11 +142,20 @@ struct ReliefHistoryList: View {
                     SWCard {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text(log.fit.label)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Palette.foreground)
+                                HStack(spacing: 3) {
+                                    if log.rating > 0 {
+                                        ForEach(0..<log.rating, id: \.self) { _ in
+                                            Image(systemName: "star.fill")
+                                                .font(.system(size: 10, weight: .semibold))
+                                                .foregroundStyle(Palette.primary)
+                                        }
+                                    }
+                                    Text(log.fit.label)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(Palette.foreground)
+                                }
                                 Spacer()
-                                Text("\(log.relief)/5 relief")
+                                Text("Intensity \(log.relief)/5")
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundStyle(Palette.mutedForeground)
                             }

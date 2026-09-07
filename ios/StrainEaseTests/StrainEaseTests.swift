@@ -198,6 +198,7 @@ final class StrainEaseTests: XCTestCase {
         let doc = ReliefLogStore.document(.sampleSleep)
         XCTAssertEqual(doc["strainName"] as? String, "Granddaddy Purple")
         XCTAssertEqual(doc["fit"] as? String, "just-right")
+        XCTAssertEqual(doc["rating"] as? Int, 5)
         XCTAssertEqual(doc["relief"] as? Int, 5)
         XCTAssertEqual(doc["conditions"] as? [String], ["Insomnia"])
         XCTAssertNotNil(doc["createdAt"] as? Int)
@@ -221,6 +222,7 @@ final class StrainEaseTests: XCTestCase {
             strainName: "Gorilla Glue",
             conditions: ["Sleep"],
             fit: .tooStrong,
+            rating: 0,
             relief: 3,
             note: "",
             createdAt: 1
