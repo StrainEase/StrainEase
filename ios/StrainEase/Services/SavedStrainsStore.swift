@@ -11,6 +11,9 @@ struct SavedNote: Identifiable, Hashable, Sendable {
     /// 1–5 star rating left with the note; 0 means unrated.
     /// Matches Android `ReliefLogForm`'s star picker.
     var rating: Int = 0
+    /// 1–5 intensity (how strong it felt); 0 means unset.
+    /// Mirrors the Android `ReliefLogForm` intensity dots.
+    var intensity: Int = 0
 
     static func parse(_ raw: Any?) -> [SavedNote] {
         guard let rows = raw as? [[String: Any]] else { return [] }
@@ -24,9 +27,17 @@ struct SavedNote: Identifiable, Hashable, Sendable {
                 isPublic: row["isPublic"] as? Bool ?? false,
                 createdAt: row["createdAt"] as? Int ?? 0,
                 publicId: row["publicId"] as? String,
-                rating: row["rating"] as? Int ?? 0
+                rating: row["rating"] as? Int ?? 0,
+                intensity: Self.intValue(row["intensity"]) ?? 0
             )
         }
+    }
+
+    private static func intValue(_ value: Any?) -> Int? {
+        if let n = value as? Int { return n }
+        if let n = value as? Double { return Int(n) }
+        if let n = value as? NSNumber { return n.intValue }
+        return nil
     }
 }
 
@@ -218,7 +229,8 @@ final class SavedStrainsStore {
         text: String,
         isPublic: Bool = false,
         authorName: String = "A patient",
-        rating: Int = 0
+        rating: Int = 0,
+        intensity: Int = 0
     ) async {
         let trimmed = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1999))
         guard !trimmed.isEmpty, !profile.slug.isEmpty, !isBusy else { return }
@@ -227,7 +239,8 @@ final class SavedStrainsStore {
             text: trimmed,
             isPublic: false,
             createdAt: Int(Date().timeIntervalSince1970 * 1000),
-            rating: rating
+            rating: rating,
+            intensity: min(5, max(0, intensity))
         )
         if let index = items.firstIndex(where: { $0.slug == profile.slug }) {
             items[index].notes.append(note)
@@ -381,6 +394,7 @@ final class SavedStrainsStore {
             "isPublic": note.isPublic,
             "createdAt": note.createdAt,
             "rating": note.rating,
+            "intensity": note.intensity,
         ]
         if let publicId = note.publicId {
             data["publicId"] = publicId

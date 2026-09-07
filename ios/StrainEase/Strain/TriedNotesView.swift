@@ -7,6 +7,7 @@ struct TriedNotesView: View {
     @State private var draft = ""
     @State private var draftPublic = false
     @State private var draftRating = 0
+    @State private var draftIntensity = 0
     @State private var savedAt: Date?
     @State private var savedTick = 0
 
@@ -31,8 +32,19 @@ struct TriedNotesView: View {
                         ForEach(notes) { note in
                             HStack(alignment: .top, spacing: 10) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    if note.rating > 0 {
-                                        starRow(rating: note.rating, size: 9)
+                                    if note.rating > 0 || note.intensity > 0 {
+                                        HStack(spacing: 8) {
+                                            if note.rating > 0 {
+                                                starRow(rating: note.rating, size: 9)
+                                            }
+                                            if note.intensity > 0 {
+                                                intensityDots(value: note.intensity)
+                                            }
+                                        }
+                                        .accessibilityElement(children: .ignore)
+                                        .accessibilityLabel(
+                                            "\(note.rating > 0 ? "Rated \(note.rating) of 5" : "")\(note.rating > 0 && note.intensity > 0 ? ", " : "")\(note.intensity > 0 ? "intensity \(note.intensity) of 5" : "")"
+                                        )
                                     }
                                     Text(note.text)
                                         .font(.system(size: 15))
@@ -79,25 +91,65 @@ struct TriedNotesView: View {
                         }
                     }
 
-                    // Star rating — 1–5, mirrors Android `ReliefLogForm`.
-                    // Tap the selected star again to clear.
-                    HStack(spacing: 6) {
-                        ForEach(1...5, id: \.self) { value in
-                            Button {
-                                draftRating = draftRating == value ? 0 : value
-                            } label: {
-                                Image(systemName: value <= draftRating ? "star.fill" : "star")
-                                    .font(.system(size: 17, weight: .medium))
-                                    .foregroundStyle(value <= draftRating ? Palette.primary : Palette.muted.opacity(0.7))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Rate \(value) out of 5")
-                        }
-                        if draftRating > 0 {
-                            Text("\(draftRating)/5")
-                                .font(.system(size: 12, weight: .medium))
+                    // Rating and Intensity recorded separately, two
+                    // centered columns — mirrors the Android
+                    // "How did it work for you?" card. Tap the selected
+                    // star/dot again to clear.
+                    HStack(alignment: .center, spacing: 24) {
+                        VStack(spacing: 6) {
+                            Text("Rating")
+                                .font(.system(size: 11, weight: .semibold))
+                                .tracking(0.8)
+                                .textCase(.uppercase)
                                 .foregroundStyle(Palette.mutedForeground)
+                            HStack(spacing: 6) {
+                                ForEach(1...5, id: \.self) { value in
+                                    Button {
+                                        draftRating = draftRating == value ? 0 : value
+                                    } label: {
+                                        Image(systemName: value <= draftRating ? "star.fill" : "star")
+                                            .font(.system(size: 17, weight: .medium))
+                                            .foregroundStyle(value <= draftRating ? Palette.primary : Palette.muted.opacity(0.7))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("Rate \(value) out of 5")
+                                }
+                            }
+                            if draftRating > 0 {
+                                Text("\(draftRating)/5")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(Palette.mutedForeground)
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+
+                        VStack(spacing: 6) {
+                            Text("Intensity")
+                                .font(.system(size: 11, weight: .semibold))
+                                .tracking(0.8)
+                                .textCase(.uppercase)
+                                .foregroundStyle(Palette.mutedForeground)
+                            HStack(spacing: 6) {
+                                ForEach(1...5, id: \.self) { value in
+                                    Button {
+                                        draftIntensity = draftIntensity == value ? 0 : value
+                                    } label: {
+                                        Circle()
+                                            .fill(value <= draftIntensity ? Palette.primary : Palette.muted.opacity(0.5))
+                                            .frame(width: 12, height: 12)
+                                            .padding(2)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("Set intensity \(value) out of 5")
+                                }
+                            }
+                            if draftIntensity > 0 {
+                                Text("\(draftIntensity)/5")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(Palette.mutedForeground)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
 
                     HStack(spacing: 8) {
@@ -175,14 +227,36 @@ struct TriedNotesView: View {
         .accessibilityLabel("\(rating) out of 5 stars")
     }
 
+    /// Five dots, `value` of them filled — compact intensity readout
+    /// for the note list, mirroring the Android tried-notes rail.
+    private func intensityDots(value: Int) -> some View {
+        HStack(spacing: 2) {
+            ForEach(1...5, id: \.self) { index in
+                Circle()
+                    .fill(index <= value ? Palette.primary : Palette.muted.opacity(0.5))
+                    .frame(width: 6.5, height: 6.5)
+            }
+        }
+        .accessibilityLabel("Intensity \(value) out of 5")
+    }
+
     private func submit() async {
         let text = draft
         let share = draftPublic
         let rating = draftRating
+        let intensity = draftIntensity
         draft = ""
         draftPublic = false
         draftRating = 0
-        await saved.addNote(to: profile, text: text, isPublic: share, authorName: authorName, rating: rating)
+        draftIntensity = 0
+        await saved.addNote(
+            to: profile,
+            text: text,
+            isPublic: share,
+            authorName: authorName,
+            rating: rating,
+            intensity: intensity
+        )
         // addNote only sets errorMessage on failure — treat a clean run as saved.
         if saved.errorMessage == nil {
             savedAt = Date()
