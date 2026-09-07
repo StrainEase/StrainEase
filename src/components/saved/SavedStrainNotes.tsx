@@ -4,7 +4,7 @@ import {
   addNote,
   removeNote,
   saveStrain,
-  setNotePublic,
+  setNoteAnonymous,
   type SavedNote,
 } from "@/lib/saved-strains";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { SWCard } from "@/components/ui/sw-card";
 import { cn } from "@/lib/utils";
 import { doc, onSnapshot, type Unsubscribe } from "firebase/firestore";
-import { Globe, Lock, Loader2, NotebookPen, Plus, Trash2 } from "lucide-react";
+import { Loader2, Lock, NotebookPen, Plus, Trash2, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -28,7 +28,7 @@ function formatDate(ts: number): string {
 /**
  * Private + public notes for a single saved strain. Self-contained: it
  * subscribes to `users/{uid}/savedStrains/{slug}` and renders the add
- * form, the existing note list, public/private toggle, and delete.
+ * form, the existing review list, anonymous-name toggle, and delete.
  *
  * Adding a note auto-saves the strain first, matching iOS
  * `SavedStrainsStore.addNote(to:)`.
@@ -45,7 +45,7 @@ export function SavedStrainNotes({
   const { user } = useAuth();
   const [notes, setNotes] = useState<SavedNote[]>([]);
   const [draft, setDraft] = useState("");
-  const [makePublic, setMakePublic] = useState(false);
+  const [anonymous, setAnonymous] = useState(true);
   const [rating, setRating] = useState(0);
   const [intensity, setIntensity] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -81,7 +81,7 @@ export function SavedStrainNotes({
       <SWCard innerClassName="p-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin text-primary" />
-          Your notes
+          Review
         </div>
         <div className="mt-4">
           <SkeletonLines variant="compact" />
@@ -106,14 +106,14 @@ export function SavedStrainNotes({
         user.uid,
         slug,
         text,
-        makePublic,
+        anonymous,
         user.name,
         strainName,
         rating,
         intensity,
       );
       setDraft("");
-      setMakePublic(false);
+      setAnonymous(true);
       setRating(0);
       setIntensity(0);
       toast.success("Note saved.");
@@ -128,12 +128,13 @@ export function SavedStrainNotes({
     <SWCard innerClassName="p-6">
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         <NotebookPen className="size-3.5 text-primary" />
-        Your notes
+        Review
       </div>
 
       {notes.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          No notes yet — jot down how this strain felt for you.
+          Nothing here yet — write your review below. It's public on this
+          strain's page and shows your name unless you stay anonymous.
         </p>
       ) : (
         <ul className="mt-4 space-y-2.5">
@@ -183,34 +184,34 @@ export function SavedStrainNotes({
                   type="button"
                   onClick={() => {
                     if (db && user)
-                      void setNotePublic(
+                      void setNoteAnonymous(
                         user.uid,
                         slug,
                         note.id,
-                        !note.isPublic,
+                        !note.anonymous,
                         user.name,
                         strainName,
                       );
                   }}
                   aria-label={
-                    note.isPublic ? "Make note private" : "Share note publicly"
+                    note.anonymous ? "Show your name on this review" : "Hide your name on this review"
                   }
                   title={
-                    note.isPublic
-                      ? "Public — visible to everyone"
-                      : "Private — only you can see this"
+                    note.anonymous
+                      ? "Anonymous — name hidden from other patients"
+                      : "Shown as " + (user.name || "A patient")
                   }
                   className={cn(
                     "flex size-8 cursor-pointer items-center justify-center rounded-full border transition-colors",
-                    note.isPublic
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border/70 text-muted-foreground hover:text-foreground",
+                    note.anonymous
+                      ? "border-border/70 text-muted-foreground hover:text-foreground"
+                      : "border-primary/40 bg-primary/10 text-primary",
                   )}
                 >
-                  {note.isPublic ? (
-                    <Globe className="size-3.5" />
-                  ) : (
+                  {note.anonymous ? (
                     <Lock className="size-3.5" />
+                  ) : (
+                    <User className="size-3.5" />
                   )}
                 </button>
                 <button
@@ -306,21 +307,21 @@ export function SavedStrainNotes({
         />
         <button
           type="button"
-          onClick={() => setMakePublic((p) => !p)}
-          aria-label={makePublic ? "Make this note public" : "Keep this note private"}
+          onClick={() => setAnonymous((a) => !a)}
+          aria-label={anonymous ? "Show your name on this review" : "Post review anonymously"}
           title={
-            makePublic
-              ? "Public — visible to everyone"
-              : "Private — only you can see this"
+            anonymous
+              ? "Anonymous — name hidden from other patients"
+              : "Shown as " + (user.name || "A patient")
           }
           className={cn(
             "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
-            makePublic
-              ? "border-primary/40 bg-primary/10 text-primary"
-              : "border-border/70 text-muted-foreground hover:text-foreground",
+            anonymous
+              ? "border-border/70 text-muted-foreground hover:text-foreground"
+              : "border-primary/40 bg-primary/10 text-primary",
           )}
         >
-          {makePublic ? <Globe className="size-4" /> : <Lock className="size-4" />}
+          {anonymous ? <Lock className="size-4" /> : <User className="size-4" />}
         </button>
         <Button
           type="button"

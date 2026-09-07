@@ -5,7 +5,7 @@ import {
   listenToSavedStrains,
   removeNote,
   removeSavedStrain,
-  setNotePublic,
+  setNoteAnonymous,
   type PublicNote,
   type SavedStrain,
 } from "@/lib/saved-strains";
@@ -21,7 +21,6 @@ import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import {
   Bookmark,
   ChevronDown,
-  Globe,
   Loader2,
   Lock,
   MessageCircle,
@@ -29,6 +28,7 @@ import {
   NotebookPen,
   Plus,
   Trash2,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -46,7 +46,7 @@ export function SavedStrainsPanel() {
   const [saved, setSaved] = useState<SavedStrain[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const [draftPublic, setDraftPublic] = useState(false);
+  const [draftAnonymous, setDraftAnonymous] = useState(true);
   const [publicNotes, setPublicNotes] = useState<Record<string, PublicNote[]>>(
     {},
   );
@@ -109,11 +109,13 @@ export function SavedStrainsPanel() {
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
           Hit "Save" on any strain in your search results, finder picks, or
-          comparisons and it'll show up here with your private notes.
+          comparisons and it'll show up here where you can write your public review.
         </p>
       </div>
     );
   }
+
+  if (!user) return null;
 
   const addNoteFor = async (strain: SavedStrain) => {
     if (!db || !user) return;
@@ -125,12 +127,12 @@ export function SavedStrainsPanel() {
         user.uid,
         strain.slug,
         text,
-        draftPublic,
+        draftAnonymous,
         user.name,
         strain.name,
       );
       setDraft((prev) => ({ ...prev, [strain.slug]: "" }));
-      setDraftPublic(false);
+      setDraftAnonymous(true);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Could not save the note.");
     } finally {
@@ -230,14 +232,16 @@ export function SavedStrainsPanel() {
 
             {expanded && (
               <div className="space-y-5 border-t border-border/60 px-5 py-5">
-                {/* Your notes */}
+                {/* Your review */}
                 <div>
                   <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Your notes
+                    Your review
                   </p>
                   {strain.notes.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No notes yet — jot down how this strain felt for you.
+                      Nothing here yet — write your review below. It's public
+                      on this strain's page and shows your name unless you
+                      stay anonymous.
                     </p>
                   ) : (
                     <ul className="space-y-2.5">
@@ -257,33 +261,33 @@ export function SavedStrainsPanel() {
                               type="button"
                               onClick={() => {
                                 if (db && user)
-                                  void setNotePublic(
+                                  void setNoteAnonymous(
                                     user.uid,
                                     strain.slug,
                                     note.id,
-                                    !note.isPublic,
+                                    !note.anonymous,
                                     user.name,
                                     strain.name,
                                   );
                               }}
                               className={cn(
                                 "flex cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors",
-                                note.isPublic
-                                  ? "border-primary/40 bg-primary/10 text-primary"
-                                  : "border-border/70 text-muted-foreground hover:text-foreground",
+                                note.anonymous
+                                  ? "border-border/70 text-muted-foreground hover:text-foreground"
+                                  : "border-primary/40 bg-primary/10 text-primary",
                               )}
-                              title={
-                                note.isPublic
-                                  ? "Public — visible to everyone"
-                                  : "Private — only you can see this"
-                              }
+                  title={
+                    note.anonymous
+                      ? "Anonymous — name hidden from other patients"
+                      : "Shown as " + user.name
+                  }
                             >
-                              {note.isPublic ? (
-                                <Globe className="size-3" />
-                              ) : (
+                              {note.anonymous ? (
                                 <Lock className="size-3" />
+                              ) : (
+                                <User className="size-3" />
                               )}
-                              {note.isPublic ? "Public" : "Private"}
+                              {note.anonymous ? "Anonymous" : "Name shown"}
                             </button>
                             <button
                               type="button"
@@ -322,21 +326,25 @@ export function SavedStrainsPanel() {
                     />
                     <button
                       type="button"
-                      onClick={() => setDraftPublic((p) => !p)}
+                      onClick={() => setDraftAnonymous((a) => !a)}
                       className={cn(
                         "flex shrink-0 cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-                        draftPublic
-                          ? "border-primary/40 bg-primary/10 text-primary"
-                          : "border-border/70 text-muted-foreground hover:text-foreground",
+                        draftAnonymous
+                          ? "border-border/70 text-muted-foreground hover:text-foreground"
+                          : "border-primary/40 bg-primary/10 text-primary",
                       )}
-                      title="Share this note publicly"
+                      title={
+                        draftAnonymous
+                          ? "Anonymous — name hidden from other patients"
+                          : "Shown as " + user.name
+                      }
                     >
-                      {draftPublic ? (
-                        <Globe className="size-3" />
-                      ) : (
+                      {draftAnonymous ? (
                         <Lock className="size-3" />
+                      ) : (
+                        <User className="size-3" />
                       )}
-                      {draftPublic ? "Public" : "Private"}
+                      {draftAnonymous ? "Anonymous" : "Name shown"}
                     </button>
                     <Button
                       type="button"
@@ -436,12 +444,9 @@ export function SavedStrainsPanel() {
       })}
 
       <p className="text-xs leading-5 text-muted-foreground">
-        Notes marked{" "}
-        <span className="inline-flex items-center gap-1 font-medium text-primary">
-          <Globe className="size-3" /> Public
-        </span>{" "}
-        are shared anonymously with other StrainEase patients on the strain's
-        page. Notes are not medical advice.
+        Reviews you write appear publicly on the strain's page. Toggle the
+        lock to stay anonymous (shown as "A patient") or show your name.
+        Reviews are not medical advice.
       </p>
     </div>
   );
