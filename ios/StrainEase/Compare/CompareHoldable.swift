@@ -17,6 +17,7 @@ struct CompareHoldable: ViewModifier {
     // watch; the number itself is meaningless.
     @State private var addHapticToken = 0
     @State private var duplicateHapticToken = 0
+    @State private var fullTrayHapticToken = 0
 
     func body(content: Content) -> some View {
         content
@@ -43,14 +44,20 @@ struct CompareHoldable: ViewModifier {
                     // Already in the tray — a light tap-back haptic instead
                     // of silence, so the gesture never feels dead.
                     duplicateHapticToken += 1
+                } else {
+                    // Not in the tray, but it's full (3/3). Give a soft
+                    // "unavailable" tap so the hold never lands silently;
+                    // the user should remove a chip first.
+                    fullTrayHapticToken += 1
                 }
             }
             .sensoryFeedback(.success, trigger: addHapticToken)
             .sensoryFeedback(.impact(weight: .light), trigger: duplicateHapticToken)
+            .sensoryFeedback(.impact(weight: .light, intensity: 0.4), trigger: fullTrayHapticToken)
             // Long-press is invisible to assistive tech; give VoiceOver an
             // explicit named action that performs the same add.
-            .accessibilityAction(named: Text("Add to compare")) {
-                _ = store.add(name)
+            .accessibilityAction(named: Text(store.isIn(name) ? "Remove from compare" : "Add to compare")) {
+                if store.isIn(name) { store.remove(name) } else { store.add(name) }
             }
     }
 }

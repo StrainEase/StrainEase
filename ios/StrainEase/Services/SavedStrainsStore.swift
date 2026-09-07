@@ -8,6 +8,15 @@ struct SavedNote: Identifiable, Hashable, Sendable {
     var isPublic: Bool
     var createdAt: Int
     var publicId: String?
+    /// 1–5 star rating left with the note; 0 means unrated.
+    /// Matches Android `ReliefLogForm`'s star picker.
+    var rating: Int = 0
+    /// 1–5 intensity (how strong it felt); 0 means unset.
+    /// Mirrors the Android `ReliefLogForm` intensity dots.
+    var intensity: Int = 0
+    /// Notes are public reviews on the strain page. When true the
+    /// review hides the author (shown as "A patient").
+    var anonymous: Bool = false
 
     static func parse(_ raw: Any?) -> [SavedNote] {
         guard let rows = raw as? [[String: Any]] else { return [] }
@@ -20,9 +29,19 @@ struct SavedNote: Identifiable, Hashable, Sendable {
                 text: text,
                 isPublic: row["isPublic"] as? Bool ?? false,
                 createdAt: row["createdAt"] as? Int ?? 0,
-                publicId: row["publicId"] as? String
+                publicId: row["publicId"] as? String,
+                rating: row["rating"] as? Int ?? 0,
+                intensity: Self.intValue(row["intensity"]) ?? 0,
+                anonymous: row["anonymous"] as? Bool ?? false
             )
         }
+    }
+
+    private static func intValue(_ value: Any?) -> Int? {
+        if let n = value as? Int { return n }
+        if let n = value as? Double { return Int(n) }
+        if let n = value as? NSNumber { return n.intValue }
+        return nil
     }
 }
 
@@ -212,16 +231,21 @@ final class SavedStrainsStore {
     func addNote(
         to profile: StrainProfile,
         text: String,
-        isPublic: Bool = false,
-        authorName: String = "A patient"
+        anonymous: Bool = true,
+        authorName: String = "A patient",
+        rating: Int = 0,
+        intensity: Int = 0
     ) async {
         let trimmed = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1999))
         guard !trimmed.isEmpty, !profile.slug.isEmpty, !isBusy else { return }
         var note = SavedNote(
             id: "\(Int(Date().timeIntervalSince1970 * 1000))-\(UUID().uuidString.prefix(6).lowercased())",
             text: trimmed,
-            isPublic: false,
-            createdAt: Int(Date().timeIntervalSince1970 * 1000)
+            isPublic: true,
+            createdAt: Int(Date().timeIntervalSince1970 * 1000),
+            rating: rating,
+            intensity: min(5, max(0, intensity)),
+            anonymous: anonymous
         )
         if let index = items.firstIndex(where: { $0.slug == profile.slug }) {
             items[index].notes.append(note)
@@ -229,12 +253,7 @@ final class SavedStrainsStore {
             items.insert(SavedStrainItem(profile: profile, savedAt: note.createdAt, notes: [note]), at: 0)
         }
         errorMessage = nil
-        guard !previewOnly else {
-            if isPublic, let index = items.firstIndex(where: { $0.slug == profile.slug }) {
-                items[index].notes[items[index].notes.count - 1].isPublic = true
-            }
-            return
-        }
+        guard !previewOnly else { return }
 
         isBusy = true
         defer { isBusy = false }
@@ -245,13 +264,17 @@ final class SavedStrainsStore {
                 .document(uid)
                 .collection("savedStrains")
                 .document(profile.slug)
-            if isPublic {
-                note.publicId = try await publishNote(note, uid: uid, authorName: authorName, strainName: profile.name)
-                note.isPublic = true
-                if let index = items.firstIndex(where: { $0.slug == profile.slug }),
-                   let noteIndex = items[index].notes.firstIndex(where: { $0.id == note.id }) {
-                    items[index].notes[noteIndex] = note
-                }
+            // Reviews are always public — publish immediately with the
+            // display name resolved ("A patient" when anonymous).
+            note.publicId = try await publishNote(
+                note,
+                uid: uid,
+                authorName: anonymous ? "A patient" : authorName,
+                strainName: profile.name
+            )
+            if let index = items.firstIndex(where: { $0.slug == profile.slug }),
+               let noteIndex = items[index].notes.firstIndex(where: { $0.id == note.id }) {
+                items[index].notes[noteIndex] = note
             }
             let next = items.first { $0.slug == profile.slug }?.notes ?? [note]
             // Single atomic write — strain fields + the notes array together.
@@ -265,10 +288,10 @@ final class SavedStrainsStore {
         }
     }
 
-    func setNotePublic(
+    func setNoteAnonymous(
         slug: String,
         noteId: String,
-        isPublic: Bool,
+        anonymous: Bool,
         authorName: String,
         strainName: String
     ) async {
@@ -278,7 +301,7 @@ final class SavedStrainsStore {
         let previous = items[itemIndex].notes[noteIndex]
         errorMessage = nil
         guard !previewOnly else {
-            items[itemIndex].notes[noteIndex].isPublic = isPublic
+            items[itemIndex].notes[noteIndex].anonymous = anonymous
             return
         }
         isBusy = true
@@ -286,16 +309,26 @@ final class SavedStrainsStore {
         do {
             let uid = try currentUID()
             var note = previous
-            if isPublic && note.publicId == nil {
-                note.publicId = try await publishNote(note, uid: uid, authorName: authorName, strainName: strainName)
+            if note.publicId == nil {
+                // Legacy private note — publish it now that reviews are public.
+                note.publicId = try await publishNote(
+                    note,
+                    uid: uid,
+                    authorName: anonymous ? "A patient" : authorName,
+                    strainName: strainName
+                )
                 note.isPublic = true
-            } else if !isPublic, let publicId = note.publicId {
-                try? await Firestore.firestore().collection("publicNotes").document(publicId).delete()
-                note.publicId = nil
-                note.isPublic = false
-            } else {
-                note.isPublic = isPublic
+            } else if let publicId = note.publicId {
+                // Review stays public — only the displayed name changes.
+                try? await Firestore.firestore()
+                    .collection("publicNotes")
+                    .document(publicId)
+                    .setData(
+                        ["authorName": anonymous ? "A patient" : authorName],
+                        merge: true
+                    )
             }
+            note.anonymous = anonymous
             items[itemIndex].notes[noteIndex] = note
             try await Firestore.firestore()
                 .collection("users")
@@ -374,6 +407,9 @@ final class SavedStrainsStore {
             "text": note.text,
             "isPublic": note.isPublic,
             "createdAt": note.createdAt,
+            "rating": note.rating,
+            "intensity": note.intensity,
+            "anonymous": note.anonymous,
         ]
         if let publicId = note.publicId {
             data["publicId"] = publicId

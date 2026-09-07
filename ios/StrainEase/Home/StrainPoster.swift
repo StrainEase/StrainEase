@@ -105,7 +105,6 @@ private struct StrainPhotoBody: View {
                         image
                             .resizable()
                             .scaledToFit()
-                            .padding(height > 160 ? 8 : 4)
                             .opacity(isLoaded ? 1 : 0)
                             .onAppear {
                                 withAnimation(.easeInOut(duration: 0.3)) {
