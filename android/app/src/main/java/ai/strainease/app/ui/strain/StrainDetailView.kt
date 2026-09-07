@@ -460,7 +460,7 @@ private fun triedNotesSection(notes: List<ai.strainease.app.data.ReliefLog>) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     notes.forEach { log ->
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 repeat(log.rating) {
                                     Icon(
                                         imageVector = Icons.Filled.Star,
@@ -469,10 +469,12 @@ private fun triedNotesSection(notes: List<ai.strainease.app.data.ReliefLog>) {
                                         modifier = Modifier.size(12.dp),
                                     )
                                 }
+                                IntensityBar(value = log.intensity)
                                 Text(
                                     text = log.strainName,
                                     style = StrainEaseTypography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f, fill = false),
                                 )
                             }
                             Text(

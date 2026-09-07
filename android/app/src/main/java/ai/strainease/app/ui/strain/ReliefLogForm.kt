@@ -52,6 +52,7 @@ fun ReliefLogForm(
     modifier: Modifier = Modifier,
 ) {
     var rating by remember { mutableStateOf(0) }
+    var intensity by remember { mutableStateOf(0) }
     var notes by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
@@ -63,22 +64,61 @@ fun ReliefLogForm(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                text = "Rating",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                (1..5).forEach { i ->
+            // Rating (stars) and Intensity (dots) recorded separately,
+            // two centered columns — mirrors the iOS/web forms.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
                     Text(
-                        text = "★",
-                        style = StrainEaseTypography.titleLarge.copy(
-                            color = if (i <= rating) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outline,
-                        ),
-                        modifier = Modifier
-                            .clickable { rating = i },
+                        text = "Rating",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        (1..5).forEach { i ->
+                            Text(
+                                text = "★",
+                                style = StrainEaseTypography.titleLarge.copy(
+                                    color = if (i <= rating) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outline,
+                                ),
+                                modifier = Modifier
+                                    .clickable { rating = i },
+                            )
+                        }
+                    }
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        text = "Intensity",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        (1..5).forEach { i ->
+                            Box(
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (i <= intensity) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                    )
+                                    .clickable { intensity = i },
+                            )
+                        }
+                    }
                 }
             }
             // Notes textbox (1fr) | privacy lock (auto) | Save (auto) on
@@ -119,10 +159,10 @@ fun ReliefLogForm(
                     ),
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
-                        .alpha(if (rating > 0 && notes.isNotBlank()) 1f else 0.45f)
+                        .alpha(if (rating > 0 && intensity > 0 && notes.isNotBlank()) 1f else 0.45f)
                         .clip(RoundedCornerShape(50))
                         .background(MaterialTheme.colorScheme.primary)
-                        .clickable(enabled = rating > 0 && notes.isNotBlank()) {
+                        .clickable(enabled = rating > 0 && intensity > 0 && notes.isNotBlank()) {
                             scope.launch {
                                 relief.append(
                                     ReliefLog(
@@ -130,11 +170,13 @@ fun ReliefLogForm(
                                         strainSlug = strainSlug,
                                         notes = notes,
                                         rating = rating,
+                                        intensity = intensity,
                                         loggedAt = System.currentTimeMillis(),
                                     ),
                                 )
                                 notes = ""
                                 rating = 0
+                                intensity = 0
                             }
                         }
                         .padding(horizontal = 16.dp, vertical = 10.dp),
