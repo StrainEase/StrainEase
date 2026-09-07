@@ -72,11 +72,22 @@ data class StrainProfile(
      * interchangeable across surfaces.
      */
     val slug: String
-        get() = name
-            .trim()
-            .lowercase()
-            .replace(Regex("[^a-z0-9]+"), "-")
-            .trim('-')
+        get() {
+            val base = name
+                .trim()
+                .lowercase()
+                .replace(Regex("[^a-z0-9]+"), "-")
+                .trim('-')
+            return if (base.isEmpty()) {
+                // Fallback for punctuation-only names: use a "strain-" prefix
+                // with the hash of the original name so it's consistent across
+                // surfaces.
+                val hash = name.hashCode().toLong().let { if (it < 0) it + 0x100000000L else it }
+                "strain-${hash.toString(36)}"
+            } else {
+                base
+            }
+        }
 
     val id: String get() = slug
 

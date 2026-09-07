@@ -63,6 +63,7 @@ import ai.strainease.app.ui.components.SWFlowRow
 import ai.strainease.app.ui.components.SWPrimaryButton
 import ai.strainease.app.ui.components.SectionLabel
 import ai.strainease.app.ui.components.TypeBadge
+import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.home.StrainPoster
 import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.launch
@@ -387,6 +388,7 @@ fun SavedStrainsSheet(
     onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    compareStore: CompareSelectionStore? = null,
 ) {
     val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
@@ -419,6 +421,7 @@ fun SavedStrainsSheet(
             saved = saved,
             onOpen = onOpen,
             onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
+            compareStore = compareStore,
         )
     }
 }
@@ -429,6 +432,7 @@ private fun SavedStrainsList(
     saved: List<SavedStrain>,
     onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
     onRemove: (String) -> Unit,
+    compareStore: CompareSelectionStore? = null,
 ) {
     if (saved.isEmpty()) {
         SWCard {
@@ -452,6 +456,7 @@ private fun SavedStrainsList(
                         StrainPoster(
                             profile = item.toProfile(),
                             onClick = { onOpen(item.toProfile()) },
+                            compareStore = compareStore,
                         )
                     }
                     Icon(
@@ -476,7 +481,8 @@ private fun SavedStrainsView(
     saved: List<SavedStrain>,
     onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
     onRemove: (String) -> Unit,
-) = SavedStrainsList(saved, onOpen, onRemove)
+    compareStore: CompareSelectionStore? = null,
+) = SavedStrainsList(saved, onOpen, onRemove, compareStore)
 
 /** Relief log history. */
 @Composable

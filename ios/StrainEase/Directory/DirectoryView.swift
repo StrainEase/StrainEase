@@ -179,6 +179,7 @@ struct DirectoryView: View {
                             path.append(profile)
                         } label: {
                             StrainPoster(profile: profile)
+                                .compareHoldable(profile.name)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.plain)
@@ -198,4 +199,5 @@ struct DirectoryView: View {
         .environment(RecentlyViewedStore.preview())
         .environment(SavedAilmentsStore.preview())
         .environment(ReliefLogStore.preview())
+        .environment(CompareSelectionStore())
 }

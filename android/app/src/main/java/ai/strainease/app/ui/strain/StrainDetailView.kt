@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.ReliefLogStore
@@ -161,8 +163,12 @@ fun StrainDetailView(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // The detail overlay lives outside the Scaffold, so it
+                // must pad itself below the status bar (edge-to-edge).
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                // Bottom margin matches the iOS detail page (48pt).
+                .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             header(
@@ -207,7 +213,10 @@ fun StrainDetailView(
                     items = current.sideEffects!!,
                 )
             }
-            triedNotesSection(triedNotes)
+            TriedNotesView(
+                profile = current,
+                savedStrains = savedStrains,
+            )
             if (checkIns != null) {
                 checkInCta(checkIns)
             }
@@ -216,6 +225,7 @@ fun StrainDetailView(
                 strainSlug = profile.slug,
                 relief = relief,
             )
+            triedNotesSection(triedNotes)
             CommunityVoicesSection(
                 ratings = current.resolvedCommunityRatings,
                 quotes = current.quoteNotes,
@@ -390,7 +400,7 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "%.1f".format(rating.stars),
+                    text = java.util.Locale.US.let { "%.1f".format(it, rating.stars) },
                     style = StrainEaseTypography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -435,15 +445,37 @@ private fun descriptionBlock(
         medications = medications,
         reliefHistory = reliefHistory,
     )
-    // If TailoredDescriptionView shows nothing (no AI result yet and not loading),
-    // fall back to the static description so the user sees something immediately.
-    if (profile.description.isNullOrEmpty()) return
+    // The full, non-processed description always renders below the
+    // tailored cards when one exists — iOS + web match. It starts
+    // collapsed to two lines; tap Show more / Show less to expand.
+    val description = profile.description
+    if (description.isNullOrEmpty()) return
+    var expanded by remember { mutableStateOf(false) }
     SWCard {
-        Text(
-            text = profile.description,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Header inside the card, matching the tailored section
+            // cards' bold heading style.
+            Text(
+                text = "Full Description",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = if (expanded) Int.MAX_VALUE else 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = if (expanded) "Show less" else "Show more",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { expanded = !expanded },
+            )
+        }
     }
 }
 
@@ -582,7 +614,7 @@ private fun triedNotesSection(notes: List<ai.strainease.app.data.ReliefLog>) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     notes.forEach { log ->
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 repeat(log.rating) {
                                     Icon(
                                         imageVector = Icons.Filled.Star,
@@ -591,10 +623,12 @@ private fun triedNotesSection(notes: List<ai.strainease.app.data.ReliefLog>) {
                                         modifier = Modifier.size(12.dp),
                                     )
                                 }
+                                IntensityBar(value = log.intensity)
                                 Text(
                                     text = log.strainName,
                                     style = StrainEaseTypography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f, fill = false),
                                 )
                             }
                             Text(

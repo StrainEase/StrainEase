@@ -23,6 +23,10 @@ struct ReliefLog: Identifiable, Hashable, Sendable {
     var strainName: String
     var conditions: [String]
     var fit: ReliefFit
+    /// 0..5 — how well it worked. 0 means the log predates the
+    /// rating column and was recorded without one.
+    var rating: Int
+    /// 1..5 — how strong it felt (the legacy "relief" scale).
     var relief: Int
     var note: String
     var createdAt: Int
@@ -89,6 +93,7 @@ final class ReliefLogStore {
         strainName: String,
         conditions: [String],
         fit: ReliefFit,
+        rating: Int,
         relief: Int,
         note: String
     ) async {
@@ -98,6 +103,7 @@ final class ReliefLogStore {
             strainName: String(strainName.prefix(79)),
             conditions: Array(conditions.prefix(6)),
             fit: fit,
+            rating: min(5, max(0, rating)),
             relief: min(5, max(1, relief)),
             note: String(note.trimmingCharacters(in: .whitespacesAndNewlines).prefix(400)),
             createdAt: createdAt
@@ -122,7 +128,8 @@ final class ReliefLogStore {
     var summary: String {
         logs.prefix(8).map { log in
             let cond = log.conditions.first ?? "general"
-            return "\(log.strainName) for \(cond): \(log.fit.rawValue), relief \(log.relief)/5"
+            let rated = log.rating > 0 ? ", rating \(log.rating)/5" : ""
+            return "\(log.strainName) for \(cond): \(log.fit.rawValue), intensity \(log.relief)/5\(rated)"
         }
         .joined(separator: "; ")
     }
@@ -149,7 +156,7 @@ final class ReliefLogStore {
     }
 
     static func document(_ log: ReliefLog) -> [String: Any] {
-        [
+        var doc: [String: Any] = [
             "strainName": log.strainName,
             "conditions": log.conditions,
             "fit": log.fit.rawValue,
@@ -157,6 +164,12 @@ final class ReliefLogStore {
             "note": log.note,
             "createdAt": log.createdAt,
         ]
+        // Older logs have no rating; only write it when present so the
+        // web Firestore rules / old clients don't see an unexpected key.
+        if log.rating > 0 {
+            doc["rating"] = log.rating
+        }
+        return doc
     }
 
     private static func parse(_ doc: QueryDocumentSnapshot) -> ReliefLog? {
@@ -173,11 +186,20 @@ final class ReliefLogStore {
         } else {
             return nil
         }
+        let rating: Int
+        if let n = data["rating"] as? Int {
+            rating = n
+        } else if let n = data["rating"] as? Double {
+            rating = Int(n)
+        } else {
+            rating = 0
+        }
         return ReliefLog(
             id: doc.documentID,
             strainName: name,
             conditions: data["conditions"] as? [String] ?? [],
             fit: fit,
+            rating: rating,
             relief: relief,
             note: data["note"] as? String ?? "",
             createdAt: data["createdAt"] as? Int ?? 0
@@ -198,6 +220,7 @@ extension ReliefLog {
         strainName: "Granddaddy Purple",
         conditions: ["Insomnia"],
         fit: .justRight,
+        rating: 5,
         relief: 5,
         note: "Slept through the night.",
         createdAt: 1_700_000_000_000

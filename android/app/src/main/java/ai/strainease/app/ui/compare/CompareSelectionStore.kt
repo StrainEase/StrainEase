@@ -32,12 +32,15 @@ class CompareSelectionStore {
     val atCap: Boolean
         get() = _names.value.size >= cap
 
-    fun isIn(name: String): Boolean = _names.value.contains(name)
+    /** Case-insensitive to match the iOS store and the web hook's dedupe. */
+    fun isIn(name: String): Boolean =
+        _names.value.any { it.equals(name, ignoreCase = true) }
 
     fun toggle(name: String) {
         val current = _names.value
         _names.value = when {
-            current.contains(name) -> current - name
+            current.any { it.equals(name, ignoreCase = true) } ->
+                current.filterNot { it.equals(name, ignoreCase = true) }
             current.size >= cap -> current // silently drop when at cap
             else -> current + name
         }

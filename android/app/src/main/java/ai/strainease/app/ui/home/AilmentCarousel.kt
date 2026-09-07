@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.models.StrainProfile
+import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.SectionLabel
 
 /**
@@ -44,6 +45,7 @@ fun AilmentCarousel(
     ailments: List<String>,
     preview: (String) -> List<StrainProfile>,
     modifier: Modifier = Modifier,
+    compareStore: CompareSelectionStore? = null,
     onSeeMore: (String) -> Unit = {},
     onSelect: (StrainProfile) -> Unit = {},
 ) {
@@ -73,6 +75,7 @@ fun AilmentCarousel(
                     AilmentPage(
                         name = name,
                         strains = preview(name).take(6),
+                        compareStore = compareStore,
                         onSeeMore = { onSeeMore(name) },
                         onSelect = onSelect,
                         modifier = Modifier.fillParentMaxWidth(),
@@ -107,6 +110,7 @@ fun AilmentCarousel(
 private fun AilmentPage(
     name: String,
     strains: List<StrainProfile>,
+    compareStore: CompareSelectionStore?,
     onSeeMore: () -> Unit,
     onSelect: (StrainProfile) -> Unit,
     modifier: Modifier = Modifier,
@@ -139,6 +143,7 @@ private fun AilmentPage(
                             compact = true,
                             photoHeight = 72.dp,
                             onClick = { onSelect(profile) },
+                            compareStore = compareStore,
                         )
                     }
                 }

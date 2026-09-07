@@ -61,12 +61,13 @@ import { toTitleCase } from "@/lib/title-case";
 import {
   Activity,
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
   Droplets,
   GitCompareArrows,
   HeartPulse,
   MessageCircle,
   Moon,
-  NotebookPen,
   Pencil,
   Search,
   Sparkles,
@@ -610,29 +611,60 @@ function DescriptionCards({ profile }: { profile: StrainProfile }) {
   const { names: medications } = useMedications();
   const { summary: reliefHistory } = useReliefSummary();
   const { description: tailored } = useTailoredDescription(profile);
+  const hasFullDescription =
+    !!profile.description && profile.description.trim().length > 0;
+  // The full description is collapsed to two lines by default; tap
+  // Show more / Show less to expand (matches iOS + Android).
+  const [fullOpen, setFullOpen] = useState(false);
 
-  if (tailored) {
-    return (
-      <StrainDescriptionView
-        description={tailored}
-        strain={profile}
-        ailments={ailments}
-        medications={medications}
-        reliefHistory={reliefHistory}
-        isAuthenticated={isAuthenticated}
-      />
-    );
-  }
-  if (profile.description && profile.description.trim().length > 0) {
-    return (
-      <SWCard innerClassName="p-5">
-        <p className="text-sm leading-6 text-foreground/85">
-          {profile.description}
-        </p>
-      </SWCard>
-    );
-  }
-  return null;
+  return (
+    <>
+      {tailored && (
+        <StrainDescriptionView
+          description={tailored}
+          strain={profile}
+          ailments={ailments}
+          medications={medications}
+          reliefHistory={reliefHistory}
+          isAuthenticated={isAuthenticated}
+        />
+      )}
+      {hasFullDescription && (
+        <SWCard innerClassName="p-5">
+          {/* Header inside the card, matching the tailored description
+              section cards' bold heading. */}
+          <h3 className="text-base font-bold tracking-tight text-foreground">
+            Full Description
+          </h3>
+          <p
+            className={cn(
+              "mt-3 text-sm leading-6 text-foreground/85",
+              !fullOpen && "line-clamp-2",
+            )}
+          >
+            {profile.description}
+          </p>
+          <button
+            type="button"
+            onClick={() => setFullOpen((v) => !v)}
+            className="mt-2 flex cursor-pointer items-center gap-1 text-xs font-semibold text-primary"
+          >
+            {fullOpen ? (
+              <>
+                Show less
+                <ChevronUp className="size-3.5" />
+              </>
+            ) : (
+              <>
+                Show more
+                <ChevronDown className="size-3.5" />
+              </>
+            )}
+          </button>
+        </SWCard>
+      )}
+    </>
+  );
 }
 
 function DayNightCard({ score }: { score: number }) {
@@ -814,7 +846,7 @@ function ReliefLogCard({
 }) {
   return (
     <SWCard innerClassName="p-5">
-      <SectionEyebrow icon={NotebookPen} label="Relief log" />
+      <SectionEyebrow icon={Sparkles} label="How'd this work for you?" />
       <ReliefLogButton strainName={strainName} variant="button" />
       {logs.length > 0 && (
         <ul className="mt-4 space-y-2">
@@ -822,11 +854,19 @@ function ReliefLogCard({
             <li key={log.id}>
               <SWCard innerClassName="px-4 py-3">
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="font-medium capitalize">
+                  <span className="flex items-center gap-1.5 font-medium capitalize">
+                    {log.rating ? (
+                      <span className="text-primary" aria-label={`Rated ${log.rating} of 5`}>
+                        {"★".repeat(log.rating)}
+                        <span className="text-muted-foreground/35">
+                          {"★".repeat(5 - log.rating)}
+                        </span>
+                      </span>
+                    ) : null}
                     {log.fit.replace("-", " ")}
                   </span>
                   <span className="text-muted-foreground">
-                    {log.relief}/5 relief
+                    Intensity {log.relief}/5
                   </span>
                 </div>
                 {log.note ? (

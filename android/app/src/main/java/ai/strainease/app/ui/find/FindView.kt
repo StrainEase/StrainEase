@@ -183,7 +183,7 @@ fun FindView(
                 },
             )
             error?.let { SWErrorBanner(message = it) }
-            result?.let { resultBlock(it, onOpenProfile) }
+            result?.let { resultBlock(it, compareStore, onOpenProfile) }
             // Surface the cross-strain comparison result produced by
             // CompareTrayBar's "Compare" CTA. Mirrors iOS FindView
             // which shows the same view inline below the
@@ -385,6 +385,7 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
 @Composable
 private fun resultBlock(
     result: RecommendationResult,
+    compareStore: CompareSelectionStore?,
     onOpenProfile: (StrainProfile) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -406,7 +407,11 @@ private fun resultBlock(
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    StrainPoster(profile = profile, onClick = { onOpenProfile(profile) })
+                    StrainPoster(
+                        profile = profile,
+                        onClick = { onOpenProfile(profile) },
+                        compareStore = compareStore,
+                    )
                     result.recommendations.firstOrNull { it.strainName.equals(profile.name, ignoreCase = true) }
                         ?.let { rec ->
                             RecommendationBlurb(rec)

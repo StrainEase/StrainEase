@@ -25,6 +25,7 @@ struct SavedStrainsView: View {
                         ForEach(saved.items) { item in
                             NavigationLink(value: item.profile) {
                                 StrainPoster(profile: item.profile)
+                                    .compareHoldable(item.profile.name)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.plain)
@@ -59,4 +60,5 @@ struct SavedStrainsView: View {
     }
     .environment(\.strainAPI, PreviewStrainAPI())
     .environment(SavedStrainsStore.preview(["granddaddy-purple", "blue-dream"]))
+    .environment(CompareSelectionStore())
 }

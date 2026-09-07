@@ -18,7 +18,8 @@ data class ReliefLog(
     val strainName: String,
     val strainSlug: String,
     val notes: String,
-    val rating: Int, // 0..5
+    val rating: Int, // 0..5 — how well it worked
+    val intensity: Int = 0, // 0..5 — how strong it felt
     val loggedAt: Long,
 )
 
@@ -70,7 +71,15 @@ class ReliefLogStore(private val context: Context) {
                     4 -> "great"
                     else -> "excellent"
                 }
-                "${it.strainName}: $rating"
+                val intensity = when (it.intensity) {
+                    0 -> ""
+                    1 -> ", very mild"
+                    2 -> ", mild"
+                    3 -> ", moderate"
+                    4 -> ", strong"
+                    else -> ", very strong"
+                }
+                "${it.strainName}: $rating$intensity"
             }
 
     val tonightHint: String?
