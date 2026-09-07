@@ -234,18 +234,20 @@ final class StrainEaseTests: XCTestCase {
     }
 
     @MainActor
-    func testPreviewPublicNoteToggle() async {
+    func testPreviewReviewAnonymousToggle() async {
         let store = SavedStrainsStore.preview()
-        await store.addNote(to: .sampleGDP, text: "Helped my back", isPublic: true, authorName: "Pat")
+        // Reviews are always public; default is anonymous (name hidden).
+        await store.addNote(to: .sampleGDP, text: "Helped my back", authorName: "Pat")
         XCTAssertEqual(store.notes(for: "granddaddy-purple").first?.isPublic, true)
-        await store.setNotePublic(
+        XCTAssertEqual(store.notes(for: "granddaddy-purple").first?.anonymous, true)
+        await store.setNoteAnonymous(
             slug: "granddaddy-purple",
             noteId: store.notes(for: "granddaddy-purple")[0].id,
-            isPublic: false,
+            anonymous: false,
             authorName: "Pat",
             strainName: "Granddaddy Purple"
         )
-        XCTAssertEqual(store.notes(for: "granddaddy-purple").first?.isPublic, false)
+        XCTAssertEqual(store.notes(for: "granddaddy-purple").first?.anonymous, false)
     }
 
     @MainActor

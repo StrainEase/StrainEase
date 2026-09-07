@@ -5,7 +5,7 @@ struct TriedNotesView: View {
     @Environment(SavedStrainsStore.self) private var saved
     @Environment(AuthSession.self) private var session
     @State private var draft = ""
-    @State private var draftPublic = false
+    @State private var draftAnonymous = true
     @State private var draftRating = 0
     @State private var draftIntensity = 0
     @State private var savedAt: Date?
@@ -16,16 +16,16 @@ struct TriedNotesView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionLabel("Your notes")
+            SectionLabel("Review")
             SWCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Notes on how this strain felt when you tried it. Public notes are shared anonymously with other patients.")
+                    Text("Write a review of how this strain felt — it's public on this strain's page. Toggle the lock to stay anonymous (shown as \"A patient\").")
                         .font(.system(size: 13))
                         .foregroundStyle(Palette.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if notes.isEmpty {
-                        Text("Nothing here yet — one sentence is enough to start a record.")
+                        Text("Nothing here yet — one sentence is enough to start a review.")
                             .font(.system(size: 14))
                             .foregroundStyle(Palette.mutedForeground)
                     } else {
@@ -58,24 +58,24 @@ struct TriedNotesView: View {
                                 VStack(alignment: .trailing, spacing: 8) {
                                     Button {
                                         Task {
-                                            await saved.setNotePublic(
+                                            await saved.setNoteAnonymous(
                                                 slug: profile.slug,
                                                 noteId: note.id,
-                                                isPublic: !note.isPublic,
+                                                anonymous: !note.anonymous,
                                                 authorName: authorName,
                                                 strainName: profile.name
                                             )
                                         }
                                     } label: {
                                         Label(
-                                            note.isPublic ? "Public" : "Private",
-                                            systemImage: note.isPublic ? "globe" : "lock"
+                                            note.anonymous ? "Anonymous" : "Your name",
+                                            systemImage: note.anonymous ? "lock" : "person"
                                         )
                                         .font(.system(size: 11, weight: .semibold))
-                                        .foregroundStyle(note.isPublic ? Palette.primary : Palette.mutedForeground)
+                                        .foregroundStyle(note.anonymous ? Palette.mutedForeground : Palette.primary)
                                     }
                                     .buttonStyle(.plain)
-                                    .accessibilityLabel(note.isPublic ? "Make note private" : "Share note publicly")
+                                    .accessibilityLabel(note.anonymous ? "Show your name on this review" : "Hide your name on this review")
                                     Button {
                                         Task { await saved.removeNote(slug: profile.slug, noteId: note.id) }
                                     } label: {
@@ -161,16 +161,16 @@ struct TriedNotesView: View {
                             .padding(.vertical, 10)
                             .background(Palette.muted.opacity(0.6), in: Capsule())
                         Button {
-                            draftPublic.toggle()
+                            draftAnonymous.toggle()
                         } label: {
-                            Image(systemName: draftPublic ? "globe" : "lock")
+                            Image(systemName: draftAnonymous ? "lock" : "person")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(draftPublic ? Palette.primary : Palette.mutedForeground)
+                                .foregroundStyle(draftAnonymous ? Palette.mutedForeground : Palette.primary)
                                 .frame(width: 36, height: 36)
                                 .background(Palette.muted.opacity(0.6), in: Circle())
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(draftPublic ? "New note will be public" : "New note will be private")
+                        .accessibilityLabel(draftAnonymous ? "Show your name on this review" : "Post this review anonymously")
                         Button {
                             Task { await submit() }
                         } label: {
@@ -242,17 +242,17 @@ struct TriedNotesView: View {
 
     private func submit() async {
         let text = draft
-        let share = draftPublic
+        let anonymous = draftAnonymous
         let rating = draftRating
         let intensity = draftIntensity
         draft = ""
-        draftPublic = false
+        draftAnonymous = true
         draftRating = 0
         draftIntensity = 0
         await saved.addNote(
             to: profile,
             text: text,
-            isPublic: share,
+            anonymous: anonymous,
             authorName: authorName,
             rating: rating,
             intensity: intensity
