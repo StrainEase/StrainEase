@@ -26,6 +26,7 @@ export function ReliefLogButton({
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [fit, setFit] = useState<ReliefFit>("just-right");
+  const [rating, setRating] = useState(0);
   const [relief, setRelief] = useState(4);
   const [note, setNote] = useState("");
   const [extraCondition, setExtraCondition] = useState("");
@@ -44,12 +45,14 @@ export function ReliefLogButton({
         strainName,
         conditions: merged,
         fit,
+        rating,
         relief,
         note,
       });
       toast("Logged. Next search will remember this.");
       setOpen(false);
       setNote("");
+      setRating(0);
       setExtraCondition("");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Could not save the log.");
@@ -58,18 +61,15 @@ export function ReliefLogButton({
     }
   };
 
+  // On the strain detail page (variant "button") the logging
+  // experience card is always expanded — no "How did this go?" toggle,
+  // matching iOS. The inline "link" variant used in the Saved panel
+  // keeps its expand/collapse trigger.
+  const expanded = variant === "button" || open;
+
   return (
     <div>
-      {variant === "button" ? (
-        <Button
-          type="button"
-          variant={open ? "outline" : "default"}
-          onClick={() => setOpen((v) => !v)}
-          className="w-full cursor-pointer rounded-full"
-        >
-          {open ? "Cancel" : "How did this go?"}
-        </Button>
-      ) : (
+      {variant === "link" && (
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -78,8 +78,13 @@ export function ReliefLogButton({
           {open ? "Cancel" : "How did this go?"}
         </button>
       )}
-      {open && (
-        <div className="mt-3 space-y-3 rounded-xl border border-border/70 bg-background p-3">
+      {expanded && (
+        <div
+          className={cn(
+            "space-y-3 rounded-xl border border-border/70 bg-background p-3",
+            variant === "link" && "mt-3",
+          )}
+        >
           <div className="flex flex-wrap gap-1.5">
             {FITS.map((opt) => (
               <button
@@ -97,17 +102,50 @@ export function ReliefLogButton({
               </button>
             ))}
           </div>
-          <label className="block text-xs text-muted-foreground">
-            Relief 1–5
-            <input
-              type="range"
-              min={1}
-              max={5}
-              value={relief}
-              onChange={(e) => setRelief(Number(e.target.value))}
-              className="mt-1 w-full cursor-pointer"
-            />
-          </label>
+          {/* Rating (stars) and Intensity (relief scale) recorded
+              separately, two centered columns — mirrors the
+              Android/iOS two-column layout. */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Rating</p>
+              <div className="mt-1 flex items-center justify-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star === rating ? 0 : star)}
+                    aria-label={`Rate ${star} of 5`}
+                    aria-pressed={star <= rating}
+                    className="cursor-pointer p-0.5 text-lg leading-none transition-colors"
+                  >
+                    <span
+                      className={
+                        star <= rating
+                          ? "text-primary"
+                          : "text-muted-foreground/40 hover:text-muted-foreground"
+                      }
+                    >
+                      ★
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">
+                Intensity {relief}/5
+              </p>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                value={relief}
+                onChange={(e) => setRelief(Number(e.target.value))}
+                aria-label="Intensity"
+                className="mt-1 w-full cursor-pointer"
+              />
+            </div>
+          </div>
           <Input
             value={note}
             onChange={(e) => setNote(e.target.value)}

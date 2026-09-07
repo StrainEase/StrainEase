@@ -10,13 +10,6 @@ export const LONG_PRESS_MS = 500;
 /** Max finger drift (px) before the hold is abandoned as a scroll/drag. */
 const SLOP_PX = 8;
 
-/**
- * Window (ms) after a long press fires during which the release-time
- * `click` is still swallowed. Real releases land 1–2 frames after the
- * timer; the window just guards against ordering surprises.
- */
-const CLICK_SWALLOW_MS = 350;
-
 export type LongPressHandlers = {
   onPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
   onClickCapture: (event: React.MouseEvent<HTMLElement>) => void;
@@ -37,13 +30,19 @@ export type LongPressHandlers = {
  *    beyond the slop, lifted early, or the system stole the pointer for
  *    a scroll).
  *
- * After a hold fires, the release-time `click` is swallowed in the
- * capture phase, so the card never navigates on release. While a touch
- * is held, `contextmenu` is suppressed (Android Chrome opens a link
- * context menu mid-hold); desktop right-click is left alone.
+ * While the hold timer is armed, the release-time `click` is swallowed in
+ * the capture phase, so a tap that is still resolving never navigates. Once
+ * the hold fires, releasing the pointer still suppresses the release click —
+ * the long-press gesture owns the release, so the card never navigates as the
+ * tail of a hold that already added the strain to compare. A fresh tap (new
+ * pointerdown + release with no long press in between) still navigates
+ * normally.
  *
- * Pointer Events only — no separate touch/mouse code paths. Mouse and
- * touch on every supported browser emit pointer events.
+ * While a touch is held, `contextmenu` is suppressed (Android Chrome opens
+ * a link context menu mid-hold); desktop right-click is left alone.
+ *
+ * Pointer Events only — no separate touch/mouse code paths. Mouse and touch
+ * on every supported browser emit pointer events.
  */
 export function useLongPress({
   onLongPress,
@@ -63,11 +62,12 @@ export function useLongPress({
   const touchHeldRef = useRef(false);
   // True while the hold timer is armed (press down, not yet fired).
   const armedRef = useRef(false);
-  // Timestamp of the last fired hold; 0 when idle. The release-time
-  // `click` is swallowed while `Date.now() - firedAt` is inside the
-  // swallow window.
-  const firedAtRef = useRef(0);
-
+  // Becomes true when the hold timer fires for the current pointer.
+  const longPressFiredRef = useRef(false);
+  // Raised by `onEnd` when a long press fired; consumed by
+  // `onClickCapture` to swallow the release click. Reset once the next
+  // click is seen.
+  const suppressClickRef = useRef(false);
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
@@ -107,6 +107,10 @@ export function useLongPress({
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onEnd);
         window.removeEventListener("pointercancel", onEnd);
+        if (longPressFiredRef.current) {
+          suppressClickRef.current = true;
+          longPressFiredRef.current = false;
+        }
         cancel();
       };
 
@@ -117,7 +121,7 @@ export function useLongPress({
       timerRef.current = window.setTimeout(() => {
         timerRef.current = null;
         armedRef.current = false;
-        firedAtRef.current = Date.now();
+        longPressFiredRef.current = true;
         onLongPress();
         // Keep the move/up listeners attached (onEnd removes them) so the
         // eventual release cleans up.
@@ -127,17 +131,14 @@ export function useLongPress({
   );
 
   const onClickCapture = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    if (firedAtRef.current === 0) return;
-    if (Date.now() - firedAtRef.current > CLICK_SWALLOW_MS) {
-      firedAtRef.current = 0;
-      return;
-    }
-    // The press just completed a long press: swallow the release click
-    // so the card (often a <Link>) doesn't navigate. `preventDefault`
+    if (!suppressClickRef.current) return;
+    suppressClickRef.current = false;
+    // A long press just completed for this pointer; swallow the release
+    // click so the card (often a <Link>) doesn't navigate as the tail of a
+    // gesture that already added the strain to compare. `preventDefault`
     // alone isn't enough for react-router — stop the event too.
     event.preventDefault();
     event.stopPropagation();
-    firedAtRef.current = 0;
   }, []);
 
   const onContextMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {

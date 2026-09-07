@@ -107,6 +107,11 @@ describe("useLongPress", () => {
     await wait(40); // hold fires
     expect(events).toEqual(["start", "longpress"]);
 
+    // Finish the gesture by releasing the pointer. In the real flow the
+    // release is what sets the suppress-click flag; a synthetic click on the
+    // nested link is then swallowed instead of navigating.
+    window.dispatchEvent(new PointerEvent("pointerup"));
+
     const link = document.createElement("a");
     el.appendChild(link);
     const click = new MouseEvent("click", { bubbles: true, cancelable: true });
