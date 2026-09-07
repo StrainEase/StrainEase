@@ -4,7 +4,6 @@ struct ReliefLogForm: View {
     let strainName: String
     var conditions: [String] = []
     @Environment(ReliefLogStore.self) private var logs
-    @State private var open = false
     @State private var fit: ReliefFit = .justRight
     @State private var rating = 0
     @State private var relief = 4
@@ -12,34 +11,23 @@ struct ReliefLogForm: View {
     @State private var extraCondition = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Button {
-                open.toggle()
-            } label: {
-                Text(open ? "Cancel" : "How did this go?")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(open ? Palette.mutedForeground : Palette.primaryForeground)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(open ? Palette.card.opacity(0.55) : Palette.primary, in: Capsule())
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(open ? Palette.border : Palette.primary, lineWidth: 1)
-                    )
-                    .contentShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(open ? "Cancel relief log" : "Log how this strain went")
-
-            if open {
-                VStack(alignment: .leading, spacing: 12) {
-                    FlowLayout(spacing: 8) {
-                        ForEach(ReliefFit.allCases) { option in
-                            SWChip(title: option.label, isOn: fit == option) {
-                                fit = option
-                            }
+        // The logging/experience card is always expanded and uses the
+        // standard SWCard chrome — no collapse toggle (matches Android
+        // `ReliefLogForm` and web's expanded relief log).
+        SWCard {
+            VStack(alignment: .leading, spacing: 12) {
+                // In-card heading, matching the other section cards'
+                // bold heading style.
+                Text("How did this go?")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.foreground)
+                FlowLayout(spacing: 8) {
+                    ForEach(ReliefFit.allCases) { option in
+                        SWChip(title: option.label, isOn: fit == option) {
+                            fit = option
                         }
                     }
+                }
                     // Rating (stars) and Intensity (relief scale) recorded
                     // separately, two centered columns — mirrors the
                     // Android/web two-column layout.
@@ -91,21 +79,18 @@ struct ReliefLogForm: View {
                             .padding(.vertical, 10)
                             .background(Palette.muted.opacity(0.6), in: Capsule())
                     }
-                    Button {
-                        Task { await save() }
-                    } label: {
-                        Text("Save log")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Palette.primaryForeground)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Palette.primary, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(logs.isBusy)
+                Button {
+                    Task { await save() }
+                } label: {
+                    Text("Save log")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.primaryForeground)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Palette.primary, in: Capsule())
                 }
-                .padding(12)
-                .background(Palette.muted.opacity(0.35), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .buttonStyle(.plain)
+                .disabled(logs.isBusy)
             }
         }
     }
@@ -122,7 +107,6 @@ struct ReliefLogForm: View {
             relief: relief,
             note: note
         )
-        open = false
         note = ""
         rating = 0
         extraCondition = ""
