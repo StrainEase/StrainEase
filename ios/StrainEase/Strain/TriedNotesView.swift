@@ -6,6 +6,7 @@ struct TriedNotesView: View {
     @Environment(AuthSession.self) private var session
     @State private var draft = ""
     @State private var draftPublic = false
+    @State private var draftRating = 0
     @State private var savedAt: Date?
     @State private var savedTick = 0
 
@@ -30,6 +31,9 @@ struct TriedNotesView: View {
                         ForEach(notes) { note in
                             HStack(alignment: .top, spacing: 10) {
                                 VStack(alignment: .leading, spacing: 4) {
+                                    if note.rating > 0 {
+                                        starRow(rating: note.rating, size: 9)
+                                    }
                                     Text(note.text)
                                         .font(.system(size: 15))
                                         .foregroundStyle(Palette.foreground)
@@ -72,6 +76,27 @@ struct TriedNotesView: View {
                                 }
                             }
                             .padding(.vertical, 4)
+                        }
+                    }
+
+                    // Star rating — 1–5, mirrors Android `ReliefLogForm`.
+                    // Tap the selected star again to clear.
+                    HStack(spacing: 6) {
+                        ForEach(1...5, id: \.self) { value in
+                            Button {
+                                draftRating = draftRating == value ? 0 : value
+                            } label: {
+                                Image(systemName: value <= draftRating ? "star.fill" : "star")
+                                    .font(.system(size: 17, weight: .medium))
+                                    .foregroundStyle(value <= draftRating ? Palette.primary : Palette.muted.opacity(0.7))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Rate \(value) out of 5")
+                        }
+                        if draftRating > 0 {
+                            Text("\(draftRating)/5")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Palette.mutedForeground)
                         }
                     }
 
@@ -137,12 +162,27 @@ struct TriedNotesView: View {
         }
     }
 
+    /// Five stars, `rating` of them filled — used for both the draft
+    /// picker-sized stars and the compact note-list stars.
+    private func starRow(rating: Int, size: CGFloat) -> some View {
+        HStack(spacing: 2) {
+            ForEach(1...5, id: \.self) { index in
+                Image(systemName: index <= rating ? "star.fill" : "star")
+                    .font(.system(size: size, weight: .medium))
+                    .foregroundStyle(index <= rating ? Palette.primary : Palette.muted.opacity(0.5))
+            }
+        }
+        .accessibilityLabel("\(rating) out of 5 stars")
+    }
+
     private func submit() async {
         let text = draft
         let share = draftPublic
+        let rating = draftRating
         draft = ""
         draftPublic = false
-        await saved.addNote(to: profile, text: text, isPublic: share, authorName: authorName)
+        draftRating = 0
+        await saved.addNote(to: profile, text: text, isPublic: share, authorName: authorName, rating: rating)
         // addNote only sets errorMessage on failure — treat a clean run as saved.
         if saved.errorMessage == nil {
             savedAt = Date()

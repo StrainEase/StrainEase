@@ -136,21 +136,30 @@ struct StrainDetailView: View {
     /// `profile.description` if the fetch has settled and there is no
     /// tailored copy. This matches the web's three-section surface for
     /// every reader, not just the ones with saved ailments.
+    ///
+    /// The full (non-processed) `profile.description` is always shown
+    /// below the tailored cards when one exists — parity with Android's
+    /// `descriptionBlock`.
     @ViewBuilder
     private var descriptionSection: some View {
         if let tailored = tailoredDescription {
             tailoredDescriptionSection(tailored)
         } else if isLoadingTailoredDescription {
             tailoredDescriptionLoading
-        } else if let description = profile.description, !description.isEmpty {
-            SWCard {
-                Text(description.withUnescapedNewlines)
-                    .font(.system(size: 16))
-                    .foregroundStyle(Palette.foreground)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         } else if pending.contains(.description) {
             hydratingSection(.description)
+        }
+        if let description = profile.description, !description.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("Full Description")
+                SWCard {
+                    Text(description.withUnescapedNewlines)
+                        .font(.system(size: 16))
+                        .foregroundStyle(Palette.foreground)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .accessibilityIdentifier("strain.full-description")
         }
     }
 

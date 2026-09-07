@@ -8,6 +8,9 @@ struct SavedNote: Identifiable, Hashable, Sendable {
     var isPublic: Bool
     var createdAt: Int
     var publicId: String?
+    /// 1–5 star rating left with the note; 0 means unrated.
+    /// Matches Android `ReliefLogForm`'s star picker.
+    var rating: Int = 0
 
     static func parse(_ raw: Any?) -> [SavedNote] {
         guard let rows = raw as? [[String: Any]] else { return [] }
@@ -20,7 +23,8 @@ struct SavedNote: Identifiable, Hashable, Sendable {
                 text: text,
                 isPublic: row["isPublic"] as? Bool ?? false,
                 createdAt: row["createdAt"] as? Int ?? 0,
-                publicId: row["publicId"] as? String
+                publicId: row["publicId"] as? String,
+                rating: row["rating"] as? Int ?? 0
             )
         }
     }
@@ -213,7 +217,8 @@ final class SavedStrainsStore {
         to profile: StrainProfile,
         text: String,
         isPublic: Bool = false,
-        authorName: String = "A patient"
+        authorName: String = "A patient",
+        rating: Int = 0
     ) async {
         let trimmed = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1999))
         guard !trimmed.isEmpty, !profile.slug.isEmpty, !isBusy else { return }
@@ -221,7 +226,8 @@ final class SavedStrainsStore {
             id: "\(Int(Date().timeIntervalSince1970 * 1000))-\(UUID().uuidString.prefix(6).lowercased())",
             text: trimmed,
             isPublic: false,
-            createdAt: Int(Date().timeIntervalSince1970 * 1000)
+            createdAt: Int(Date().timeIntervalSince1970 * 1000),
+            rating: rating
         )
         if let index = items.firstIndex(where: { $0.slug == profile.slug }) {
             items[index].notes.append(note)
@@ -374,6 +380,7 @@ final class SavedStrainsStore {
             "text": note.text,
             "isPublic": note.isPublic,
             "createdAt": note.createdAt,
+            "rating": note.rating,
         ]
         if let publicId = note.publicId {
             data["publicId"] = publicId
