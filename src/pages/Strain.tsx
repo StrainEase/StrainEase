@@ -61,8 +61,9 @@ import { toTitleCase } from "@/lib/title-case";
 import {
   Activity,
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
   Droplets,
-  FileText,
   GitCompareArrows,
   HeartPulse,
   MessageCircle,
@@ -580,6 +581,9 @@ function DescriptionCards({ profile }: { profile: StrainProfile }) {
   const { description: tailored } = useTailoredDescription(profile);
   const hasFullDescription =
     !!profile.description && profile.description.trim().length > 0;
+  // The full description is collapsed to two lines by default; tap
+  // Show more / Show less to expand (matches iOS + Android).
+  const [fullOpen, setFullOpen] = useState(false);
 
   return (
     <>
@@ -594,14 +598,38 @@ function DescriptionCards({ profile }: { profile: StrainProfile }) {
         />
       )}
       {hasFullDescription && (
-        <section>
-          <SectionEyebrow icon={FileText} label="Full Description" />
-          <SWCard innerClassName="p-5">
-            <p className="text-sm leading-6 text-foreground/85">
-              {profile.description}
-            </p>
-          </SWCard>
-        </section>
+        <SWCard innerClassName="p-5">
+          {/* Header inside the card, matching the tailored description
+              section cards' bold heading. */}
+          <h3 className="text-base font-bold tracking-tight text-foreground">
+            Full Description
+          </h3>
+          <p
+            className={cn(
+              "mt-3 text-sm leading-6 text-foreground/85",
+              !fullOpen && "line-clamp-2",
+            )}
+          >
+            {profile.description}
+          </p>
+          <button
+            type="button"
+            onClick={() => setFullOpen((v) => !v)}
+            className="mt-2 flex cursor-pointer items-center gap-1 text-xs font-semibold text-primary"
+          >
+            {fullOpen ? (
+              <>
+                Show less
+                <ChevronUp className="size-3.5" />
+              </>
+            ) : (
+              <>
+                Show more
+                <ChevronDown className="size-3.5" />
+              </>
+            )}
+          </button>
+        </SWCard>
       )}
     </>
   );
