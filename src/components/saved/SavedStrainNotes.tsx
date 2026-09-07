@@ -47,6 +47,7 @@ export function SavedStrainNotes({
   const [draft, setDraft] = useState("");
   const [makePublic, setMakePublic] = useState(false);
   const [rating, setRating] = useState(0);
+  const [intensity, setIntensity] = useState(0);
   const [busy, setBusy] = useState(false);
   const [notesLoaded, setNotesLoaded] = useState(false);
 
@@ -101,10 +102,20 @@ export function SavedStrainNotes({
           inKnowledgeBase: false,
         });
       }
-      await addNote(user.uid, slug, text, makePublic, user.name, strainName, rating);
+      await addNote(
+        user.uid,
+        slug,
+        text,
+        makePublic,
+        user.name,
+        strainName,
+        rating,
+        intensity,
+      );
       setDraft("");
       setMakePublic(false);
       setRating(0);
+      setIntensity(0);
       toast.success("Note saved.");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Could not save the note.");
@@ -132,12 +143,34 @@ export function SavedStrainNotes({
               className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background px-4 py-3"
             >
               <div className="min-w-0">
-                {note.rating ? (
-                  <p className="mb-1 text-[13px] leading-none text-primary">
-                    {"★".repeat(note.rating)}
-                    <span className="text-muted-foreground/35">
-                      {"★".repeat(5 - note.rating)}
-                    </span>
+                {note.rating || note.intensity ? (
+                  <p className="mb-1 flex items-center gap-2 text-[13px] leading-none">
+                    {note.rating ? (
+                      <span className="text-primary">
+                        {"★".repeat(note.rating)}
+                        <span className="text-muted-foreground/35">
+                          {"★".repeat(5 - note.rating)}
+                        </span>
+                      </span>
+                    ) : null}
+                    {note.intensity ? (
+                      <span
+                        className="flex items-center gap-0.5"
+                        aria-label={`Intensity ${note.intensity} of 5`}
+                      >
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <span
+                            key={i}
+                            className={cn(
+                              "size-1.5 rounded-full",
+                              i <= (note.intensity ?? 0)
+                                ? "bg-primary"
+                                : "bg-muted-foreground/25",
+                            )}
+                          />
+                        ))}
+                      </span>
+                    ) : null}
                   </p>
                 ) : null}
                 <p className="text-sm leading-6">{note.text}</p>
@@ -196,32 +229,66 @@ export function SavedStrainNotes({
         </ul>
       )}
 
-      {/* Star rating — 1–5, mirrors Android ReliefLogForm. Tapping the
-          selected star again clears it. */}
-      <div className="mt-4 flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((value) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setRating(value === rating ? 0 : value)}
-            aria-label={`Rate ${value} of 5`}
-            aria-pressed={value <= rating}
-            className="cursor-pointer p-0.5 text-lg leading-none transition-colors"
-          >
-            <span
-              className={
-                value <= rating
-                  ? "text-primary"
-                  : "text-muted-foreground/40 hover:text-muted-foreground"
-              }
-            >
-              ★
-            </span>
-          </button>
-        ))}
-        {rating > 0 && (
-          <span className="ml-1 text-xs text-muted-foreground">{rating}/5</span>
-        )}
+      {/* Rating and Intensity recorded separately, two centered
+          columns — mirrors the Android "How did it work for you?"
+          card. Tap the selected star/dot again to clear. */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <div className="text-center">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Rating
+          </p>
+          <div className="mt-1 flex items-center justify-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setRating(value === rating ? 0 : value)}
+                aria-label={`Rate ${value} of 5`}
+                aria-pressed={value <= rating}
+                className="cursor-pointer p-0.5 text-lg leading-none transition-colors"
+              >
+                <span
+                  className={
+                    value <= rating
+                      ? "text-primary"
+                      : "text-muted-foreground/40 hover:text-muted-foreground"
+                  }
+                >
+                  ★
+                </span>
+              </button>
+            ))}
+          </div>
+          {rating > 0 && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {rating}/5
+            </p>
+          )}
+        </div>
+        <div className="text-center">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Intensity
+          </p>
+          <div className="mt-1.5 flex items-center justify-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() =>
+                  setIntensity(value === intensity ? 0 : value)
+                }
+                aria-label={`Set intensity ${value} of 5`}
+                aria-pressed={value <= intensity}
+                className={cn(
+                  "size-3.5 cursor-pointer rounded-full transition-colors",
+                  value <= intensity
+                    ? "bg-primary"
+                    : "bg-muted-foreground/25 hover:bg-muted-foreground/50",
+                )}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mt-3 flex items-center gap-2">

@@ -25,6 +25,8 @@ export type SavedNote = {
   publicId?: string;
   /** 1–5 star rating left with the note (matches Android ReliefLogForm). */
   rating?: number;
+  /** 1–5 intensity (how strong it felt); mirrors Android ReliefLogForm dots. */
+  intensity?: number;
 };
 
 export type SavedStrain = {
@@ -143,6 +145,7 @@ export async function addNote(
   authorName: string,
   strainName: string,
   rating = 0,
+  intensity = 0,
 ): Promise<SavedNote> {
   const trimmed = clipPublicNote(text);
   if (trimmed === "") throw new Error("Note can't be empty.");
@@ -153,6 +156,7 @@ export async function addNote(
     isPublic: false,
     createdAt: Date.now(),
     rating: Math.min(5, Math.max(0, Math.round(rating))),
+    intensity: Math.min(5, Math.max(0, Math.round(intensity))),
   };
 
   if (isPublic) {
