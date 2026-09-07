@@ -5,6 +5,11 @@ import kotlinx.serialization.Serializable
 /**
  * One strain in a recommendation set, with a patient-facing reason
  * and a caution line. Mirrors the iOS `StrainRecommendation` struct.
+ *
+ * `reasoning` is the auditable evidence ledger. Present for
+ * every recommendation emitted by the updated prompt; older
+ * model responses may omit it. The `ReasoningTraceSection`
+ * composable hides itself when this is null.
  */
 @Serializable
 data class StrainRecommendation(
@@ -12,6 +17,7 @@ data class StrainRecommendation(
     val reason: String,
     val bestFor: String,
     val caution: String,
+    val reasoning: ReasoningEvidence? = null,
 ) {
     val id: String get() = strainName.lowercase()
 }

@@ -65,6 +65,7 @@ fun MainTabView() {
     // warm and the user has a way to reach account settings.
     var showAccount by remember { mutableStateOf(false) }
     var showSaved by remember { mutableStateOf(false) }
+    var showReport by remember { mutableStateOf(false) }
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext
         as ai.strainease.app.StrainEaseApplication
     val homeModel = remember { ai.strainease.app.ui.home.HomeModel() }
@@ -77,6 +78,21 @@ fun MainTabView() {
     val savedMedications = remember { ai.strainease.app.data.SavedMedicationsStore(app) }
     val savedStrains = remember { ai.strainease.app.data.SavedStrainsStore(app) }
     val relief = remember { ai.strainease.app.data.ReliefLogStore(app) }
+    val checkIns = remember { ai.strainease.app.data.CheckInStore(app) }
+    val authSession = ai.strainease.app.auth.LocalAuthSession.current
+    val signedInUid = authSession.user?.uid
+
+    // Open / close the CheckInStore Firestore listener around the
+    // signed-in user's UID. The store handles no-op on re-entry, so
+    // this LaunchedEffect can fire safely on every auth state change.
+    androidx.compose.runtime.LaunchedEffect(signedInUid) {
+        val uid = signedInUid
+        if (uid != null) {
+            checkIns.start(uid)
+        } else {
+            checkIns.stop()
+        }
+    }
     val ageStore = remember { ai.strainease.app.compliance.AgeVerificationStore(app) }
     val researchHistory = remember { ai.strainease.app.data.ResearchHistoryStore() }
 
@@ -84,9 +100,11 @@ fun MainTabView() {
     val closeStrain: () -> Unit = { openProfile = null }
     val closeAccount: () -> Unit = { showAccount = false }
     val closeSaved: () -> Unit = { showSaved = false }
+    val closeReport: () -> Unit = { showReport = false }
     // Hardware / gesture back closes the deepest open surface so
     // the user is never trapped behind a sheet / overlay.
     BackHandler(enabled = openProfile != null) { closeStrain() }
+    BackHandler(enabled = showReport) { closeReport() }
     BackHandler(enabled = showAccount) { closeAccount() }
     BackHandler(enabled = showSaved) { closeSaved() }
 
@@ -200,6 +218,7 @@ fun MainTabView() {
                         savedMedications = savedMedications,
                         savedStrains = savedStrains,
                         compareStore = compareStore,
+                        checkIns = checkIns,
                         modifier = Modifier.fillMaxSize(),
                     )
                     // Floating back chevron — mirrors the iOS navigation
@@ -244,9 +263,14 @@ fun MainTabView() {
                     savedMedications = savedMedications,
                     savedStrains = savedStrains,
                     relief = relief,
+                    checkIns = checkIns,
                     ageStore = ageStore,
                     onDismiss = closeAccount,
                     onOpenStrain = { openProfile = it },
+                    onOpenClinicianReport = {
+                        showAccount = false
+                        showReport = true
+                    },
                 )
             }
         }
@@ -260,6 +284,16 @@ fun MainTabView() {
                     onOpen = { openProfile = it },
                     onDismiss = closeSaved,
                     compareStore = compareStore,
+                )
+            }
+        }
+
+        if (showReport) {
+            ModalBottomSheet(
+                onDismissRequest = closeReport,
+            ) {
+                ai.strainease.app.ui.report.ClinicianReportScreen(
+                    onDismiss = closeReport,
                 )
             }
         }

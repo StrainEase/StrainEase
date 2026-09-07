@@ -348,3 +348,55 @@
   -webkit-text-fill-color: transparent;
   animation: shimmer-text-sweep 1.6s linear infinite;
 }
+
+/* ── Print stylesheet for the clinician report ──────────────────────
+ * The .print-root article is the only block rendered when the patient
+ * hits "Print / Save as PDF". Everything else (header, nav, toasts,
+ * on-screen control bar) is hidden via .no-print.
+ */
+@media print {
+  @page {
+    size: Letter;
+    margin: 0.6in;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .no-print,
+  header,
+  nav,
+  [data-sonner-toaster],
+  [data-sonner-toast] {
+    display: none !important;
+  }
+
+  .print-root {
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-root section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-root h1,
+  .print-root h2 {
+    color: #000000 !important;
+  }
+
+  .print-root .rounded-2xl,
+  .print-root .rounded-xl {
+    border-color: #cccccc !important;
+  }
+
+  .print-root a {
+    color: #000000 !important;
+    text-decoration: none !important;
+  }
+}

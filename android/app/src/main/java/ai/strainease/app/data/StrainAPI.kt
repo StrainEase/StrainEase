@@ -88,6 +88,51 @@ interface StrainAPI {
         name: String,
         conditions: List<String>,
     ): List<RedditSource>
+
+    /**
+     * Server-rendered Clinician Report PDF. The backend reads the
+     * patient's data via the Admin SDK, calls Groq for Dr. Kaya's
+     * prose section, and renders a PDF with Puppeteer. Returns the
+     * PDF bytes plus a safe filename so the screen can hand the file
+     * off to the system PDF viewer / share sheet. Mirrors the web
+     * `/report` page and the iOS `ClinicianReportView` so every
+     * platform downloads the same document.
+     */
+    suspend fun clinicianReportPdf(
+        language: String = StrainAILanguage.English,
+        includeKayaSummary: Boolean = true,
+    ): ClinicianReportPdf
+}
+
+/** Result of a [StrainAPI.clinicianReportPdf] call. The PDF comes
+ *  back base64-encoded; we decode it to raw bytes so callers can
+ *  write to a [java.io.File] or stream into an Intent. */
+data class ClinicianReportPdf(
+    val pdfBytes: ByteArray,
+    val filename: String,
+    val contentType: String,
+    val byteLength: Int,
+    val kayaIncluded: Boolean,
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ClinicianReportPdf) return false
+        if (filename != other.filename) return false
+        if (contentType != other.contentType) return false
+        if (byteLength != other.byteLength) return false
+        if (kayaIncluded != other.kayaIncluded) return false
+        if (!pdfBytes.contentEquals(other.pdfBytes)) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = filename.hashCode()
+        result = 31 * result + contentType.hashCode()
+        result = 31 * result + byteLength
+        result = 31 * result + kayaIncluded.hashCode()
+        result = 31 * result + pdfBytes.contentHashCode()
+        return result
+    }
 }
 
 /** Default language for AI-written responses. Matches the iOS

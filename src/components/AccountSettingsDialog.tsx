@@ -14,7 +14,7 @@ import { FIND_HREF, HISTORY_HREF } from "@/lib/app-nav";
 import { ailmentsEqual } from "@/lib/ailments";
 import { CONDITIONS } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
-import { Clock, LogOut, ShieldCheck, User } from "lucide-react";
+import { Clock, FileText, LogOut, ShieldCheck, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
@@ -199,6 +199,22 @@ export function AccountSettingsDialog({
               </span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
                 Reopen a find or comparison
+              </span>
+            </span>
+          </Link>
+
+          <Link
+            to="/report"
+            onClick={() => onOpenChange(false)}
+            className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background px-4 py-3"
+          >
+            <span>
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <FileText className="size-3.5 text-primary" />
+                Generate clinician report
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Print or save as PDF for your doctor or pharmacist
               </span>
             </span>
           </Link>

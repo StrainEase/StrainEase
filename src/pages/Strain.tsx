@@ -72,6 +72,7 @@ import {
   Search,
   Sparkles,
   Sun,
+  ZoomIn,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
@@ -82,6 +83,11 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+import { useStrainImage } from "@/hooks/use-strain-image";
 import { cn } from "@/lib/utils";
 
 export default function Strain() {
@@ -97,6 +103,8 @@ export default function Strain() {
   const [savedNames, setSavedNames] = useState<string[]>([]);
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
   const [reddit, setReddit] = useState<RedditSource[]>([]);
+  const [photoZoomOpen, setPhotoZoomOpen] = useState(false);
+  const [redditLoading, setRedditLoading] = useState(true);
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
   const featuredProfile = getFeaturedStrainProfile(slug);
@@ -186,10 +194,16 @@ export default function Strain() {
     const name = catalogHit?.name ?? slug.replace(/-/g, " ");
     void fetchRedditThreads({ name, conditions: [] })
       .then((list) => {
-        if (!cancelled) setReddit(list);
+        if (!cancelled) {
+          setReddit(list);
+          setRedditLoading(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setReddit([]);
+        if (!cancelled) {
+          setReddit([]);
+          setRedditLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -356,11 +370,31 @@ export default function Strain() {
               rendered (sourced from the slug while the profile is still
               loading) so the page never opens to a blank title. */}
           <header className="space-y-4">
-            <StrainImage
+            <button
+              type="button"
+              onClick={() => setPhotoZoomOpen(true)}
+              className="group relative h-72 w-full cursor-zoom-in overflow-hidden rounded-2xl border border-border/70 bg-white sm:h-80"
+              aria-label="View full-size photo"
+            >
+              <StrainImage
+                src={profile?.imageUrl}
+                alt={`${displayName} flower`}
+                type={profile?.type}
+                className="h-full w-full"
+              />
+              <span
+                aria-hidden
+                className="absolute bottom-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white opacity-70 transition-opacity group-hover:opacity-100"
+              >
+                <ZoomIn className="size-4" />
+              </span>
+            </button>
+            <PhotoZoomDialog
               src={profile?.imageUrl}
               alt={`${displayName} flower`}
               type={profile?.type}
-              className="h-72 w-full rounded-2xl border border-border/70 bg-white sm:h-80"
+              open={photoZoomOpen}
+              onOpenChange={setPhotoZoomOpen}
             />
             <div className="flex flex-wrap items-center gap-2">
               {profile?.type ? (
@@ -479,13 +513,12 @@ export default function Strain() {
           ) : null}
 
           {/* Reddit threads for this strain — curated list, no live scrape. */}
-          {reddit.length > 0 ? (
-            <RedditThreads
-              sources={reddit}
-              title="Reddit threads for this strain"
-              description="Public threads mentioning this strain — pulled from a curated list, not live-scraped."
-            />
-          ) : null}
+          <RedditThreads
+            sources={reddit}
+            loading={redditLoading}
+            title="Reddit threads for this strain"
+            description="Public threads mentioning this strain — pulled from a curated list, not live-scraped."
+          />
 
           {/* AI-researched missing-state callout. Only shown once the
               lookup has settled so it doesn't flash on every page. */}
@@ -883,5 +916,42 @@ function CompareSuggestions({
         ))}
       </div>
     </SWCard>
+  );
+}
+
+function PhotoZoomDialog({
+  src,
+  alt,
+  type,
+  open,
+  onOpenChange,
+}: {
+  src?: string;
+  alt: string;
+  type?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { url } = useStrainImage(src);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-3xl border-none bg-transparent p-0 shadow-none"
+        showCloseButton
+      >
+        {url ? (
+          <img
+            src={url}
+            alt={alt}
+            className="max-h-[85vh] w-full rounded-2xl object-contain"
+          />
+        ) : (
+          <div className="flex h-72 w-full items-center justify-center rounded-2xl bg-muted">
+            <span className="text-sm text-muted-foreground">No photo available</span>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -190,6 +190,28 @@ function Gate({
         transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
         className="relative mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col items-center justify-center px-5 py-12"
       >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+          className="mb-10 flex justify-center"
+          aria-hidden="true"
+        >
+          <div
+            className="size-24 overflow-hidden rounded-[1.35rem] sm:size-28"
+            style={{
+              boxShadow:
+                "0 0 18px 2px color-mix(in oklch, var(--primary) 60%, transparent), 0 0 36px 10px color-mix(in oklch, var(--primary) 30%, transparent)",
+            }}
+          >
+            <img
+              src="/logo.svg"
+              alt=""
+              className="block size-full object-cover"
+              draggable={false}
+            />
+          </div>
+        </motion.div>
         <header className="mb-8 flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
             <ShieldCheck className="size-3.5" />

@@ -571,6 +571,7 @@ struct FindView: View {
                     labeled("Best for", rec.bestFor)
                     labeled("Caution", rec.caution)
                 }
+                ReasoningTraceView(reasoning: rec.reasoning)
             }
         }
     }

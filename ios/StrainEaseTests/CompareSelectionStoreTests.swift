@@ -176,6 +176,19 @@ private struct StubCompareAPI: StrainServicing {
     func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {
         []
     }
+
+    func clinicianReportPdf(
+        language: String,
+        includeKayaSummary: Bool
+    ) async throws -> ClinicianReportPdf {
+        ClinicianReportPdf(
+            pdfData: Data(),
+            filename: "clinician-report.pdf",
+            contentType: "application/pdf",
+            byteLength: 0,
+            kayaIncluded: includeKayaSummary
+        )
+    }
 }
 
 private struct CompareFailure: LocalizedError {

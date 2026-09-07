@@ -11,6 +11,7 @@ describe("dashboardModeFromSearch", () => {
     expect(dashboardModeFromSearch("saved")).toBe("saved");
     expect(dashboardModeFromSearch("compare")).toBe("compare");
     expect(dashboardModeFromSearch("history")).toBe("history");
+    expect(dashboardModeFromSearch("checkins")).toBe("checkins");
     expect(dashboardModeFromSearch(null)).toBe("find");
     expect(dashboardModeFromSearch("nope")).toBe("find");
   });

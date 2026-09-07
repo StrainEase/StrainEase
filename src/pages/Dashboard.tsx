@@ -33,6 +33,7 @@ import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
+import { CheckInPanel } from "@/components/check-ins/CheckInPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
@@ -58,6 +59,7 @@ import {
   ArrowRight,
   Bookmark,
   BookOpen,
+  Calendar,
   Check,
   Clock,
   FlaskConical,
@@ -403,6 +405,19 @@ export default function Dashboard() {
               <Clock className="size-4" />
               History
             </button>
+            <button
+              type="button"
+              onClick={() => applyMode("checkins")}
+              className={cn(
+                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
+                mode === "checkins"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Calendar className="size-4" />
+              Check-ins
+            </button>
           </div>
         </div>
 
@@ -432,6 +447,11 @@ export default function Dashboard() {
         {/* ── History (reopen shareable results) ────────────── */}
         <div className={cn(mode !== "history" && "hidden")}>
           <HistoryPanel />
+        </div>
+
+        {/* ── Daily check-ins (mood / sleep / pain / anxiety) ── */}
+        <div className={cn(mode !== "checkins" && "hidden")}>
+          <CheckInPanel />
         </div>
 
         {/* ── Compare workspace (secondary) ─────────────────── */}

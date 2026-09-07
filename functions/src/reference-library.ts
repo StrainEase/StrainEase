@@ -74,8 +74,40 @@ export type CannabinoidRecord = {
   sources: Source[];
 };
 
-export type ReferenceLibraryKind = "terpene" | "cannabinoid";
-export type ReferenceRecord = TerpeneRecord | CannabinoidRecord;
+export type ReferenceLibraryKind = "terpene" | "cannabinoid" | "interaction";
+export type ReferenceRecord = TerpeneRecord | CannabinoidRecord | InteractionRecord;
+
+/* ── Drug interaction library ─────────────────────────────────────── */
+
+export type DrugClass =
+  | "SSRI"
+  | "benzodiazepine"
+  | "opioid"
+  | "anticoagulant"
+  | "antihistamine"
+  | "stimulant"
+  | "other";
+
+export type InteractionSeverity =
+  | "low"
+  | "moderate"
+  | "high"
+  | "theoretical";
+
+export type CannabisInteraction = {
+  severity: InteractionSeverity;
+  mechanism: string;
+  commonGuidance: string;
+  discussWithPrescriber: boolean;
+};
+
+export type InteractionRecord = {
+  slug: string;
+  drugName: string;
+  drugClass: DrugClass;
+  cannabisInteraction: CannabisInteraction;
+  sources: Source[];
+};
 
 /* ── Seed file types (validated at load time) ───────────────────── */
 
@@ -86,7 +118,8 @@ export type ReferenceRecord = TerpeneRecord | CannabinoidRecord;
  */
 type ValidatedSeedFile =
   | { kind: "terpene"; entries: TerpeneRecord[] }
-  | { kind: "cannabinoid"; entries: CannabinoidRecord[] };
+  | { kind: "cannabinoid"; entries: CannabinoidRecord[] }
+  | { kind: "interaction"; entries: InteractionRecord[] };
 
 /* ── Validation ──────────────────────────────────────────────────── */
 
@@ -107,6 +140,21 @@ const PSYCHOACTIVITY_VALUES: ReadonlySet<Psychoactivity> = new Set([
   "mild",
   "moderate",
   "high",
+]);
+const DRUG_CLASSES: ReadonlySet<DrugClass> = new Set([
+  "SSRI",
+  "benzodiazepine",
+  "opioid",
+  "anticoagulant",
+  "antihistamine",
+  "stimulant",
+  "other",
+]);
+const INTERACTION_SEVERITIES: ReadonlySet<InteractionSeverity> = new Set([
+  "low",
+  "moderate",
+  "high",
+  "theoretical",
 ]);
 
 function isStringArray(v: unknown): v is string[] {
@@ -273,8 +321,14 @@ export function validateSeedFile(parsed: unknown): ValidatedSeedFile {
     throw new Error("seed file: must be a JSON object");
   }
   const obj = parsed as Record<string, unknown>;
-  if (obj.kind !== "terpene" && obj.kind !== "cannabinoid") {
-    throw new Error('seed file: kind must be "terpene" or "cannabinoid"');
+  if (
+    obj.kind !== "terpene" &&
+    obj.kind !== "cannabinoid" &&
+    obj.kind !== "interaction"
+  ) {
+    throw new Error(
+      'seed file: kind must be "terpene", "cannabinoid", or "interaction"',
+    );
   }
   if (!Array.isArray(obj.entries)) {
     throw new Error("seed file: entries must be an array");
@@ -290,15 +344,130 @@ export function validateSeedFile(parsed: unknown): ValidatedSeedFile {
     }
     return { kind: "terpene", entries: records };
   }
-  const records = (obj.entries as unknown[]).map((e, i) => validateCannabinoid(e, i));
+  if (obj.kind === "cannabinoid") {
+    const records = (obj.entries as unknown[]).map((e, i) =>
+      validateCannabinoid(e, i),
+    );
+    const slugs = new Set<string>();
+    for (const r of records) {
+      if (slugs.has(r.slug)) {
+        throw new Error(`cannabinoidLibrary: duplicate slug "${r.slug}"`);
+      }
+      slugs.add(r.slug);
+    }
+    return { kind: "cannabinoid", entries: records };
+  }
+  // kind === "interaction"
+  const records = (obj.entries as unknown[]).map((e, i) =>
+    validateInteraction(e, i),
+  );
   const slugs = new Set<string>();
   for (const r of records) {
     if (slugs.has(r.slug)) {
-      throw new Error(`cannabinoidLibrary: duplicate slug "${r.slug}"`);
+      throw new Error(`interactionLibrary: duplicate slug "${r.slug}"`);
     }
     slugs.add(r.slug);
   }
-  return { kind: "cannabinoid", entries: records };
+  return { kind: "interaction", entries: records };
+}
+
+/* ── Interaction validation ─────────────────────────────────────── */
+
+function validateCannabisInteraction(
+  raw: Record<string, unknown>,
+  path: string,
+): CannabisInteraction {
+  if (
+    typeof raw.severity !== "string" ||
+    !INTERACTION_SEVERITIES.has(raw.severity as InteractionSeverity)
+  ) {
+    throw new Error(
+      `${path}.severity must be low|moderate|high|theoretical`,
+    );
+  }
+  if (typeof raw.mechanism !== "string" || raw.mechanism.trim() === "") {
+    throw new Error(`${path}.mechanism must be a non-empty string`);
+  }
+  if (raw.mechanism.length > 1000) {
+    throw new Error(`${path}.mechanism must be <= 1000 characters`);
+  }
+  if (
+    typeof raw.commonGuidance !== "string" ||
+    raw.commonGuidance.trim() === ""
+  ) {
+    throw new Error(`${path}.commonGuidance must be a non-empty string`);
+  }
+  if (raw.commonGuidance.length > 1000) {
+    throw new Error(`${path}.commonGuidance must be <= 1000 characters`);
+  }
+  // discussWithPrescriber must be present and true — every record
+  // must say "discuss with your prescriber". The schema rejects false
+  // so a future seed edit can't quietly drop the guardrail.
+  if (typeof raw.discussWithPrescriber !== "boolean") {
+    throw new Error(
+      `${path}.discussWithPrescriber must be a boolean`,
+    );
+  }
+  if (raw.discussWithPrescriber !== true) {
+    throw new Error(
+      `${path}.discussWithPrescriber must be true — this library is a literature pointer, not medical advice`,
+    );
+  }
+  return {
+    severity: raw.severity as InteractionSeverity,
+    mechanism: raw.mechanism.trim(),
+    commonGuidance: raw.commonGuidance.trim(),
+    discussWithPrescriber: true,
+  };
+}
+
+function validateInteraction(raw: unknown, index: number): InteractionRecord {
+  const path = `interactionLibrary[${index}]`;
+  if (typeof raw !== "object" || raw === null) {
+    throw new Error(`${path}: must be an object`);
+  }
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.drugName !== "string" || obj.drugName.trim() === "") {
+    throw new Error(`${path}.drugName must be a non-empty string`);
+  }
+  if (
+    typeof obj.drugClass !== "string" ||
+    !DRUG_CLASSES.has(obj.drugClass as DrugClass)
+  ) {
+    throw new Error(
+      `${path}.drugClass must be SSRI|benzodiazepine|opioid|anticoagulant|antihistamine|stimulant|other`,
+    );
+  }
+  if (
+    typeof obj.cannabisInteraction !== "object" ||
+    obj.cannabisInteraction === null
+  ) {
+    throw new Error(`${path}.cannabisInteraction must be an object`);
+  }
+  const interaction = validateCannabisInteraction(
+    obj.cannabisInteraction as Record<string, unknown>,
+    `${path}.cannabisInteraction`,
+  );
+  if (!Array.isArray(obj.sources) || obj.sources.length === 0) {
+    throw new Error(`${path}.sources must be a non-empty array`);
+  }
+  const sources = (obj.sources as unknown[]).map((s, i) =>
+    validateSource(s, `${path}.sources[${i}]`),
+  );
+  const slug =
+    typeof obj.slug === "string" && obj.slug.trim() !== ""
+      ? slugify(obj.slug)
+      : slugify(obj.drugName as string);
+  if (slug === "") {
+    throw new Error(`${path}.slug could not be derived`);
+  }
+  return {
+    slug,
+    drugName: (obj.drugName as string).trim().slice(0, 120),
+    drugClass: obj.drugClass as DrugClass,
+    cannabisInteraction: interaction,
+    sources,
+  };
 }
 
 /* ── Lookup helpers (used by the callable) ──────────────────────── */
@@ -317,6 +486,38 @@ export function findBySlug<T extends { slug: string }>(
   const target = slugify(slug);
   if (target === "") return null;
   return records.find((r) => r.slug === target) ?? null;
+}
+
+/**
+ * Look up interaction records for a list of drug names. Returns the
+ * records whose slug matches any of the input names (after slug
+ * normalization). Unknown drug names are silently dropped — the
+ * caller gets an empty array for a completely unknown list, never an
+ * error. Duplicate input names that resolve to the same slug are
+ * deduped: each matching record is returned at most once.
+ *
+ * Pure function (no Firestore SDK in this module) so it is trivial
+ * to unit-test against a fixture list.
+ */
+export function lookupInteractions(
+  records: InteractionRecord[],
+  drugs: string[],
+): InteractionRecord[] {
+  const targets = new Set<string>();
+  for (const d of drugs) {
+    const s = slugify(d);
+    if (s !== "") targets.add(s);
+  }
+  if (targets.size === 0) return [];
+  const out: InteractionRecord[] = [];
+  const seen = new Set<string>();
+  for (const r of records) {
+    if (targets.has(r.slug) && !seen.has(r.slug)) {
+      seen.add(r.slug);
+      out.push(r);
+    }
+  }
+  return out;
 }
 
 /**

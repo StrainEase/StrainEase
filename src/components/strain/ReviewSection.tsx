@@ -202,11 +202,9 @@ export function ReviewSection({
           ))}
         </div>
       ) : !loading ? (
-        <SWCard innerClassName="px-4 py-4">
-          <p className="text-sm text-muted-foreground">
-            No reviews yet. Be the first to share your experience with {strainName}.
-          </p>
-        </SWCard>
+        <p className="text-sm text-muted-foreground">
+          No reviews yet. Be the first to share your experience with {strainName}.
+        </p>
       ) : null}
     </div>
   );
