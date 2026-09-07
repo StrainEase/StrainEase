@@ -68,7 +68,6 @@ import {
   HeartPulse,
   MessageCircle,
   Moon,
-  NotebookPen,
   Pencil,
   Search,
   Sparkles,
@@ -814,7 +813,7 @@ function ReliefLogCard({
 }) {
   return (
     <SWCard innerClassName="p-5">
-      <SectionEyebrow icon={NotebookPen} label="Relief log" />
+      <SectionEyebrow icon={Sparkles} label="How'd this work for you?" />
       <ReliefLogButton strainName={strainName} variant="button" />
       {logs.length > 0 && (
         <ul className="mt-4 space-y-2">
