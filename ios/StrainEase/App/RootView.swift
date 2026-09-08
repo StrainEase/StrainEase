@@ -64,6 +64,7 @@ struct RootView: View {
         .environment(SavedStrainsStore.preview())
         .environment(RecentlyViewedStore.preview([.sampleGDP]))
         .environment(ReliefLogStore.preview())
+        .environment(CheckInStore.preview())
 }
 
 #Preview("Age gate") {

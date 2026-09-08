@@ -508,61 +508,60 @@ struct StrainDetailView: View {
         if let _ = Auth.auth().currentUser {
             let todayKey = CheckInStore.todayKey()
             let logged = checkIns.checkIn(forKey: todayKey)
-            Button {
-                showCheckInSheet = true
-            } label: {
-                SWCard {
-                    HStack(spacing: 12) {
-                        Image(systemName: "heart.text.square")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(Palette.primary)
-                            .frame(width: 36, height: 36)
-                            .background(Palette.primary.opacity(0.12), in: Circle())
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(logged == nil ? "How are you today?" : "Today's check-in logged")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Palette.foreground)
-                            Text(logged == nil
-                                ? "Track mood, sleep, pain, and anxiety. Dr. Kaya reads the trend."
-                                : "Tap to update or clear today's check-in."
-                            )
-                                .font(.system(size: 12))
-                                .foregroundStyle(Palette.mutedForeground)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer(minLength: 8)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Palette.mutedForeground)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-            .sheet(isPresented: $showCheckInSheet) {
-                NavigationStack {
-                    ZStack {
-                        MeshBackground()
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 20) {
-                                SWCard {
-                                    CheckInPanel()
-                                }
+            if logged == nil {
+                Button {
+                    showCheckInSheet = true
+                } label: {
+                    SWCard {
+                        HStack(spacing: 12) {
+                            Image(systemName: "heart.text.square")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(Palette.primary)
+                                .frame(width: 36, height: 36)
+                                .background(Palette.primary.opacity(0.12), in: Circle())
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("How are you today?")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Palette.foreground)
+                                Text("Track mood, sleep, pain, and anxiety. Dr. Kaya reads the trend.")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Palette.mutedForeground)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 8)
-                            .padding(.bottom, 32)
-                        }
-                    }
-                    .navigationTitle("Daily check-in")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbarBackground(.hidden, for: .navigationBar)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Done") { showCheckInSheet = false }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Palette.mutedForeground)
                         }
                     }
                 }
-                .presentationDetents([.large])
+                .buttonStyle(.plain)
+                .sheet(isPresented: $showCheckInSheet) {
+                    NavigationStack {
+                        ZStack {
+                            MeshBackground()
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 20) {
+                                    SWCard {
+                                        CheckInPanel()
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.top, 8)
+                                .padding(.bottom, 32)
+                            }
+                        }
+                        .navigationTitle("Daily check-in")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbarBackground(.hidden, for: .navigationBar)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") { showCheckInSheet = false }
+                            }
+                        }
+                    }
+                    .presentationDetents([.large])
+                }
             }
         }
     }
@@ -1217,6 +1216,7 @@ private struct TailoredDescriptionSection: View {
     .environment(SavedAilmentsStore.preview())
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview())
+    .environment(CheckInStore.preview())
     .environment(AuthSession.previewSignedIn)
     .environment(CompareSelectionStore())
 }
@@ -1230,6 +1230,7 @@ private struct TailoredDescriptionSection: View {
     .environment(SavedAilmentsStore.preview(["Insomnia"]))
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview([.sampleSleep]))
+    .environment(CheckInStore.preview())
     .environment(AuthSession.previewSignedIn)
     .environment(CompareSelectionStore())
 }
@@ -1290,6 +1291,7 @@ private struct TerpeneRow: View {
     .environment(SavedAilmentsStore.preview())
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview())
+    .environment(CheckInStore.preview())
     .environment(AuthSession.previewSignedIn)
     .environment(AppNavigation())
     .environment(CompareSelectionStore())

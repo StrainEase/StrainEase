@@ -4,8 +4,10 @@ struct HomeView: View {
     @Environment(RecentlyViewedStore.self) private var recents
     @Environment(SavedAilmentsStore.self) private var ailmentsStore
     @Environment(AppNavigation.self) private var nav
+    @Environment(CheckInStore.self) private var checkIns
     @State private var model: HomeModel
     @State private var path: [BrowseDestination] = []
+    @State private var showCheckInSheet = false
 
     init(model: HomeModel) {
         _model = State(initialValue: model)
@@ -18,6 +20,9 @@ struct HomeView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
                         hero
+                        if checkIns.checkIn(forKey: CheckInStore.todayKey()) == nil {
+                            dailyCheckInCard
+                        }
                         if model.hasSavedAilments,
                            !model.strains(for: .forYou).isEmpty
                         {
@@ -97,6 +102,60 @@ struct HomeView: View {
         }
     }
 
+    private var dailyCheckInCard: some View {
+        Button {
+            showCheckInSheet = true
+        } label: {
+            SWCard {
+                HStack(spacing: 12) {
+                    Image(systemName: "heart.text.square")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Palette.primary)
+                        .frame(width: 36, height: 36)
+                        .background(Palette.primary.opacity(0.12), in: Circle())
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("How are you today?")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Palette.foreground)
+                        Text("Track mood, sleep, pain, and anxiety. Dr. Kaya reads the trend.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.mutedForeground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.mutedForeground)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showCheckInSheet) {
+            NavigationStack {
+                ZStack {
+                    MeshBackground()
+                    ScrollView {
+                        SWCard {
+                            CheckInPanel()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 32)
+                    }
+                }
+                .navigationTitle("Daily check-in")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.hidden, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { showCheckInSheet = false }
+                    }
+                }
+            }
+            .presentationDetents([.large])
+        }
+    }
+
     private var recentProfiles: [StrainProfile] {
         StrainCatalog.applyingCatalogPhotos(recents.items)
     }
@@ -126,4 +185,5 @@ struct HomeView: View {
         .environment(AuthSession.previewSignedIn)
         .environment(RecentlyViewedStore.preview([.sampleGDP, .sampleBlueDream]))
         .environment(SavedStrainsStore.preview())
+        .environment(CheckInStore.preview())
 }

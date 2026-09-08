@@ -43,11 +43,7 @@ struct ReliefLogForm: View {
                         Text("Relief \(relief)/5")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Palette.mutedForeground)
-                        Slider(value: Binding(
-                            get: { Double(relief) },
-                            set: { relief = Int($0.rounded()) }
-                        ), in: 1...5, step: 1)
-                        .tint(Palette.primary)
+                        SegmentedIntensityPicker(value: $relief, label: "Relief")
                     }
                     TextField("Optional note — e.g. slept 6 hours", text: $note)
                         .textInputAutocapitalization(.sentences)
@@ -94,6 +90,39 @@ struct ReliefLogForm: View {
         open = false
         note = ""
         extraCondition = ""
+    }
+}
+
+private struct SegmentedIntensityPicker: View {
+    @Binding var value: Int
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(1...5, id: \.self) { segment in
+                Button {
+                    value = segment
+                } label: {
+                    Circle()
+                        .fill(segment <= value ? Palette.primary : Palette.card)
+                        .frame(width: 14, height: 14)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(
+                                    segment <= value ? Palette.primary : Palette.border,
+                                    lineWidth: 1
+                                )
+                        )
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(label) \(segment) out of 5")
+                .accessibilityAddTraits(segment == value ? .isSelected : [])
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(label), \(value) out of 5")
     }
 }
 
