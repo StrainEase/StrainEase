@@ -829,28 +829,35 @@ function ReliefLogCard({
       {logs.length > 0 && (
         <ul className="mt-4 space-y-2">
           {logs.slice(0, 6).map((log) => (
-            <li key={log.id}>
-              <SWCard innerClassName="px-4 py-3">
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="flex items-center gap-1.5 font-medium capitalize">
-                    {log.rating ? (
-                      <span className="text-primary" aria-label={`Rated ${log.rating} of 5`}>
-                        {"★".repeat(log.rating)}
-                        <span className="text-muted-foreground/35">
-                          {"★".repeat(5 - log.rating)}
-                        </span>
+            // Plain bordered row — AGENTS.md forbids nested
+            // SWCards, and an SWCard inside the outer "How'd
+            // this work for you?" tray was producing a four-
+            // layer (outer tray → outer surface → inner tray →
+            // inner surface) effect that read as a "double
+            // card" once the user had a saved log.
+            <li
+              key={log.id}
+              className="rounded-xl border border-border/60 px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="flex items-center gap-1.5 font-medium capitalize">
+                  {log.rating ? (
+                    <span className="text-primary" aria-label={`Rated ${log.rating} of 5`}>
+                      {"★".repeat(log.rating)}
+                      <span className="text-muted-foreground/35">
+                        {"★".repeat(5 - log.rating)}
                       </span>
-                    ) : null}
-                    {log.fit.replace("-", " ")}
-                  </span>
-                  <span className="text-muted-foreground">
-                    Intensity {log.relief}/5
-                  </span>
-                </div>
-                {log.note ? (
-                  <p className="mt-1.5 text-sm leading-6">{log.note}</p>
-                ) : null}
-              </SWCard>
+                    </span>
+                  ) : null}
+                  {log.fit.replace("-", " ")}
+                </span>
+                <span className="text-muted-foreground">
+                  Intensity {log.relief}/5
+                </span>
+              </div>
+              {log.note ? (
+                <p className="mt-1.5 text-sm leading-6">{log.note}</p>
+              ) : null}
             </li>
           ))}
         </ul>
