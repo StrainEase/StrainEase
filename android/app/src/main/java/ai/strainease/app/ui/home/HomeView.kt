@@ -5,10 +5,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ai.strainease.app.data.CheckInStore
 import ai.strainease.app.data.RecentStrain
 import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.SavedAilmentsStore
@@ -44,6 +55,7 @@ fun HomeView(
     model: HomeModel,
     recentlyViewed: RecentlyViewedStore,
     savedAilments: SavedAilmentsStore,
+    checkIns: CheckInStore,
     modifier: Modifier = Modifier,
     compareStore: CompareSelectionStore? = null,
     onOpenProfile: (StrainProfile) -> Unit = {},
@@ -54,6 +66,9 @@ fun HomeView(
     val savedFlow by savedAilments.ailmentsFlow.collectAsState(initial = emptyList())
     val recentsFlow = recentlyViewed.itemsFlow.collectAsState(initial = emptyList())
     val recents: List<RecentStrain> = recentsFlow.value
+    val checkInsFlow = checkIns.checkInsFlow.collectAsState(initial = checkIns.checkIns)
+    val hasTodayCheckIn = checkInsFlow.value.any { it.date == CheckInStore.todayKey() }
+    var showCheckInSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         model.load()
@@ -79,6 +94,9 @@ fun HomeView(
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             hero()
+            if (!hasTodayCheckIn) {
+                DailyCheckInCard(onClick = { showCheckInSheet = true })
+            }
             if (model.hasSavedAilments && model.strains(HomeSection.ForYou).isNotEmpty()) {
                 StrainRail(
                     title = HomeSection.ForYou.title,
@@ -132,6 +150,63 @@ fun HomeView(
                 compareStore = compareStore,
                 onSeeMore = { onOpenGrid(HomeSection.Recents, recents.map { it.toProfile() }) },
                 onSelect = onOpenProfile,
+            )
+        }
+    }
+    if (showCheckInSheet) {
+        ModalBottomSheet(onDismissRequest = { showCheckInSheet = false }) {
+            ai.strainease.app.ui.checkin.CheckInPanel(
+                store = checkIns,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            Box(modifier = Modifier.padding(bottom = 24.dp))
+        }
+    }
+}
+
+@Composable
+private fun DailyCheckInCard(onClick: () -> Unit) {
+    ai.strainease.app.ui.components.SWCard(
+        modifier = Modifier.clickable(onClick = onClick),
+    ) {
+        androidx.compose.foundation.layout.Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = androidx.compose.ui.Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.FavoriteBorder,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(12.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = "How are you today?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Track mood, sleep, pain, and anxiety. Dr. Kaya reads the trend.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

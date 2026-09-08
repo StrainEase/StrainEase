@@ -156,6 +156,7 @@ fun MainTabView() {
                         model = homeModel,
                         recentlyViewed = recents,
                         savedAilments = savedAilments,
+                        checkIns = checkIns,
                         compareStore = compareStore,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),

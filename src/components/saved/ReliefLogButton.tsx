@@ -102,48 +102,38 @@ export function ReliefLogButton({
               </button>
             ))}
           </div>
-          {/* Rating (stars) and Intensity (relief scale) recorded
-              separately, two centered columns — mirrors the
-              Android/iOS two-column layout. */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Rating</p>
-              <div className="mt-1 flex items-center justify-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
+          <div
+            className="space-y-1"
+            role="radiogroup"
+            aria-label="Relief rating"
+          >
+            <p className="text-xs text-muted-foreground">Relief {relief}/5</p>
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: 5 }, (_, index) => {
+                const segment = index + 1;
+                const selected = segment <= relief;
+                return (
                   <button
-                    key={star}
+                    key={segment}
                     type="button"
-                    onClick={() => setRating(star === rating ? 0 : star)}
-                    aria-label={`Rate ${star} of 5`}
-                    aria-pressed={star <= rating}
-                    className="cursor-pointer p-0.5 text-lg leading-none transition-colors"
+                    role="radio"
+                    aria-checked={segment === relief}
+                    aria-label={`Relief ${segment} out of 5`}
+                    onClick={() => setRelief(segment)}
+                    className="flex size-9 cursor-pointer items-center justify-center rounded-full"
                   >
                     <span
-                      className={
-                        star <= rating
-                          ? "text-primary"
-                          : "text-muted-foreground/40 hover:text-muted-foreground"
-                      }
-                    >
-                      ★
-                    </span>
+                      aria-hidden
+                      className={cn(
+                        "size-3.5 rounded-full border",
+                        selected
+                          ? "border-primary bg-primary"
+                          : "border-border bg-card",
+                      )}
+                    />
                   </button>
-                ))}
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">
-                Intensity {relief}/5
-              </p>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={relief}
-                onChange={(e) => setRelief(Number(e.target.value))}
-                aria-label="Intensity"
-                className="mt-1 w-full cursor-pointer"
-              />
+                );
+              })}
             </div>
           </div>
           <Input

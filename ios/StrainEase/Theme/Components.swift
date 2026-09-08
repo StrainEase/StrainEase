@@ -197,9 +197,13 @@ struct IntensityBar: View {
     var body: some View {
         HStack(spacing: 3) {
             ForEach(0..<5, id: \.self) { index in
-                Capsule()
-                    .fill(index < value ? Palette.primary.opacity(0.85) : Palette.border)
-                    .frame(width: 10, height: 6)
+                Circle()
+                    .fill(index < value ? Palette.primary.opacity(0.85) : Palette.card)
+                    .frame(width: 8, height: 8)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(index < value ? Palette.primary.opacity(0.85) : Palette.border, lineWidth: 1)
+                    )
             }
         }
         .accessibilityHidden(true)

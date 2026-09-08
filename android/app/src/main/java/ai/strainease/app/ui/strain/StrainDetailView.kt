@@ -496,7 +496,7 @@ private fun checkInCta(store: ai.strainease.app.data.CheckInStore) {
     val checkIns by store.checkInsFlow.collectAsState(initial = emptyList())
     val today = remember(checkIns) { checkIns.firstOrNull { it.date == ai.strainease.app.data.CheckInStore.todayKey() } }
     var showSheet by remember { mutableStateOf(false) }
-    SWCard {
+    if (today == null) SWCard {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier

@@ -3,6 +3,8 @@ import { StrainRail } from "@/components/home/StrainRail";
 import { useAilments } from "@/hooks/use-ailments";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
+import { useAuth } from "@/hooks/use-auth";
+import { useCheckIns } from "@/hooks/use-check-ins";
 import {
   HOME_AILMENTS,
   HOME_PREVIEW_LIMIT,
@@ -11,6 +13,10 @@ import {
 } from "@/lib/home-sections";
 import { TIME_OF_DAY_SUBTITLE, timeOfDayHeadline } from "@/lib/time-of-day";
 import type { StrainProfile } from "@/lib/strain-profile";
+import { todayKey } from "@/lib/check-ins";
+import { Calendar, ArrowRight } from "lucide-react";
+import { useMemo } from "react";
+import { Link } from "react-router";
 
 /** Mirrors `ios/StrainEase/Home/HomeView.swift` row order:
  *   hero → Top picks for your symptoms? → Popular strains → For your symptoms
@@ -21,6 +27,12 @@ export function HomeScreen() {
   const { popular } = usePopularStrains();
   const recents = useRecentlyViewed();
   const { names: savedAilments } = useAilments();
+  const { isAuthenticated } = useAuth();
+  const { checkIns, isLoading: checkInsLoading } = useCheckIns();
+  const todayCheckIn = useMemo(
+    () => checkIns.find((checkIn) => checkIn.date === todayKey()) ?? null,
+    [checkIns],
+  );
 
   const hasSavedAilments = savedAilments.length > 0;
   const forYou = hasSavedAilments
@@ -60,6 +72,26 @@ export function HomeScreen() {
           {TIME_OF_DAY_SUBTITLE}
         </p>
       </div>
+
+      {isAuthenticated && !checkInsLoading && !todayCheckIn ? (
+        <Link
+          to="/dashboard?mode=checkins"
+          className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4 transition-colors hover:border-primary/45 hover:bg-primary/10"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+            <Calendar className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold tracking-tight">
+              How are you today?
+            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+              Log mood, sleep, pain, and anxiety in your daily check-in.
+            </span>
+          </span>
+          <ArrowRight className="size-4 shrink-0 text-primary" />
+        </Link>
+      ) : null}
 
       {hasSavedAilments && forYou.length > 0 && (
         <StrainRail

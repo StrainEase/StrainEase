@@ -35,46 +35,13 @@ struct ReliefLogForm: View {
                         }
                     }
                 }
-                    // Rating (stars) and Intensity (relief scale) recorded
-                    // separately, two centered columns — mirrors the
-                    // Android/web two-column layout.
-                    HStack(alignment: .center, spacing: 24) {
-                        VStack(spacing: 6) {
-                            Text("Rating")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(Palette.mutedForeground)
-                            HStack(spacing: 4) {
-                                ForEach(1...5, id: \.self) { star in
-                                    Button {
-                                        rating = star == rating ? 0 : star
-                                    } label: {
-                                        Image(systemName: star <= rating ? "star.fill" : "star")
-                                            .font(.system(size: 18, weight: .semibold))
-                                            .foregroundStyle(star <= rating ? Palette.primary : Palette.mutedForeground)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel("\(star) star\(star == 1 ? "" : "s")")
-                                    .accessibilityAddTraits(star <= rating ? .isSelected : [])
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-
-                        VStack(spacing: 6) {
-                            Text("Intensity \(relief)/5")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(Palette.mutedForeground)
-                            Slider(value: Binding(
-                                get: { Double(relief) },
-                                set: { relief = Int($0.rounded()) }
-                            ), in: 1...5, step: 1)
-                            .tint(Palette.primary)
-                            .accessibilityLabel("Intensity")
-                            .accessibilityValue("\(relief) out of 5")
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    TextField("Optional note — e.g. slept 6 hours", text: $note)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Relief \(relief)/5")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Palette.mutedForeground)
+                    SegmentedIntensityPicker(value: $relief, label: "Relief")
+                }
+                TextField("Optional note — e.g. slept 6 hours", text: $note)
                         .textInputAutocapitalization(.sentences)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
@@ -117,6 +84,39 @@ struct ReliefLogForm: View {
         note = ""
         rating = 0
         extraCondition = ""
+    }
+}
+
+private struct SegmentedIntensityPicker: View {
+    @Binding var value: Int
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(1...5, id: \.self) { segment in
+                Button {
+                    value = segment
+                } label: {
+                    Circle()
+                        .fill(segment <= value ? Palette.primary : Palette.card)
+                        .frame(width: 14, height: 14)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(
+                                    segment <= value ? Palette.primary : Palette.border,
+                                    lineWidth: 1
+                                )
+                        )
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(label) \(segment) out of 5")
+                .accessibilityAddTraits(segment == value ? .isSelected : [])
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(label), \(value) out of 5")
     }
 }
 

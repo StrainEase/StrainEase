@@ -36,8 +36,10 @@ function IntensityBar({ value }: { value: number }) {
         <span
           key={i}
           className={cn(
-            "h-1.5 w-2.5 rounded-full",
-            i < value ? "bg-primary/80" : "bg-border",
+            "size-2 rounded-full border",
+            i < value
+              ? "border-primary/80 bg-primary/80"
+              : "border-border bg-card",
           )}
         />
       ))}
