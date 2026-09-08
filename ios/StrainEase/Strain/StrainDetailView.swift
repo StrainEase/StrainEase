@@ -7,6 +7,10 @@ struct StrainDetailView: View {
     @State private var activeTerpene: String?
     @State private var familyStrains: [StrainProfile] = []
     @State private var isLoadingFamily = false
+    // Cached full popular-strains list (post catalog photos). Shared
+    // by every terpene sheet on this strain, so we only fetch once
+    // per page open. Per-terpene matches are filtered off this list.
+    @State private var popularStrainsCache: [StrainProfile]?
     @State private var tailoredDescription: StrainDescription?
     @State private var isLoadingTailoredDescription = false
     @State private var tailoredLoadingMessageIndex = 0
@@ -125,6 +129,12 @@ struct StrainDetailView: View {
         }
         .task(id: profile.slug) {
             await fetchRedditThreads()
+        }
+        .task(id: profile.slug) {
+            // Pre-load the popular-strains list so the first
+            // tap on a terpene card already has data and never
+            // shows a "no popular strains" flash.
+            await preloadPopularStrains()
         }
         .sheet(isPresented: $showPhotoZoom) {
             PhotoZoomView(urlString: profile.imageUrl)
@@ -571,6 +581,7 @@ struct StrainDetailView: View {
                     benefits: []
                 ),
                 familyStrains: familyStrains,
+                isLoadingFamily: isLoadingFamily,
                 onSelectStrain: { selected in
                     activeTerpene = nil
                     navigateToStrain(selected)
@@ -588,22 +599,50 @@ struct StrainDetailView: View {
     }
 
     private func loadTerpeneFamily(for name: String) {
+        // If the popular list is already cached (e.g. the user opened
+        // a different terpene first), just refilter locally — no
+        // spinner, no fetch. Otherwise fall through to the cache miss
+        // path below.
+        if let popular = popularStrainsCache {
+            applyFamilyFilter(name: name, in: popular)
+            return
+        }
         isLoadingFamily = true
         Task {
             defer { isLoadingFamily = false }
             do {
                 let popular = try await api.popular()
-                let target = name.lowercased()
-                let matching = StrainCatalog.applyingCatalogPhotos(popular)
-                    .filter { strain in
-                        let names = (strain.terpenes ?? []).map { $0.name.lowercased() }
-                        return names.contains(target)
-                    }
-                familyStrains = matching
+                let photos = StrainCatalog.applyingCatalogPhotos(popular)
+                popularStrainsCache = photos
+                applyFamilyFilter(name: name, in: photos)
             } catch {
                 // Leafly unreachable; leave family empty so the sheet
                 // shows the "no popular strains" copy.
             }
+        }
+    }
+
+    /// Cache the popular-strains list once on strain mount. Each
+    /// terpene sheet then filters locally, so the first tap on a
+    /// terpene card already has data ready and the sheet never
+    /// flashes "no popular strains" before the fetch resolves.
+    private func preloadPopularStrains() async {
+        guard popularStrainsCache == nil else { return }
+        do {
+            let popular = try await api.popular()
+            popularStrainsCache = StrainCatalog.applyingCatalogPhotos(popular)
+        } catch {
+            // Network blip — fall back to the lazy loadTerpeneFamily
+            // path. The sheet will still show a loading skeleton
+            // via TerpeneDetailView's isLoadingFamily branch.
+        }
+    }
+
+    private func applyFamilyFilter(name: String, in popular: [StrainProfile]) {
+        let target = name.lowercased()
+        familyStrains = popular.filter { strain in
+            let names = (strain.terpenes ?? []).map { $0.name.lowercased() }
+            return names.contains(target)
         }
     }
 

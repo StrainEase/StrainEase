@@ -8,6 +8,11 @@ struct TerpeneDetailView: View {
     let name: String
     let profile: TerpeneProfile
     let familyStrains: [StrainProfile]
+    /// True while the parent is still resolving the popular-strains
+    /// list for this terpene. Without this, the first open after a
+    /// cold start would flash "No popular strains…" because the
+    /// family list is still empty mid-fetch.
+    var isLoadingFamily: Bool = false
     var onSelectStrain: (StrainProfile) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -104,13 +109,31 @@ struct TerpeneDetailView: View {
 
     @ViewBuilder
     private var familyCard: some View {
+        // Three states: loading (skeleton), empty (copy), populated
+        // (count + list with photos). Previously the empty branch
+        // fired as soon as the list was empty, which on first open
+        // showed the "no popular strains" message for a frame
+        // before the Leafly fetch resolved.
         if familyStrains.isEmpty {
-            SWCard {
-                VStack(alignment: .leading, spacing: 6) {
-                    SectionLabel("Strains in this family")
-                    Text("No popular strains on Leafly currently list this terpene.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.mutedForeground)
+            if isLoadingFamily {
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionLabel("Strains in this family", index: nil)
+                    VStack(spacing: 10) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            TerpeneFamilySkeletonRow()
+                        }
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Loading strains in this family")
+            } else {
+                SWCard {
+                    VStack(alignment: .leading, spacing: 6) {
+                        SectionLabel("Strains in this family")
+                        Text("No popular strains on Leafly currently list this terpene.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.mutedForeground)
+                    }
                 }
             }
         } else {
@@ -143,13 +166,17 @@ private struct TerpeneFamilyRow: View {
     var body: some View {
         SWCard {
             HStack(alignment: .center, spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Palette.primary.opacity(0.12))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "leaf.fill")
-                        .foregroundStyle(Palette.primary)
-                }
+                // Real strain "nug" photo when the profile has one;
+                // StrainPhoto falls back to the type-tinted leaf
+                // when no URL is set or the load fails, so the
+                // row never looks broken.
+                StrainPhoto(
+                    urlString: profile.imageUrl,
+                    type: profile.type,
+                    height: 44,
+                    cornerRadius: 10
+                )
+                .frame(width: 44, height: 44)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(profile.name)
@@ -166,7 +193,7 @@ private struct TerpeneFamilyRow: View {
                     if let effects = profile.effects?.prefix(3), !effects.isEmpty {
                         FlowLayout(spacing: 6) {
                             ForEach(Array(effects), id: \.name) { effect in
-                                Text(effect.name)
+                                Text(Self.sentenceCase(effect.name))
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundStyle(Palette.foreground)
                                     .padding(.horizontal, 10)
@@ -181,6 +208,45 @@ private struct TerpeneFamilyRow: View {
                 Image(systemName: "chevron.right")
                     .foregroundStyle(Palette.mutedForeground)
             }
+        }
+    }
+
+    /// First letter uppercase, rest as-is. Mirrors the web's
+    /// `capitalize` CSS class and the Android
+    /// `replaceFirstChar { it.uppercase() }` so the three
+    /// platforms render the same string for the same input.
+    private static func sentenceCase(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.first else { return raw }
+        return first.uppercased() + trimmed.dropFirst()
+    }
+}
+
+/// Loading row for the "Strains in this family" section. Mirrors
+/// the eventual `TerpeneFamilyRow` layout (44pt thumbnail + name +
+/// subtitle + effect pill) so the section doesn't jump when the
+/// real data lands.
+private struct TerpeneFamilySkeletonRow: View {
+    var body: some View {
+        SWCard {
+            HStack(alignment: .center, spacing: 12) {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Palette.muted.opacity(0.5))
+                    .frame(width: 44, height: 44)
+                VStack(alignment: .leading, spacing: 6) {
+                    Capsule()
+                        .fill(Palette.muted.opacity(0.5))
+                        .frame(width: 140, height: 11)
+                    Capsule()
+                        .fill(Palette.muted.opacity(0.5))
+                        .frame(width: 80, height: 9)
+                    Capsule()
+                        .fill(Palette.muted.opacity(0.5))
+                        .frame(width: 180, height: 9)
+                }
+                Spacer(minLength: 0)
+            }
+            .redacted(reason: .placeholder)
         }
     }
 }
