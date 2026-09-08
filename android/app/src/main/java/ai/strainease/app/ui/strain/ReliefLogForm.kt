@@ -1,10 +1,14 @@
 package ai.strainease.app.ui.strain
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,16 +17,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.data.ReliefLog
 import ai.strainease.app.data.ReliefLogStore
-import ai.strainease.app.ui.components.IntensityBar
 import ai.strainease.app.ui.components.SWCard
 import ai.strainease.app.ui.components.SWField
 import ai.strainease.app.ui.components.SWPrimaryButton
 import ai.strainease.app.ui.components.SectionLabel
-import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.launch
 
 /**
@@ -52,24 +60,15 @@ fun ReliefLogForm(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "Rating",
+                text = "Relief $rating/5",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                (1..5).forEach { i ->
-                    Text(
-                        text = "★",
-                        style = StrainEaseTypography.titleLarge.copy(
-                            color = if (i <= rating) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outline,
-                        ),
-                        modifier = Modifier
-                            .clickable { rating = i },
-                    )
-                }
-            }
-            IntensityBar(value = rating)
+            SegmentedIntensityPicker(
+                value = rating,
+                label = "Relief",
+                onValueChange = { rating = it },
+            )
             SWField(
                 value = notes,
                 onValueChange = { notes = it },
@@ -96,6 +95,53 @@ fun ReliefLogForm(
                     }
                 },
             )
+        }
+    }
+}
+
+@Composable
+private fun SegmentedIntensityPicker(
+    value: Int,
+    label: String,
+    onValueChange: (Int) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = "$label, $value out of 5"
+            },
+    ) {
+        (1..5).forEach { segment ->
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .clickable { onValueChange(segment) }
+                    .semantics {
+                        contentDescription = "$label $segment out of 5"
+                        role = Role.RadioButton
+                        selected = segment == value
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(
+                            if (segment <= value) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surface,
+                        )
+                        .border(
+                            1.dp,
+                            if (segment <= value) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outline,
+                            androidx.compose.foundation.shape.CircleShape,
+                        ),
+                )
+            }
         }
     }
 }

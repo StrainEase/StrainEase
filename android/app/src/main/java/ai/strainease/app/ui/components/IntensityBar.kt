@@ -4,11 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
 import androidx.compose.ui.unit.dp
 
 /**
@@ -37,10 +38,15 @@ fun IntensityBar(
         repeat(segments) { i ->
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
-                    .size(width = 10.dp, height = 6.dp)
-                    .clip(RoundedCornerShape(50))
+                    .size(8.dp)
+                    .clip(CircleShape)
                     .background(
-                        if (i < value) primary.copy(alpha = 0.85f) else border,
+                        if (i < value) primary.copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface,
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (i < value) primary.copy(alpha = 0.85f) else border,
+                        shape = CircleShape,
                     ),
             )
         }

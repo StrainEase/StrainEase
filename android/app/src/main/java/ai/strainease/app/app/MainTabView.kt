@@ -155,6 +155,7 @@ fun MainTabView() {
                         model = homeModel,
                         recentlyViewed = recents,
                         savedAilments = savedAilments,
+                        checkIns = checkIns,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
