@@ -97,17 +97,40 @@ export function ReliefLogButton({
               </button>
             ))}
           </div>
-          <label className="block text-xs text-muted-foreground">
-            Relief 1–5
-            <input
-              type="range"
-              min={1}
-              max={5}
-              value={relief}
-              onChange={(e) => setRelief(Number(e.target.value))}
-              className="mt-1 w-full cursor-pointer"
-            />
-          </label>
+          <div
+            className="space-y-1"
+            role="radiogroup"
+            aria-label="Relief rating"
+          >
+            <p className="text-xs text-muted-foreground">Relief {relief}/5</p>
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: 5 }, (_, index) => {
+                const segment = index + 1;
+                const selected = segment <= relief;
+                return (
+                  <button
+                    key={segment}
+                    type="button"
+                    role="radio"
+                    aria-checked={segment === relief}
+                    aria-label={`Relief ${segment} out of 5`}
+                    onClick={() => setRelief(segment)}
+                    className="flex size-9 cursor-pointer items-center justify-center rounded-full"
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "size-3.5 rounded-full border",
+                        selected
+                          ? "border-primary bg-primary"
+                          : "border-border bg-card",
+                      )}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <Input
             value={note}
             onChange={(e) => setNote(e.target.value)}
