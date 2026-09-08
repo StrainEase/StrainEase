@@ -105,10 +105,26 @@ fun StrainDetailView(
 ) {
     var current by remember(profile.slug) { mutableStateOf(profile) }
     var isHydrating by remember(profile.slug) { mutableStateOf(profile.pendingHydrationSections.isNotEmpty()) }
-    var expandedTerpene by remember { mutableStateOf<String?>(null) }
     var showPhotoZoom by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val appNav = ai.strainease.app.app.LocalAppNavigation.current
+    // Popular strains power the "Strains in this family" list inside
+    // each terpene detail sheet. We pre-load once when the page
+    // opens so opening a sheet on first tap has data ready and the
+    // user never sees a flash of "no popular strains" before the
+    // list resolves.
+    var familyStrains by remember { mutableStateOf(emptyList<ai.strainease.app.models.StrainProfile>()) }
+    var familyLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        try {
+            familyStrains = api.popular()
+        } catch (_: Throwable) {
+            // Silent — the sheet falls back to its empty state.
+        } finally {
+            familyLoading = false
+        }
+    }
 
     // Collect saved ailments and medications as state so TailoredDescriptionView
     // can re-fetch when they change (user edits saved ailments while on detail).
@@ -196,9 +212,10 @@ fun StrainDetailView(
             if (!current.terpenes.isNullOrEmpty()) {
                 terpenesSection(
                     terpenes = current.terpenes!!,
-                    expandedName = expandedTerpene,
-                    onToggle = { name ->
-                        expandedTerpene = if (expandedTerpene == name) null else name
+                    familyStrains = familyStrains,
+                    familyLoading = familyLoading,
+                    onSelectStrain = { selected ->
+                        appNav.requestOpenProfile(selected)
                     },
                 )
             }
@@ -511,8 +528,9 @@ private fun effectsSection(effects: List<ai.strainease.app.models.StrainEffect>)
 @Composable
 private fun terpenesSection(
     terpenes: List<Terpene>,
-    expandedName: String?,
-    onToggle: (String) -> Unit,
+    familyStrains: List<ai.strainease.app.models.StrainProfile>,
+    familyLoading: Boolean,
+    onSelectStrain: (ai.strainease.app.models.StrainProfile) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SectionLabel(title = "Terpenes", index = 4)
@@ -520,8 +538,9 @@ private fun terpenesSection(
             terpenes.forEach { terpene ->
                 TerpeneProfile(
                     terpene = terpene,
-                    expanded = expandedName == terpene.name,
-                    onToggle = { onToggle(terpene.name) },
+                    familyStrains = familyStrains,
+                    familyLoading = familyLoading,
+                    onSelectStrain = onSelectStrain,
                 )
             }
         }
