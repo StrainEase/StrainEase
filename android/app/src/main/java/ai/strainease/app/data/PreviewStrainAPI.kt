@@ -87,6 +87,17 @@ class PreviewStrainAPI(
             score = 42,
         ),
     )
+
+    override suspend fun clinicianReportPdf(
+        language: String,
+        includeKayaSummary: Boolean,
+    ): ClinicianReportPdf = ClinicianReportPdf(
+        pdfBytes = ByteArray(0),
+        filename = "strainease-report-preview.pdf",
+        contentType = "application/pdf",
+        byteLength = 0,
+        kayaIncluded = includeKayaSummary,
+    )
 }
 
 private val SampleDescription = StrainDescription(
