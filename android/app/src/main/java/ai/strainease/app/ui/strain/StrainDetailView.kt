@@ -19,13 +19,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Maximize
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -103,7 +101,6 @@ fun StrainDetailView(
     savedMedications: SavedMedicationsStore,
     savedStrains: SavedStrainsStore,
     compareStore: CompareSelectionStore,
-    checkIns: ai.strainease.app.data.CheckInStore? = null,
     modifier: Modifier = Modifier,
 ) {
     var current by remember(profile.slug) { mutableStateOf(profile) }
@@ -213,19 +210,12 @@ fun StrainDetailView(
                     items = current.sideEffects!!,
                 )
             }
-            TriedNotesView(
-                profile = current,
-                savedStrains = savedStrains,
-            )
-            if (checkIns != null) {
-                checkInCta(checkIns)
-            }
+            triedNotesSection(triedNotes)
             ReliefLogForm(
                 strainName = profile.name,
                 strainSlug = profile.slug,
                 relief = relief,
             )
-            triedNotesSection(triedNotes)
             CommunityVoicesSection(
                 ratings = current.resolvedCommunityRatings,
                 quotes = current.quoteNotes,
@@ -487,67 +477,6 @@ private fun chipSection(title: String, index: Int, items: List<String>) {
             items.forEach { item ->
                 SWChip(title = item, selected = false, onClick = {})
             }
-        }
-    }
-}
-
-@Composable
-private fun checkInCta(store: ai.strainease.app.data.CheckInStore) {
-    val checkIns by store.checkInsFlow.collectAsState(initial = emptyList())
-    val today = remember(checkIns) { checkIns.firstOrNull { it.date == ai.strainease.app.data.CheckInStore.todayKey() } }
-    var showSheet by remember { mutableStateOf(false) }
-    if (today == null) SWCard {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showSheet = true }
-                .padding(vertical = 2.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Filled.FavoriteBorder,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                Text(
-                    if (today == null) "How are you today?" else "Today's check-in logged",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    if (today == null)
-                        "Track mood, sleep, pain, and anxiety. Dr. Kaya reads the trend."
-                    else
-                        "Tap to update or clear today's check-in.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-    if (showSheet) {
-        ModalBottomSheet(onDismissRequest = { showSheet = false }) {
-            ai.strainease.app.ui.checkin.CheckInPanel(
-                store = store,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-            Box(modifier = Modifier.padding(bottom = 24.dp))
         }
     }
 }

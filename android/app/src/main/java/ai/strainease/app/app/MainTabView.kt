@@ -219,7 +219,6 @@ fun MainTabView() {
                         savedMedications = savedMedications,
                         savedStrains = savedStrains,
                         compareStore = compareStore,
-                        checkIns = checkIns,
                         modifier = Modifier.fillMaxSize(),
                     )
                     // Floating back chevron — mirrors the iOS navigation
