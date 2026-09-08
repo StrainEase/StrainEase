@@ -47,7 +47,7 @@ class PublicNotesStore {
      */
     fun notesFlow(strainSlug: String): Flow<List<PublicNote>> = callbackFlow {
         val fs = getFirestore()
-        if (fs == null) {
+        if (fs == null || strainSlug.isBlank()) {
             trySend(emptyList())
             close()
             return@callbackFlow
@@ -58,7 +58,17 @@ class PublicNotesStore {
             .collection("notes")
         val listener = ref.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                // Firestore errors (e.g. PERMISSION_DENIED on the
+                // communityNotes collection) must degrade to empty,
+                // not fail the flow — the section is decorative and
+                // the UI renders nothing for an empty list. Emit
+                // empty, then stop listening cleanly.
+                android.util.Log.w(
+                    "PublicNotesStore",
+                    "notesFlow($strainSlug) stopped: ${error.message}",
+                )
+                trySend(emptyList())
+                close()
                 return@addSnapshotListener
             }
             val notes = snapshot?.documents?.mapNotNull { doc ->

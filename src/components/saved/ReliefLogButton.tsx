@@ -26,6 +26,7 @@ export function ReliefLogButton({
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [fit, setFit] = useState<ReliefFit>("just-right");
+  const [rating, setRating] = useState(0);
   const [relief, setRelief] = useState(4);
   const [note, setNote] = useState("");
   const [extraCondition, setExtraCondition] = useState("");
@@ -44,12 +45,14 @@ export function ReliefLogButton({
         strainName,
         conditions: merged,
         fit,
+        rating,
         relief,
         note,
       });
       toast("Logged. Next search will remember this.");
       setOpen(false);
       setNote("");
+      setRating(0);
       setExtraCondition("");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Could not save the log.");
@@ -58,18 +61,15 @@ export function ReliefLogButton({
     }
   };
 
+  // On the strain detail page (variant "button") the logging
+  // experience card is always expanded — no "How did this go?" toggle,
+  // matching iOS. The inline "link" variant used in the Saved panel
+  // keeps its expand/collapse trigger.
+  const expanded = variant === "button" || open;
+
   return (
     <div>
-      {variant === "button" ? (
-        <Button
-          type="button"
-          variant={open ? "outline" : "default"}
-          onClick={() => setOpen((v) => !v)}
-          className="w-full cursor-pointer rounded-full"
-        >
-          {open ? "Cancel" : "How did this go?"}
-        </Button>
-      ) : (
+      {variant === "link" && (
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -78,8 +78,13 @@ export function ReliefLogButton({
           {open ? "Cancel" : "How did this go?"}
         </button>
       )}
-      {open && (
-        <div className="mt-3 space-y-3 rounded-xl border border-border/70 bg-background p-3">
+      {expanded && (
+        <div
+          className={cn(
+            "space-y-3 rounded-xl border border-border/70 bg-background p-3",
+            variant === "link" && "mt-3",
+          )}
+        >
           <div className="flex flex-wrap gap-1.5">
             {FITS.map((opt) => (
               <button

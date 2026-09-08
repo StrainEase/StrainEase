@@ -12,6 +12,7 @@ struct StrainDetailView: View {
     @State private var isLoadingTailoredDescription = false
     @State private var tailoredLoadingMessageIndex = 0
     @State private var tailoredLoadingRotationTask: Task<Void, Never>?
+    @State private var isFullDescriptionExpanded = false
     @State private var redditThreads: [RedditSource] = []
     @Environment(SavedStrainsStore.self) private var saved
     @Environment(SavedAilmentsStore.self) private var ailments
@@ -144,21 +145,52 @@ struct StrainDetailView: View {
     /// `profile.description` if the fetch has settled and there is no
     /// tailored copy. This matches the web's three-section surface for
     /// every reader, not just the ones with saved ailments.
+    ///
+    /// The full (non-processed) `profile.description` is always shown
+    /// below the tailored cards when one exists — parity with Android's
+    /// `descriptionBlock`.
     @ViewBuilder
     private var descriptionSection: some View {
         if let tailored = tailoredDescription {
             tailoredDescriptionSection(tailored)
         } else if isLoadingTailoredDescription {
             tailoredDescriptionLoading
-        } else if let description = profile.description, !description.isEmpty {
-            SWCard {
-                Text(description.withUnescapedNewlines)
-                    .font(.system(size: 16))
-                    .foregroundStyle(Palette.foreground)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         } else if pending.contains(.description) {
             hydratingSection(.description)
+        }
+        if let description = profile.description, !description.isEmpty {
+            SWCard {
+                VStack(alignment: .leading, spacing: 8) {
+                    // Header inside the card, matching the tailored
+                    // section cards' bold heading style.
+                    Text("Full Description")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.foreground)
+                    // Collapsed to two lines by default; tap
+                    // Show more / Show less to expand (matches
+                    // web + Android).
+                    Text(description.withUnescapedNewlines)
+                        .font(.system(size: 16))
+                        .foregroundStyle(Palette.foreground)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(isFullDescriptionExpanded ? nil : 2)
+                    Button {
+                        withAnimation(.snappy(duration: 0.22)) {
+                            isFullDescriptionExpanded.toggle()
+                        }
+                    } label: {
+                        Label(
+                            isFullDescriptionExpanded ? "Show less" : "Show more",
+                            systemImage: isFullDescriptionExpanded ? "chevron.up" : "chevron.down"
+                        )
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.primary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(isFullDescriptionExpanded ? "Show less description" : "Show more description")
+                }
+            }
+            .accessibilityIdentifier("strain.full-description")
         }
     }
 

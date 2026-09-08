@@ -24,6 +24,10 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -324,7 +328,10 @@ class LiveStrainAPI(
     private suspend fun callRaw(name: String, payload: JsonObject): JsonElement? {
         check(FirebaseBootstrap.isConfigured) { "Firebase isn't configured yet." }
         return try {
-            val task = functions.getHttpsCallable(name).call(payload)
+            // The Firebase Functions SDK's Serializer only accepts plain
+            // Map / List / String / Number / Boolean trees — it throws
+            // "Object cannot be encoded in JSON" on a kotlinx JsonElement.
+            val task = functions.getHttpsCallable(name).call(payload.toWire())
             val raw = task.await().data
             anyToJsonElement(raw)
         } catch (t: Throwable) {
@@ -378,6 +385,30 @@ class LiveStrainAPI(
             prettyPrint = false
         }
     }
+}
+
+/** Convert a kotlinx [JsonElement] into the plain Map / List /
+ *  String / Number / Boolean tree the Firebase Functions SDK's
+ *  `Serializer` accepts when encoding call arguments (it throws
+ *  "Object cannot be encoded in JSON" on JsonElement itself).
+ *  Inverse of [LiveStrainAPI.anyToJsonElement] for the request side. */
+internal fun JsonElement.toWire(): Any? = when (this) {
+    is JsonNull -> null
+    is JsonPrimitive -> {
+        val b = booleanOrNull
+        val i = intOrNull
+        val l = longOrNull
+        val d = doubleOrNull
+        when {
+            b != null -> b
+            i != null -> i
+            l != null -> l
+            d != null -> d
+            else -> content
+        }
+    }
+    is JsonObject -> mapValues { it.value.toWire() }
+    is JsonArray -> map { it.toWire() }
 }
 
 class StrainAPIException(message: String) : RuntimeException(message)

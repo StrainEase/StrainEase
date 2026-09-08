@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -159,7 +159,7 @@ private fun TailoredDescriptionContent(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Icon(
-            imageVector = Icons.Filled.Star,
+            imageVector = Icons.Filled.AutoAwesome,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(11.dp),
@@ -312,7 +312,7 @@ private fun AskKayaButton(
             )
         } else {
             Icon(
-                imageVector = Icons.Filled.Star,
+                imageVector = Icons.Filled.AutoAwesome,
                 contentDescription = null,
                 tint = primary,
                 modifier = Modifier.size(10.dp),
@@ -351,7 +351,7 @@ private fun ElaborationBlock(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector = Icons.Filled.Star,
+                imageVector = Icons.Filled.AutoAwesome,
                 contentDescription = null,
                 tint = primary,
                 modifier = Modifier.size(10.dp),
@@ -402,7 +402,7 @@ private fun TailoredDescriptionLoading(message: String) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Star,
+                    imageVector = Icons.Filled.AutoAwesome,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(11.dp),

@@ -28,6 +28,7 @@ struct StrainGridView: View {
                                 onSelect(profile)
                             } label: {
                                 StrainPoster(profile: profile)
+                                    .compareHoldable(profile.name)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.plain)

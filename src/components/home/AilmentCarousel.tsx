@@ -1,5 +1,5 @@
-import { StrainPoster } from "@/components/home/StrainPoster";
 import { StrainSectionHeader } from "@/components/home/StrainSectionHeader";
+import { ComparableStrainPoster } from "@/components/strain/ComparableStrainPoster";
 import { profileSlug } from "@/lib/strain-catalog";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { cn } from "@/lib/utils";
@@ -136,7 +136,7 @@ function PosterRow({ strains }: { strains: StrainProfile[] }) {
   return (
     <div className="grid grid-cols-3 gap-3">
       {strains.map((profile) => (
-        <StrainPoster
+        <ComparableStrainPoster
           key={profileSlug(profile)}
           profile={profile}
           compact
@@ -186,10 +186,7 @@ function PageDots({
   );
 }
 
-function scrollToPage(
-  ref: RefObject<HTMLDivElement | null>,
-  index: number,
-) {
+function scrollToPage(ref: RefObject<HTMLDivElement | null>, index: number) {
   const root = ref.current;
   if (!root) return;
   const width = root.clientWidth;

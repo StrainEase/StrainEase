@@ -186,4 +186,5 @@ struct HomeView: View {
         .environment(RecentlyViewedStore.preview([.sampleGDP, .sampleBlueDream]))
         .environment(SavedStrainsStore.preview())
         .environment(CheckInStore.preview())
+        .environment(CompareSelectionStore())
 }
