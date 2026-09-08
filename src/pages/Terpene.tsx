@@ -1,9 +1,10 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
+import { StrainImage } from "@/components/strain/StrainImage";
+import { TerpeneDetailSkeleton } from "@/components/strain/TerpeneDetailSkeleton";
 import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Badge } from "@/components/ui/badge";
-import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { applyCatalogPhotos } from "@/lib/strain-catalog";
 import { terpeneDescription, terpeneJsonLd } from "@/lib/seo";
@@ -14,7 +15,7 @@ import {
   terpeneProfile,
   strainsWithTerpene,
 } from "@/lib/terpenes";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useParams } from "react-router";
 import { slugify } from "@/lib/saved-strains";
@@ -158,7 +159,7 @@ export default function Terpene() {
           </div>
           {isLoading && matches.length === 0 ? (
             <div className="mt-4">
-              <SkeletonLines variant="strain-card" />
+              <TerpeneDetailSkeleton />
             </div>
           ) : matches.length === 0 ? (
             <p className="mt-4 rounded-2xl border border-dashed border-border/70 bg-card p-6 text-sm text-muted-foreground">
@@ -191,10 +192,16 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
   return (
     <Link
       to={`/strain/${slugify(strain.name)}`}
-      className="flex items-start gap-3 rounded-2xl border border-border/70 bg-card p-4 transition-colors hover:border-primary/40"
+      className="group flex items-start gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:border-primary/40"
     >
-      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        <Sparkles className="size-5" />
+      <div className="size-12 shrink-0 overflow-hidden rounded-xl bg-primary/10">
+        <StrainImage
+          src={strain.imageUrl}
+          alt={strain.name}
+          type={strain.type}
+          className="size-12 rounded-xl"
+          iconClassName="size-5"
+        />
       </div>
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 truncate text-sm font-semibold tracking-tight">
@@ -219,6 +226,7 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
           </div>
         )}
       </div>
+      <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }

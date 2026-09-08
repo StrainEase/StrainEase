@@ -15,6 +15,7 @@ import { ShopLinks } from "@/components/strain/ShopLinks";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { TailoredDescriptionLoading } from "@/components/strain/TailoredDescriptionLoading";
+import { TerpeneDetailDialog } from "@/components/strain/TerpeneDetailDialog";
 import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { SWCard } from "@/components/ui/sw-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useMedications } from "@/hooks/use-medications";
+import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
 import { useSavedAilments } from "@/hooks/use-saved-ailments";
 import { useTailoredDescription } from "@/hooks/use-tailored-description";
@@ -53,12 +55,13 @@ import {
 import type { ReliefLog } from "@/lib/relief-log";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
-import { terpeneProfile, terpeneSlug } from "@/lib/terpenes";
+import { terpeneProfile } from "@/lib/terpenes";
 import { toTitleCase } from "@/lib/title-case";
 import {
   Activity,
   ArrowLeft,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Droplets,
   GitCompareArrows,
@@ -87,6 +90,7 @@ export default function Strain() {
   const { isAuthenticated, user } = useAuth();
   const compare = useCompareSelection();
   const { logs } = useReliefSummary();
+  const { popular, isLoading: popularLoading } = usePopularStrains();
   const [profile, setProfile] = useState<StrainProfile | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "missing">(
     "loading",
@@ -96,6 +100,7 @@ export default function Strain() {
   const [reddit, setReddit] = useState<RedditSource[]>([]);
   const [photoZoomOpen, setPhotoZoomOpen] = useState(false);
   const [redditLoading, setRedditLoading] = useState(true);
+  const [activeTerpene, setActiveTerpene] = useState<string | null>(null);
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
   const featuredProfile = getFeaturedStrainProfile(slug);
@@ -369,6 +374,15 @@ export default function Strain() {
               open={photoZoomOpen}
               onOpenChange={setPhotoZoomOpen}
             />
+            <TerpeneDetailDialog
+              terpeneName={activeTerpene}
+              popularStrains={popular}
+              familyLoading={popularLoading}
+              open={activeTerpene !== null}
+              onOpenChange={(next) => {
+                if (!next) setActiveTerpene(null);
+              }}
+            />
             <div className="flex flex-wrap items-center gap-2">
               {profile?.type ? (
                 <Badge className={cn(typeBadgeClass(profile.type), "capitalize")}>
@@ -450,7 +464,10 @@ export default function Strain() {
           {pending.has("terpenes") ? (
             <HydratingSection section="terpenes" />
           ) : profile?.terpenes && profile.terpenes.length > 0 ? (
-            <TerpenesSection terpenes={profile.terpenes} />
+            <TerpenesSection
+              terpenes={profile.terpenes}
+              onSelect={(name) => setActiveTerpene(name)}
+            />
           ) : null}
 
           {/* Watch for */}
@@ -732,40 +749,65 @@ function IntensityBar({ value }: { value: number }) {
 
 function TerpenesSection({
   terpenes,
+  onSelect,
 }: {
   terpenes: NonNullable<StrainProfile["terpenes"]>;
+  onSelect: (terpeneName: string) => void;
 }) {
   return (
-    <SWCard innerClassName="p-5">
+    <div className="space-y-3">
       <SectionEyebrow icon={Droplets} label="Terpenes" />
-      <ul className="mt-3 space-y-3">
+      <ul className="space-y-3">
         {terpenes.map((t) => {
           const curated = terpeneProfile(t.name);
+          const meaning =
+            terpeneMeaning(t.name) ??
+            (t.profile
+              ? t.profile
+              : "Commonly listed on this strain; meaning varies by patient.");
+          // Uncurated terpenes still render a row so the user sees the
+          // full list, but they're not tappable — the dialog has nothing
+          // curated to show. The dedicated /terpene/:slug route stays
+          // reachable for the curated ones if a user prefers a full page.
+          const interactive = !!curated;
           return (
             <li key={t.name}>
-              <p className="text-sm font-medium">
-                {curated ? (
-                  <Link
-                    to={`/terpene/${terpeneSlug(t.name)}`}
-                    className="text-foreground transition-colors hover:text-primary"
+              <SWCard innerClassName="p-0">
+                {interactive ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelect(t.name)}
+                    className="group flex w-full flex-col gap-1.5 p-4 text-left transition-colors hover:bg-muted/40"
                   >
-                    {t.name}
-                  </Link>
+                    <span className="flex w-full items-center justify-between gap-3">
+                      <span className="text-sm font-semibold tracking-tight">
+                        {t.name}
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-primary">
+                        Details
+                        <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </span>
+                    <span className="text-sm leading-6 text-muted-foreground">
+                      {meaning}
+                    </span>
+                  </button>
                 ) : (
-                  t.name
+                  <div className="flex flex-col gap-1.5 p-4">
+                    <span className="text-sm font-semibold tracking-tight">
+                      {t.name}
+                    </span>
+                    <span className="text-sm leading-6 text-muted-foreground">
+                      {meaning}
+                    </span>
+                  </div>
                 )}
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                {terpeneMeaning(t.name) ??
-                  (t.profile
-                    ? t.profile
-                    : "Commonly listed on this strain; meaning varies by patient.")}
-              </p>
+              </SWCard>
             </li>
           );
         })}
       </ul>
-    </SWCard>
+    </div>
   );
 }
 
