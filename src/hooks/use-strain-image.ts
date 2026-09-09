@@ -55,12 +55,23 @@ function safeReleaseImage(url: string | undefined): void {
  * Returns `undefined` only on the very first resolve for a given
  * component mount (no prior image). After that the last good URL
  * stays until a better one arrives or the component unmounts.
+ *
+ * `exhausted` is `true` once every source tier (proxy + upstream)
+ * has been tried and the upstream URL also failed to load. The
+ * caller renders the leaf fallback once it goes `true`; without
+ * it the leaf never shows because the hook would otherwise sit on
+ * the dead upstream URL indefinitely.
  */
 export function useStrainImage(src: string | undefined): {
   url: string | undefined;
   retry: () => void;
+  exhausted: boolean;
 } {
   const [url, setUrl] = useState<string | undefined>(undefined);
+  // True once the hook has tried every source tier and none of them
+  // could deliver a paintable image. Stays true until the next src
+  // arrives, which resets the tier counter.
+  const [exhausted, setExhausted] = useState(false);
   // Track the blob URL we own so we can revoke it safely on unmount
   // (or when we deliberately replace it). Never revoke while the
   // published `url` still points at it.
@@ -83,6 +94,7 @@ export function useStrainImage(src: string | undefined): {
       resolvedForSrcRef.current = src;
       tierRef.current = "done";
       setUrl(src);
+      setExhausted(false);
       return;
     }
 
@@ -92,6 +104,7 @@ export function useStrainImage(src: string | undefined): {
       resolvedForSrcRef.current = undefined;
       tierRef.current = "proxy";
       failedUrlRef.current = undefined;
+      setExhausted(false);
     }
 
     let cancelled = false;
@@ -149,7 +162,13 @@ export function useStrainImage(src: string | undefined): {
     void cachedStrainImage(src)
       .then(async (res) => {
         if (cancelled) return;
-        tierRef.current = "upstream";
+        // Keep tierRef at "proxy" here. If the proxy URL turns out
+        // to be dead (object deleted, stale CDN edge), retry()
+        // needs to be able to advance to the upstream tier, and
+        // jumping straight to "done" would skip the original
+        // Leafly / Weedmaps URL and leave the user on a broken
+        // image forever.
+        tierRef.current = "proxy";
         publish(res.url, false);
         fetchUpstreamBlob(res.url);
       })
@@ -183,7 +202,6 @@ export function useStrainImage(src: string | undefined): {
   const retry = useCallback(() => {
     const src = resolvedForSrcRef.current;
     if (!src || !shouldProxy(src)) return;
-    if (tierRef.current === "done") return;
     if (failedUrlRef.current === resolvedForSrcRef.current) return;
     failedUrlRef.current = resolvedForSrcRef.current;
     // Allow the next tier to publish even though we already have a
@@ -202,13 +220,19 @@ export function useStrainImage(src: string | undefined): {
           await putCachedImage(src, blob, src, contentType);
         })
         .catch(() => {});
-    } else if (tierRef.current === "upstream") {
-      // Upstream was the last attempt — nothing left to try.
+    } else {
+      // Either tierRef is "upstream" (we already advanced past the
+      // proxy and the upstream also just failed) or tierRef is
+      // "done" because the proxy call itself threw and the catch
+      // handler published the upstream URL — either way, nothing
+      // left to try. Signal exhaustion to the component so it can
+      // show the leaf fallback instead of sitting on the shimmer.
       tierRef.current = "done";
+      setExhausted(true);
     }
   }, []);
 
-  return { url, retry };
+  return { url, retry, exhausted };
 }
 
 function shouldProxy(src: string): boolean {
