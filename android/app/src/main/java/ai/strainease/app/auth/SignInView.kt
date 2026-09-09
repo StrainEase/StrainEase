@@ -183,27 +183,19 @@ private fun header(mode: Mode) {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // App icon — brand-green squircle with the white-tinted
-        // leaf silhouette on top, left-aligned. The green tile
-        // is rendered in Compose (not via a layer-list drawable,
-        // which `painterResource` can't load) and the white
-        // silhouette is drawn on top with an 8dp inset so the
-        // leaf sits in the same safe-zone the launcher uses.
-        Box(
+        // App icon — full brand tile (green gradient + white
+        // leaf + caduceus) from marketing/icons/light-1.png,
+        // clipped to a rounded squircle. The whole image is
+        // the icon now, so we no longer paint a primary-color
+        // Box behind a tinted silhouette; the icon carries its
+        // own background and content.
+        androidx.compose.foundation.Image(
+            painter = painterResource(R.drawable.ic_signin_logo),
+            contentDescription = "StrainEase",
             modifier = Modifier
                 .size(104.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center,
-        ) {
-            androidx.compose.foundation.Image(
-                painter = painterResource(R.drawable.ic_signin_logo_tinted),
-                contentDescription = "StrainEase",
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxSize(),
-            )
-        }
+                .clip(RoundedCornerShape(28.dp)),
+        )
         Eyebrow(text = "STRAINEASE")
         Text(
             text = mode.title,
