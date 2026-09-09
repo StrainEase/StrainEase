@@ -73,6 +73,8 @@ enum class ThcSensitivity(val wire: String) {
     Typical("typical"),
     @SerialName("anxious-high-thc")
     AnxiousHighThc("anxious-high-thc"),
+    @SerialName("moderate-tolerance")
+    ModerateTolerance("moderate-tolerance"),
     @SerialName("experienced")
     Experienced("experienced");
 
@@ -80,6 +82,7 @@ enum class ThcSensitivity(val wire: String) {
         get() = when (this) {
             Typical -> "Typical"
             AnxiousHighThc -> "THC-sensitive"
+            ModerateTolerance -> "Moderate"
             Experienced -> "Experienced"
         }
 
@@ -87,6 +90,7 @@ enum class ThcSensitivity(val wire: String) {
         get() = when (this) {
             Typical -> null
             AnxiousHighThc -> "High THC can make me anxious"
+            ModerateTolerance -> "Some tolerance, mindful of potency"
             Experienced -> "I tolerate stronger flower"
         }
 
