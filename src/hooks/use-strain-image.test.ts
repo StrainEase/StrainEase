@@ -200,4 +200,45 @@ describe("useStrainImage", () => {
     });
     await waitFor(() => expect(result.current.exhausted).toBe(true));
   });
+
+  test("cache hit URL fails -> retry() advances to proxy, not exhausted", async () => {
+    // This is the "cache failure skips network tiers" race: when
+    // the cache hit wins and its blob URL fails to load, retry()
+    // used to immediately mark exhausted because tierRef was
+    // already "done". The fix walks through cache → proxy →
+    // upstream → done, so a dead cache hit still gets a chance
+    // at the proxy tier.
+    getCachedImageMock.mockImplementation(() =>
+      Promise.resolve({ url: "blob:https://cache/old", contentType: "image/jpeg" }),
+    );
+    cachedStrainImageMock.mockImplementation(() =>
+      Promise.resolve({ url: "https://proxy.example/img.jpg", contentType: "image/jpeg" }),
+    );
+
+    const { result } = renderHook(() => useStrainImage("https://leafly.com/strain"));
+    await waitFor(() => expect(result.current.url).toBe("blob:https://cache/old"));
+
+    // First retry: cache URL failed, advance to proxy tier.
+    await act(async () => {
+      result.current.retry();
+    });
+    expect(result.current.exhausted).toBe(false);
+    // The proxy URL should now be published.
+    await waitFor(() => expect(result.current.url).toBe("https://proxy.example/img.jpg"));
+
+    // Second retry: proxy URL failed, advance to upstream.
+    await act(async () => {
+      result.current.retry();
+    });
+    expect(result.current.exhausted).toBe(false);
+    // The upstream URL (which is the src itself in this harness)
+    // should now be published.
+    await waitFor(() => expect(result.current.url).toBe("https://leafly.com/strain"));
+
+    // Third retry: upstream URL failed, mark exhausted.
+    await act(async () => {
+      result.current.retry();
+    });
+    await waitFor(() => expect(result.current.exhausted).toBe(true));
+  });
 });
