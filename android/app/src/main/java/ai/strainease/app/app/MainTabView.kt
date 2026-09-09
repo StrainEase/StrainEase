@@ -23,6 +23,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -110,9 +111,17 @@ fun MainTabView() {
 
     CompositionLocalProvider(LocalAppNavigation provides nav) {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Mount the mesh gradient at the shell so the glow
+            // bleeds under the status bar. The Scaffold is
+            // transparent so the gradient shows through the
+            // top inset; each tab still mounts its own
+            // MeshBackground in the content area, which paints
+            // on top of the shell gradient for the screen
+            // surface.
+            ai.strainease.app.ui.components.MeshBackground()
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = Color.Transparent,
                 bottomBar = {
                     Column {
                         ai.strainease.app.ui.compare.CompareTrayBar(
