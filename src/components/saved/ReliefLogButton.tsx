@@ -82,7 +82,9 @@ export function ReliefLogButton({
         <div
           className={cn(
             "space-y-3 p-3",
-            variant === "link" && "rounded-xl border border-border/70 bg-background mt-3",
+            variant === "link"
+              ? "rounded-xl border border-border/70 bg-background mt-3"
+              : "pt-3",
           )}
         >
           <div className="flex flex-wrap gap-1.5">
