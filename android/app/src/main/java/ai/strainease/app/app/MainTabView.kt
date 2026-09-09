@@ -23,6 +23,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -76,6 +77,7 @@ fun MainTabView() {
     val doctorsModel = remember { ai.strainease.app.ui.doctors.DoctorsModel() }
     val savedAilments = remember { ai.strainease.app.data.SavedAilmentsStore(app) }
     val savedMedications = remember { ai.strainease.app.data.SavedMedicationsStore(app) }
+    val thcSensitivity = remember { ai.strainease.app.data.ThcSensitivityStore(app) }
     val savedStrains = remember { ai.strainease.app.data.SavedStrainsStore(app) }
     val relief = remember { ai.strainease.app.data.ReliefLogStore(app) }
     val checkIns = remember { ai.strainease.app.data.CheckInStore(app) }
@@ -89,8 +91,10 @@ fun MainTabView() {
         val uid = signedInUid
         if (uid != null) {
             checkIns.start(uid)
+            thcSensitivity.start(uid)
         } else {
             checkIns.stop()
+            thcSensitivity.stop()
         }
     }
     val ageStore = remember { ai.strainease.app.compliance.AgeVerificationStore(app) }
@@ -110,9 +114,17 @@ fun MainTabView() {
 
     CompositionLocalProvider(LocalAppNavigation provides nav) {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Mount the mesh gradient at the shell so the glow
+            // bleeds under the status bar. The Scaffold is
+            // transparent so the gradient shows through the
+            // top inset; each tab still mounts its own
+            // MeshBackground in the content area, which paints
+            // on top of the shell gradient for the screen
+            // surface.
+            ai.strainease.app.ui.components.MeshBackground()
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = Color.Transparent,
                 bottomBar = {
                     Column {
                         ai.strainease.app.ui.compare.CompareTrayBar(
@@ -217,6 +229,7 @@ fun MainTabView() {
                         relief = relief,
                         savedAilments = savedAilments,
                         savedMedications = savedMedications,
+                        thcSensitivity = thcSensitivity,
                         savedStrains = savedStrains,
                         compareStore = compareStore,
                         modifier = Modifier.fillMaxSize(),
@@ -261,6 +274,7 @@ fun MainTabView() {
                 ai.strainease.app.ui.account.AccountView(
                     savedAilments = savedAilments,
                     savedMedications = savedMedications,
+                    thcSensitivity = thcSensitivity,
                     savedStrains = savedStrains,
                     relief = relief,
                     checkIns = checkIns,

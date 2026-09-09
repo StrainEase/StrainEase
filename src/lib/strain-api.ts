@@ -241,6 +241,12 @@ export function describeStrainForUser(args: {
   medications?: string[];
   /** Pre-summarized relief log prose, newest first. Backend caps at 800 chars. */
   reliefHistory?: string;
+  /**
+   * Patient's THC sensitivity, drawn from the closed enum in
+   * `lib/thc-sensitivity.ts`. Forwarded to the Kaya system prompt
+   * so the "What to expect" section calibrates the potency call-out.
+   */
+  thcSensitivity?: "anxious-high-thc" | "experienced";
   /** Human-readable language name, e.g. "English". Defaults to English. */
   language?: string;
 }): Promise<StrainDescription> {

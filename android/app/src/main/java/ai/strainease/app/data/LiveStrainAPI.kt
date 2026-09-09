@@ -120,6 +120,7 @@ class LiveStrainAPI(
         ailments: List<String>,
         medications: List<String>,
         reliefHistory: String,
+        thcSensitivity: ThcSensitivity,
         language: String,
     ): StrainDescription? {
         val trimmedName = strain.name.trim()
@@ -134,6 +135,12 @@ class LiveStrainAPI(
             put("language", language)
             if (cleanedRelief.isNotEmpty()) {
                 put("reliefHistory", cleanedRelief.take(800))
+            }
+            // Only send the sensitivity when the patient picked a closed
+            // enum value. `.Typical` (the unset case) is omitted so the
+            // backend omits the sensitivity line from describePrompt.
+            if (thcSensitivity != ThcSensitivity.Typical) {
+                put("thcSensitivity", thcSensitivity.rawValue)
             }
         }
         return callOptional("describeStrainForUser", payload)

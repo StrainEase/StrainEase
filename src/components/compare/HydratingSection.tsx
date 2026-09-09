@@ -139,28 +139,30 @@ export function HydratingSection({
         {config.label}
       </p>
       <SWCard innerClassName="p-5">
-        <div className="flex items-center gap-2">
-          <Loader2
-            className="size-4 shrink-0 animate-spin text-primary"
-            aria-hidden
-          />
-          <span className="text-sm text-muted-foreground">
-            {config.caption}
-          </span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Loader2
+              className="size-4 shrink-0 animate-spin text-primary"
+              aria-hidden
+            />
+            <span className="text-sm text-muted-foreground">
+              {config.caption}
+            </span>
+          </div>
+          {Array.from({ length: config.lines }).map((_, index) => (
+            <span
+              key={index}
+              aria-hidden
+              className="skeleton-line h-3 rounded-full"
+              style={{
+                // Last bar in each section is narrower on iOS — match that
+                // so the placeholder reads as "content being written" rather
+                // than a uniform striped block.
+                maxWidth: index === config.lines - 1 ? "55%" : "100%",
+              }}
+            />
+          ))}
         </div>
-        {Array.from({ length: config.lines }).map((_, index) => (
-          <span
-            key={index}
-            aria-hidden
-            className="skeleton-line h-3 rounded-full"
-            style={{
-              // Last bar in each section is narrower on iOS — match that
-              // so the placeholder reads as "content being written" rather
-              // than a uniform striped block.
-              maxWidth: index === config.lines - 1 ? "55%" : "100%",
-            }}
-          />
-        ))}
       </SWCard>
     </div>
   );

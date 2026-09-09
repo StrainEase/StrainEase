@@ -21,6 +21,7 @@ struct AccountView: View {
                         SavedAilmentsCard(onFind: { ailments in
                             nav.openFind(ailments: ailments)
                         })
+                        ThcSensitivityCard()
                         SavedMedicationsCard()
                         NavigationLink {
                             ResearchHistoryView()
@@ -277,4 +278,5 @@ struct AccountView: View {
         .environment(SavedMedicationsStore.preview(["Lexapro", "Ibuprofen"]))
         .environment(ReliefLogStore.preview([.sampleSleep]))
         .environment(ResearchHistoryStore.preview())
+        .environment(ThcSensitivityStore.preview(.anxiousHighThc))
 }

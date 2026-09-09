@@ -163,6 +163,28 @@ describe("describePrompt", () => {
     expect(prompt).toContain("empty");
   });
 
+  test("includes THC sensitivity when the patient is anxious around high-THC", () => {
+    const prompt = describePrompt(
+      strain,
+      [],
+      [],
+      "",
+      "anxious-high-thc",
+    );
+    expect(prompt).toContain("anxious around high-THC flower");
+    expect(prompt).toContain("softer potency call-out");
+  });
+
+  test("includes THC sensitivity when the patient is experienced", () => {
+    const prompt = describePrompt(strain, [], [], "", "experienced");
+    expect(prompt).toContain("experienced with stronger flower");
+  });
+
+  test("omits THC sensitivity line when none is provided", () => {
+    const prompt = describePrompt(strain, [], [], "");
+    expect(prompt).not.toContain("THC sensitivity");
+  });
+
   test("passes medications through to the prompt verbatim (clamping lives upstream)", () => {
     // The describeStrainForUser callable trims/clips medications before
     // calling describePrompt. The prompt function itself is a thin

@@ -16,16 +16,17 @@ protocol StrainServicing {
 
     /// Generate a three-section, patient-tailored description for a
     /// single strain. The middle section is written around the user's
-    /// saved ailments, with their medications and recent relief-log
-    /// history used to calibrate (caution-only on meds — never "stop
-    /// your prescription"). Returns nil when the server can't return
-    /// a valid shape — the caller should fall back to the static
-    /// `strain.description`.
+    /// saved ailments, with their medications, recent relief-log
+    /// history, and THC sensitivity used to calibrate (caution-only on
+    /// meds — never "stop your prescription"). Returns nil when the
+    /// server can't return a valid shape — the caller should fall back
+    /// to the static `strain.description`.
     func describe(
         strain: StrainProfile,
         ailments: [String],
         medications: [String],
         reliefHistory: String,
+        thcSensitivity: ThcSensitivity,
         language: String
     ) async throws -> StrainDescription?
 
@@ -181,6 +182,7 @@ struct LiveStrainAPI: StrainServicing {
         ailments: [String],
         medications: [String],
         reliefHistory: String,
+        thcSensitivity: ThcSensitivity,
         language: String
     ) async throws -> StrainDescription? {
         let trimmedName = strain.name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -202,6 +204,12 @@ struct LiveStrainAPI: StrainServicing {
         ]
         if !cleanedRelief.isEmpty {
             payload["reliefHistory"] = String(cleanedRelief.prefix(800))
+        }
+        // Only send the sensitivity when the patient picked a closed
+        // enum value. `.typical` (the unset case) is omitted so the
+        // backend omits the sensitivity line from describePrompt.
+        if thcSensitivity != .typical {
+            payload["thcSensitivity"] = thcSensitivity.rawValue
         }
         return try await callOptional("describeStrainForUser", data: payload)
     }
@@ -413,6 +421,7 @@ struct PreviewStrainAPI: StrainServicing {
         ailments: [String],
         medications: [String],
         reliefHistory: String,
+        thcSensitivity: ThcSensitivity,
         language: String
     ) async throws -> StrainDescription? {
         StrainDescription.sample
@@ -489,6 +498,7 @@ struct DelayedPreviewAPI: StrainServicing {
         ailments: [String],
         medications: [String],
         reliefHistory: String,
+        thcSensitivity: ThcSensitivity,
         language: String
     ) async throws -> StrainDescription? {
         try await Task.sleep(for: .seconds(60))

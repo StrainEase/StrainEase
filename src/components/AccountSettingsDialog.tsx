@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useAilments } from "@/hooks/use-ailments";
+import { useThcSensitivity } from "@/hooks/use-thc-sensitivity";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,15 +13,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { FIND_HREF, HISTORY_HREF } from "@/lib/app-nav";
 import { ailmentsEqual } from "@/lib/ailments";
+import {
+  THC_SENSITIVITY_OPTIONS,
+  type ThcSensitivity,
+} from "@/lib/thc-sensitivity";
 import { CONDITIONS } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
-import { Clock, FileText, LogOut, ShieldCheck, User } from "lucide-react";
+import { Clock, FileText, LogOut, ShieldCheck, Sparkles, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 /**
  * Account settings modal. Display name, saved ailments (same
- * `users/{uid}` fields as iOS), and a link to past research.
+ * `users/{uid}` fields as iOS), THC sensitivity (same field the
+ * Kaya prompts read), and a link to past research.
  */
 export function AccountSettingsDialog({
   open,
@@ -31,17 +37,21 @@ export function AccountSettingsDialog({
 }) {
   const { user, signOut } = useAuth();
   const ailments = useAilments();
+  const thcSensitivity = useThcSensitivity();
   const [draftName, setDraftName] = useState("");
   const [draftAilments, setDraftAilments] = useState<string[]>([]);
+  const [draftThc, setDraftThc] = useState<ThcSensitivity | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  // Seed drafts when the dialog opens, and re-sync name/ailments from
-  // live sources while the dialog is open and the user hasn't edited yet.
+  // Seed drafts when the dialog opens, and re-sync name/ailments/THC
+  // from live sources while the dialog is open and the user hasn't
+  // edited yet.
   useEffect(() => {
     if (!open || !user) return;
     setDraftName(user.name);
     setDraftAilments(ailments.names.slice());
+    setDraftThc(thcSensitivity.value);
     setSavedAt(null);
   }, [open, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -54,12 +64,20 @@ export function AccountSettingsDialog({
     );
   }, [open, ailments.names]);
 
+  // Same idea for THC sensitivity: only resync when the user hasn't
+  // picked something different locally.
+  useEffect(() => {
+    if (!open) return;
+    setDraftThc((prev) => (prev === thcSensitivity.value ? prev : prev));
+  }, [open, thcSensitivity.value]);
+
   if (!user) return null;
 
   const nameDirty =
     draftName.trim() !== "" && draftName.trim() !== user.name.trim();
   const ailmentsDirty = !ailmentsEqual(draftAilments, ailments.names);
-  const dirty = nameDirty || ailmentsDirty;
+  const thcDirty = draftThc !== thcSensitivity.value;
+  const dirty = nameDirty || ailmentsDirty || thcDirty;
 
   const toggleDraftAilment = (name: string) => {
     const key = name.trim().toLowerCase();
@@ -69,6 +87,11 @@ export function AccountSettingsDialog({
         ? prev.filter((item) => item.toLowerCase() !== key)
         : [...prev, name.trim()];
     });
+    setSavedAt(null);
+  };
+
+  const selectDraftThc = (next: ThcSensitivity | null) => {
+    setDraftThc((prev) => (prev === next ? null : next));
     setSavedAt(null);
   };
 
@@ -87,6 +110,9 @@ export function AccountSettingsDialog({
       }
       if (ailmentsDirty) {
         await ailments.save(draftAilments);
+      }
+      if (thcDirty) {
+        await thcSensitivity.save(draftThc);
       }
       setSavedAt(Date.now());
     } catch (err) {
@@ -183,6 +209,60 @@ export function AccountSettingsDialog({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-1.5 flex items-center gap-2">
+              <Sparkles className="size-3 text-primary" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                THC sensitivity
+              </p>
+            </div>
+            <p className="mb-2.5 text-xs text-muted-foreground">
+              Calibrates the strain descriptions and recommendations Kaya
+              writes for you. Pick the closest match, or leave it off to
+              get the default read.
+            </p>
+            <div className="flex flex-col gap-2">
+              {THC_SENSITIVITY_OPTIONS.map((opt) => {
+                const on = draftThc === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => selectDraftThc(opt.value)}
+                    aria-pressed={on}
+                    className={cn(
+                      "cursor-pointer rounded-xl border px-3.5 py-2.5 text-left transition-colors",
+                      on
+                        ? "border-primary/40 bg-primary/10"
+                        : "border-border/70 hover:border-primary/30",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "block text-sm font-semibold",
+                        on ? "text-primary" : "text-foreground",
+                      )}
+                    >
+                      {opt.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                      {opt.description}
+                    </span>
+                  </button>
+                );
+              })}
+              {draftThc !== null && (
+                <button
+                  type="button"
+                  onClick={() => selectDraftThc(null)}
+                  className="self-start text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  Clear selection
+                </button>
+              )}
             </div>
           </div>
 

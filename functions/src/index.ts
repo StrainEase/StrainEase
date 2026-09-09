@@ -887,6 +887,7 @@ Hard rules:
 - noCuratedProfile: true means the strain has no catalog profile. Use your knowledge of how it is commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus. State only details you are reasonably confident are commonly reported; otherwise say "not verified" or note the uncertainty. If the name is not a real, known strain, say so plainly.
 - Never promise a cure, never advise stopping prescribed medication, and never diagnose. Encourage the patient to talk to their healthcare provider.
 - When the JSON shape includes "citations", cite only supplied source material. Never invent a PMID, URL, title, or source label; if a claim has no supplied source, leave it uncited.
+- Never use the em dash character. Use commas, periods, colons, semicolons, or sentence breaks instead.
 - Respond with ONLY a single JSON object. No markdown, no text outside the JSON.`;
 
 const COMPARE_SYSTEM_PROMPT = `${KAYA_CORE}
@@ -968,6 +969,7 @@ Task: write a patient-facing description for a single cannabis strain, split int
 - "What it might do for you" — tied to the patient's ailments.
 - "What to expect" — practical considerations (potency, timing, cautions).
 - For EACH of the patient's saved ailments, honestly evaluate whether this strain is a reasonable match based on its commonly reported uses and effects. Speak directly to the patient ("for your insomnia…"). If the strain's typical profile does not fit an ailment, say so plainly rather than stretching for a positive angle; it is fine to call out ailments that do not line up. Do not skew positive.
+- THC sensitivity: when the patient has flagged a sensitivity in the user message (anxious around high-THC, experienced with stronger flower), calibrate "What to expect" accordingly. Anxious-high-thc patients should get a softer potency call-out; experienced patients should get an honest read without an automatic "start low" softening.
 - Citations: cite only source material supplied in the strain data. Use the exact source URL when one is present; do not invent citations for commonly reported claims that have no supplied source. Skip any ailment you would have to invent a connection for.
 - Medications: mention a drug only when there is a commonly cited cannabis interaction (e.g. sedative load with benzodiazepines, blood-pressure effects with antihypertensives, CYP450 warnings with SSRIs/antipsychotics). Always phrase as "ask your clinician about combining with X" — never advise stopping a prescription. When in doubt, omit.
 - Relief log: when the patient has logged how previous strains went for these ailments, calibrate "What it might do for you" against it (e.g. "Last time Northern Lights was too strong for your insomnia; this one leans similar, so start lower."). If the relief log is empty, say nothing.
@@ -1943,6 +1945,7 @@ export function describePrompt(
   ailments: string[],
   medications: string[],
   reliefHistory: string,
+  thcSensitivity?: string,
 ): string {
   const payload = describeStrainPayload(strain);
   const contextLines: string[] = [];
@@ -1961,6 +1964,15 @@ export function describePrompt(
       ? `Patient's recent relief log with other strains, newest first: ${reliefHistory}`
       : "Patient's recent relief log: empty.",
   );
+  if (thcSensitivity === "anxious-high-thc") {
+    contextLines.push(
+      "Patient's THC sensitivity: anxious around high-THC flower. Lean toward softer potency call-outs in 'What to expect'.",
+    );
+  } else if (thcSensitivity === "experienced") {
+    contextLines.push(
+      "Patient's THC sensitivity: experienced with stronger flower. Honest read of potency is fine; skip the automatic 'start low' softening for a regular user.",
+    );
+  }
   return [
     "Write a patient-facing description for this cannabis strain.",
     ...contextLines,
@@ -2127,6 +2139,7 @@ export const describeStrainForUser = onCall(
       ailments?: unknown;
       medications?: unknown;
       reliefHistory?: unknown;
+      thcSensitivity?: unknown;
       language?: unknown;
     };
     const strain = (data.strain ?? {}) as StrainProfile;
@@ -2156,6 +2169,15 @@ export const describeStrainForUser = onCall(
       typeof data.reliefHistory === "string"
         ? data.reliefHistory.trim().slice(0, 800)
         : "";
+    // THC sensitivity mirrors the Find/Compare prefs enum so the
+    // description call can use the same wording the user picked in
+    // account settings. Anything outside the closed set is dropped
+    // so a bad payload doesn't leak into the prompt.
+    const thcSensitivity =
+      data.thcSensitivity === "anxious-high-thc" ||
+      data.thcSensitivity === "experienced"
+        ? data.thcSensitivity
+        : undefined;
     const language = parseOutputLanguage(data.language);
     const safeStrain: StrainProfile = { ...strain, name };
 
@@ -2173,6 +2195,7 @@ export const describeStrainForUser = onCall(
             ailments,
             medications,
             reliefHistory,
+            thcSensitivity,
           ),
         },
       ],

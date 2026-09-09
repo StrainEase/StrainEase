@@ -24,6 +24,7 @@ struct StrainDetailView: View {
     @Environment(ReliefLogStore.self) private var relief
     @Environment(AppNavigation.self) private var nav
     @Environment(CompareSelectionStore.self) private var compareStore
+    @Environment(ThcSensitivityStore.self) private var thcSensitivity
     @State private var showPhotoZoom = false
 
     init(profile: StrainProfile) {
@@ -312,6 +313,7 @@ struct StrainDetailView: View {
                 ailments: ailments.ailments,
                 medications: medications.names,
                 reliefHistory: relief.summary,
+                thcSensitivity: thcSensitivity.value,
                 language: StrainAILanguage.preferred
             )
             tailoredDescription = result
@@ -1218,6 +1220,7 @@ private struct TailoredDescriptionSection: View {
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview())
     .environment(CheckInStore.preview())
+    .environment(ThcSensitivityStore.preview())
     .environment(AuthSession.previewSignedIn)
     .environment(CompareSelectionStore())
 }
@@ -1231,6 +1234,7 @@ private struct TailoredDescriptionSection: View {
     .environment(SavedAilmentsStore.preview(["Insomnia"]))
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview([.sampleSleep]))
+    .environment(ThcSensitivityStore.preview(.anxiousHighThc))
     .environment(CheckInStore.preview())
     .environment(AuthSession.previewSignedIn)
     .environment(CompareSelectionStore())
@@ -1293,6 +1297,7 @@ private struct TerpeneRow: View {
     .environment(RecentlyViewedStore.preview())
     .environment(ReliefLogStore.preview())
     .environment(CheckInStore.preview())
+    .environment(ThcSensitivityStore.preview(.experienced))
     .environment(AuthSession.previewSignedIn)
     .environment(AppNavigation())
     .environment(CompareSelectionStore())

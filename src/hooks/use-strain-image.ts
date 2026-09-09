@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cachedStrainImage } from "@/lib/strain-api";
 import {
   getCachedImage,
@@ -43,14 +43,35 @@ function safeReleaseImage(url: string | undefined): void {
  * until the new resolution finishes, so the caller can keep painting
  * the old image instead of resetting to the gradient skeleton.
  *
+ * The hook also exposes a `retry` callback the caller fires from the
+ * `<img>` `onError` handler. The proxy can return a URL that no
+ * longer resolves in Storage (the cached object was deleted, the CDN
+ * edge is stale, etc.). When that happens the proxy call has already
+ * resolved successfully so the hook would otherwise sit on the bad
+ * URL forever. `retry` tells the hook the current URL is dead and
+ * to publish the next-best source — first the upstream, then a fresh
+ * proxy attempt if the upstream is also bad.
+ *
  * Returns `undefined` only on the very first resolve for a given
  * component mount (no prior image). After that the last good URL
  * stays until a better one arrives or the component unmounts.
+ *
+ * `exhausted` is `true` once every source tier (proxy + upstream)
+ * has been tried and the upstream URL also failed to load. The
+ * caller renders the leaf fallback once it goes `true`; without
+ * it the leaf never shows because the hook would otherwise sit on
+ * the dead upstream URL indefinitely.
  */
 export function useStrainImage(src: string | undefined): {
   url: string | undefined;
+  retry: () => void;
+  exhausted: boolean;
 } {
   const [url, setUrl] = useState<string | undefined>(undefined);
+  // True once the hook has tried every source tier and none of them
+  // could deliver a paintable image. Stays true until the next src
+  // arrives, which resets the tier counter.
+  const [exhausted, setExhausted] = useState(false);
   // Track the blob URL we own so we can revoke it safely on unmount
   // (or when we deliberately replace it). Never revoke while the
   // published `url` still points at it.
@@ -58,16 +79,29 @@ export function useStrainImage(src: string | undefined): {
   // Once any layer has published a URL for the current `src`, later
   // layers are ignored.
   const resolvedForSrcRef = useRef<string | undefined>(undefined);
+  // The URL the component rendered last and the <img> failed to load.
+  // retry() uses this to decide which fallback tier to publish next.
+  const failedUrlRef = useRef<string | undefined>(undefined);
+  // Tracks which source tiers have been published for the current src
+  // so retry() can advance to the next tier instead of repeating.
+  // The order is cache → proxy → upstream → done, and tierRef stays
+  // on the tier we last published from until retry() bumps it.
+  const tierRef = useRef<"cache" | "proxy" | "upstream" | "done">("cache");
+  // Remember the proxy URL even when the cache wins the race, so
+  // retry() can publish the proxy tier after a cache miss.
+  const proxyUrlRef = useRef<string | undefined>(undefined);
+  // Remember the proxy content type for the same reason.
+  const proxyContentTypeRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!src) {
-      // Clear only when there is truly no source. Keep the previous
-      // image if the parent briefly passes undefined during a re-render.
       return;
     }
     if (!shouldProxy(src)) {
       resolvedForSrcRef.current = src;
+      tierRef.current = "done";
       setUrl(src);
+      setExhausted(false);
       return;
     }
 
@@ -75,6 +109,11 @@ export function useStrainImage(src: string | undefined): {
     // `url` so the previous image stays visible while we resolve.
     if (resolvedForSrcRef.current !== src) {
       resolvedForSrcRef.current = undefined;
+      tierRef.current = "cache";
+      proxyUrlRef.current = undefined;
+      proxyContentTypeRef.current = undefined;
+      failedUrlRef.current = undefined;
+      setExhausted(false);
     }
 
     let cancelled = false;
@@ -104,11 +143,31 @@ export function useStrainImage(src: string | undefined): {
       }
     };
 
+    const fetchUpstreamBlob = (resolvedUrl: string) => {
+      // Best-effort hydration of the blob cache so the next visit is
+      // instant, regardless of which tier served the bytes.
+      void fetch(resolvedUrl, { cache: "force-cache" })
+        .then(async (r) => {
+          if (!r.ok) return;
+          const blob = await r.blob();
+          const contentType = r.headers.get("content-type") ?? undefined;
+          await putCachedImage(src, blob, resolvedUrl, contentType);
+        })
+        .catch(() => {});
+    };
+
     // 1) On-device blob cache — runs in parallel with the proxy.
     getCachedImage(src)
       .then((hit) => {
         if (cancelled || !hit) return;
+        // Only mark the cache tier as "done" if we actually won the
+        // race. If the proxy already published, resolvedForSrcRef
+        // is already src and publish() below will be a no-op — but
+        // flipping tierRef here would block retry() from advancing
+        // to the proxy tier if the cache URL turns out to be dead.
+        if (resolvedForSrcRef.current === src) return;
         publish(hit.url, true);
+        tierRef.current = "cache";
       })
       .catch(() => {
         // IndexedDB unavailable or errored — fall through to proxy.
@@ -118,31 +177,35 @@ export function useStrainImage(src: string | undefined): {
     void cachedStrainImage(src)
       .then(async (res) => {
         if (cancelled) return;
+        // Remember the proxy URL even when the cache wins the race,
+        // so retry() can publish the proxy tier after a cache miss.
+        proxyUrlRef.current = res.url;
+        proxyContentTypeRef.current = res.contentType;
+        // If the cache already published first, only republish the
+        // proxy URL when retry() has bumped tierRef to "proxy" (the
+        // cache URL just failed). Otherwise the cache hit is still
+        // good and we should leave it alone.
+        if (resolvedForSrcRef.current === src && tierRef.current !== "proxy") return;
+        // Clear resolvedForSrcRef so the publish() guard below lets
+        // us through — the cache's publish set it to src and would
+        // otherwise block our republish. Also clear failedUrlRef
+        // because retry() set it to the cache URL on the cache-tier
+        // bump; the next retry (when the proxy URL also fails) must
+        // not hit the duplicate-failure guard against the new src.
+        resolvedForSrcRef.current = undefined;
+        failedUrlRef.current = undefined;
+        tierRef.current = "proxy";
         publish(res.url, false);
-        // Hydrate the blob cache in the background regardless of
-        // whether we won the race — next visit benefits either way.
-        try {
-          const r = await fetch(res.url, { cache: "force-cache" });
-          if (!r.ok) return;
-          const blob = await r.blob();
-          await putCachedImage(src, blob, res.url, res.contentType);
-        } catch {
-          // Network blip or CORS — next visit will retry.
-        }
+        fetchUpstreamBlob(res.url);
       })
       .catch(() => {
         if (cancelled) return;
         // 3) Last-resort fallback: original Leafly / Weedmaps URL.
         // Only publish if nothing has won yet.
+        if (resolvedForSrcRef.current === src) return;
+        tierRef.current = "upstream";
         publish(src, false);
-        void fetch(src, { cache: "force-cache" })
-          .then(async (r) => {
-            if (!r.ok) return;
-            const blob = await r.blob();
-            const contentType = r.headers.get("content-type") ?? undefined;
-            await putCachedImage(src, blob, src, contentType);
-          })
-          .catch(() => {});
+        fetchUpstreamBlob(src);
       });
 
     return () => {
@@ -163,7 +226,56 @@ export function useStrainImage(src: string | undefined): {
     };
   }, [src]);
 
-  return { url };
+  const retry = useCallback(() => {
+    const src = resolvedForSrcRef.current;
+    if (!src || !shouldProxy(src)) return;
+    if (failedUrlRef.current === resolvedForSrcRef.current) return;
+    failedUrlRef.current = resolvedForSrcRef.current;
+    if (tierRef.current === "cache") {
+      // Cache hit URL failed. Advance to the proxy tier if we
+      // already know its URL (the proxy call ran in parallel and
+      // resolved before the cache did). If the proxy hasn't
+      // resolved yet, the proxy .then handler will publish when
+      // it does — but the component will keep showing the cache
+      // spinner in the meantime, which is the right behavior.
+      if (proxyUrlRef.current) {
+        tierRef.current = "proxy";
+        setUrl(proxyUrlRef.current);
+        failedUrlRef.current = undefined;
+        return;
+      }
+      // Proxy hasn't resolved yet. Bump tierRef so the next retry
+      // (after the proxy resolves) skips the cache tier and goes
+      // straight to upstream.
+      tierRef.current = "proxy";
+      return;
+    }
+    if (tierRef.current === "proxy") {
+      // Proxy URL failed. Publish the upstream source and reset
+      // failedUrlRef so the next retry (when the upstream also
+      // fails) is not treated as a duplicate attempt for the
+      // same URL.
+      tierRef.current = "upstream";
+      setUrl(src);
+      failedUrlRef.current = undefined;
+      void fetch(src, { cache: "force-cache" })
+        .then(async (r) => {
+          if (!r.ok) return;
+          const blob = await r.blob();
+          const contentType = r.headers.get("content-type") ?? undefined;
+          await putCachedImage(src, blob, src, contentType);
+        })
+        .catch(() => {});
+      return;
+    }
+    // tierRef is "upstream" — every tier has been tried and the
+    // upstream URL also just failed. Mark exhausted so the
+    // component can render the leaf fallback.
+    tierRef.current = "done";
+    setExhausted(true);
+  }, []);
+
+  return { url, retry, exhausted };
 }
 
 function shouldProxy(src: string): boolean {

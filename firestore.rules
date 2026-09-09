@@ -82,7 +82,9 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // Saved ailments live on the user doc (same fields iOS already writes).
+    // Saved ailments and THC sensitivity live on the user doc (same
+    // fields iOS already writes). THC sensitivity is a closed enum so
+    // a bad payload can't sneak in extra context for Kaya.
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
 
@@ -94,16 +96,35 @@ service cloud.firestore {
           && request.resource.data.ailmentsUpdatedAt > 0;
       }
 
+      function thcSensitivityPayload() {
+        return !('thcSensitivity' in request.resource.data)
+          || (
+            request.resource.data.thcSensitivity is string
+            && (
+              request.resource.data.thcSensitivity == 'anxious-high-thc'
+              || request.resource.data.thcSensitivity == 'experienced'
+            )
+          );
+      }
+
       allow create: if request.auth != null
         && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['ailments', 'ailmentsUpdatedAt'])
-        && ailmentsPayload();
+        && request.resource.data.keys().hasOnly([
+          'ailments', 'ailmentsUpdatedAt',
+          'thcSensitivity', 'thcSensitivityUpdatedAt',
+        ])
+        && ailmentsPayload()
+        && thcSensitivityPayload();
 
       allow update: if request.auth != null
         && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['ailments', 'ailmentsUpdatedAt'])
-        && ailmentsPayload();
+          .hasOnly([
+            'ailments', 'ailmentsUpdatedAt',
+            'thcSensitivity', 'thcSensitivityUpdatedAt',
+          ])
+        && ailmentsPayload()
+        && thcSensitivityPayload();
 
       allow delete: if false;
     }
