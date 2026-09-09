@@ -51,10 +51,11 @@ import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.ReliefLogStore
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.data.SavedMedicationsStore
-import ai.strainease.app.data.ThcSensitivity
-import ai.strainease.app.data.ThcSensitivityStore
 import ai.strainease.app.data.SavedStrainsStore
 import ai.strainease.app.data.StrainAPI
+import ai.strainease.app.data.StrainCatalog
+import ai.strainease.app.data.ThcSensitivity
+import ai.strainease.app.data.ThcSensitivityStore
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.models.Terpene
 import ai.strainease.app.ui.compare.CompareSelectionStore
@@ -321,6 +322,7 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                 type = profile.type,
                 height = 220.dp,
                 cornerRadius = 22.dp,
+                fallbackURLString = StrainCatalog.photoURL(for = profile.slug),
                 modifier = Modifier.clickable { onPhotoClick() },
             )
             // Zoom icon in the bottom-right corner

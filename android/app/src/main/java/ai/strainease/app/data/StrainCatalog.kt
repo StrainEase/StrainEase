@@ -144,6 +144,15 @@ object StrainCatalog {
         return profile.copy(imageUrl = known)
     }
 
+    /**
+     * Direct Leafly/Weedmaps URL for a known catalog photo, or null
+     * if the slug has no curated photo. The resilient image view
+     * uses this as a fallback tier when the backend's Firebase
+     * Storage URL fails to load. Mirrors the iOS
+     * `StrainCatalog.photoURL(for:)` accessor.
+     */
+    fun photoURL(for slug: String): String? = photos[photoKey(slug)]
+
     private fun photoKey(slug: String): String = slugAliases[slug] ?: slug
 
     private val slugAliases: Map<String, String> = mapOf(

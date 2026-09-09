@@ -352,6 +352,11 @@ private fun FamilyStrainRow(
                 modifier = Modifier.fillMaxWidth(),
                 height = 44.dp,
                 cornerRadius = 10.dp,
+                // The terpene rail poster has no catalog slug to
+                // look up, so the fallback tier is nil here. The
+                // primary URL still gets the standard
+                // load/error/loading treatment.
+                fallbackURLString = null,
             )
         }
         Column(
