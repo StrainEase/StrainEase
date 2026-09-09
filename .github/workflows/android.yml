@@ -77,8 +77,8 @@ jobs:
         run: |
           # gradlew is checked in with CRLF line endings, which makes
           # the kernel unable to parse the #!/bin/sh shebang (it sees
-          # "/bin/sh" — a path that doesn't exist). Strip the CRs
-          # before chmod'ing; without this the runner dies with
+          # "/bin/sh\r", a path that does not exist). Strip the CRs
+          # before chmod; without this the runner dies with
           # "cannot execute: required file not found" (exit 127).
           sed -i 's/\r$//' ./gradlew
           chmod +x ./gradlew
@@ -192,8 +192,8 @@ jobs:
         run: |
           # gradlew is checked in with CRLF line endings, which makes
           # the kernel unable to parse the #!/bin/sh shebang (it sees
-          # "/bin/sh" — a path that doesn't exist). Strip the CRs
-          # before chmod'ing; without this the runner dies with
+          # "/bin/sh\r", a path that does not exist). Strip the CRs
+          # before chmod; without this the runner dies with
           # "cannot execute: required file not found" (exit 127).
           sed -i 's/\r$//' ./gradlew
           chmod +x ./gradlew

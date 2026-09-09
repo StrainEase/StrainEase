@@ -20,6 +20,17 @@ import org.junit.Test
  */
 class LiveStrainAPIWireTest {
 
+    /**
+     * `JsonObject.toWire()` is typed `Any?` because the underlying
+     * `JsonElement.toWire()` returns `Any?` (it has to handle the
+     * `JsonPrimitive` / `JsonArray` / `JsonNull` cases at the top
+     * level too). The test fixtures below only ever feed it
+     * `JsonObject`s, so the wire result is always a `Map<*, *>` —
+     * alias to keep the assertions readable.
+     */
+    private fun kotlinx.serialization.json.JsonObject.toWireMap(): Map<*, *> =
+        toWire() as Map<*, *>
+
     @Test
     fun convertsScalarTypesToPlainValues() {
         val wire = buildJsonObject {
@@ -27,7 +38,7 @@ class LiveStrainAPIWireTest {
             put("inKnowledgeBase", true)
             put("intensity", 5)
             put("rating", 4.5)
-        }.toWire()
+        }.toWireMap()
 
         assertEquals("Blue Dream", wire["name"])
         assertEquals(true, wire["inKnowledgeBase"])
@@ -47,7 +58,7 @@ class LiveStrainAPIWireTest {
                     })
                 })
             })
-        }.toWire()
+        }.toWireMap()
 
         val strain = wire["strain"] as Map<*, *>
         assertEquals("Blue Dream", strain["name"])
@@ -62,7 +73,7 @@ class LiveStrainAPIWireTest {
         val wire = buildJsonObject {
             put("nothing", JsonNull)
             put("big", 1_000_000_000)
-        }.toWire()
+        }.toWireMap()
 
         assertNull(wire["nothing"])
         assertEquals(1_000_000_000, wire["big"])
@@ -74,7 +85,7 @@ class LiveStrainAPIWireTest {
         // Number / Boolean / null — nothing else.
         val wire = buildJsonObject {
             put("name", "Blue Dream")
-        }.toWire()
+        }.toWireMap()
         assertTrue(wire is Map<*, *>)
         assertTrue(wire!!.values.all { it == null || it is Map<*, *> || it is List<*> || it is String || it is Number || it is Boolean })
     }
