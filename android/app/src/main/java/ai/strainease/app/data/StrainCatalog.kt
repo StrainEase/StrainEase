@@ -149,9 +149,10 @@ object StrainCatalog {
      * if the slug has no curated photo. The resilient image view
      * uses this as a fallback tier when the backend's Firebase
      * Storage URL fails to load. Mirrors the iOS
-     * `StrainCatalog.photoURL(for:)` accessor.
+     * `StrainCatalog.photoURL(for:)` accessor (Swift; in Kotlin the
+     * parameter is just `slug` because `for` is a keyword).
      */
-    fun photoURL(for slug: String): String? = photos[photoKey(slug)]
+    fun photoURL(slug: String): String? = photos[photoKey(slug)]
 
     private fun photoKey(slug: String): String = slugAliases[slug] ?: slug
 

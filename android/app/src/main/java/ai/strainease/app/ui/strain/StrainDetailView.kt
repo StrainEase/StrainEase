@@ -322,7 +322,7 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                 type = profile.type,
                 height = 220.dp,
                 cornerRadius = 22.dp,
-                fallbackURLString = StrainCatalog.photoURL(for = profile.slug),
+                fallbackURLString = StrainCatalog.photoURL(profile.slug),
                 modifier = Modifier.clickable { onPhotoClick() },
             )
             // Zoom icon in the bottom-right corner

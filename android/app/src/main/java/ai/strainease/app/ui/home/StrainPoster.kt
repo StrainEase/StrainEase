@@ -113,7 +113,7 @@ fun StrainPoster(
                 urlString = profile.imageUrl,
                 type = profile.type,
                 height = photoHeight ?: if (compact) 108.dp else 132.dp,
-                fallbackURLString = StrainCatalog.photoURL(for = profile.slug),
+                fallbackURLString = StrainCatalog.photoURL(profile.slug),
             )
             TypeBadge(type = profile.type)
             Row(
