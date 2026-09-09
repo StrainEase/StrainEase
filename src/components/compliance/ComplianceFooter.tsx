@@ -35,14 +35,14 @@ export function ComplianceFooter({ className }: { className?: string }) {
           </p>
           <p className="max-w-xl">
             StrainEase is a research tool. It does not sell, ship, or dispense
-            cannabis products. Information is aggregated from public sources
-            and patient reports; it is not medical advice. Always consult a
+            cannabis products. Information is aggregated from public sources and
+            patient reports; it is not medical advice. Always consult a
             qualified clinician and follow your local laws.
           </p>
           <p className="max-w-xl">
-            Keep all cannabis products out of the reach of children and pets.
-            If accidentally consumed, contact Poison Control (1-800-222-1222
-            in the US) or your local emergency line.
+            Keep all cannabis products out of the reach of children and pets. If
+            accidentally consumed, contact Poison Control (1-800-222-1222 in the
+            US) or your local emergency line.
           </p>
         </div>
 

@@ -27,10 +27,7 @@ import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
 import { slugify } from "@/lib/saved-strains";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
-import {
-  compactPrefs,
-  type ResearchPrefs,
-} from "@/lib/research-prefs";
+import { compactPrefs, type ResearchPrefs } from "@/lib/research-prefs";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import {
@@ -112,7 +109,9 @@ export function StrainFinder({
     if (seededMedsRef.current) return;
     if (!defaultMedications || defaultMedications.length === 0) return;
     setPrefs((p) =>
-      p.medications && p.medications !== "" ? p : { ...p, medications: defaultMedications.join(", ") },
+      p.medications && p.medications !== ""
+        ? p
+        : { ...p, medications: defaultMedications.join(", ") },
     );
     seededMedsRef.current = true;
   }, [defaultMedications]);
@@ -196,9 +195,8 @@ export function StrainFinder({
         potency: pref === "" ? undefined : pref,
         prefs: compactPrefs({ ...prefs, reliefSummary }),
       };
-      const res = await cachedRun(
-        cacheKey("recommend", args),
-        () => recommendStrainsCall(args),
+      const res = await cachedRun(cacheKey("recommend", args), () =>
+        recommendStrainsCall(args),
       );
       setResult(res);
       if (res.resultId) {
@@ -256,8 +254,8 @@ export function StrainFinder({
               Find best strains
             </CardTitle>
             <CardDescription>
-              Tell us what you&apos;re treating — we&apos;ll research the strains
-              patients report work best for it.
+              Tell us what you&apos;re treating — we&apos;ll research the
+              strains patients report work best for it.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -366,7 +364,9 @@ export function StrainFinder({
             {reliefHint && (
               <div className="flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
                 <Moon className="mt-0.5 size-4 shrink-0 text-primary" />
-                <p className="text-xs leading-5 text-foreground">{reliefHint}</p>
+                <p className="text-xs leading-5 text-foreground">
+                  {reliefHint}
+                </p>
               </div>
             )}
 
@@ -462,19 +462,17 @@ export function StrainFinder({
               </p>
               {verdictQuotes.length > 0 && (
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {verdictQuotes.map(
-                    ({ strain, note }) => (
-                      <blockquote
-                        key={`${strain}-${note.source}`}
-                        className="rounded-xl bg-card px-4 py-3"
-                      >
-                        <p className="text-sm leading-6">“{note.text}”</p>
-                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                          {strain} · {note.source}
-                        </p>
-                      </blockquote>
-                    ),
-                  )}
+                  {verdictQuotes.map(({ strain, note }) => (
+                    <blockquote
+                      key={`${strain}-${note.source}`}
+                      className="rounded-xl bg-card px-4 py-3"
+                    >
+                      <p className="text-sm leading-6">“{note.text}”</p>
+                      <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                        {strain} · {note.source}
+                      </p>
+                    </blockquote>
+                  ))}
                 </div>
               )}
             </div>
@@ -608,8 +606,8 @@ export function StrainFinder({
             </div>
             {topNames.length < 2 && (
               <p className="-mt-4 text-xs text-muted-foreground">
-                Add at least two recommendations to compare — or use the
-                compare tab to pick your own strains.
+                Add at least two recommendations to compare — or use the compare
+                tab to pick your own strains.
               </p>
             )}
 
@@ -635,8 +633,8 @@ export function StrainFinder({
             <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
               <Sparkles className="size-3.5 shrink-0 text-primary" />
               Recommendations by Dr. Kaya, our AI cannabis care assistant.
-              Synthesized from aggregated public sources. Not medical
-              advice. Consult your healthcare provider.
+              Synthesized from aggregated public sources. Not medical advice.
+              Consult your healthcare provider.
             </p>
 
             <RedditThreads
@@ -657,8 +655,8 @@ export function StrainFinder({
               </h1>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                 Pick what you&apos;re treating on the left — or jump in with a
-                common starting point below. The AI ranks Leafly&apos;s strains by
-                what patients report works best.
+                common starting point below. The AI ranks Leafly&apos;s strains
+                by what patients report works best.
               </p>
             </div>
 

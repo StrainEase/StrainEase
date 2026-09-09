@@ -6,11 +6,7 @@ import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SWCard } from "@/components/ui/sw-card";
 import { applyCatalogPhotos } from "@/lib/strain-catalog";
 import { slugify } from "@/lib/saved-strains";
@@ -163,9 +159,9 @@ function FamilyStrainsSection({
         </div>
       ) : strains.length === 0 ? (
         <p className="mt-4 rounded-2xl border border-dashed border-border/70 bg-card p-6 text-sm text-muted-foreground">
-          No popular strains on Leafly currently list {terpeneName}. Try
-          opening a strain and checking its profile — the full terpene
-          breakdown is inside.
+          No popular strains on Leafly currently list {terpeneName}. Try opening
+          a strain and checking its profile — the full terpene breakdown is
+          inside.
         </p>
       ) : (
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">

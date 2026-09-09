@@ -55,7 +55,4 @@ export const adminApi = {
   },
 };
 
-export type {
-  RedditThreadCandidate,
-  PendingRedditThread,
-};
+export type { RedditThreadCandidate, PendingRedditThread };

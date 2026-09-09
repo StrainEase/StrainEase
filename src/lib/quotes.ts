@@ -218,11 +218,17 @@ const MILD_CAVEATS: { phrase: string; label: string }[] = [
 const THEMES: { label: string; aliases: string[] }[] = [
   { label: "sleep", aliases: ["sleep", "insomnia", "asleep", "sleepless"] },
   { label: "pain", aliases: ["pain", "ache", "aching"] },
-  { label: "anxiety", aliases: ["anxiety", "anxious", "panic", "worry", "ocd"] },
+  {
+    label: "anxiety",
+    aliases: ["anxiety", "anxious", "panic", "worry", "ocd"],
+  },
   { label: "stress", aliases: ["stress", "stressed"] },
   { label: "mood", aliases: ["depression", "depressed", "mood"] },
   { label: "appetite", aliases: ["appetite", "hungry", "nausea"] },
-  { label: "energy or focus", aliases: ["energy", "focus", "productive", "creative"] },
+  {
+    label: "energy or focus",
+    aliases: ["energy", "focus", "productive", "creative"],
+  },
   { label: "body relaxation", aliases: ["relax", "body", "sedat"] },
   { label: "flavor", aliases: ["taste", "flavor", "sweet", "citrus", "berry"] },
   { label: "potency", aliases: ["strong", "potent", "intense"] },
@@ -306,8 +312,7 @@ function topThemes(texts: string[], limit = 3): string[] {
   const scored = THEMES.map((theme) => ({
     label: theme.label,
     hits: texts.reduce(
-      (n, t) =>
-        n + (theme.aliases.some((alias) => t.includes(alias)) ? 1 : 0),
+      (n, t) => n + (theme.aliases.some((alias) => t.includes(alias)) ? 1 : 0),
       0,
     ),
   }))
@@ -416,7 +421,9 @@ export function summarizeChannel(
       rating.reviewCount !== null
         ? ` across ${rating.reviewCount.toLocaleString("en-US")} reviews`
         : "";
-    parts.push(`Leafly patients rate ${name} ${rating.stars.toFixed(1)}★${count}.`);
+    parts.push(
+      `Leafly patients rate ${name} ${rating.stars.toFixed(1)}★${count}.`,
+    );
   }
 
   if (reviews.length > 0) {

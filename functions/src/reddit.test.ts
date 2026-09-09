@@ -72,7 +72,10 @@ describe("commentToCandidate", () => {
 
   test("returns null for deleted or removed bodies", () => {
     for (const body of ["[deleted]", "[removed]"]) {
-      const candidate = commentToCandidate({ ...comment, body }, "Granddaddy Purple");
+      const candidate = commentToCandidate(
+        { ...comment, body },
+        "Granddaddy Purple",
+      );
       expect(candidate).toBeNull();
     }
   });
@@ -89,7 +92,10 @@ describe("uniqueCandidatesByThread", () => {
   test("dedupes comments from the same thread by normalized thread id", () => {
     const candidates = [
       { ...base, url: "https://www.reddit.com/r/trees/comments/abcd1234/x/" },
-      { ...base, url: "https://old.reddit.com/r/trees/comments/abcd1234/x/c1/" },
+      {
+        ...base,
+        url: "https://old.reddit.com/r/trees/comments/abcd1234/x/c1/",
+      },
       { ...base, url: "https://old.reddit.com/r/trees/comments/efgh5678/y/" },
     ];
     const unique = uniqueCandidatesByThread(candidates, 5);

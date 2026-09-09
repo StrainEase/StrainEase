@@ -27,9 +27,7 @@ import type { StrainProfile } from "@/lib/strain-profile";
  * - Aborts on unmount and when inputs change so we never paint stale
  *   text over a fresh strain.
  */
-export function useTailoredDescription(
-  strain: StrainProfile | null,
-): {
+export function useTailoredDescription(strain: StrainProfile | null): {
   description: StrainDescription | null;
   isLoading: boolean;
   error: string | null;
@@ -40,7 +38,9 @@ export function useTailoredDescription(
   const { summary: reliefHistory } = useReliefSummary();
   const ailmentsKey = ailments.join("|");
   const medsKey = medications.join("|");
-  const [description, setDescription] = useState<StrainDescription | null>(null);
+  const [description, setDescription] = useState<StrainDescription | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cache = useRef(new Map<string, StrainDescription>());
@@ -89,7 +89,9 @@ export function useTailoredDescription(
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Could not load description.");
+        setError(
+          err instanceof Error ? err.message : "Could not load description.",
+        );
       })
       .finally(() => {
         if (cancelled) return;

@@ -98,7 +98,10 @@ export const redditCacheRefresh = onSchedule(
           }
         }
       } catch (err) {
-        logger.warn(`redditCacheRefresh: candidate fetch failed for ${name}`, err);
+        logger.warn(
+          `redditCacheRefresh: candidate fetch failed for ${name}`,
+          err,
+        );
       }
     }
 

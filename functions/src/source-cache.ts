@@ -144,10 +144,7 @@ export async function getSourceCache(slug: string): Promise<SourceCache> {
     // Prune any stale entries on read so the caller doesn't have to.
     const now = Date.now();
     const pruned: SourceCache = {};
-    for (const [s, e] of Object.entries(memHit) as [
-      SourceId,
-      SourceEntry,
-    ][]) {
+    for (const [s, e] of Object.entries(memHit) as [SourceId, SourceEntry][]) {
       if (e && isFresherThan(e, now)) pruned[s] = e;
     }
     if (Object.keys(pruned).length > 0) return pruned;

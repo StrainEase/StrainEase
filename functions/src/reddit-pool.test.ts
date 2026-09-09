@@ -25,7 +25,9 @@ const candidate = {
   applicableStrains: ["Granddaddy Purple"],
 };
 
-function vetted(overrides: Partial<VettedRedditThread> = {}): VettedRedditThread {
+function vetted(
+  overrides: Partial<VettedRedditThread> = {},
+): VettedRedditThread {
   return {
     threadId: "abcd1234",
     url: "https://old.reddit.com/r/trees/comments/abcd1234/good-thread/",
@@ -44,12 +46,15 @@ function vetted(overrides: Partial<VettedRedditThread> = {}): VettedRedditThread
 
 describe("Reddit URL helpers", () => {
   test("normalizes Reddit hosts and relative permalinks", () => {
-    expect(normalizeRedditUrl("https://www.reddit.com/r/trees/comments/abcd/title/"))
-      .toBe("https://old.reddit.com/r/trees/comments/abcd/title/");
-    expect(normalizeRedditUrl("/r/trees/comments/abcd/title/"))
-      .toBe("https://old.reddit.com/r/trees/comments/abcd/title/");
-    expect(extractThreadId("https://old.reddit.com/r/trees/comments/abcd/title/"))
-      .toBe("abcd");
+    expect(
+      normalizeRedditUrl("https://www.reddit.com/r/trees/comments/abcd/title/"),
+    ).toBe("https://old.reddit.com/r/trees/comments/abcd/title/");
+    expect(normalizeRedditUrl("/r/trees/comments/abcd/title/")).toBe(
+      "https://old.reddit.com/r/trees/comments/abcd/title/",
+    );
+    expect(
+      extractThreadId("https://old.reddit.com/r/trees/comments/abcd/title/"),
+    ).toBe("abcd");
     expect(extractThreadId("https://example.com/not-reddit")).toBeNull();
   });
 });
@@ -70,13 +75,18 @@ describe("validateCandidateThread", () => {
 
   test("rejects non-Reddit URLs", () => {
     expect(() =>
-      validateCandidateThread({ ...candidate, url: "https://example.com/thread" }, 0),
+      validateCandidateThread(
+        { ...candidate, url: "https://example.com/thread" },
+        0,
+      ),
     ).toThrow(/old\.reddit\.com/);
   });
 
   test("rejects missing applicability arrays", () => {
     const { applicableConditions: _conditions, ...bad } = candidate;
-    expect(() => validateCandidateThread(bad, 0)).toThrow(/applicableConditions/);
+    expect(() => validateCandidateThread(bad, 0)).toThrow(
+      /applicableConditions/,
+    );
   });
 
   test("rejects duplicate thread IDs in a batch", () => {
@@ -187,9 +197,9 @@ describe("requirePoolOperator (admin-callable auth gate)", () => {
   });
 
   test("rejects an anonymous caller (no auth)", () => {
-    expect(() => requirePoolOperator(undefined, operators, "vet threads")).toThrow(
-      PoolOperatorError,
-    );
+    expect(() =>
+      requirePoolOperator(undefined, operators, "vet threads"),
+    ).toThrow(PoolOperatorError);
     expect(() => requirePoolOperator(null, operators, "vet threads")).toThrow(
       PoolOperatorError,
     );
@@ -224,7 +234,9 @@ describe("requirePoolOperator (admin-callable auth gate)", () => {
 });
 
 describe("buildVettedWrite (idempotent re-vet)", () => {
-  function pending(overrides: Partial<PendingRedditThread> = {}): PendingRedditThread {
+  function pending(
+    overrides: Partial<PendingRedditThread> = {},
+  ): PendingRedditThread {
     return {
       threadId: "abcd1234",
       url: "https://old.reddit.com/r/trees/comments/abcd1234/good-thread/",
@@ -258,7 +270,12 @@ describe("buildVettedWrite (idempotent re-vet)", () => {
   });
 
   test("falls back to the candidate addedAt for a fresh write", () => {
-    const doc = buildVettedWrite(pending({ addedAt: 1234 }), undefined, 3000, "op");
+    const doc = buildVettedWrite(
+      pending({ addedAt: 1234 }),
+      undefined,
+      3000,
+      "op",
+    );
     expect(doc.addedAt).toBe(1234);
   });
 
@@ -275,7 +292,9 @@ describe("buildVettedWrite (idempotent re-vet)", () => {
 });
 
 describe("buildCandidateWrite (cron pool writes)", () => {
-  function pending(overrides: Partial<PendingRedditThread> = {}): PendingRedditThread {
+  function pending(
+    overrides: Partial<PendingRedditThread> = {},
+  ): PendingRedditThread {
     return {
       threadId: "abcd1234",
       url: "https://old.reddit.com/r/trees/comments/abcd1234/good-thread/",

@@ -2,14 +2,7 @@
 // because the functions package uses a separate node_modules from the web
 // app. Keep the two in sync if you change the region list.
 
-export type RegionCode =
-  | "US"
-  | "CA"
-  | "CA-AB"
-  | "EU"
-  | "UK"
-  | "AU"
-  | "OTHER";
+export type RegionCode = "US" | "CA" | "CA-AB" | "EU" | "UK" | "AU" | "OTHER";
 
 const REGION_MIN_AGE: Record<RegionCode, number> = {
   US: 21,
@@ -29,7 +22,10 @@ export function minimumAgeFor(region: RegionCode): number {
   return REGION_MIN_AGE[region];
 }
 
-export function calculateAge(birthDate: string, now: Date = new Date()): number {
+export function calculateAge(
+  birthDate: string,
+  now: Date = new Date(),
+): number {
   const parsed = new Date(`${birthDate}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return 0;
   const nowUtc = new Date(

@@ -52,17 +52,26 @@ export default function Terpene() {
             Home
           </Link>
           <p className="rounded-2xl border border-border/70 bg-card p-6 text-sm text-muted-foreground">
-            We don't have a profile for that terpene yet. Try one of the
-            curated ones like{" "}
-            <Link to="/terpene/myrcene" className="text-primary hover:underline">
+            We don't have a profile for that terpene yet. Try one of the curated
+            ones like{" "}
+            <Link
+              to="/terpene/myrcene"
+              className="text-primary hover:underline"
+            >
               myrcene
             </Link>
             ,{" "}
-            <Link to="/terpene/limonene" className="text-primary hover:underline">
+            <Link
+              to="/terpene/limonene"
+              className="text-primary hover:underline"
+            >
               limonene
             </Link>
             , or{" "}
-            <Link to="/terpene/linalool" className="text-primary hover:underline">
+            <Link
+              to="/terpene/linalool"
+              className="text-primary hover:underline"
+            >
               linalool
             </Link>
             .

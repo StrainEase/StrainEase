@@ -112,7 +112,10 @@ function readRating(raw: RawRecord): {
   return out;
 }
 
-function tagged(list: unknown, limit: number): { name: string; votes: number }[] {
+function tagged(
+  list: unknown,
+  limit: number,
+): { name: string; votes: number }[] {
   if (!Array.isArray(list)) return [];
   return list
     .filter(
@@ -200,10 +203,10 @@ function imageFrom(raw: RawRecord): string | undefined {
   const image = raw.image;
   const candidates = [
     typeof avatar === "object" && avatar
-      ? (avatar as RawRecord).original_url ?? (avatar as RawRecord).url
+      ? ((avatar as RawRecord).original_url ?? (avatar as RawRecord).url)
       : undefined,
     typeof image === "object" && image
-      ? (image as RawRecord).url ?? (image as RawRecord).original_url
+      ? ((image as RawRecord).url ?? (image as RawRecord).original_url)
       : undefined,
     raw.image_url,
     raw.photo_url,
@@ -258,10 +261,7 @@ async function fetchBySlug(slug: string): Promise<StrainProfile | null> {
 }
 
 /** Exact name match only — never the first search hit. */
-export function pickWeedmapsSlug(
-  list: unknown,
-  name: string,
-): string | null {
+export function pickWeedmapsSlug(list: unknown, name: string): string | null {
   if (!Array.isArray(list)) return null;
   const wanted = name.trim().toLowerCase();
   const match = list.find((item: RawRecord) => {

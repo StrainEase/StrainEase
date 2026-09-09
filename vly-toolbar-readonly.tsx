@@ -198,7 +198,10 @@ const Overlay: React.FC<{
       overlay.style.pointerEvents = "auto";
 
       // Build ignore list from toolbar ref
-      const shouldIgnore = el && toolbarRef.current && (el === toolbarRef.current || toolbarRef.current.contains(el));
+      const shouldIgnore =
+        el &&
+        toolbarRef.current &&
+        (el === toolbarRef.current || toolbarRef.current.contains(el));
       if (!el || shouldIgnore) return;
 
       if (lastHovered.current !== el) {
@@ -234,7 +237,10 @@ const Overlay: React.FC<{
       overlay.style.pointerEvents = "auto";
 
       // Build ignore list from toolbar ref
-      const shouldIgnore = el && toolbarRef.current && (el === toolbarRef.current || toolbarRef.current.contains(el));
+      const shouldIgnore =
+        el &&
+        toolbarRef.current &&
+        (el === toolbarRef.current || toolbarRef.current.contains(el));
       if (!el || shouldIgnore) return;
 
       if (lastHovered.current)
@@ -341,14 +347,14 @@ export const VlyToolbar: React.FC = () => {
   // Handle escape key to close modal
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showDevOverlay) {
+      if (e.key === "Escape" && showDevOverlay) {
         setShowDevOverlay(false);
       }
     };
-    
+
     if (showDevOverlay) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
     }
   }, [showDevOverlay]);
 
@@ -370,7 +376,7 @@ export const VlyToolbar: React.FC = () => {
 
   return (
     <>
-      { isDevDeployment && showDevOverlay && (
+      {isDevDeployment && showDevOverlay && (
         <div
           onClick={handleOverlayClick}
           role="dialog"
@@ -405,12 +411,13 @@ export const VlyToolbar: React.FC = () => {
                 <div className="flex items-center gap-2 rounded px-2 py-1 transition-colors hover:bg-white/95">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    <span 
+                    <span
                       id="dev-env-label"
                       className="text-sm font-medium text-gray-700"
                       title="Development deployment - should not be shared publicly. Use 'Go to project' to create a production version."
                     >
-                      This is a testing environment. Share only your published project.
+                      This is a testing environment. Share only your published
+                      project.
                     </span>
                   </div>
                 </div>

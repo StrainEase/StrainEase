@@ -22,7 +22,8 @@ import {
 import { extractThreadId, normalizeRedditUrl } from "./reddit-pool";
 
 const PULLPUSH = "https://api.pullpush.io/reddit/search/comment/";
-const ARCTIC_SHIFT = "https://arctic-shift.photon-reddit.com/api/comments/search";
+const ARCTIC_SHIFT =
+  "https://arctic-shift.photon-reddit.com/api/comments/search";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -74,7 +75,14 @@ const FALLBACK_SUBS = [
 ];
 
 const AILMENT_ALIASES: Record<string, string[]> = {
-  insomnia: ["insomnia", "can't sleep", "cant sleep", "sleeping", "asleep", "sleepless"],
+  insomnia: [
+    "insomnia",
+    "can't sleep",
+    "cant sleep",
+    "sleeping",
+    "asleep",
+    "sleepless",
+  ],
   anxiety: ["anxiety", "anxious", "panic"],
   ocd: ["ocd", "anxiety", "anxious", "obsessive"],
   adhd: ["adhd", "add", "add/adhd"],
@@ -185,9 +193,7 @@ function arcticShiftRecentSubredditUrl(
  * times out on the highest-traffic cannabis subs. Instead we filter
  * the dumped comments locally for the strain + ailment keywords.
  */
-async function searchArcticShiftSubreddit(
-  sub: string,
-): Promise<RawComment[]> {
+async function searchArcticShiftSubreddit(sub: string): Promise<RawComment[]> {
   const url = arcticShiftRecentSubredditUrl(sub);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ARCTIC_SHIFT_TIMEOUT_MS);
@@ -241,17 +247,22 @@ async function searchArcticShift(strainName: string): Promise<RawComment[]> {
   const collected: RawComment[] = [];
   // We use a small concurrency budget + stop-early to keep us well
   // under Arctic Shift's "couple req/s" polite-usage guidance.
-  await mapWithConcurrency(FALLBACK_SUBS, ARCTIC_SHIFT_CONCURRENCY, async (sub) => {
-    if (collected.length >= 60) return;
-    const list = await searchArcticShiftSubreddit(sub);
-    for (const c of list) {
-      const body = typeof c.body === "string" ? c.body : "";
-      if (!body) continue;
-    const lower = body.toLowerCase();
-    const words = name.split(/\s+/).filter((word) => word.length > 1);
-    if (lower.includes(name) || words.every((word) => lower.includes(word))) collected.push(c);
-    }
-  });
+  await mapWithConcurrency(
+    FALLBACK_SUBS,
+    ARCTIC_SHIFT_CONCURRENCY,
+    async (sub) => {
+      if (collected.length >= 60) return;
+      const list = await searchArcticShiftSubreddit(sub);
+      for (const c of list) {
+        const body = typeof c.body === "string" ? c.body : "";
+        if (!body) continue;
+        const lower = body.toLowerCase();
+        const words = name.split(/\s+/).filter((word) => word.length > 1);
+        if (lower.includes(name) || words.every((word) => lower.includes(word)))
+          collected.push(c);
+      }
+    },
+  );
   return collected;
 }
 
@@ -489,7 +500,9 @@ export async function fetchRedditQuotesFor(
   names: string[],
   conditions: string[],
 ): Promise<Map<string, CommunityNote[]>> {
-  const unique = [...new Set(names.map((n) => n.trim()).filter((n) => n !== ""))];
+  const unique = [
+    ...new Set(names.map((n) => n.trim()).filter((n) => n !== "")),
+  ];
   const results = await Promise.all(
     unique.map((name) => fetchRedditQuotes(name, conditions)),
   );

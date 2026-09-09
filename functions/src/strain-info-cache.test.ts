@@ -8,7 +8,10 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 const mockGet = mock(() =>
   Promise.resolve({ exists: false, data: () => undefined }),
 );
-const mockDoc = mock(() => ({ get: mockGet, set: mock(() => Promise.resolve()) }));
+const mockDoc = mock(() => ({
+  get: mockGet,
+  set: mock(() => Promise.resolve()),
+}));
 const mockCollection = mock(() => ({ doc: mockDoc }));
 
 mock.module("firebase-admin/firestore", () => ({

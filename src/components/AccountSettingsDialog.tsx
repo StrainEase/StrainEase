@@ -105,8 +105,7 @@ export function AccountSettingsDialog({
             Account settings
           </DialogTitle>
           <DialogDescription>
-            Update how your name appears on notes you share with other
-            patients.
+            Update how your name appears on notes you share with other patients.
           </DialogDescription>
         </DialogHeader>
 
@@ -136,8 +135,8 @@ export function AccountSettingsDialog({
           <div className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-background px-4 py-3">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
             <p className="text-xs leading-5 text-muted-foreground">
-              Your email is never shown publicly. Public notes display
-              only the display name above.
+              Your email is never shown publicly. Public notes display only the
+              display name above.
             </p>
           </div>
 
@@ -253,7 +252,9 @@ export function AccountSettingsDialog({
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "opacity-60",
               )}
-              disabled={!dirty || saving || (nameDirty && draftName.trim() === "")}
+              disabled={
+                !dirty || saving || (nameDirty && draftName.trim() === "")
+              }
               onClick={() => void save()}
             >
               {saving ? "Saving…" : "Save"}

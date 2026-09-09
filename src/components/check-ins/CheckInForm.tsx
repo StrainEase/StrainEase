@@ -27,10 +27,30 @@ const SCALES: {
   hint: string;
   highIsGood: boolean;
 }[] = [
-  { key: "mood", label: "Mood", hint: "1 = awful, 5 = great", highIsGood: true },
-  { key: "sleep", label: "Sleep", hint: "1 = none, 5 = fully rested", highIsGood: true },
-  { key: "pain", label: "Pain", hint: "1 = none, 5 = severe", highIsGood: false },
-  { key: "anxiety", label: "Anxiety", hint: "1 = calm, 5 = severe", highIsGood: false },
+  {
+    key: "mood",
+    label: "Mood",
+    hint: "1 = awful, 5 = great",
+    highIsGood: true,
+  },
+  {
+    key: "sleep",
+    label: "Sleep",
+    hint: "1 = none, 5 = fully rested",
+    highIsGood: true,
+  },
+  {
+    key: "pain",
+    label: "Pain",
+    hint: "1 = none, 5 = severe",
+    highIsGood: false,
+  },
+  {
+    key: "anxiety",
+    label: "Anxiety",
+    hint: "1 = calm, 5 = severe",
+    highIsGood: false,
+  },
 ];
 
 const DEFAULT_METRICS: CheckInMetrics = {
@@ -86,7 +106,9 @@ export function CheckInForm({
       toast("Check-in saved.");
       onSaved?.();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Could not save the check-in.");
+      toast(
+        err instanceof Error ? err.message : "Could not save the check-in.",
+      );
     } finally {
       setBusy(false);
     }
@@ -102,7 +124,9 @@ export function CheckInForm({
       toast("Cleared.");
       onSaved?.();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Could not clear the check-in.");
+      toast(
+        err instanceof Error ? err.message : "Could not clear the check-in.",
+      );
     } finally {
       setBusy(false);
     }
@@ -154,7 +178,10 @@ export function CheckInForm({
                 step={1}
                 value={value}
                 onChange={(e) =>
-                  setMetrics((m) => ({ ...m, [scale.key]: Number(e.target.value) }))
+                  setMetrics((m) => ({
+                    ...m,
+                    [scale.key]: Number(e.target.value),
+                  }))
                 }
                 className="mt-2 w-full cursor-pointer accent-primary"
               />

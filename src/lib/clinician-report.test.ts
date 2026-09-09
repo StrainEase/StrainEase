@@ -29,7 +29,13 @@ function makeLog(daysAgo: number, partial: Partial<ReliefLog>): ReliefLog {
   };
 }
 
-function makeCheckIn(daysAgo: number, mood: number, sleep: number, pain: number, anxiety: number): CheckIn {
+function makeCheckIn(
+  daysAgo: number,
+  mood: number,
+  sleep: number,
+  pain: number,
+  anxiety: number,
+): CheckIn {
   const ts = NOW - daysAgo * 24 * 60 * 60 * 1000;
   const date = new Date(ts);
   const y = date.getFullYear();
@@ -68,10 +74,26 @@ describe("buildClinicianReport", () => {
       medications: [],
       checkIns: [],
       reliefLogs: [
-        makeLog(2, { strainName: "Blue Dream", relief: 5, conditions: ["Insomnia"] }),
-        makeLog(3, { strainName: "Blue Dream", relief: 4, conditions: ["Insomnia"] }),
-        makeLog(5, { strainName: "Godfather OG", fit: "too-strong", relief: 2 }),
-        makeLog(5, { strainName: "Godfather OG", fit: "too-strong", relief: 2 }),
+        makeLog(2, {
+          strainName: "Blue Dream",
+          relief: 5,
+          conditions: ["Insomnia"],
+        }),
+        makeLog(3, {
+          strainName: "Blue Dream",
+          relief: 4,
+          conditions: ["Insomnia"],
+        }),
+        makeLog(5, {
+          strainName: "Godfather OG",
+          fit: "too-strong",
+          relief: 2,
+        }),
+        makeLog(5, {
+          strainName: "Godfather OG",
+          fit: "too-strong",
+          relief: 2,
+        }),
         // Outside the 30-day window — must be excluded from the analysis
         makeLog(60, { strainName: "Ancient", relief: 1, conditions: ["Pain"] }),
       ],
@@ -79,7 +101,9 @@ describe("buildClinicianReport", () => {
       now: NOW,
     });
     expect(report.reliefLogs.totalInWindow).toBe(4);
-    expect(report.reliefLogs.recent.map((l) => l.strainName)).not.toContain("Ancient");
+    expect(report.reliefLogs.recent.map((l) => l.strainName)).not.toContain(
+      "Ancient",
+    );
     expect(report.reliefLogs.topStrains[0]?.strain).toBe("Blue Dream");
     expect(report.reliefLogs.avoid[0]?.strainName).toBe("Godfather OG");
   });
@@ -98,7 +122,11 @@ describe("buildClinicianReport", () => {
       savedStrains: [],
       now: NOW,
     });
-    expect(report.reliefLogs.recent.map((l) => l.strainName)).toEqual(["B", "C", "A"]);
+    expect(report.reliefLogs.recent.map((l) => l.strainName)).toEqual([
+      "B",
+      "C",
+      "A",
+    ]);
   });
 });
 

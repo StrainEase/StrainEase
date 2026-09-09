@@ -17,9 +17,7 @@ export function MedicalDisclaimer({
       ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
       : "border-primary/30 bg-primary/5 text-foreground/90";
   const iconTone =
-    variant === "warn"
-      ? "text-amber-600 dark:text-amber-400"
-      : "text-primary";
+    variant === "warn" ? "text-amber-600 dark:text-amber-400" : "text-primary";
 
   return (
     <aside
@@ -35,10 +33,9 @@ export function MedicalDisclaimer({
         <p className="font-medium">Research information, not medical advice.</p>
         <p className="mt-1 text-foreground/70">
           Strain descriptions, patient reports, and rankings on StrainEase are
-          aggregated from public sources and should not replace guidance from
-          a licensed clinician. Always consult a qualified healthcare provider
-          before starting or changing any treatment, including medical
-          cannabis.
+          aggregated from public sources and should not replace guidance from a
+          licensed clinician. Always consult a qualified healthcare provider
+          before starting or changing any treatment, including medical cannabis.
         </p>
       </div>
     </aside>

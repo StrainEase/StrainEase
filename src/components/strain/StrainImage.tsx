@@ -60,21 +60,18 @@ export function StrainImage({
     setFailedSrc(null);
   }, [url]);
 
-  const showFallback = (!url && !stableUrl) || (url != null && failedSrc === url);
+  const showFallback =
+    (!url && !stableUrl) || (url != null && failedSrc === url);
   const tone = fallbackTone(type);
 
   // Prefer the newly resolved URL once it has loaded; otherwise keep
   // painting the last successful image.
-  const displayUrl = loaded && url ? url : stableUrl ?? url;
+  const displayUrl = loaded && url ? url : (stableUrl ?? url);
 
   if (showFallback && !displayUrl) {
     return (
       <div
-        className={cn(
-          "flex items-center justify-center",
-          tone.box,
-          className,
-        )}
+        className={cn("flex items-center justify-center", tone.box, className)}
         aria-hidden
       >
         <Leaf className={cn("size-6", tone.icon, iconClassName)} />
@@ -91,10 +88,7 @@ export function StrainImage({
     >
       {/* Skeleton only on the very first load when we have nothing to show. */}
       {!displayUrl && (
-        <span
-          aria-hidden
-          className="skeleton-line absolute inset-0"
-        />
+        <span aria-hidden className="skeleton-line absolute inset-0" />
       )}
       {/* Keep the stable (previous) image under the new one while it loads. */}
       {stableUrl && stableUrl !== url && (

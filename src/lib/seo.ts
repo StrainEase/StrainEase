@@ -85,7 +85,10 @@ export function clipMeta(text: string, max = 160): string {
   return `${(lastSpace > 80 ? sliced.slice(0, lastSpace) : sliced).trimEnd()}…`;
 }
 
-export function strainDisplayName(profile: Pick<StrainProfile, "name"> | null, slug: string): string {
+export function strainDisplayName(
+  profile: Pick<StrainProfile, "name"> | null,
+  slug: string,
+): string {
   if (profile?.name?.trim()) return profile.name.trim();
   return slug
     .split("-")
@@ -102,9 +105,13 @@ export function strainDescription(
   name: string,
 ): string {
   if (profile?.description?.trim()) {
-    return clipMeta(`${profile.description.trim()} Research and compare ${name} on StrainEase.`);
+    return clipMeta(
+      `${profile.description.trim()} Research and compare ${name} on StrainEase.`,
+    );
   }
-  const type = profile?.type ? TYPE_LABEL[profile.type] ?? profile.type : null;
+  const type = profile?.type
+    ? (TYPE_LABEL[profile.type] ?? profile.type)
+    : null;
   const thc = profile?.thcRange ? `THC ${profile.thcRange}` : null;
   const uses = (profile?.medicalUses ?? []).slice(0, 3);
   const bits = [type, thc].filter(Boolean).join(", ");
@@ -127,7 +134,9 @@ export function terpeneDescription(
     benefits.length > 0
       ? ` Patients often pair it with ${joinAnd(benefits)}.`
       : "";
-  return clipMeta(`${profile.summary}${extra} See strains that list ${name} on StrainEase.`);
+  return clipMeta(
+    `${profile.summary}${extra} See strains that list ${name} on StrainEase.`,
+  );
 }
 
 export function organizationJsonLd(): Record<string, unknown> {
@@ -169,7 +178,9 @@ export function softwareJsonLd(): Record<string, unknown> {
   };
 }
 
-export function faqJsonLd(faqs: FaqItem[] = SITE_FAQS): Record<string, unknown> {
+export function faqJsonLd(
+  faqs: FaqItem[] = SITE_FAQS,
+): Record<string, unknown> {
   return {
     "@type": "FAQPage",
     mainEntity: faqs.map((item) => ({
@@ -238,11 +249,15 @@ export function strainJsonLd(
           nonProprietaryName: name,
           drugClass: "Cannabis",
           ...(profile.type
-            ? { additionalProperty: [{
-                "@type": "PropertyValue",
-                name: "Chemovar",
-                value: TYPE_LABEL[profile.type] ?? profile.type,
-              }] }
+            ? {
+                additionalProperty: [
+                  {
+                    "@type": "PropertyValue",
+                    name: "Chemovar",
+                    value: TYPE_LABEL[profile.type] ?? profile.type,
+                  },
+                ],
+              }
             : {}),
           ...(uses.length > 0 ? { relevantSpecialty: uses } : {}),
         },
@@ -303,7 +318,12 @@ export function sitemapXml(origin = SITE_ORIGIN): string {
   const urls = publicIndexablePaths()
     .map((entry) => {
       const loc = `${origin}${entry.path}`;
-      const priority = entry.path === "/" ? "1.0" : entry.path.startsWith("/strain/") ? "0.8" : "0.6";
+      const priority =
+        entry.path === "/"
+          ? "1.0"
+          : entry.path.startsWith("/strain/")
+            ? "0.8"
+            : "0.6";
       const changefreq = entry.path === "/" ? "weekly" : "monthly";
       return `  <url>
     <loc>${escapeHtml(loc)}</loc>
@@ -321,7 +341,9 @@ ${urls}
 }
 
 export function robotsTxt(origin = SITE_ORIGIN): string {
-  const disallow = ROBOTS_DISALLOW.map((path) => `Disallow: ${path}`).join("\n");
+  const disallow = ROBOTS_DISALLOW.map((path) => `Disallow: ${path}`).join(
+    "\n",
+  );
   const aiBots = [
     "GPTBot",
     "ChatGPT-User",
@@ -395,7 +417,9 @@ export function llmsFullTxt(origin = SITE_ORIGIN): string {
   const strains = CATALOG.map((strain) => {
     const slug = slugify(strain.name);
     const uses = (strain.medicalUses ?? []).join(", ") || "not listed";
-    const type = strain.type ? TYPE_LABEL[strain.type] ?? strain.type : "unknown";
+    const type = strain.type
+      ? (TYPE_LABEL[strain.type] ?? strain.type)
+      : "unknown";
     return `### ${strain.name}
 
 - URL: ${origin}/strain/${slug}
@@ -418,9 +442,9 @@ export function llmsFullTxt(origin = SITE_ORIGIN): string {
     })
     .join("\n");
 
-  const faqs = SITE_FAQS.map((item) => `Q: ${item.question}\nA: ${item.answer}`).join(
-    "\n\n",
-  );
+  const faqs = SITE_FAQS.map(
+    (item) => `Q: ${item.question}\nA: ${item.answer}`,
+  ).join("\n\n");
 
   return `# ${SITE_NAME} — full notes for language models
 
@@ -497,9 +521,18 @@ export function injectSeoIntoHtml(html: string, page: PublicSeoPage): string {
   const url = absoluteUrl(page.path);
   const image = page.image ?? ogImageUrl();
   let next = html;
-  next = replaceTag(next, /<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(page.title)}</title>`);
+  next = replaceTag(
+    next,
+    /<title>[\s\S]*?<\/title>/i,
+    `<title>${escapeHtml(page.title)}</title>`,
+  );
   next = upsertMeta(next, "name", "description", page.description);
-  next = upsertMeta(next, "name", "robots", "index, follow, max-image-preview:large");
+  next = upsertMeta(
+    next,
+    "name",
+    "robots",
+    "index, follow, max-image-preview:large",
+  );
   next = upsertLink(next, "canonical", url);
   next = upsertMeta(next, "property", "og:type", page.type);
   next = upsertMeta(next, "property", "og:site_name", SITE_NAME);
@@ -530,7 +563,9 @@ function titleCase(value: string): string {
 }
 
 function catalogLine(strain: StrainProfile): string {
-  const type = strain.type ? TYPE_LABEL[strain.type] ?? strain.type : "cannabis";
+  const type = strain.type
+    ? (TYPE_LABEL[strain.type] ?? strain.type)
+    : "cannabis";
   const uses = (strain.medicalUses ?? []).slice(0, 3);
   const useText = uses.length > 0 ? `; reported for ${uses.join(", ")}` : "";
   return `${type}${strain.thcRange ? `, THC ${strain.thcRange}` : ""}${useText}`;
@@ -561,7 +596,9 @@ ${faqs}
 }
 
 function strainNoscript(strain: StrainProfile, slug: string): string {
-  const uses = (strain.medicalUses ?? []).map((use) => `<li>${escapeHtml(use)}</li>`).join("");
+  const uses = (strain.medicalUses ?? [])
+    .map((use) => `<li>${escapeHtml(use)}</li>`)
+    .join("");
   return `<article>
     <h1>${escapeHtml(strain.name)}</h1>
     <p>${escapeHtml(catalogLine(strain))}</p>
@@ -577,7 +614,9 @@ function terpeneNoscript(
   profile: { summary: string; description: string; benefits: string[] },
   slug: string,
 ): string {
-  const benefits = profile.benefits.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const benefits = profile.benefits
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
   return `<article>
     <h1>${escapeHtml(titleCase(name))}</h1>
     <p>${escapeHtml(profile.summary)}</p>
@@ -588,7 +627,11 @@ function terpeneNoscript(
   </article>`;
 }
 
-function replaceTag(html: string, pattern: RegExp, replacement: string): string {
+function replaceTag(
+  html: string,
+  pattern: RegExp,
+  replacement: string,
+): string {
   if (pattern.test(html)) return html.replace(pattern, replacement);
   return html.replace("</head>", `  ${replacement}\n</head>`);
 }
@@ -626,7 +669,10 @@ function upsertNoscript(html: string, inner: string): string {
   const block = `<noscript>\n  ${inner}\n</noscript>`;
   const stripped = html.replace(/<noscript>[\s\S]*?<\/noscript>/i, "");
   if (stripped.includes('<div id="root"></div>')) {
-    return stripped.replace('<div id="root"></div>', `<div id="root"></div>\n${block}`);
+    return stripped.replace(
+      '<div id="root"></div>',
+      `<div id="root"></div>\n${block}`,
+    );
   }
   return stripped.replace("</body>", `${block}\n</body>`);
 }

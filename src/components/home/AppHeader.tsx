@@ -43,10 +43,7 @@ export function AppCompareTray({
   return (
     <CompareTray
       selection={selection}
-      onCompare={
-        onCompare ??
-        (() => navigate(`${FIND_HREF}?mode=compare`))
-      }
+      onCompare={onCompare ?? (() => navigate(`${FIND_HREF}?mode=compare`))}
       isRunning={isRunning}
       className="bottom-[4.75rem] pb-3 sm:bottom-0 sm:pb-[env(safe-area-inset-bottom)]"
     />
@@ -92,10 +89,7 @@ export function AppHeader({
           </Link>
         </div>
 
-        <nav
-          className="hidden items-center gap-1 sm:flex"
-          aria-label="App"
-        >
+        <nav className="hidden items-center gap-1 sm:flex" aria-label="App">
           {APP_NAV.map((item) => (
             <Link
               key={item.id}

@@ -28,10 +28,7 @@ interface AuthProps {
   redirectAfterAuth?: string;
 }
 
-function resolveRedirectAfterAuth(
-  returnTo: string | null,
-  fallback = "/",
-) {
+function resolveRedirectAfterAuth(returnTo: string | null, fallback = "/") {
   if (returnTo?.startsWith("/") && !returnTo.startsWith("//")) {
     return returnTo;
   }
@@ -80,11 +77,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           ? "An account already exists for that email — sign in instead."
           : code === "auth/wrong-password" || code === "auth/invalid-credential"
             ? "Incorrect email or password."
-          : code === "auth/user-not-found"
-            ? "No account found for that email — create one instead."
-            : err instanceof Error
-              ? err.message
-              : "Something went wrong. Please try again.",
+            : code === "auth/user-not-found"
+              ? "No account found for that email — create one instead."
+              : err instanceof Error
+                ? err.message
+                : "Something went wrong. Please try again.",
       );
       setIsLoading(false);
     }
@@ -110,7 +107,10 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     if (code === "auth/operation-not-allowed") {
       return "Apple sign-in isn't enabled for the web yet. In Firebase console → Authentication → Sign-in method → Apple, add a Services ID, Team ID, Key ID, and the .p8 key.";
     }
-    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+    if (
+      code === "auth/popup-closed-by-user" ||
+      code === "auth/cancelled-popup-request"
+    ) {
       return "Apple sign-in was cancelled.";
     }
     if (code === "auth/popup-blocked") {
@@ -218,7 +218,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   />
                 </Link>
               </div>
-              <CardTitle className="text-xl tracking-tight">Welcome to StrainEase</CardTitle>
+              <CardTitle className="text-xl tracking-tight">
+                Welcome to StrainEase
+              </CardTitle>
               <CardDescription>
                 Sign in to compare strains, save your favorites, and keep
                 private notes
@@ -331,7 +333,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="password"
-                    placeholder={mode === "signUp" ? "Create a password (6+ characters)" : "Password"}
+                    placeholder={
+                      mode === "signUp"
+                        ? "Create a password (6+ characters)"
+                        : "Password"
+                    }
                     className="pl-9"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

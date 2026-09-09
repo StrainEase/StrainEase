@@ -2,9 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { act, cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { ComparableStrainPoster } from "@/components/strain/ComparableStrainPoster";
-import {
-  COMPARE_STORAGE_KEY,
-} from "@/hooks/use-compare-selection";
+import { COMPARE_STORAGE_KEY } from "@/hooks/use-compare-selection";
 import type { StrainProfile } from "@/lib/strain-profile";
 
 afterEach(() => {

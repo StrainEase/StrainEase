@@ -47,9 +47,10 @@ function call<TArgs, TResult>(name: string, args: TArgs): Promise<TResult> {
       ),
     );
   }
-  return httpsCallable<TArgs, TResult>(functions, name)(args).then(
-    (result) => result.data,
-  );
+  return httpsCallable<TArgs, TResult>(
+    functions,
+    name,
+  )(args).then((result) => result.data);
 }
 
 /** Vet or re-vet a candidate. The backend records the operator UID and timestamp. */

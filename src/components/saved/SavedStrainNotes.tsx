@@ -194,7 +194,9 @@ export function SavedStrainNotes({
                       );
                   }}
                   aria-label={
-                    note.anonymous ? "Show your name on this review" : "Hide your name on this review"
+                    note.anonymous
+                      ? "Show your name on this review"
+                      : "Hide your name on this review"
                   }
                   title={
                     note.anonymous
@@ -261,9 +263,7 @@ export function SavedStrainNotes({
             ))}
           </div>
           {rating > 0 && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {rating}/5
-            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{rating}/5</p>
           )}
         </div>
         <div className="text-center">
@@ -275,9 +275,7 @@ export function SavedStrainNotes({
               <button
                 key={value}
                 type="button"
-                onClick={() =>
-                  setIntensity(value === intensity ? 0 : value)
-                }
+                onClick={() => setIntensity(value === intensity ? 0 : value)}
                 aria-label={`Set intensity ${value} of 5`}
                 aria-pressed={value <= intensity}
                 className={cn(
@@ -308,7 +306,11 @@ export function SavedStrainNotes({
         <button
           type="button"
           onClick={() => setAnonymous((a) => !a)}
-          aria-label={anonymous ? "Show your name on this review" : "Post review anonymously"}
+          aria-label={
+            anonymous
+              ? "Show your name on this review"
+              : "Post review anonymously"
+          }
           title={
             anonymous
               ? "Anonymous — name hidden from other patients"
@@ -321,7 +323,11 @@ export function SavedStrainNotes({
               : "border-primary/40 bg-primary/10 text-primary",
           )}
         >
-          {anonymous ? <Lock className="size-4" /> : <User className="size-4" />}
+          {anonymous ? (
+            <Lock className="size-4" />
+          ) : (
+            <User className="size-4" />
+          )}
         </button>
         <Button
           type="button"

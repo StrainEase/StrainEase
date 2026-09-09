@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  test,
-} from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 // Build a small but representative Allbud page so the parser is
 // exercised end-to-end without a network call. Real Allbud HTML
@@ -94,8 +87,7 @@ const SAMPLE_BLUE_DREAM_OPTS = {
   effects: ["Creative", "Euphoria", "Happy"],
   medical: ["Anxiety", "Depression", "Pain"],
   flavors: ["Blueberry", "Berry", "Earthy"],
-  lead:
-    "Blue Dream is a sativa dominant hybrid (60% sativa/40% indica) strain. This infamous bud boasts a moderately high THC level.",
+  lead: "Blue Dream is a sativa dominant hybrid (60% sativa/40% indica) strain. This infamous bud boasts a moderately high THC level.",
 };
 
 const SAMPLE_BLUE_DREAM = allbudHtml(SAMPLE_BLUE_DREAM_OPTS);

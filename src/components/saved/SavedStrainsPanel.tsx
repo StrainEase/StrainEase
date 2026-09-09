@@ -85,9 +85,9 @@ export function SavedStrainsPanel() {
           Saving needs Firebase
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-          Add your Firebase keys in the Keys/API keys tab (VITE_FIREBASE_API_KEY,
-          VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID) to save strains
-          and notes.
+          Add your Firebase keys in the Keys/API keys tab
+          (VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN,
+          VITE_FIREBASE_PROJECT_ID) to save strains and notes.
         </p>
       </div>
     );
@@ -110,7 +110,8 @@ export function SavedStrainsPanel() {
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
           Hit "Save" on any strain in your search results, finder picks, or
-          comparisons and it'll show up here where you can write your public review.
+          comparisons and it'll show up here where you can write your public
+          review.
         </p>
       </div>
     );
@@ -204,10 +205,7 @@ export function SavedStrainsPanel() {
               <div className="flex shrink-0 items-center gap-2">
                 {strain.type && (
                   <Badge
-                    className={cn(
-                      typeBadgeClass(strain.type),
-                      "capitalize",
-                    )}
+                    className={cn(typeBadgeClass(strain.type), "capitalize")}
                   >
                     {TYPE_LABEL[strain.type]}
                   </Badge>
@@ -219,7 +217,8 @@ export function SavedStrainsPanel() {
                   size="sm"
                   className="cursor-pointer text-muted-foreground hover:text-destructive"
                   onClick={() => {
-                    if (db && user) void removeSavedStrain(user.uid, strain.slug);
+                    if (db && user)
+                      void removeSavedStrain(user.uid, strain.slug);
                   }}
                 >
                   <Trash2 className="size-4" />
@@ -242,9 +241,9 @@ export function SavedStrainsPanel() {
                   </p>
                   {strain.notes.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Nothing here yet — write your review below. It's public
-                      on this strain's page and shows your name unless you
-                      stay anonymous.
+                      Nothing here yet — write your review below. It's public on
+                      this strain's page and shows your name unless you stay
+                      anonymous.
                     </p>
                   ) : (
                     <ul className="space-y-2.5">
@@ -279,11 +278,11 @@ export function SavedStrainsPanel() {
                                   ? "border-border/70 text-muted-foreground hover:text-foreground"
                                   : "border-primary/40 bg-primary/10 text-primary",
                               )}
-                  title={
-                    note.anonymous
-                      ? "Anonymous — name hidden from other patients"
-                      : "Shown as " + user.name
-                  }
+                              title={
+                                note.anonymous
+                                  ? "Anonymous — name hidden from other patients"
+                                  : "Shown as " + user.name
+                              }
                             >
                               {note.anonymous ? (
                                 <Lock className="size-3" />
@@ -298,7 +297,11 @@ export function SavedStrainsPanel() {
                               className="cursor-pointer rounded-full p-1 text-muted-foreground transition-colors hover:text-destructive"
                               onClick={() => {
                                 if (db && user)
-                                  void removeNote(user.uid, strain.slug, note.id);
+                                  void removeNote(
+                                    user.uid,
+                                    strain.slug,
+                                    note.id,
+                                  );
                               }}
                             >
                               <Trash2 className="size-3.5" />
@@ -353,7 +356,9 @@ export function SavedStrainsPanel() {
                       type="button"
                       size="sm"
                       className="shrink-0 cursor-pointer rounded-full"
-                      disabled={busy || (draft[strain.slug] ?? "").trim() === ""}
+                      disabled={
+                        busy || (draft[strain.slug] ?? "").trim() === ""
+                      }
                       onClick={() => void addNoteFor(strain)}
                     >
                       <Plus className="size-4" />
@@ -385,7 +390,10 @@ export function SavedStrainsPanel() {
                             <div className="flex items-center justify-between gap-2 text-xs">
                               <span className="flex items-center gap-1.5 font-medium capitalize">
                                 {log.rating ? (
-                                  <span className="text-primary" aria-label={`Rated ${log.rating} of 5`}>
+                                  <span
+                                    className="text-primary"
+                                    aria-label={`Rated ${log.rating} of 5`}
+                                  >
                                     {"★".repeat(log.rating)}
                                     <span className="text-muted-foreground/35">
                                       {"★".repeat(5 - log.rating)}
@@ -447,9 +455,9 @@ export function SavedStrainsPanel() {
       })}
 
       <p className="text-xs leading-5 text-muted-foreground">
-        Reviews you write appear publicly on the strain's page. Toggle the
-        lock to stay anonymous (shown as "A patient") or show your name.
-        Reviews are not medical advice.
+        Reviews you write appear publicly on the strain's page. Toggle the lock
+        to stay anonymous (shown as "A patient") or show your name. Reviews are
+        not medical advice.
       </p>
     </div>
   );

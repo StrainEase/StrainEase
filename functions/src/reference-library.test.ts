@@ -60,9 +60,7 @@ describe("validateSeedFile (terpene seed)", () => {
       for (const source of record.sources) {
         expect(source.label).not.toBe("");
         expect(source.url).toMatch(/^https?:\/\//);
-        expect(["pubmed", "review", "nor.org", "other"]).toContain(
-          source.kind,
-        );
+        expect(["pubmed", "review", "nor.org", "other"]).toContain(source.kind);
       }
     }
   });
@@ -293,7 +291,11 @@ describe("seed file integration", () => {
     const t = validateSeedFile(terpeneSeedJson);
     const c = validateSeedFile(cannabinoidSeedJson);
     const i = validateSeedFile(interactionSeedJson);
-    if (t.kind !== "terpene" || c.kind !== "cannabinoid" || i.kind !== "interaction") {
+    if (
+      t.kind !== "terpene" ||
+      c.kind !== "cannabinoid" ||
+      i.kind !== "interaction"
+    ) {
       throw new Error("seed kinds are wrong");
     }
     // Sanity: a few well-known entries are present.
@@ -353,9 +355,7 @@ describe("validateSeedFile (interaction seed)", () => {
       for (const source of record.sources) {
         expect(source.label).not.toBe("");
         expect(source.url).toMatch(/^https?:\/\//);
-        expect(["pubmed", "review", "nor.org", "other"]).toContain(
-          source.kind,
-        );
+        expect(["pubmed", "review", "nor.org", "other"]).toContain(source.kind);
       }
     }
   });
@@ -426,7 +426,9 @@ describe("validateSeedFile (interaction error paths)", () => {
         },
       ],
     };
-    expect(() => validateSeedFile(bad)).toThrow(/discussWithPrescriber must be true/);
+    expect(() => validateSeedFile(bad)).toThrow(
+      /discussWithPrescriber must be true/,
+    );
   });
 
   test("rejects an interaction record with an unknown drugClass", () => {
@@ -481,7 +483,9 @@ describe("validateSeedFile (interaction error paths)", () => {
         },
       ],
     };
-    expect(() => validateSeedFile(bad)).toThrow(/cannabisInteraction must be an object/);
+    expect(() => validateSeedFile(bad)).toThrow(
+      /cannabisInteraction must be an object/,
+    );
   });
 
   test("rejects duplicate slugs across interaction entries", () => {
@@ -567,10 +571,7 @@ describe("lookupInteractions", () => {
   test("returns multiple records for multiple known drugs", () => {
     const out = lookupInteractions(records, ["sertraline", "warfarin"]);
     expect(out.length).toBe(2);
-    expect(out.map((r) => r.slug).sort()).toEqual([
-      "sertraline",
-      "warfarin",
-    ]);
+    expect(out.map((r) => r.slug).sort()).toEqual(["sertraline", "warfarin"]);
   });
 
   test("returns an empty array for an unknown drug name", () => {
@@ -607,10 +608,7 @@ describe("lookupInteractions", () => {
       "warfarin",
     ]);
     expect(out.length).toBe(2);
-    expect(out.map((r) => r.slug).sort()).toEqual([
-      "sertraline",
-      "warfarin",
-    ]);
+    expect(out.map((r) => r.slug).sort()).toEqual(["sertraline", "warfarin"]);
   });
 
   test("returns an empty array when the library is empty", () => {

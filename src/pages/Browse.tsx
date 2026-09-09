@@ -7,7 +7,11 @@ import { useAilments } from "@/hooks/use-ailments";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { CATALOG } from "@/lib/strain-catalog";
-import { parseBrowseParams, sectionTitle, strainsFor } from "@/lib/home-sections";
+import {
+  parseBrowseParams,
+  sectionTitle,
+  strainsFor,
+} from "@/lib/home-sections";
 import { documentTitle } from "@/lib/site";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";

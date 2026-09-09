@@ -36,7 +36,9 @@ export function loadRecentlyViewed(): StrainProfile[] {
         thcRange: typeof rec.thcRange === "string" ? rec.thcRange : undefined,
         imageUrl: typeof rec.imageUrl === "string" ? rec.imageUrl : undefined,
         medicalUses: Array.isArray(rec.medicalUses)
-          ? rec.medicalUses.filter((use): use is string => typeof use === "string")
+          ? rec.medicalUses.filter(
+              (use): use is string => typeof use === "string",
+            )
           : undefined,
       });
     }

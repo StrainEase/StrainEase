@@ -27,11 +27,27 @@ function thcMidpoint(range: string | undefined): number | null {
 }
 
 const EFFECT_BUCKETS = [
-  { id: "relaxed", label: "Relaxing", match: ["relaxed", "calm", "calming", "soothing"] },
+  {
+    id: "relaxed",
+    label: "Relaxing",
+    match: ["relaxed", "calm", "calming", "soothing"],
+  },
   { id: "sleepy", label: "Sleepy", match: ["sleepy", "sedated", "drowsy"] },
-  { id: "happy", label: "Happy", match: ["happy", "euphoric", "uplifted", "giggly"] },
-  { id: "focused", label: "Focused", match: ["focused", "creative", "aroused"] },
-  { id: "energetic", label: "Energetic", match: ["energetic", "tingly", "talkative"] },
+  {
+    id: "happy",
+    label: "Happy",
+    match: ["happy", "euphoric", "uplifted", "giggly"],
+  },
+  {
+    id: "focused",
+    label: "Focused",
+    match: ["focused", "creative", "aroused"],
+  },
+  {
+    id: "energetic",
+    label: "Energetic",
+    match: ["energetic", "tingly", "talkative"],
+  },
   { id: "hungry", label: "Hungry", match: ["hungry", "appetite"] },
 ];
 
@@ -77,12 +93,18 @@ describe("strainMatchesBucket", () => {
   });
 
   test("matches the lowercase effect name in the bucket list", () => {
-    expect(strainMatchesBucket(profile(["Relaxed"]), EFFECT_BUCKETS[0])).toBe(true);
-    expect(strainMatchesBucket(profile(["Sleepy", "Happy"]), EFFECT_BUCKETS[1])).toBe(true);
+    expect(strainMatchesBucket(profile(["Relaxed"]), EFFECT_BUCKETS[0])).toBe(
+      true,
+    );
+    expect(
+      strainMatchesBucket(profile(["Sleepy", "Happy"]), EFFECT_BUCKETS[1]),
+    ).toBe(true);
   });
 
   test("does not match unrelated effects", () => {
-    expect(strainMatchesBucket(profile(["Focused"]), EFFECT_BUCKETS[0])).toBe(false);
+    expect(strainMatchesBucket(profile(["Focused"]), EFFECT_BUCKETS[0])).toBe(
+      false,
+    );
     expect(strainMatchesBucket(profile([]), EFFECT_BUCKETS[2])).toBe(false);
   });
 
@@ -111,8 +133,12 @@ describe("directory ailment filter", () => {
   }
 
   test("keeps strains whose medicalUses include the condition", () => {
-    expect(ailmentMatches(profile(["Insomnia", "Stress"]).medicalUses, "Insomnia")).toBe(true);
-    expect(ailmentMatches(profile(["Stress"]).medicalUses, "Insomnia")).toBe(false);
+    expect(
+      ailmentMatches(profile(["Insomnia", "Stress"]).medicalUses, "Insomnia"),
+    ).toBe(true);
+    expect(ailmentMatches(profile(["Stress"]).medicalUses, "Insomnia")).toBe(
+      false,
+    );
   });
 
   test("AND-combines multiple conditions", () => {
@@ -122,8 +148,12 @@ describe("directory ailment filter", () => {
       profile(["Chronic pain"]),
     ];
     const kept = strains.filter((s) =>
-      ["Insomnia", "Chronic pain"].every((c) => ailmentMatches(s.medicalUses, c)),
+      ["Insomnia", "Chronic pain"].every((c) =>
+        ailmentMatches(s.medicalUses, c),
+      ),
     );
-    expect(kept.map((s) => s.medicalUses)).toEqual([["Insomnia", "Chronic pain"]]);
+    expect(kept.map((s) => s.medicalUses)).toEqual([
+      ["Insomnia", "Chronic pain"],
+    ]);
   });
 });

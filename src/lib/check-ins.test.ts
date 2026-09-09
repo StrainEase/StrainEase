@@ -10,13 +10,17 @@ import {
   __test,
 } from "./check-ins";
 
-function makeCheckIn(daysAgo: number, base: {
-  mood: number;
-  sleep: number;
-  pain: number;
-  anxiety: number;
-  note?: string;
-}, baseDay = "2026-08-10") {
+function makeCheckIn(
+  daysAgo: number,
+  base: {
+    mood: number;
+    sleep: number;
+    pain: number;
+    anxiety: number;
+    note?: string;
+  },
+  baseDay = "2026-08-10",
+) {
   const [y, m, d] = baseDay.split("-").map((n) => Number(n));
   const date = new Date(Date.UTC(y, m - 1, d));
   date.setUTCDate(date.getUTCDate() - daysAgo);
@@ -75,7 +79,10 @@ describe("normalizeMetrics", () => {
 describe("dataPayload", () => {
   test("round-trips metrics and note through the rule-safe shape", () => {
     const payload = __test.dataPayload(
-      { metrics: { mood: 4, sleep: 3, pain: 2, anxiety: 5 }, note: "  felt ok " },
+      {
+        metrics: { mood: 4, sleep: 3, pain: 2, anxiety: 5 },
+        note: "  felt ok ",
+      },
       "2026-08-10",
       1234,
     );

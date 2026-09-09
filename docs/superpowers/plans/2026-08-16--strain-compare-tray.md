@@ -104,6 +104,7 @@ Edit `src/components/directory/StrainDirectory.tsx`:
 - Remove the per-card "Compare" button (lines 378–389). Keep "View" only.
 
 **Gate:** Manual smoke:
+
 1. Open `/strain/blue-dream`, tap "Add to compare" — redirected to `/auth` (if signed out) → on return, tray shows "Blue Dream (1/3)".
 2. Tap "Add to compare" again on the same strain — tray chip toggles off.
 3. Open a second strain, tap "Add to compare" — tray now has 2.
@@ -178,6 +179,7 @@ Edit `ios/StrainEase/Strain/StrainDetailView.swift`:
 - Action: `compareStore?.toggle(profile.name)`.
 
 **Gate:** Manual smoke:
+
 1. Open a strain on Browse → tap detail → tap toolbar compare button → tray updates (back on Browse tab the tray shows the chip).
 2. Tap toggle on detail page for the same strain again → tray chip removed.
 3. Open two more strains, tap toggle on each → tray shows 3.
@@ -198,15 +200,15 @@ Within each track, do not advance to the next step until the previous step's gat
 
 ## Risks and mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-| --- | --- | --- | --- |
-| `useSearchParams.set` write-back causes render loops under React 19 StrictMode | Medium | High | W1's hook tests cover the round-trip. If it loops, guard writes with a `useRef` to skip the first sync. |
-| FindModel `@Environment(CompareSelectionStore.self)` doesn't work because `@Observable` requires explicit injection at the model layer | High | Medium | The plan resolves this via `init(compareStore:)`, not `@Environment`. If `@Environment` is preferred, the smoke test catches it. |
-| Wiring `compareTray` (currently dead) into FindView breaks its existing layout | Medium | Medium | `compareTray` already has the right shape (chips + CTA) — it just wasn't rendered. Smoke test on the Find tab will catch any layout regressions. |
-| `MainTabView` already injects other stores (`AuthSession`, `SavedStrainsStore`, etc.) via environment; adding a 4th store collides with Preview helpers that don't include it | Medium | Low | The preview helpers (`PreviewStrainAPI`, `DelayedPreviewAPI`) don't need the compare store. `MainTabView` only injects it on the live path. Previews that need it can add `.environment(CompareSelectionStore())` at the preview site. |
-| `useCompareSelection` URL writes trigger re-fetches in any effect that depends on `searchParams` | Low | Medium | W1 tests + Dashboard smoke test (no infinite re-render in dev tools) catch this. |
-| The legacy `?strains=` emitters (`Strain.tsx:231`, `StrainDirectory.tsx:384`) silently break after the Dashboard effect removal | Low | High | The hook replaces the effect; both emitters navigate to URLs the hook reads. Manual smoke in W3 verifies. |
-| Tray sheet's internal `NavigationStack` causes a duplicate sheet-stacked-on-sheet on iOS | Low | Low | W3 / I3 smoke test. If it occurs, present the tray result as a `fullScreenCover` instead of `sheet`. |
+| Risk                                                                                                                                                                          | Likelihood | Impact | Mitigation                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useSearchParams.set` write-back causes render loops under React 19 StrictMode                                                                                                | Medium     | High   | W1's hook tests cover the round-trip. If it loops, guard writes with a `useRef` to skip the first sync.                                                                                                                                |
+| FindModel `@Environment(CompareSelectionStore.self)` doesn't work because `@Observable` requires explicit injection at the model layer                                        | High       | Medium | The plan resolves this via `init(compareStore:)`, not `@Environment`. If `@Environment` is preferred, the smoke test catches it.                                                                                                       |
+| Wiring `compareTray` (currently dead) into FindView breaks its existing layout                                                                                                | Medium     | Medium | `compareTray` already has the right shape (chips + CTA) — it just wasn't rendered. Smoke test on the Find tab will catch any layout regressions.                                                                                       |
+| `MainTabView` already injects other stores (`AuthSession`, `SavedStrainsStore`, etc.) via environment; adding a 4th store collides with Preview helpers that don't include it | Medium     | Low    | The preview helpers (`PreviewStrainAPI`, `DelayedPreviewAPI`) don't need the compare store. `MainTabView` only injects it on the live path. Previews that need it can add `.environment(CompareSelectionStore())` at the preview site. |
+| `useCompareSelection` URL writes trigger re-fetches in any effect that depends on `searchParams`                                                                              | Low        | Medium | W1 tests + Dashboard smoke test (no infinite re-render in dev tools) catch this.                                                                                                                                                       |
+| The legacy `?strains=` emitters (`Strain.tsx:231`, `StrainDirectory.tsx:384`) silently break after the Dashboard effect removal                                               | Low        | High   | The hook replaces the effect; both emitters navigate to URLs the hook reads. Manual smoke in W3 verifies.                                                                                                                              |
+| Tray sheet's internal `NavigationStack` causes a duplicate sheet-stacked-on-sheet on iOS                                                                                      | Low        | Low    | W3 / I3 smoke test. If it occurs, present the tray result as a `fullScreenCover` instead of `sheet`.                                                                                                                                   |
 
 ## Critical files / systems / interfaces
 

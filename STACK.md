@@ -1,6 +1,7 @@
 ## Overview
 
 This project uses the following tech stack:
+
 - Vite
 - Typescript
 - React Router v7 (all imports from `react-router` instead of `react-router-dom`)
@@ -39,7 +40,6 @@ VITE_GOOGLE_CLIENT_ID=...
 `VITE_GOOGLE_CLIENT_ID` is the Google OAuth Web Client ID. Google sign-in uses Google Identity Services directly (not Firebase's built-in popup/redirect) to avoid Safari's storage-partitioning and IndexedDB-closing bugs. Get the value from the Firebase console → Authentication → Sign-in method → Google → "Web SDK configuration" → "Web client ID".
 
 The backend uses Firebase Secrets for sensitive values. The only one in use today is `GROQ_API_KEY`, set with `firebase functions:secrets:set GROQ_API_KEY`.
-
 
 # Using Authentication (Important!)
 
@@ -91,15 +91,15 @@ behind a region-aware age verification step. This is enforced both client-side
 
 ## Minimum age by region
 
-| Region | Minimum age |
-| ------ | ----------- |
-| US (recreational & medical markets) | 21+ |
-| Canada (most provinces) | 19+ |
-| Canada (Alberta) | 18+ |
-| EU (Germany, Netherlands, Malta, etc.) | 18+ |
-| UK (medicinal only) | 18+ |
-| Australia (medicinal, ACT 18+ recreat.) | 18+ |
-| Other / not listed | 21+ (conservative default) |
+| Region                                  | Minimum age                |
+| --------------------------------------- | -------------------------- |
+| US (recreational & medical markets)     | 21+                        |
+| Canada (most provinces)                 | 19+                        |
+| Canada (Alberta)                        | 18+                        |
+| EU (Germany, Netherlands, Malta, etc.)  | 18+                        |
+| UK (medicinal only)                     | 18+                        |
+| Australia (medicinal, ACT 18+ recreat.) | 18+                        |
+| Other / not listed                      | 21+ (conservative default) |
 
 See `src/lib/age-policy.ts` and `functions/src/age.ts` for the canonical
 tables. Keep the two in sync.
@@ -156,12 +156,12 @@ days pass.
 
 ## Legal pages
 
-| Page | Path | What's in it |
-| ---- | ---- | ------------ |
-| Age & legal policy | `/legal | Region table, link to docs, child-safety warning |
-| Terms of Service | `/legal/terms` | Acceptable use, no medical advice, liability |
-| Privacy Policy | `/legal/privacy` | What we collect, GDPR / CCPA / COPPA rights |
-| Medical Disclaimer | `/legal/medical` | Why information is not medical advice |
+| Page               | Path             | What's in it                                     |
+| ------------------ | ---------------- | ------------------------------------------------ |
+| Age & legal policy | `/legal          | Region table, link to docs, child-safety warning |
+| Terms of Service   | `/legal/terms`   | Acceptable use, no medical advice, liability     |
+| Privacy Policy     | `/legal/privacy` | What we collect, GDPR / CCPA / COPPA rights      |
+| Medical Disclaimer | `/legal/medical` | Why information is not medical advice            |
 
 ## Adding a new region
 
@@ -188,6 +188,7 @@ When adding a page, update the react router configuration in `src/main.tsx` to i
 ## Shad CN conventions
 
 Follow these conventions when using Shad CN components, which you should use by default.
+
 - Remember to use "cursor-pointer" to make the element clickable
 - For title text, use the "tracking-tight font-bold" class to make the text more readable
 - Always make apps MOBILE RESPONSIVE. This is important
@@ -195,10 +196,10 @@ Follow these conventions when using Shad CN components, which you should use by 
 - AVOID SHADOWS. Avoid adding any shadows to components. stick with a thin border without the shadow.
 - Avoid skeletons; instead, use the loader2 component to show a spinning loading state when loading data.
 
-
 ## Landing Pages
 
-You must always create good-looking designer-level styles to your application. 
+You must always create good-looking designer-level styles to your application.
+
 - Make it well animated and fit a certain "theme", ie neo brutalist, retro, neumorphism, glass morphism, etc
 
 Use known images and emojis from online.
@@ -221,8 +222,8 @@ You must add animations to components using Framer Motion. It is already install
 
 To use it, import the `motion` component from `framer-motion` and use it to wrap the component you want to animate.
 
-
 ### Other Items to animate
+
 - Fade in and Fade Out
 - Slide in and Slide Out animations
 - Rendering animations
@@ -233,7 +234,6 @@ Animate for all components, including on landing page and app pages.
 ## Three JS Graphics
 
 Your app comes with three js by default. You can use it to create 3D graphics for landing pages, games, etc.
-
 
 ## Colors
 
@@ -293,7 +293,7 @@ Remember to import { toast } from "sonner". Usage: `toast("Event has been create
 
 Always ensure your larger dialogs have a scroll in its content to ensure that its content fits the screen size. Make sure that the content is not cut off from the screen.
 
-Ideally, instead of using a new page, use a Dialog instead. 
+Ideally, instead of using a new page, use a Dialog instead.
 
 # Using the Firebase backend
 

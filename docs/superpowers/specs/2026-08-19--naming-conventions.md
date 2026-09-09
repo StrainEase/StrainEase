@@ -14,22 +14,22 @@ when naming things, and a reference for humans during code review.
 
 ## TL;DR
 
-| Thing | Format | Example |
-| --- | --- | --- |
-| Branch | `<type>/<kebab-slug>` | `fix/ios-tailored-description-pr2` |
-| Auto branch (agent-generated, **placeholder only**) | `<type>/auto-YYYYMMDD-<id>` | `feat/auto-20260819-15661046` — rename before any work, see § 1 |
-| Worktree dir | `<type>-auto-YYYYMMDD-<id>` (slash → dash) | `feat-auto-20260819-15661046` |
-| Commit subject | `<type>(<scope>): <summary>` | `feat(auth): refresh firebase token after age verification` |
-| PR title | Same as commit subject (one PR = one logical change) | `fix(web): tighten spacing on the Compare / Saved nav pills` |
-| Spec / plan file | `docs/superpowers/specs/YYYY-MM-DD--<slug>.md` | `docs/superpowers/specs/2026-08-16--strain-compare-tray.md` |
-| React component file | `PascalCase.tsx` | `CompareTray.tsx` |
-| Hook file | `use-kebab-case.ts` | `use-compare-selection.ts` |
-| Plain module (lib / util) | `kebab-case.ts` | `strain-catalog.ts` |
-| Test file | `<unit>.test.ts(x)` next to the unit | `use-compare-selection.test.ts` |
-| Env var / secret | `SCREAMING_SNAKE_CASE` | `GROQ_API_KEY`, `VITE_GOOGLE_CLIENT_ID` |
-| Firestore collection | `camelCase` (already conventioned in `firestore.rules`) | `savedStrains` |
-| Firebase callable | `camelCase` (Cloud Function export) | `compareStrains`, `setAgeVerified` |
-| URL path / route | `kebab-case` | `/strain-detail`, `/account-settings` |
+| Thing                                               | Format                                                  | Example                                                         |
+| --------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
+| Branch                                              | `<type>/<kebab-slug>`                                   | `fix/ios-tailored-description-pr2`                              |
+| Auto branch (agent-generated, **placeholder only**) | `<type>/auto-YYYYMMDD-<id>`                             | `feat/auto-20260819-15661046` — rename before any work, see § 1 |
+| Worktree dir                                        | `<type>-auto-YYYYMMDD-<id>` (slash → dash)              | `feat-auto-20260819-15661046`                                   |
+| Commit subject                                      | `<type>(<scope>): <summary>`                            | `feat(auth): refresh firebase token after age verification`     |
+| PR title                                            | Same as commit subject (one PR = one logical change)    | `fix(web): tighten spacing on the Compare / Saved nav pills`    |
+| Spec / plan file                                    | `docs/superpowers/specs/YYYY-MM-DD--<slug>.md`          | `docs/superpowers/specs/2026-08-16--strain-compare-tray.md`     |
+| React component file                                | `PascalCase.tsx`                                        | `CompareTray.tsx`                                               |
+| Hook file                                           | `use-kebab-case.ts`                                     | `use-compare-selection.ts`                                      |
+| Plain module (lib / util)                           | `kebab-case.ts`                                         | `strain-catalog.ts`                                             |
+| Test file                                           | `<unit>.test.ts(x)` next to the unit                    | `use-compare-selection.test.ts`                                 |
+| Env var / secret                                    | `SCREAMING_SNAKE_CASE`                                  | `GROQ_API_KEY`, `VITE_GOOGLE_CLIENT_ID`                         |
+| Firestore collection                                | `camelCase` (already conventioned in `firestore.rules`) | `savedStrains`                                                  |
+| Firebase callable                                   | `camelCase` (Cloud Function export)                     | `compareStrains`, `setAgeVerified`                              |
+| URL path / route                                    | `kebab-case`                                            | `/strain-detail`, `/account-settings`                           |
 
 ---
 
@@ -43,19 +43,19 @@ when naming things, and a reference for humans during code review.
 
 `<type>` is one of:
 
-| Type | Use for |
-| --- | --- |
-| `feat` | New user-facing capability |
-| `fix` | Bug fix |
-| `chore` | Tooling, deps, refactors with no user-visible change |
-| `docs` | Documentation only |
-| `refactor` | Code restructuring with no behavior change |
-| `perf` | Performance improvement |
-| `test` | Adding or fixing tests only |
-| `build` | Build system / CI changes |
-| `ci` | CI workflow changes only |
-| `style` | Visual/cosmetic only (formatting, spacing) — see note below |
-| `hotfix` | Urgent production fix off `main` (rare) |
+| Type       | Use for                                                     |
+| ---------- | ----------------------------------------------------------- |
+| `feat`     | New user-facing capability                                  |
+| `fix`      | Bug fix                                                     |
+| `chore`    | Tooling, deps, refactors with no user-visible change        |
+| `docs`     | Documentation only                                          |
+| `refactor` | Code restructuring with no behavior change                  |
+| `perf`     | Performance improvement                                     |
+| `test`     | Adding or fixing tests only                                 |
+| `build`    | Build system / CI changes                                   |
+| `ci`       | CI workflow changes only                                    |
+| `style`    | Visual/cosmetic only (formatting, spacing) — see note below |
+| `hotfix`   | Urgent production fix off `main` (rare)                     |
 
 `<short-kebab-slug>` is lowercase, dash-separated, ≤ ~40 chars, no trailing dash, no double dash.
 
@@ -67,8 +67,8 @@ when naming things, and a reference for humans during code review.
   back for review and a follow-up push is needed before merge; bump the number rather than
   mutating the slug.
 - `-auto-YYYYMMDD-<id>` — append when an AI agent (or any automated flow) generated the branch
-  with no human-readable intent at the time of creation. The date is the branch's *creation
-  date* and `<id>` is a short stable identifier (8 hex chars is enough). The repo uses this for
+  with no human-readable intent at the time of creation. The date is the branch's _creation
+  date_ and `<id>` is a short stable identifier (8 hex chars is enough). The repo uses this for
   every AI-generated branch on `feat/auto-*` and `fix/auto-*`.
 
 ### Examples already in the repo
@@ -173,7 +173,7 @@ The repo follows **Conventional Commits**. Subject line:
   `deps`, `ci`, `infra`, `landing`, `compare`, `saved`, `auth`, `notes`, `cache`, `groq`,
   `firebase`, `firestore`. Compound scopes are allowed with `+`: `feat(iOS+web): ...`.
 - **`<summary>`** — imperative mood, lowercase first letter, no trailing period, ≤ 72 chars.
-  Reference the *what* and *why*, not the diff.
+  Reference the _what_ and _why_, not the diff.
 
 ### Examples already in the repo
 
@@ -200,7 +200,7 @@ fix(iOS): drop the note badge from the StrainDetailView hero + toolbar heart
   `fix`. Use it for shimmers, spacing, color tweaks, font changes, copy polish. Reserve `fix`
   for actual broken behavior.
 - Emojis are allowed (see the `✨` in `feat(iOS): day/night gradient parity, ... ✨ Ask Kaya
-  elaboration`). Use them sparingly and only when they help a human scanning the log.
+elaboration`). Use them sparingly and only when they help a human scanning the log.
 - Body and footer (Breaking change, Refs) are optional. Use a `BREAKING CHANGE:` footer when
   shipping a public-API change (callable signature, Firestore schema, env var).
 
@@ -209,7 +209,7 @@ fix(iOS): drop the note badge from the StrainDetailView hero + toolbar heart
 - One commit per logical change when possible. Squash a series of `wip` / `fix typo` /
   `rebase` commits before opening a PR.
 - Don't use the branch type as the commit type. A `fix/*` branch can have `feat` commits if
-  the fix also adds a small capability. Types describe the *commit*, not the *branch*.
+  the fix also adds a small capability. Types describe the _commit_, not the _branch_.
 - If you must ship a WIP, prefix the subject with `wip: ` and tighten it up before merge.
 
 ---
@@ -220,12 +220,12 @@ fix(iOS): drop the note badge from the StrainDetailView hero + toolbar heart
 the PR title mirrors the subject of the squashed/merged commit. One PR = one logical change
 (squash-merge friendly).
 
-- If the PR spans multiple commits, the title summarizes the *headline* change. Don't enumerate
+- If the PR spans multiple commits, the title summarizes the _headline_ change. Don't enumerate
   sub-changes in the title — that's what the PR description is for.
 - Title-only (no body) is acceptable for trivial PRs; non-trivial PRs should reference the
   matching `docs/superpowers/specs/...` or `docs/superpowers/plans/...` file in the body.
-- Use the `feat(*)` type even if the underlying branch is `fix/*` when the *net* change is a
-  new capability. Match the title to the *change*, not the *branch*.
+- Use the `feat(*)` type even if the underlying branch is `fix/*` when the _net_ change is a
+  new capability. Match the title to the _change_, not the _branch_.
 
 ---
 
@@ -252,20 +252,20 @@ extra metadata (no timestamps, no usernames); the branch already has it.
 These rules are not enforced by `eslint` today. They're a contract for AI agents and a
 review checklist for humans.
 
-| Kind | Format | Example | Notes |
-| --- | --- | --- | --- |
-| React component | `PascalCase.tsx` | `CompareTray.tsx` | One default export per file; filename matches the component. |
-| React component test | `PascalCase.test.tsx` | `CompareTray.test.tsx` | Lives next to the component. |
-| Hook | `use-kebab-case.ts` | `use-compare-selection.ts` | Default export pattern in this repo. |
-| Hook test | `use-kebab-case.test.ts` | `use-compare-selection.test.ts` | Next to the hook. |
-| Pure module (lib, util) | `kebab-case.ts` | `strain-catalog.ts` | Named exports; no default. |
-| Pure module test | `kebab-case.test.ts` | `strain-catalog.test.ts` | Next to the module. |
-| Cloud Function entrypoint | `index.ts` | `functions/src/index.ts` | One file, the deployable entry. |
-| Helper inside `functions/src` | `kebab-case.ts` | `image-cache.ts`, `groq.ts` | Same as the lib rule. |
-| Type-only file | `kebab-case.ts` | `functions/src/types.ts` | Exports only `type` / `interface`. |
-| iOS SwiftUI view | `PascalCaseView.swift` | `StrainDetailView.swift` | Matches the type inside. |
-| Spec / plan markdown | `docs/superpowers/{specs,plans}/YYYY-MM-DD--<slug>.md` | `docs/superpowers/specs/2026-08-16--strain-compare-tray.md` | See § 6. |
-| Config / data at repo root | lowercase, dotfile or one-word | `firestore.rules`, `firebase.json`, `vite.config.ts` | Project root only. |
+| Kind                          | Format                                                 | Example                                                     | Notes                                                        |
+| ----------------------------- | ------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------ |
+| React component               | `PascalCase.tsx`                                       | `CompareTray.tsx`                                           | One default export per file; filename matches the component. |
+| React component test          | `PascalCase.test.tsx`                                  | `CompareTray.test.tsx`                                      | Lives next to the component.                                 |
+| Hook                          | `use-kebab-case.ts`                                    | `use-compare-selection.ts`                                  | Default export pattern in this repo.                         |
+| Hook test                     | `use-kebab-case.test.ts`                               | `use-compare-selection.test.ts`                             | Next to the hook.                                            |
+| Pure module (lib, util)       | `kebab-case.ts`                                        | `strain-catalog.ts`                                         | Named exports; no default.                                   |
+| Pure module test              | `kebab-case.test.ts`                                   | `strain-catalog.test.ts`                                    | Next to the module.                                          |
+| Cloud Function entrypoint     | `index.ts`                                             | `functions/src/index.ts`                                    | One file, the deployable entry.                              |
+| Helper inside `functions/src` | `kebab-case.ts`                                        | `image-cache.ts`, `groq.ts`                                 | Same as the lib rule.                                        |
+| Type-only file                | `kebab-case.ts`                                        | `functions/src/types.ts`                                    | Exports only `type` / `interface`.                           |
+| iOS SwiftUI view              | `PascalCaseView.swift`                                 | `StrainDetailView.swift`                                    | Matches the type inside.                                     |
+| Spec / plan markdown          | `docs/superpowers/{specs,plans}/YYYY-MM-DD--<slug>.md` | `docs/superpowers/specs/2026-08-16--strain-compare-tray.md` | See § 6.                                                     |
+| Config / data at repo root    | lowercase, dotfile or one-word                         | `firestore.rules`, `firebase.json`, `vite.config.ts`        | Project root only.                                           |
 
 ### Forbidden
 
@@ -282,8 +282,8 @@ review checklist for humans.
 The repo uses `docs/superpowers/` for project planning. Two sub-trees, identical naming
 convention:
 
-- `docs/superpowers/specs/YYYY-MM-DD--<slug>.md` — the *what / why / how* of a feature.
-- `docs/superpowers/plans/YYYY-MM-DD--<slug>.md` — the *step-by-step execution plan* derived
+- `docs/superpowers/specs/YYYY-MM-DD--<slug>.md` — the _what / why / how_ of a feature.
+- `docs/superpowers/plans/YYYY-MM-DD--<slug>.md` — the _step-by-step execution plan_ derived
   from a spec.
 
 `<slug>` is the same kebab-case slug as the branch (e.g. `strain-compare-tray`). When a PR
@@ -337,7 +337,7 @@ in some places; this is internal so follow whatever the file already does.
 - Do **not** use `main` as a working branch. Always branch first.
 - Do **not** commit to, push, or open a PR from an `<type>/auto-YYYYMMDD-<id>` branch. That name
   is a placeholder handed to you by the Mavis runtime — rename it to a spec-compliant
-  `<type>/<scope>-<short-kebab-description>` branch *before the first commit* (see § 1 "AI
+  `<type>/<scope>-<short-kebab-description>` branch _before the first commit_ (see § 1 "AI
   agent behavior"). Every session, every commit, every PR, no exceptions. The auto name is
   opaque in `git log`, the GitHub branch list, and the merge commit message; the rename
   costs nothing and pays off everywhere.
@@ -363,7 +363,7 @@ When you need to pick a name, walk this list top to bottom and stop at the first
 
 0. **Are you on an `<type>/auto-YYYYMMDD-<id>` worktree?** → **Stop. Rename first.** Run
    `git branch -m <current-auto-name> <type>/<scope>-<short-kebab-description>` from inside
-   the worktree, *before the first commit*. See § 1 "AI agent behavior — auto branches are
+   the worktree, _before the first commit_. See § 1 "AI agent behavior — auto branches are
    placeholders, always rename." The auto name is never a valid branch name for a commit or
    a PR.
 1. **Picking a branch name for non-auto work?** → § 1. Default

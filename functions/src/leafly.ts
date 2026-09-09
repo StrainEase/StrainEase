@@ -79,9 +79,7 @@ function topScored(
   const entries = Object.values(obj as RawRecord)
     .filter(
       (v): v is Scored =>
-        !!v &&
-        typeof v === "object" &&
-        typeof (v as Scored).score === "number",
+        !!v && typeof v === "object" && typeof (v as Scored).score === "number",
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -312,7 +310,14 @@ const MEDICAL_KEYWORDS: readonly string[] = [
  * they stay close to the rest of the medical-language vocabulary.
  */
 const AILMENT_ALIASES: Record<string, string[]> = {
-  insomnia: ["insomnia", "sleep", "asleep", "sleeping", "sleepless", "restless"],
+  insomnia: [
+    "insomnia",
+    "sleep",
+    "asleep",
+    "sleeping",
+    "sleepless",
+    "restless",
+  ],
   anxiety: ["anxiety", "anxious", "panic", "stress", "stressed", "tension"],
   ocd: ["ocd", "obsessive", "anxious"],
   adhd: ["adhd", "add", "focus"],
@@ -400,7 +405,10 @@ export function medicalScore(
   let hits = 0;
   for (const kw of MEDICAL_KEYWORDS) {
     if (!kw) continue;
-    const re = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "g");
+    const re = new RegExp(
+      `\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+      "g",
+    );
     const matches = lower.match(re);
     if (matches) hits += matches.length;
   }
@@ -779,7 +787,6 @@ export async function fetchProfiles(names: string[]): Promise<StrainProfile[]> {
   ];
   const results = await Promise.all(unique.map((name) => fetchProfile(name)));
   return unique.map(
-    (name, i): StrainProfile =>
-      results[i] ?? { name, inKnowledgeBase: false },
+    (name, i): StrainProfile => results[i] ?? { name, inKnowledgeBase: false },
   );
 }

@@ -1,6 +1,10 @@
 import type { ReliefFit, ReliefLog } from "./relief-log";
 
-export type ReliefTrend = "improving" | "steady" | "declining" | "insufficient-data";
+export type ReliefTrend =
+  | "improving"
+  | "steady"
+  | "declining"
+  | "insufficient-data";
 
 export type ReliefInsight = {
   title: string;
@@ -30,8 +34,7 @@ const emptyFitCounts = (): Record<ReliefFit, number> => ({
   "too-weak": 0,
 });
 
-const round = (value: number, digits = 1) =>
-  Number(value.toFixed(digits));
+const round = (value: number, digits = 1) => Number(value.toFixed(digits));
 
 function average(values: number[]): number {
   return values.length === 0
@@ -50,9 +53,10 @@ export function analyzeReliefLogs(logs: ReliefLog[]): ReliefInsights {
     fitCounts[log.fit] += 1;
   });
 
-  const averageRelief = ordered.length > 0
-    ? round(average(ordered.map((log) => log.relief)))
-    : null;
+  const averageRelief =
+    ordered.length > 0
+      ? round(average(ordered.map((log) => log.relief)))
+      : null;
 
   let trend: ReliefTrend = "insufficient-data";
   if (ordered.length >= 4) {
@@ -78,7 +82,8 @@ export function analyzeReliefLogs(logs: ReliefLog[]): ReliefInsights {
       entries: entries.length,
       averageRelief: round(average(entries.map((log) => log.relief))),
       justRightRate: round(
-        entries.filter((log) => log.fit === "just-right").length / entries.length,
+        entries.filter((log) => log.fit === "just-right").length /
+          entries.length,
         2,
       ),
     }))
@@ -102,9 +107,20 @@ export function analyzeReliefLogs(logs: ReliefLog[]): ReliefInsights {
   }
   if (trend !== "insufficient-data") {
     insights.push({
-      title: trend === "improving" ? "Recent relief is improving" : trend === "declining" ? "Recent relief is lower" : "Relief is holding steady",
-      detail: "This compares the earlier half of your logs with the more recent half.",
-      tone: trend === "declining" ? "caution" : trend === "improving" ? "positive" : "neutral",
+      title:
+        trend === "improving"
+          ? "Recent relief is improving"
+          : trend === "declining"
+            ? "Recent relief is lower"
+            : "Relief is holding steady",
+      detail:
+        "This compares the earlier half of your logs with the more recent half.",
+      tone:
+        trend === "declining"
+          ? "caution"
+          : trend === "improving"
+            ? "positive"
+            : "neutral",
     });
   }
 
@@ -235,7 +251,10 @@ export function buildReliefInsights(
     .slice(0, 5);
 
   // Avoid list — strains marked "too strong" at least twice.
-  const totalsByStrain = new Map<string, { strain: string; harsh: number; total: number }>();
+  const totalsByStrain = new Map<
+    string,
+    { strain: string; harsh: number; total: number }
+  >();
   for (const log of logs) {
     const key = normalizedName(log.strainName);
     const existing = totalsByStrain.get(key) ?? {
@@ -293,10 +312,16 @@ export function buildReliefInsights(
     bands[band].sum += log.relief;
     bands[band].count += 1;
   }
-  const labels: TimeOfDayBucket["band"][] = ["morning", "afternoon", "evening", "night"];
+  const labels: TimeOfDayBucket["band"][] = [
+    "morning",
+    "afternoon",
+    "evening",
+    "night",
+  ];
   const timeOfDay: TimeOfDayBucket[] = labels.map((band, i) => ({
     band,
-    averageRelief: bands[i].count > 0 ? round(bands[i].sum / bands[i].count) : null,
+    averageRelief:
+      bands[i].count > 0 ? round(bands[i].sum / bands[i].count) : null,
     count: bands[i].count,
   }));
 
@@ -304,7 +329,10 @@ export function buildReliefInsights(
   // one-liner). When there are logs but only 1, the patient hasn't
   // generated a real pattern yet — leave proseSummary empty and let the
   // caller's fallback take over.
-  const proseSummary = analysis.totalEntries >= 2 ? summarizeAnalysis(analysis, topStrains, avoid) : "";
+  const proseSummary =
+    analysis.totalEntries >= 2
+      ? summarizeAnalysis(analysis, topStrains, avoid)
+      : "";
 
   return {
     topStrains,
@@ -324,7 +352,9 @@ function summarizeAnalysis(
 ): string {
   const parts: string[] = [];
   if (analysis.totalEntries > 0 && analysis.averageRelief !== null) {
-    parts.push(`${analysis.totalEntries} log${analysis.totalEntries === 1 ? "" : "s"}, avg relief ${analysis.averageRelief}/5`);
+    parts.push(
+      `${analysis.totalEntries} log${analysis.totalEntries === 1 ? "" : "s"}, avg relief ${analysis.averageRelief}/5`,
+    );
   }
   if (topStrains[0]) {
     const top = topStrains[0];
@@ -333,10 +363,11 @@ function summarizeAnalysis(
     );
   }
   if (avoid[0]) {
-    parts.push(`avoid ${avoid.map((a) => a.strainName).join(", ")} (too strong)`);
+    parts.push(
+      `avoid ${avoid.map((a) => a.strainName).join(", ")} (too strong)`,
+    );
   }
   if (analysis.trend === "improving") parts.push("recent relief is improving");
   if (analysis.trend === "declining") parts.push("recent relief is lower");
   return parts.join("; ");
 }
-

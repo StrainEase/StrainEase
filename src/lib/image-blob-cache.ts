@@ -126,7 +126,10 @@ export async function getCachedImage(
   const raw = await tx<{ key: string; entry: CacheEntry } | undefined>(
     db,
     "readonly",
-    (store) => store.get(key) as IDBRequest<{ key: string; entry: CacheEntry } | undefined>,
+    (store) =>
+      store.get(key) as IDBRequest<
+        { key: string; entry: CacheEntry } | undefined
+      >,
   );
   if (!raw) return null;
   const entry = raw.entry;

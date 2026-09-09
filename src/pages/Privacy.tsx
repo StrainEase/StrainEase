@@ -29,7 +29,10 @@ export default function Privacy() {
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-12 sm:py-16">
-        <nav aria-label="Breadcrumb" className="mb-6 text-xs text-muted-foreground">
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-6 text-xs text-muted-foreground"
+        >
           <Link to="/legal" className="hover:text-foreground hover:underline">
             Legal
           </Link>
@@ -46,7 +49,9 @@ export default function Privacy() {
         </header>
 
         <Card className="mb-6 p-6">
-          <h2 className="text-base font-semibold tracking-tight">At a glance</h2>
+          <h2 className="text-base font-semibold tracking-tight">
+            At a glance
+          </h2>
           <ul className="mt-3 flex flex-col gap-2 text-sm leading-relaxed text-foreground/80">
             <li>
               <strong>Account data.</strong> Email and display name from
@@ -59,20 +64,20 @@ export default function Privacy() {
               Cloud Firestore, scoped to your UID.
             </li>
             <li>
-              <strong>Age verification.</strong> Region code, date of birth,
-              and attestation timestamps. Stored locally on your device and
-              mirrored to Firestore for server-side enforcement.
+              <strong>Age verification.</strong> Region code, date of birth, and
+              attestation timestamps. Stored locally on your device and mirrored
+              to Firestore for server-side enforcement.
             </li>
             <li>
-              <strong>AI synthesis.</strong> MiniMax processes your ailment
-              list and selected strains to generate rankings. We send only the
-              data needed for the synthesis; we don't share your saved notes
-              or account profile with the model.
+              <strong>AI synthesis.</strong> MiniMax processes your ailment list
+              and selected strains to generate rankings. We send only the data
+              needed for the synthesis; we don't share your saved notes or
+              account profile with the model.
             </li>
             <li>
-              <strong>Analytics.</strong> We don't run third-party analytics
-              or advertising trackers. Server logs are kept for 30 days for
-              abuse detection.
+              <strong>Analytics.</strong> We don't run third-party analytics or
+              advertising trackers. Server logs are kept for 30 days for abuse
+              detection.
             </li>
             <li>
               <strong>We don't sell your data.</strong> Ever.
@@ -86,13 +91,13 @@ export default function Privacy() {
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 <strong>Authentication data:</strong> your UID, email, and
-                display name from Firebase Authentication (when you sign in
-                with email/password, Google, or Apple).
+                display name from Firebase Authentication (when you sign in with
+                email/password, Google, or Apple).
               </li>
               <li>
                 <strong>User content:</strong> ailments you save, strains you
-                bookmark, and notes you write. Stored under your UID in
-                Cloud Firestore.
+                bookmark, and notes you write. Stored under your UID in Cloud
+                Firestore.
               </li>
               <li>
                 <strong>Age verification record:</strong> region code, date of
@@ -100,9 +105,8 @@ export default function Privacy() {
                 18+/19+/21+ gate on the server.
               </li>
               <li>
-                <strong>Search inputs:</strong> the ailments you submit and
-                the strain names you look up. Used to generate AI
-                rankings.
+                <strong>Search inputs:</strong> the ailments you submit and the
+                strain names you look up. Used to generate AI rankings.
               </li>
             </ul>
           </Section>
@@ -124,19 +128,19 @@ export default function Privacy() {
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 <strong>Firebase Authentication & Cloud Functions</strong> —
-                sign-in, hosting of server logic, and storage of your
-                Firestore records.
+                sign-in, hosting of server logic, and storage of your Firestore
+                records.
               </li>
               <li>
-                <strong>MiniMax</strong> — used only for AI synthesis of
-                strain rankings from your submitted ailments. The model
-                receives the ailment list and selected strains; it does not
-                receive your UID, email, or notes.
+                <strong>MiniMax</strong> — used only for AI synthesis of strain
+                rankings from your submitted ailments. The model receives the
+                ailment list and selected strains; it does not receive your UID,
+                email, or notes.
               </li>
               <li>
                 <strong>Leafly / Weedmaps / Reddit / Google</strong> — public
-                sources that StrainEase scrapes on the server side. They
-                receive no information from you.
+                sources that StrainEase scrapes on the server side. They receive
+                no information from you.
               </li>
             </ul>
           </Section>
@@ -144,18 +148,18 @@ export default function Privacy() {
           <Section title="4. Children">
             <p>
               StrainEase is not directed at children. We do not knowingly
-              collect personal information from anyone under the legal age
-              for their jurisdiction. The age-verification step is designed
-              to prevent that from happening in the first place. If you
-              believe a child has provided data to StrainEase, please
-              contact us so we can delete the record.
+              collect personal information from anyone under the legal age for
+              their jurisdiction. The age-verification step is designed to
+              prevent that from happening in the first place. If you believe a
+              child has provided data to StrainEase, please contact us so we can
+              delete the record.
             </p>
           </Section>
 
           <Section title="5. Your rights">
             <p>
-              Depending on where you live, you have some or all of the
-              following rights over your data:
+              Depending on where you live, you have some or all of the following
+              rights over your data:
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>Access a copy of the data we hold about you.</li>
@@ -179,54 +183,53 @@ export default function Privacy() {
 
           <Section title="6. Region-specific rights">
             <p>
-              <strong>GDPR (EEA / UK):</strong> StrainEase's data controller
-              is the operator listed in the app store entry. The lawful bases
-              we rely on are your consent (for the AI synthesis and age
-              attestation) and our legitimate interest in keeping the
-              service safe and accurate.
+              <strong>GDPR (EEA / UK):</strong> StrainEase's data controller is
+              the operator listed in the app store entry. The lawful bases we
+              rely on are your consent (for the AI synthesis and age
+              attestation) and our legitimate interest in keeping the service
+              safe and accurate.
             </p>
             <p>
               <strong>CCPA / CPRA (California):</strong> StrainEase does not
               sell or share your personal information for cross-context
-              behavioral advertising. You can request access to or deletion
-              of your data via the methods above.
+              behavioral advertising. You can request access to or deletion of
+              your data via the methods above.
             </p>
             <p>
-              <strong>COPPA (US under-13):</strong> StrainEase does not
-              target children under 13 and does not knowingly collect
-              personal information from them.
+              <strong>COPPA (US under-13):</strong> StrainEase does not target
+              children under 13 and does not knowingly collect personal
+              information from them.
             </p>
           </Section>
 
           <Section title="7. Retention">
             <p>
-              We keep your account data for as long as your account is
-              active. If you delete your account, we remove your Firestore
-              records within 30 days and your authentication record from
-              Firebase. Server logs are retained for 30 days for abuse
-              detection.
+              We keep your account data for as long as your account is active.
+              If you delete your account, we remove your Firestore records
+              within 30 days and your authentication record from Firebase.
+              Server logs are retained for 30 days for abuse detection.
             </p>
           </Section>
 
           <Section title="8. Security">
             <p>
-              All traffic is encrypted in transit (HTTPS). Firestore access
-              is gated by security rules — see{" "}
+              All traffic is encrypted in transit (HTTPS). Firestore access is
+              gated by security rules — see{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                 firestore.rules
               </code>{" "}
-              in the public repository. Age enforcement happens on the
-              server: AI callables require a verified-age custom claim
-              before responding.
+              in the public repository. Age enforcement happens on the server:
+              AI callables require a verified-age custom claim before
+              responding.
             </p>
           </Section>
 
           <Section title="9. Changes to this policy">
             <p>
               We may update this policy. Material changes will be announced
-              through the app and reflected in the "Last updated" date
-              above. Continued use of StrainEase after a change means you
-              accept the updated policy.
+              through the app and reflected in the "Last updated" date above.
+              Continued use of StrainEase after a change means you accept the
+              updated policy.
             </p>
           </Section>
 

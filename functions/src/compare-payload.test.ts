@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  compareStrainPayload,
-  normalizeCitations,
-  __testing,
-} from "./index";
+import { compareStrainPayload, normalizeCitations, __testing } from "./index";
 
 describe("compareStrainPayload", () => {
   test("sends researched fields even when inKnowledgeBase is false", () => {
@@ -13,7 +9,9 @@ describe("compareStrainPayload", () => {
       type: "hybrid",
       thcRange: "~20%",
       description: "Commonly reported as evening-leaning.",
-      communityNotes: [{ source: "Reddit · r/trees", text: "Helped me sleep." }],
+      communityNotes: [
+        { source: "Reddit · r/trees", text: "Helped me sleep." },
+      ],
     });
     expect(payload).toMatchObject({
       name: "Unknown Kush",
@@ -26,7 +24,9 @@ describe("compareStrainPayload", () => {
   });
 
   test("keeps a true stub as name-only", () => {
-    expect(compareStrainPayload({ name: "Mystery", inKnowledgeBase: false })).toEqual({
+    expect(
+      compareStrainPayload({ name: "Mystery", inKnowledgeBase: false }),
+    ).toEqual({
       name: "Mystery",
       noCuratedProfile: true,
     });

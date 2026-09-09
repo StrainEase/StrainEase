@@ -20,11 +20,19 @@ const git = spawnSync("git", ["config", "core.hooksPath", ".githooks"], {
 });
 if (git.status !== 0) process.exit(git.status ?? 1);
 
-const context = spawnSync(process.execPath, ["scripts/ai-context.mjs", "--quiet"], {
-  cwd: root,
-  stdio: "inherit",
-});
+const context = spawnSync(
+  process.execPath,
+  ["scripts/ai-context.mjs", "--quiet"],
+  {
+    cwd: root,
+    stdio: "inherit",
+  },
+);
 if (context.status !== 0) process.exit(context.status ?? 1);
 
-console.log("AI workspace installed: .githooks is now the local Git hooks path.");
-console.log("Generated .ai/context.md. Use `bun run ai:task -- \"...\"` for a task brief.");
+console.log(
+  "AI workspace installed: .githooks is now the local Git hooks path.",
+);
+console.log(
+  'Generated .ai/context.md. Use `bun run ai:task -- "..."` for a task brief.',
+);

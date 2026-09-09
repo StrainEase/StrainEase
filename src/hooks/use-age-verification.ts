@@ -23,7 +23,11 @@ import {
 
 export type AgeVerificationState =
   | { status: "loading" }
-  | { status: "unverified"; reason?: AgeCheckFailure; lastRecord?: AgeVerificationRecord }
+  | {
+      status: "unverified";
+      reason?: AgeCheckFailure;
+      lastRecord?: AgeVerificationRecord;
+    }
   | {
       status: "verified";
       record: AgeVerificationRecord;
@@ -40,7 +44,9 @@ export type VerifyInput = {
 
 export function useAgeVerification(): {
   state: AgeVerificationState;
-  verify: (input: VerifyInput) => Promise<
+  verify: (
+    input: VerifyInput,
+  ) => Promise<
     | { ok: true; record: AgeVerificationRecord }
     | { ok: false; reason: AgeCheckFailure }
   >;
@@ -64,27 +70,24 @@ export function useAgeVerification(): {
     setRecord(readAgeVerification());
   }, []);
 
-  const verify = useCallback(
-    async (input: VerifyInput) => {
-      const evaluation = evaluateAge(input.birthDate, input.region);
-      if (!evaluation.ok) {
-        return { ok: false as const, reason: evaluation.reason };
-      }
-      const written = writeAgeVerification({
-        region: input.region,
-        birthDate: input.birthDate,
-      });
-      if (!written) {
-        return {
-          ok: false as const,
-          reason: "invalid-birth-date" as AgeCheckFailure,
-        };
-      }
-      setRecord(written);
-      return { ok: true as const, record: written };
-    },
-    [],
-  );
+  const verify = useCallback(async (input: VerifyInput) => {
+    const evaluation = evaluateAge(input.birthDate, input.region);
+    if (!evaluation.ok) {
+      return { ok: false as const, reason: evaluation.reason };
+    }
+    const written = writeAgeVerification({
+      region: input.region,
+      birthDate: input.birthDate,
+    });
+    if (!written) {
+      return {
+        ok: false as const,
+        reason: "invalid-birth-date" as AgeCheckFailure,
+      };
+    }
+    setRecord(written);
+    return { ok: true as const, record: written };
+  }, []);
 
   const state: AgeVerificationState = useMemo(() => {
     if (!hydrated) return { status: "loading" };

@@ -9,10 +9,16 @@ import {
 describe("matchingAilment", () => {
   test("keeps a popular strain when live data has no medicalUses", () => {
     const live = [
-      { name: "Granddaddy Purple", inKnowledgeBase: true, type: "indica" as const },
+      {
+        name: "Granddaddy Purple",
+        inKnowledgeBase: true,
+        type: "indica" as const,
+      },
     ];
     const hits = matchingAilment("Insomnia", live);
-    expect(hits.some((profile) => profile.name === "Granddaddy Purple")).toBe(true);
+    expect(hits.some((profile) => profile.name === "Granddaddy Purple")).toBe(
+      true,
+    );
   });
 
   test("OCD is its own chip but matches Anxiety strains", () => {
@@ -81,8 +87,8 @@ describe("matchAilments", () => {
     expect(hits.length).toBeGreaterThan(0);
     expect(
       hits.every((profile) =>
-        (profile.medicalUses ?? []).some((use) =>
-          use.toLowerCase() === "insomnia",
+        (profile.medicalUses ?? []).some(
+          (use) => use.toLowerCase() === "insomnia",
         ),
       ),
     ).toBe(true);

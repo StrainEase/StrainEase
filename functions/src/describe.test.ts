@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  __testing,
-  describeStrainPayload,
-  describePrompt,
-} from "./index";
+import { __testing, describeStrainPayload, describePrompt } from "./index";
 
 describe("describeStrainPayload", () => {
   test("preserves full descriptions and includes community and Reddit evidence", () => {

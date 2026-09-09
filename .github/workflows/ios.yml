@@ -28,12 +28,12 @@ on:
     branches:
       - main
     paths:
-      - 'ios/**'
-      - '.github/workflows/ios.yml'
+      - "ios/**"
+      - ".github/workflows/ios.yml"
   pull_request:
     paths:
-      - 'ios/**'
-      - '.github/workflows/ios.yml'
+      - "ios/**"
+      - ".github/workflows/ios.yml"
   workflow_dispatch:
   release:
     types: [published]

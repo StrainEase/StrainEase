@@ -121,8 +121,7 @@ function buildPercentAttribution(
   // Only attribute when the averaged value differs from at least one
   // raw value (i.e. averaging actually changed the answer) OR when
   // the sources disagreed. Otherwise Kaya's prompt can stay slim.
-  const averagedSomething =
-    distinctRaw.size > 1 || !distinctRaw.has(value);
+  const averagedSomething = distinctRaw.size > 1 || !distinctRaw.has(value);
   if (!averagedSomething) return undefined;
   return {
     value,
@@ -210,8 +209,7 @@ function buildRatingAttribution(
   if (sources.length < 2) return undefined;
   const distinct = new Set(sources.map((s) => s.raw));
   if (distinct.size <= 1) return undefined;
-  const avg =
-    sources.reduce((a, b) => a + b.raw, 0) / sources.length;
+  const avg = sources.reduce((a, b) => a + b.raw, 0) / sources.length;
   const value = Math.round(avg * 10) / 10;
   return {
     value,
@@ -385,23 +383,29 @@ export async function consolidateStrain(
   const profile: ConsolidatedStrain = {
     name: trimmed,
     inKnowledgeBase: true,
-    type: typeAttribution?.value as StrainType | undefined ??
+    type:
+      (typeAttribution?.value as StrainType | undefined) ??
       pickFirst(profiles, (p) => p.type),
-    thcRange: thcAttribution?.value as string | undefined ??
+    thcRange:
+      (thcAttribution?.value as string | undefined) ??
       pickFirst(profiles, (p) => p.thcRange),
-    cbdRange: cbdAttribution?.value as string | undefined ??
+    cbdRange:
+      (cbdAttribution?.value as string | undefined) ??
       pickFirst(profiles, (p) => p.cbdRange),
-    lineage: lineageAttribution?.value as string | undefined ??
+    lineage:
+      (lineageAttribution?.value as string | undefined) ??
       pickFirst(profiles, (p) => p.lineage),
     terpenes: pickFirst(profiles, (p) => p.terpenes),
     medicalUses: unionMedicalUses(profiles),
     effects: unionEffects(profiles),
     sideEffects: pickFirst(profiles, (p) => p.sideEffects),
-    description: descriptionAttribution?.value as string | undefined ??
+    description:
+      (descriptionAttribution?.value as string | undefined) ??
       pickFirst(profiles, (p) => p.description),
     communityNotes: unionNotes(profiles),
     imageUrl: pickFirst(profiles, (p) => p.imageUrl),
-    leaflyRating: ratingAttribution?.value as number | undefined ??
+    leaflyRating:
+      (ratingAttribution?.value as number | undefined) ??
       pickFirst(profiles, (p) => p.leaflyRating),
     leaflyReviewCount: pickFirst(profiles, (p) => p.leaflyReviewCount),
     weedmapsRating: pickFirst(profiles, (p) => p.weedmapsRating),

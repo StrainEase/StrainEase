@@ -42,10 +42,7 @@ import {
   rememberCloud,
   rememberLocal,
 } from "@/lib/research-history";
-import {
-  compactPrefs,
-  type ResearchPrefs,
-} from "@/lib/research-prefs";
+import { compactPrefs, type ResearchPrefs } from "@/lib/research-prefs";
 import {
   dashboardModeFromSearch,
   dashboardTab,
@@ -246,9 +243,8 @@ export default function Dashboard() {
         condition: focus.length > 0 ? focus : undefined,
         prefs: compactPrefs({ ...prefs, reliefSummary }),
       };
-      const comparison = await cachedRun(
-        cacheKey("compare", args),
-        () => compareStrainsCall(args),
+      const comparison = await cachedRun(cacheKey("compare", args), () =>
+        compareStrainsCall(args),
       );
       setResult(comparison);
       if (comparison.resultId) {
@@ -309,9 +305,7 @@ export default function Dashboard() {
   const instantMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (q === "") return [];
-    return popular
-      .filter((p) => p.name.toLowerCase().includes(q))
-      .slice(0, 5);
+    return popular.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 5);
   }, [query, popular]);
 
   return (
@@ -808,8 +802,8 @@ export default function Dashboard() {
                 <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
                   <Sparkles className="size-3.5 shrink-0 text-primary" />
                   Comparison by Dr. Kaya, our AI cannabis care assistant.
-                  Synthesized from live Leafly data. Not medical advice.
-                  Consult your healthcare provider.
+                  Synthesized from live Leafly data. Not medical advice. Consult
+                  your healthcare provider.
                 </p>
               </div>
             ) : (
@@ -824,8 +818,8 @@ export default function Dashboard() {
                   </h1>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                     Search any strain by name — profiles are pulled live from
-                    Leafly. Save your favorites and keep private notes, or
-                    share them with other patients.
+                    Leafly. Save your favorites and keep private notes, or share
+                    them with other patients.
                   </p>
                 </div>
 
@@ -926,4 +920,3 @@ function StrainRow({
     </button>
   );
 }
-
