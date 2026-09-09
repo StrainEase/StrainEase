@@ -57,12 +57,15 @@ interface StrainAPI {
     /** Three-section, patient-tailored description for a single
      *  strain. Returns null when the server can't return a valid
      *  shape — the caller should fall back to
-     *  [StrainProfile.description]. */
+     *  [StrainProfile.description]. The patient's THC sensitivity
+     *  (when not [ThcSensitivity.Typical]) calibrates the
+     *  "What to expect" section. */
     suspend fun describe(
         strain: StrainProfile,
         ailments: List<String>,
         medications: List<String>,
         reliefHistory: String,
+        thcSensitivity: ThcSensitivity,
         language: String,
     ): StrainDescription?
 

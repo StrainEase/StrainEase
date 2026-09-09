@@ -77,6 +77,7 @@ fun MainTabView() {
     val doctorsModel = remember { ai.strainease.app.ui.doctors.DoctorsModel() }
     val savedAilments = remember { ai.strainease.app.data.SavedAilmentsStore(app) }
     val savedMedications = remember { ai.strainease.app.data.SavedMedicationsStore(app) }
+    val thcSensitivity = remember { ai.strainease.app.data.ThcSensitivityStore(app) }
     val savedStrains = remember { ai.strainease.app.data.SavedStrainsStore(app) }
     val relief = remember { ai.strainease.app.data.ReliefLogStore(app) }
     val checkIns = remember { ai.strainease.app.data.CheckInStore(app) }
@@ -90,8 +91,10 @@ fun MainTabView() {
         val uid = signedInUid
         if (uid != null) {
             checkIns.start(uid)
+            thcSensitivity.start(uid)
         } else {
             checkIns.stop()
+            thcSensitivity.stop()
         }
     }
     val ageStore = remember { ai.strainease.app.compliance.AgeVerificationStore(app) }
@@ -226,6 +229,7 @@ fun MainTabView() {
                         relief = relief,
                         savedAilments = savedAilments,
                         savedMedications = savedMedications,
+                        thcSensitivity = thcSensitivity,
                         savedStrains = savedStrains,
                         compareStore = compareStore,
                         modifier = Modifier.fillMaxSize(),
@@ -270,6 +274,7 @@ fun MainTabView() {
                 ai.strainease.app.ui.account.AccountView(
                     savedAilments = savedAilments,
                     savedMedications = savedMedications,
+                    thcSensitivity = thcSensitivity,
                     savedStrains = savedStrains,
                     relief = relief,
                     checkIns = checkIns,

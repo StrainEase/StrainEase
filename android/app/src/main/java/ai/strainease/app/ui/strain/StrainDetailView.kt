@@ -51,6 +51,8 @@ import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.ReliefLogStore
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.data.SavedMedicationsStore
+import ai.strainease.app.data.ThcSensitivity
+import ai.strainease.app.data.ThcSensitivityStore
 import ai.strainease.app.data.SavedStrainsStore
 import ai.strainease.app.data.StrainAPI
 import ai.strainease.app.models.StrainProfile
@@ -99,6 +101,7 @@ fun StrainDetailView(
     relief: ReliefLogStore,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
+    thcSensitivity: ThcSensitivityStore,
     savedStrains: SavedStrainsStore,
     compareStore: CompareSelectionStore,
     modifier: Modifier = Modifier,
@@ -154,6 +157,9 @@ fun StrainDetailView(
         // 2. Populate relief summary cache so `relief.summary` is non-empty
         //    for the tailored description AI call.
         relief.refresh()
+        // 2b. Make sure the THC sensitivity cache is fresh so the
+        //     tailored description call sends the right value.
+        thcSensitivity.refresh()
         // 3. Hydrate any missing sections
         val pending = current.pendingHydrationSections
         if (pending.isNotEmpty()) {
@@ -200,6 +206,7 @@ fun StrainDetailView(
                 ailments = ailments,
                 medications = medications,
                 reliefHistory = relief.summary,
+                thcSensitivity = thcSensitivity.sensitivity,
             )
             if (!current.medicalUses.isNullOrEmpty()) {
                 chipSection(
@@ -444,6 +451,7 @@ private fun descriptionBlock(
     ailments: List<String>,
     medications: List<String>,
     reliefHistory: String,
+    thcSensitivity: ThcSensitivity,
 ) {
     TailoredDescriptionView(
         profile = profile,
@@ -451,6 +459,7 @@ private fun descriptionBlock(
         ailments = ailments,
         medications = medications,
         reliefHistory = reliefHistory,
+        thcSensitivity = thcSensitivity,
     )
     // The full, non-processed description always renders below the
     // tailored cards when one exists — iOS + web match. It starts
