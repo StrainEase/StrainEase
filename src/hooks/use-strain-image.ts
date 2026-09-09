@@ -186,6 +186,10 @@ export function useStrainImage(src: string | undefined): {
         // cache URL just failed). Otherwise the cache hit is still
         // good and we should leave it alone.
         if (resolvedForSrcRef.current === src && tierRef.current !== "proxy") return;
+        // Clear resolvedForSrcRef so the publish() guard below lets
+        // us through — the cache's publish set it to src and would
+        // otherwise block our republish.
+        resolvedForSrcRef.current = undefined;
         tierRef.current = "proxy";
         publish(res.url, false);
         fetchUpstreamBlob(res.url);
