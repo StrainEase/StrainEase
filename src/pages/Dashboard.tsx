@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useAilments } from "@/hooks/use-ailments";
 import { useMedications } from "@/hooks/use-medications";
+import { useThcSensitivity } from "@/hooks/use-thc-sensitivity";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { Seo } from "@/components/Seo";
@@ -51,6 +52,7 @@ import {
 } from "@/lib/app-nav";
 import { documentTitle } from "@/lib/site";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
+import { thcSensitivityLabel } from "@/lib/thc-sensitivity";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
 import {
@@ -64,9 +66,11 @@ import {
   GitCompareArrows,
   HeartPulse,
   Loader2,
+  Pill,
   Plus,
   Search,
   Sparkles,
+  Star,
   X,
 } from "lucide-react";
 
@@ -109,6 +113,7 @@ export default function Dashboard() {
   const { summary: reliefSummary } = useReliefSummary();
   const { names: savedMedications } = useMedications();
   const { names: savedAilments } = useAilments();
+  const thcSensitivity = useThcSensitivity();
   const { rid } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -197,6 +202,24 @@ export default function Dashboard() {
     if (!result) return;
     resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result]);
+
+  // Seed THC sensitivity from user's saved profile on first mount.
+  // Always import the saved sensitivity by default.
+  useEffect(() => {
+    if (!thcSensitivity.value) return;
+    setPrefs((p) =>
+      p.thcSensitivity ? p : { ...p, thcSensitivity: thcSensitivity.value as ThcSensitivity },
+    );
+  }, [thcSensitivity.value]);
+
+  // Seed medications from user's saved profile on first mount.
+  // Always import the saved medications by default.
+  useEffect(() => {
+    if (!savedMedications || savedMedications.length === 0) return;
+    setPrefs((p) =>
+      p.medications ? p : { ...p, medications: savedMedications.join(", ") },
+    );
+  }, [savedMedications]);
 
   const toggleStrainName = (name: string) => {
     selection.toggle(name);
@@ -660,6 +683,30 @@ export default function Dashboard() {
                     2 · Condition focus (optional — pick several)
                   </p>
                   <div className="flex flex-wrap gap-1.5">
+                    {/* My Ailments chip with gold gradient - always first */}
+                    {savedAilments.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Import all saved ailments
+                          setCondition((prev) => {
+                            const merged = [...new Set([...prev, ...savedAilments])];
+                            return merged;
+                          });
+                        }}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                          "bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500",
+                          "border-amber-400/50 text-amber-900",
+                          "hover:from-amber-400 hover:via-yellow-300 hover:to-amber-400",
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Star className="size-3" />
+                          My Ailments ({savedAilments.length})
+                        </span>
+                      </button>
+                    )}
                     {CONDITIONS.map((c) => (
                       <button
                         key={c}
@@ -677,6 +724,33 @@ export default function Dashboard() {
                     ))}
                   </div>
                 </div>
+
+                {/* Show imported sensitivity indicator */}
+                {thcSensitivity.value && (
+                  <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500/10 via-yellow-400/10 to-amber-500/10 px-3 py-2 text-xs">
+                    <Sparkles className="size-3 text-amber-600" />
+                    <span className="text-muted-foreground">
+                      Sensitivity from profile:{" "}
+                      <span className="font-medium text-amber-700">
+                        {thcSensitivityLabel(thcSensitivity.value)}
+                      </span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Show imported medications indicator */}
+                {savedMedications.length > 0 && prefs.medications && (
+                  <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-3 py-2 text-xs">
+                    <Pill className="size-3 text-blue-600" />
+                    <span className="text-muted-foreground">
+                      Medications from profile:{" "}
+                      <span className="font-medium text-blue-700">
+                        {savedMedications.slice(0, 3).join(", ")}
+                        {savedMedications.length > 3 && ` +${savedMedications.length - 3} more`}
+                      </span>
+                    </span>
+                  </div>
+                )}
 
                 <PatientPrefsFields
                   prefs={prefs}
