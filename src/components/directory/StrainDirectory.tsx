@@ -5,6 +5,7 @@ import type { StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { Loader2, Search, Sparkles, X } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -373,6 +374,7 @@ export function StrainDirectory() {
             >
               <StrainImage
                 src={p.imageUrl}
+                fallbackSrc={getPhotoURL(p.name)}
                 alt={`${p.name} flower`}
                 type={p.type}
                 className="mb-4 h-32 w-full rounded-xl border border-border/70"

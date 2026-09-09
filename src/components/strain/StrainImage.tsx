@@ -36,6 +36,17 @@ function fallbackTone(type?: string) {
  * icon, then asks the hook to publish the next-best source. The leaf
  * fallback only shows once the hook has exhausted every source — the
  * user no longer sees a "giving up too soon" placeholder mid-retry.
+ *
+ * `fallbackSrc` is an optional curated direct upstream URL (typically
+ * `getPhotoURL(slug)` from `@/lib/strain-catalog`). It is the *fourth*
+ * tier in the resolver — consulted only after the primary `src` has
+ * been tried and failed at the cache, proxy, and upstream tiers. This
+ * mirrors the iOS / Android `StrainPhoto` story: a dead Firebase
+ * Storage URL falls back to the catalog's curated Leafly / Weedmaps
+ * direct URL instead of leaving the user with a leaf placeholder.
+ * Callers without a per-strain slug (e.g. the terpene rail, where the
+ * row is keyed by a strain profile but a catalog slug isn't always
+ * available) just omit this prop.
  */
 export function StrainImage({
   src,
@@ -43,19 +54,21 @@ export function StrainImage({
   className,
   iconClassName,
   type,
+  fallbackSrc,
 }: {
   src?: string;
   alt: string;
   className?: string;
   iconClassName?: string;
   type?: string;
+  fallbackSrc?: string;
 }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   // Last URL that successfully painted. Kept across URL changes so we
   // can keep the previous image visible while the next one loads.
   const [stableUrl, setStableUrl] = useState<string | undefined>(undefined);
-  const { url, retry, exhausted } = useStrainImage(src);
+  const { url, retry, exhausted } = useStrainImage(src, { fallback: fallbackSrc });
   const prevUrlRef = useRef<string | undefined>(undefined);
   // True once the hook has acknowledged a failure for the current URL
   // and we are waiting for the next source. While this is set the
@@ -157,10 +170,11 @@ export function StrainImage({
           onError={() => {
             if (!url) return;
             setFailedSrc(url);
-            // Ask the hook to try the next source tier (upstream)
-            // before we declare the image gone. The hook will
-            // publish a new URL; the effect above will clear this
-            // flag when the URL changes.
+            // Ask the hook to try the next source tier (upstream
+            // first, then the curated fallback) before we declare
+            // the image gone. The hook will publish a new URL;
+            // the effect above will clear this flag when the URL
+            // changes.
             setAwaitingRetry(true);
             retry();
           }}

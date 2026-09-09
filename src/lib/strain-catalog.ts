@@ -315,6 +315,32 @@ export function profileSlug(profile: Pick<StrainProfile, "name">): string {
   return slugify(profile.name);
 }
 
+/**
+ * Direct Leafly / Weedmaps URL for a known catalog photo, or undefined
+ * if the slug has no curated photo. Mirrors the iOS
+ * `StrainCatalog.photoURL(for:)` and the Android equivalent — the
+ * resilient image view uses this as a fallback tier when the
+ * backend's Firebase Storage URL fails to load, so a dead Storage
+ * URL falls back to the catalog photo instead of leaving the user
+ * with a leaf placeholder.
+ *
+ * Accepts either a strain name (e.g. "Blue Dream") or a pre-slugified
+ * key (e.g. "blue-dream"). The slug is normalized to lowercase, then
+ * routed through `SLUG_ALIASES` (so callers can pass either the
+ * canonical slug `"girl-scout-cookies"` or the popular alias `"gsc"`),
+ * and finally looked up in `PHOTOS`.
+ */
+export function getPhotoURL(nameOrSlug: string): string | undefined {
+  const normalized = nameOrSlug.trim().toLowerCase();
+  if (!normalized) return undefined;
+  // If the input looks like a name with whitespace, slugify it first so
+  // callers can pass `strain.name` directly. Pre-slugified inputs go
+  // through unchanged.
+  const slug = normalized.includes(" ") ? slugify(normalized) : normalized;
+  const key = SLUG_ALIASES[slug] ?? slug;
+  return PHOTOS[key] ?? PHOTOS[slug];
+}
+
 function catalogKey(name: string): string {
   const slug = slugify(name);
   return SLUG_ALIASES[slug] ?? slug;

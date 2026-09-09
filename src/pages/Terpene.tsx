@@ -2,6 +2,7 @@ import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { TerpeneDetailSkeleton } from "@/components/strain/TerpeneDetailSkeleton";
 import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Badge } from "@/components/ui/badge";
@@ -206,6 +207,7 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
       <div className="size-12 shrink-0 overflow-hidden rounded-xl bg-primary/10">
         <StrainImage
           src={strain.imageUrl}
+          fallbackSrc={getPhotoURL(strain.name)}
           alt={strain.name}
           type={strain.type}
           className="size-12 rounded-xl"

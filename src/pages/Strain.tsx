@@ -13,6 +13,7 @@ import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { StrainPageHeader } from "@/components/strain/StrainPageHeader";
 import { TailoredDescriptionLoading } from "@/components/strain/TailoredDescriptionLoading";
 import { TerpeneDetailDialog } from "@/components/strain/TerpeneDetailDialog";
@@ -328,6 +329,7 @@ export default function Strain() {
             >
               <StrainImage
                 src={profile?.imageUrl}
+                fallbackSrc={getPhotoURL(profile?.name ?? "")}
                 alt={`${displayName} flower`}
                 type={profile?.type}
                 className="h-full w-full"

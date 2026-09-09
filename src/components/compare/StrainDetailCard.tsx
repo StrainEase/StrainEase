@@ -1,5 +1,6 @@
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
 import { useTailoredDescription } from "@/hooks/use-tailored-description";
 import type { StrainProfile } from "@/lib/strain-profile";
@@ -105,6 +106,7 @@ export function StrainDetailCard({
         {showInlineHero && (
           <StrainImage
             src={strain.imageUrl}
+            fallbackSrc={getPhotoURL(strain.name)}
             alt={`${toTitleCase(strain.name)} flower`}
             className="mb-4 h-72 w-full rounded-xl border border-border/70"
           />

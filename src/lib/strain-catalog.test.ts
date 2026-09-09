@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { getPhotoURL } from "./strain-catalog";
 import {
   applyCatalogPhotos,
   matchAilments,
@@ -128,5 +129,38 @@ describe("applyCatalogPhotos", () => {
     ]) {
       expect(list.every((profile) => Boolean(profile.imageUrl))).toBe(true);
     }
+  });
+});
+
+describe("getPhotoURL", () => {
+  test("resolves a known catalog strain name to its curated direct URL", () => {
+    expect(getPhotoURL("Blue Dream")).toBe(
+      "https://images.leafly.com/flower-images/blue-dream.png",
+    );
+  });
+
+  test("accepts a pre-slugified key as well as a display name", () => {
+    expect(getPhotoURL("blue-dream")).toBe(
+      "https://images.leafly.com/flower-images/blue-dream.png",
+    );
+  });
+
+  test("resolves SLUG_ALIASES so popular short-forms work", () => {
+    // "gsc" is the popular alias for "girl-scout-cookies".
+    expect(getPhotoURL("gsc")).toBe(
+      "https://images.leafly.com/flower-images/gsc.png",
+    );
+    expect(getPhotoURL("GSC")).toBe(
+      "https://images.leafly.com/flower-images/gsc.png",
+    );
+  });
+
+  test("returns undefined for unknown slugs (no curated photo)", () => {
+    expect(getPhotoURL("nope-not-a-strain")).toBeUndefined();
+  });
+
+  test("returns undefined for empty / whitespace input", () => {
+    expect(getPhotoURL("")).toBeUndefined();
+    expect(getPhotoURL("   ")).toBeUndefined();
   });
 });

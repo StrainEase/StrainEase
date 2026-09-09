@@ -29,6 +29,7 @@ import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { StrainDirectory } from "@/components/directory/StrainDirectory";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
@@ -895,6 +896,7 @@ function StrainRow({
     >
       <StrainImage
         src={imageUrl}
+        fallbackSrc={getPhotoURL(name ?? "")}
         alt=""
         className="size-10 shrink-0 rounded-lg border border-border/70"
         iconClassName="size-4"
