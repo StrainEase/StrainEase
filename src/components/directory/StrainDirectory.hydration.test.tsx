@@ -45,23 +45,20 @@ describe("StrainDirectory hydration", () => {
     expect(cards.length).toBe(3);
   });
 
-  test(
-    "StrainDirectory shows the filter strip and search bar even before the catalog loads",
-    () => {
-      // We can't easily mock the `browseStrains` network call from
-      // here without setting up firebase-mock. The page mounts with
-      // `allPreviews === null`, so the filter strip should be present
-      // and the grid skeleton should be visible too.
-      render(
-        <MemoryRouter>
-          <StrainDirectory />
-        </MemoryRouter>,
-      );
-      expect(screen.getByPlaceholderText("Filter by name…")).toBeTruthy();
-      // The "All types" button is in the type filter row.
-      expect(screen.getByRole("button", { name: "All types" })).toBeTruthy();
-      // Skeleton grid is rendered while previews are loading.
-      expect(screen.getByTestId("directory-grid-skeleton")).toBeTruthy();
-    },
-  );
+  test("StrainDirectory shows the filter strip and search bar even before the catalog loads", () => {
+    // We can't easily mock the `browseStrains` network call from
+    // here without setting up firebase-mock. The page mounts with
+    // `allPreviews === null`, so the filter strip should be present
+    // and the grid skeleton should be visible too.
+    render(
+      <MemoryRouter>
+        <StrainDirectory />
+      </MemoryRouter>,
+    );
+    expect(screen.getByPlaceholderText("Filter by name…")).toBeTruthy();
+    // The "All types" button is in the type filter row.
+    expect(screen.getByRole("button", { name: "All types" })).toBeTruthy();
+    // Skeleton grid is rendered while previews are loading.
+    expect(screen.getByTestId("directory-grid-skeleton")).toBeTruthy();
+  });
 });

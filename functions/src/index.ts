@@ -5,16 +5,28 @@
 //   (openai/gpt-oss-120b), auth-gated — Firebase callable functions
 //   automatically attach the caller's ID token, and we reject calls
 //   without `request.auth`.
-import { HttpsError, onCall, type CallableOptions } from "firebase-functions/v2/https";
+import {
+  HttpsError,
+  onCall,
+  type CallableOptions,
+} from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions";
 import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
+import {
+  FieldValue,
+  getFirestore,
+  type Transaction,
+} from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { evaluateAge, type RegionCode } from "./age";
 import { enrichProfiles, lookupProfile } from "./enrich";
-import { findDoctors as findDoctorsImpl, type DoctorQuery, type DoctorResult } from "./doctors";
+import {
+  findDoctors as findDoctorsImpl,
+  type DoctorQuery,
+  type DoctorResult,
+} from "./doctors";
 import {
   fetchAllStrains,
   fetchPopular,
@@ -23,11 +35,7 @@ import {
   type StrainPreview,
 } from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
-import {
-  callGroq,
-  extractJsonObject,
-  GROQ_DESCRIPTION_MODEL,
-} from "./groq";
+import { callGroq, extractJsonObject, GROQ_DESCRIPTION_MODEL } from "./groq";
 import { matchRedditSeeds } from "./reddit-seed";
 import {
   buildVettedWrite,
@@ -49,10 +57,10 @@ import {
   serializeReportForModel,
   type ClinicianReport,
 } from "./clinician-report-data";
-import {
-  renderClinicianReportHtml,
-} from "./clinician-report-html";
+import { renderClinicianReportHtml } from "./clinician-report-html";
 import { buildReportFilename, renderHtmlToPdf } from "./clinician-report-pdf";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type {
   Citation,
   RecommendationResult,
@@ -273,7 +281,9 @@ function poolOperatorErrorToHttps(err: unknown): HttpsError {
 /** Admin-only callable that approves a Reddit candidate for serving. */
 export const vetRedditThread = onCall(
   { timeoutSeconds: 30 },
-  async (request): Promise<{ ok: true; threadId: string; vettedAt: number }> => {
+  async (
+    request,
+  ): Promise<{ ok: true; threadId: string; vettedAt: number }> => {
     let operatorUid: string;
     try {
       operatorUid = requirePoolOperator(
@@ -291,10 +301,16 @@ export const vetRedditThread = onCall(
         ? { ...(data.thread as Record<string, unknown>) }
         : { ...data };
     // Accept upstream permalink aliases and relative Reddit links.
-    if (typeof supplied.url !== "string" && typeof supplied.permalink === "string") {
+    if (
+      typeof supplied.url !== "string" &&
+      typeof supplied.permalink === "string"
+    ) {
       supplied.url = supplied.permalink;
     }
-    if (typeof supplied.snippet !== "string" && typeof supplied.selftext === "string") {
+    if (
+      typeof supplied.snippet !== "string" &&
+      typeof supplied.selftext === "string"
+    ) {
       supplied.snippet = supplied.selftext;
     }
     if (!Array.isArray(supplied.applicableConditions)) {
@@ -332,10 +348,18 @@ export const vetRedditThread = onCall(
       .collection(REDDIT_THREADS_COLLECTION)
       .doc(candidate.threadId);
     const existing = await ref.get();
-    const existingData = existing.data() as Partial<VettedRedditThread> | undefined;
+    const existingData = existing.data() as
+      | Partial<VettedRedditThread>
+      | undefined;
 
     await ref.set(
-      buildVettedWrite(candidate, existingData, vettedAt, operatorUid, vettedNotes),
+      buildVettedWrite(
+        candidate,
+        existingData,
+        vettedAt,
+        operatorUid,
+        vettedNotes,
+      ),
       { merge: true },
     );
 
@@ -363,8 +387,9 @@ export const listPendingRedditThreads = onCall(
       .get();
     const threads = snap.docs
       .map((doc) => doc.data() as VettedRedditThread)
-      .filter((thread): thread is PendingRedditThread =>
-        thread.vettedAt === null && thread.vettedBy === null,
+      .filter(
+        (thread): thread is PendingRedditThread =>
+          thread.vettedAt === null && thread.vettedBy === null,
       )
       .sort((a, b) => b.addedAt - a.addedAt)
       .slice(0, 100);
@@ -375,7 +400,9 @@ export const listPendingRedditThreads = onCall(
 /** Clear vetting and return a thread to the review queue. */
 export const unvetRedditThread = onCall(
   { timeoutSeconds: 30 },
-  async (request): Promise<{ ok: true; threadId: string; existed: boolean }> => {
+  async (
+    request,
+  ): Promise<{ ok: true; threadId: string; existed: boolean }> => {
     try {
       requirePoolOperator(
         request.auth?.uid,
@@ -391,15 +418,16 @@ export const unvetRedditThread = onCall(
       typeof data.threadId === "string"
         ? data.threadId.trim()
         : typeof data.url === "string"
-          ? extractThreadId(normalizeRedditUrl(data.url)) ?? ""
+          ? (extractThreadId(normalizeRedditUrl(data.url)) ?? "")
           : "";
     if (!/^[a-z0-9]{4,}$/i.test(rawId)) {
-      throw new HttpsError("invalid-argument", "Provide a valid Reddit threadId.");
+      throw new HttpsError(
+        "invalid-argument",
+        "Provide a valid Reddit threadId.",
+      );
     }
 
-    const ref = getFirestore()
-      .collection(REDDIT_THREADS_COLLECTION)
-      .doc(rawId);
+    const ref = getFirestore().collection(REDDIT_THREADS_COLLECTION).doc(rawId);
     const existing = await ref.get();
     if (!existing.exists) {
       return { ok: true, threadId: rawId, existed: false };
@@ -416,7 +444,9 @@ export const unvetRedditThread = onCall(
  * ageVerified custom claim is absent/expired.
  */
 async function _requireAgeVerified(
-  request: { auth?: { uid: string; token?: { ageVerifiedExpiresAt?: number } } },
+  request: {
+    auth?: { uid: string; token?: { ageVerifiedExpiresAt?: number } };
+  },
   HttpsErrorClass: typeof HttpsError,
 ): Promise<{ uid: string }> {
   if (!request.auth?.uid) {
@@ -601,13 +631,10 @@ export const submitStrainReview = onCall(
       } | null;
       const prevStars = prevReview?.starRating ?? 0;
 
-      const totalStars =
-        (existing?.totalStars ?? 0) - prevStars + starRating;
+      const totalStars = (existing?.totalStars ?? 0) - prevStars + starRating;
       const existingCount = existing?.reviewCount ?? 0;
       const isNewReview = !reviewSnap.exists;
-      const reviewCount = isNewReview
-        ? existingCount + 1
-        : existingCount;
+      const reviewCount = isNewReview ? existingCount + 1 : existingCount;
 
       // Upsert the review
       tx.set(
@@ -615,7 +642,10 @@ export const submitStrainReview = onCall(
         {
           strainSlug,
           uid,
-          displayName: request.auth?.token?.name ?? request.auth?.token?.email ?? "Anonymous",
+          displayName:
+            request.auth?.token?.name ??
+            request.auth?.token?.email ??
+            "Anonymous",
           starRating,
           reviewText,
           consumptionForm,
@@ -634,9 +664,10 @@ export const submitStrainReview = onCall(
           strainSlug,
           totalStars,
           reviewCount,
-          avgRating: reviewCount > 0
-            ? Math.round((totalStars / reviewCount) * 10) / 10
-            : 0,
+          avgRating:
+            reviewCount > 0
+              ? Math.round((totalStars / reviewCount) * 10) / 10
+              : 0,
           updatedAt: now,
         },
         { merge: true },
@@ -679,7 +710,9 @@ import interactionSeedJson from "./seed/interactionLibrary.json";
 /** Seed the curated terpene and cannabinoid collections idempotently. */
 export const seedReferenceLibrary = onCall(
   { timeoutSeconds: 60 },
-  async (request): Promise<{
+  async (
+    request,
+  ): Promise<{
     ok: true;
     terpeneCount: number;
     cannabinoidCount: number;
@@ -698,7 +731,10 @@ export const seedReferenceLibrary = onCall(
     // Validate both files before writing either collection.
     const terpeneSeed = validateSeedFile(terpeneSeedJson);
     const cannabinoidSeed = validateSeedFile(cannabinoidSeedJson);
-    if (terpeneSeed.kind !== "terpene" || cannabinoidSeed.kind !== "cannabinoid") {
+    if (
+      terpeneSeed.kind !== "terpene" ||
+      cannabinoidSeed.kind !== "cannabinoid"
+    ) {
       // Unreachable: the seed JSON files are typed, but TS narrows the
       // result of validateSeedFile so we have to disambiguate here.
       throw new HttpsError("internal", "Seed file kinds are wrong.");
@@ -779,7 +815,9 @@ export const getReferenceLibrary = onCall(
 /** Seed the curated drug-interaction collection idempotently. */
 export const seedInteractionLibrary = onCall(
   { timeoutSeconds: 60 },
-  async (request): Promise<{
+  async (
+    request,
+  ): Promise<{
     ok: true;
     interactionCount: number;
     writtenAt: number;
@@ -827,9 +865,7 @@ export const getDrugInteractions = onCall(
     if (!Array.isArray(data.drugs)) {
       return { interactions: [] };
     }
-    const drugs = data.drugs.filter(
-      (d): d is string => typeof d === "string",
-    );
+    const drugs = data.drugs.filter((d): d is string => typeof d === "string");
     if (drugs.length === 0) {
       return { interactions: [] };
     }
@@ -1060,7 +1096,8 @@ function prefsBlock(prefs: ResearchPrefs | undefined): string {
   if (!prefs) return "";
   const lines = ["Patient context:"];
   if (prefs.timeOfDay) lines.push(`- Time of use: ${prefs.timeOfDay}`);
-  if (prefs.consumeForm) lines.push(`- Form they will use: ${prefs.consumeForm}`);
+  if (prefs.consumeForm)
+    lines.push(`- Form they will use: ${prefs.consumeForm}`);
   if (prefs.thcSensitivity === "anxious-high-thc") {
     lines.push(
       "- THC-sensitive: high-THC sativas often worsen their anxiety. Prefer gentler, more balanced options.",
@@ -1148,10 +1185,7 @@ function compactStrainFields(
   const redditSnippetMax =
     options.redditSnippetMax ?? PROMPT_REDDIT_SNIPPET_MAX;
 
-  if (
-    typeof row.description === "string" &&
-    !options.preserveFullDescription
-  ) {
+  if (typeof row.description === "string" && !options.preserveFullDescription) {
     row.description = capString(row.description, PROMPT_DESCRIPTION_MAX);
   }
   if (Array.isArray(row.terpenes)) {
@@ -1159,7 +1193,13 @@ function compactStrainFields(
       .slice(0, PROMPT_TERPENES_MAX)
       .map((t) => {
         if (t && typeof t === "object" && "profile" in t) {
-          return { ...t, profile: capString(t.profile as string | undefined, PROMPT_TERPENE_PROFILE_MAX) };
+          return {
+            ...t,
+            profile: capString(
+              t.profile as string | undefined,
+              PROMPT_TERPENE_PROFILE_MAX,
+            ),
+          };
         }
         return t;
       });
@@ -1168,10 +1208,16 @@ function compactStrainFields(
     row.effects = (row.effects as unknown[]).slice(0, PROMPT_EFFECTS_MAX);
   }
   if (Array.isArray(row.medicalUses)) {
-    row.medicalUses = (row.medicalUses as string[]).slice(0, PROMPT_MEDICAL_USES_MAX);
+    row.medicalUses = (row.medicalUses as string[]).slice(
+      0,
+      PROMPT_MEDICAL_USES_MAX,
+    );
   }
   if (Array.isArray(row.sideEffects)) {
-    row.sideEffects = (row.sideEffects as string[]).slice(0, PROMPT_SIDE_EFFECTS_MAX);
+    row.sideEffects = (row.sideEffects as string[]).slice(
+      0,
+      PROMPT_SIDE_EFFECTS_MAX,
+    );
   }
   if (Array.isArray(row.communityNotes)) {
     row.communityNotes = (row.communityNotes as Array<Record<string, unknown>>)
@@ -1193,7 +1239,10 @@ function compactStrainFields(
         if (source && typeof source === "object" && "snippet" in source) {
           return {
             ...source,
-            snippet: capString(source.snippet as string | undefined, redditSnippetMax),
+            snippet: capString(
+              source.snippet as string | undefined,
+              redditSnippetMax,
+            ),
           };
         }
         return source;
@@ -1205,11 +1254,11 @@ function compactStrainFields(
 export function compareStrainPayload(s: StrainProfile) {
   const hasBody = Boolean(
     s.inKnowledgeBase ||
-      s.type ||
-      s.thcRange ||
-      s.description ||
-      (s.effects && s.effects.length > 0) ||
-      (s.communityNotes && s.communityNotes.length > 0),
+    s.type ||
+    s.thcRange ||
+    s.description ||
+    (s.effects && s.effects.length > 0) ||
+    (s.communityNotes && s.communityNotes.length > 0),
   );
   if (!hasBody) return { name: s.name, noCuratedProfile: true as const };
   return compactStrainFields({
@@ -1236,9 +1285,7 @@ async function vettedRedditSourcesForPrompt(
   strainNames: string[],
   fallback: RedditSource[],
 ): Promise<RedditSource[]> {
-  const snap = await getFirestore()
-    .collection(REDDIT_THREADS_COLLECTION)
-    .get();
+  const snap = await getFirestore().collection(REDDIT_THREADS_COLLECTION).get();
   const threads = snap.docs.map((doc) => doc.data() as VettedRedditThread);
   const seen = new Set<string>();
   const live: RedditSource[] = [];
@@ -1326,18 +1373,19 @@ function recommendPrompt(
     "Strain data (full Leafly profiles — type, potency, medical uses, effects, reviews):",
     compactJson(payload),
     "",
-    "Vetted Reddit threads (pick from this list only — copy url / subreddit / title verbatim):",    compactJson(redditSeeds),
+    "Vetted Reddit threads (pick from this list only — copy url / subreddit / title verbatim):",
+    compactJson(redditSeeds),
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
 }
 
-
 function normalizeRedditSources(value: unknown): RedditSource[] {
   if (!Array.isArray(value)) return [];
   // Only accept URLs in the vetted old.reddit.com form. Anything else is
   // dropped silently — we never want to surface a hallucinated Reddit link.
-  const allowedUrl = /^https:\/\/old\.reddit\.com\/r\/[^/]+\/comments\/[a-z0-9]{4,}\//i;
+  const allowedUrl =
+    /^https:\/\/old\.reddit\.com\/r\/[^/]+\/comments\/[a-z0-9]{4,}\//i;
   const seen = new Set<string>();
   const out: RedditSource[] = [];
   for (const item of value) {
@@ -1390,7 +1438,8 @@ export function normalizeCitations(value: unknown): Citation[] {
     const row = item as Record<string, unknown>;
     const id = typeof row.id === "string" ? row.id.trim().slice(0, 120) : "";
     const source = typeof row.source === "string" ? row.source.trim() : "";
-    const label = typeof row.label === "string" ? row.label.trim().slice(0, 240) : "";
+    const label =
+      typeof row.label === "string" ? row.label.trim().slice(0, 240) : "";
     const kind = row.kind as Citation["kind"];
     if (
       !id ||
@@ -1492,13 +1541,12 @@ function normalizeRecommendations(value: unknown): StrainRecommendation[] {
  * cases (e.g. JSON truncation) won't have it, in which case we return
  * undefined and the UI hides the trace.
  */
-function normalizeReasoning(
-  value: unknown,
-): StrainRecommendation["reasoning"] {
+function normalizeReasoning(value: unknown): StrainRecommendation["reasoning"] {
   if (!value || typeof value !== "object") return undefined;
   const r = value as Record<string, unknown>;
   const evidenceRaw = Array.isArray(r.evidence) ? r.evidence : [];
-  const evidence: { source: ReasoningEvidenceItem["source"]; quote: string }[] = [];
+  const evidence: { source: ReasoningEvidenceItem["source"]; quote: string }[] =
+    [];
   for (const item of evidenceRaw) {
     if (!item || typeof item !== "object") continue;
     const i = item as Record<string, unknown>;
@@ -1530,7 +1578,11 @@ function normalizeReasoning(
   };
 }
 
-function clampStringList(value: unknown, maxItems: number, maxLen: number): string[] {
+function clampStringList(
+  value: unknown,
+  maxItems: number,
+  maxLen: number,
+): string[] {
   if (!Array.isArray(value)) return [];
   const out: string[] = [];
   for (const item of value) {
@@ -1572,7 +1624,10 @@ export const compareStrains = onCall(
     };
     const names = asStringArray(data.strainNames);
     if (names.length < 2 || names.length > 3) {
-      throw new HttpsError("invalid-argument", "Select 2–3 strains to compare.");
+      throw new HttpsError(
+        "invalid-argument",
+        "Select 2–3 strains to compare.",
+      );
     }
     const condition = asStringArray(data.condition);
     const prefs = parsePrefs(data.prefs);
@@ -1641,7 +1696,9 @@ export const recommendStrainsForConditions = onCall(
     }
     const potencyRaw = data.potency;
     const potency =
-      potencyRaw === "mild" || potencyRaw === "balanced" || potencyRaw === "strong"
+      potencyRaw === "mild" ||
+      potencyRaw === "balanced" ||
+      potencyRaw === "strong"
         ? potencyRaw
         : undefined;
     const prefs = parsePrefs(data.prefs);
@@ -1743,16 +1800,20 @@ export function publicStrainImageUrl(bucket: string, key: string): string {
  */
 export const cachedStrainImage = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
-  async (request): Promise<{
+  async (
+    request,
+  ): Promise<{
     url: string;
     contentType: string;
     bytes: number;
     source: "memory" | "storage" | "network";
   }> => {
-    const url =
-      typeof request.data?.url === "string" ? request.data.url : "";
+    const url = typeof request.data?.url === "string" ? request.data.url : "";
     if (!/^https?:\/\//i.test(url)) {
-      throw new HttpsError("invalid-argument", "url must be an absolute http(s) URL.");
+      throw new HttpsError(
+        "invalid-argument",
+        "url must be an absolute http(s) URL.",
+      );
     }
     const cached = await cachedFetchImage(url);
     const key = imageCacheKey(url);
@@ -1791,11 +1852,16 @@ export const findDoctors = onCall(
 
     const data = (request.data ?? {}) as Partial<DoctorQuery>;
     const lat =
-      typeof data.lat === "number" && Number.isFinite(data.lat) ? data.lat : undefined;
+      typeof data.lat === "number" && Number.isFinite(data.lat)
+        ? data.lat
+        : undefined;
     const lon =
-      typeof data.lon === "number" && Number.isFinite(data.lon) ? data.lon : undefined;
+      typeof data.lon === "number" && Number.isFinite(data.lon)
+        ? data.lon
+        : undefined;
     const city = typeof data.city === "string" ? data.city.trim() : undefined;
-    const state = typeof data.state === "string" ? data.state.trim() : undefined;
+    const state =
+      typeof data.state === "string" ? data.state.trim() : undefined;
     const zip = typeof data.zip === "string" ? data.zip.trim() : undefined;
     const radiusMiles =
       typeof data.radiusMiles === "number" && Number.isFinite(data.radiusMiles)
@@ -1824,7 +1890,11 @@ type StrainDescriptionSection = {
 /** Response shape for describeStrainForUser. */
 type StrainDescriptionResult = {
   /** Always exactly three sections, in display order. */
-  sections: [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection];
+  sections: [
+    StrainDescriptionSection,
+    StrainDescriptionSection,
+    StrainDescriptionSection,
+  ];
   citations?: Citation[];
 };
 
@@ -1837,34 +1907,37 @@ type StrainDescriptionResult = {
 export function describeStrainPayload(s: StrainProfile) {
   const hasBody = Boolean(
     s.inKnowledgeBase ||
-      s.type ||
-      s.thcRange ||
-      s.description ||
-      (s.effects && s.effects.length > 0) ||
-      (s.medicalUses && s.medicalUses.length > 0) ||
-      (s.communityNotes && s.communityNotes.length > 0) ||
-      (s.redditSources && s.redditSources.length > 0),
+    s.type ||
+    s.thcRange ||
+    s.description ||
+    (s.effects && s.effects.length > 0) ||
+    (s.medicalUses && s.medicalUses.length > 0) ||
+    (s.communityNotes && s.communityNotes.length > 0) ||
+    (s.redditSources && s.redditSources.length > 0),
   );
   if (!hasBody) return { name: s.name, noCuratedProfile: true as const };
-  return compactStrainFields({
-    name: s.name,
-    type: s.type,
-    thcRange: s.thcRange,
-    cbdRange: s.cbdRange,
-    lineage: s.lineage,
-    terpenes: s.terpenes,
-    medicalUses: s.medicalUses,
-    effects: s.effects,
-    sideEffects: s.sideEffects,
-    description: s.description,
-    communityNotes: s.communityNotes,
-    redditSources: s.redditSources,
-    noCuratedProfile: !s.inKnowledgeBase,
-  }, {
-    preserveFullDescription: true,
-    communityNotesMax: 8,
-    redditSourcesMax: 8,
-  });
+  return compactStrainFields(
+    {
+      name: s.name,
+      type: s.type,
+      thcRange: s.thcRange,
+      cbdRange: s.cbdRange,
+      lineage: s.lineage,
+      terpenes: s.terpenes,
+      medicalUses: s.medicalUses,
+      effects: s.effects,
+      sideEffects: s.sideEffects,
+      description: s.description,
+      communityNotes: s.communityNotes,
+      redditSources: s.redditSources,
+      noCuratedProfile: !s.inKnowledgeBase,
+    },
+    {
+      preserveFullDescription: true,
+      communityNotesMax: 8,
+      redditSourcesMax: 8,
+    },
+  );
 }
 
 export function describePrompt(
@@ -1935,14 +2008,17 @@ function normalizeEscapedNewlines(s: string): string {
 function normalizeDescriptionSections(
   value: unknown,
   fallbackName: string,
-): [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection] {
+): [
+  StrainDescriptionSection,
+  StrainDescriptionSection,
+  StrainDescriptionSection,
+] {
   const list: StrainDescriptionSection[] = [];
   if (Array.isArray(value)) {
     for (const item of value) {
       if (!item || typeof item !== "object") continue;
       const r = item as Record<string, unknown>;
-      const heading =
-        typeof r.heading === "string" ? r.heading.trim() : "";
+      const heading = typeof r.heading === "string" ? r.heading.trim() : "";
       const body = normalizeEscapedNewlines(
         typeof r.body === "string" ? r.body.trim() : "",
       );
@@ -1954,7 +2030,12 @@ function normalizeDescriptionSections(
     heading,
     body,
   });
-  const overview = list[0] ?? filler("Overview", `${fallbackName} is a cannabis strain. Talk to your healthcare provider before trying it, and start with a low dose.`);
+  const overview =
+    list[0] ??
+    filler(
+      "Overview",
+      `${fallbackName} is a cannabis strain. Talk to your healthcare provider before trying it, and start with a low dose.`,
+    );
   const tailored =
     list[1] ??
     filler(
@@ -1974,7 +2055,10 @@ function parseDescription(
   content: string,
   fallbackName: string,
 ): StrainDescriptionResult {
-  const parsed = extractJsonObject(content) as { sections?: unknown; citations?: unknown } | null;
+  const parsed = extractJsonObject(content) as {
+    sections?: unknown;
+    citations?: unknown;
+  } | null;
   const citations = normalizeCitations(parsed?.citations);
   return {
     sections: normalizeDescriptionSections(parsed?.sections, fallbackName),
@@ -2279,10 +2363,7 @@ export const elaborateSection = onCall(
     const content = await callGroq(GROQ_API_KEY.value(), [
       {
         role: "system",
-        content: withLanguageClause(
-          ELABORATE_SECTION_SYSTEM_PROMPT,
-          language,
-        ),
+        content: withLanguageClause(ELABORATE_SECTION_SYSTEM_PROMPT, language),
       },
       {
         role: "user",
@@ -2367,7 +2448,8 @@ function normalizeClinicianReport(content: string): ClinicianReportSummary {
       : [];
   if (summary === "") {
     return {
-      summary: "We don't have a clinical summary for this patient right now. Tap again in a moment.",
+      summary:
+        "We don't have a clinical summary for this patient right now. Tap again in a moment.",
       considerations,
     };
   }
@@ -2390,7 +2472,10 @@ export const clinicianReportSummary = onCall(
         "Sign in to generate a clinician report.",
       );
     }
-    const data = (request.data ?? {}) as { snapshot?: unknown; language?: unknown };
+    const data = (request.data ?? {}) as {
+      snapshot?: unknown;
+      language?: unknown;
+    };
     const language = parseOutputLanguage(data.language);
     if (!data.snapshot || typeof data.snapshot !== "object") {
       throw new HttpsError(
@@ -2431,7 +2516,9 @@ export const generateClinicianReportPdf = onCall(
     timeoutSeconds: 180,
     cpu: 1,
   },
-  async (request): Promise<{
+  async (
+    request,
+  ): Promise<{
     pdfBase64: string;
     filename: string;
     contentType: "application/pdf";
@@ -2444,7 +2531,10 @@ export const generateClinicianReportPdf = onCall(
         "Sign in to generate a clinician report.",
       );
     }
-    const data = (request.data ?? {}) as { language?: unknown; includeKayaSummary?: unknown };
+    const data = (request.data ?? {}) as {
+      language?: unknown;
+      includeKayaSummary?: unknown;
+    };
     const language = parseOutputLanguage(data.language);
     const includeKaya = data.includeKayaSummary !== false;
     const uid = request.auth.uid;
@@ -2496,7 +2586,10 @@ async function safeKayaSummary(
       },
       {
         role: "user",
-        content: clinicianReportPrompt(serializeReportForModel(report), language),
+        content: clinicianReportPrompt(
+          serializeReportForModel(report),
+          language,
+        ),
       },
     ]);
     return normalizeClinicianReport(content);
@@ -2522,15 +2615,10 @@ function loadBrandLogoSvg(): string {
     "./clinician-report-logo.svg",
     "./lib/clinician-report-logo.svg",
   ];
-  // Lazy require to avoid pulling fs into the hot path.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const fs = require("node:fs") as typeof import("node:fs");
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const path = require("node:path") as typeof import("node:path");
   for (const rel of candidates) {
     try {
-      const resolved = path.resolve(__dirname, rel);
-      cachedBrandLogo = fs.readFileSync(resolved, "utf8");
+      const resolved = resolve(__dirname, rel);
+      cachedBrandLogo = readFileSync(resolved, "utf8");
       return cachedBrandLogo;
     } catch {
       // try next

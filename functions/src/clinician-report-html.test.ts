@@ -11,16 +11,20 @@ const sampleReport: ClinicianReport = {
     generatedOn: "November 14, 2023",
   },
   conditions: ["Insomnia", "Chronic pain"],
-  medications: [
-    { id: "m1", name: "Lexapro", addedAt: 1_700_000_000_000 },
-  ],
+  medications: [{ id: "m1", name: "Lexapro", addedAt: 1_700_000_000_000 }],
   checkIns: {
     window: 14,
     trend: {
       days: [
         { date: "2023-11-01", mood: 3, sleep: 2, pain: 4, anxiety: 3 },
         { date: "2023-11-02", mood: 4, sleep: 3, pain: 3, anxiety: 2 },
-        { date: "2023-11-03", mood: null, sleep: null, pain: null, anxiety: null },
+        {
+          date: "2023-11-03",
+          mood: null,
+          sleep: null,
+          pain: null,
+          anxiety: null,
+        },
         { date: "2023-11-04", mood: 5, sleep: 4, pain: 3, anxiety: 2 },
       ],
       loggedDays: 3,
@@ -52,7 +56,12 @@ const sampleReport: ClinicianReport = {
       },
     ],
     topStrains: [
-      { strain: "Granddaddy Purple", condition: "Insomnia", avgRelief: 4.5, logCount: 2 },
+      {
+        strain: "Granddaddy Purple",
+        condition: "Insomnia",
+        avgRelief: 4.5,
+        logCount: 2,
+      },
     ],
     avoid: [],
     insightsProse: "Top performers: Granddaddy Purple for Insomnia (4.5/5).",
@@ -117,8 +126,12 @@ describe("renderClinicianReportHtml", () => {
     const html = renderClinicianReportHtml(
       sampleReport,
       {
-        summary: "Patient reports solid relief with Granddaddy Purple for insomnia.",
-        considerations: ["Monitor next-day drowsiness", "Check Lexapro interaction"],
+        summary:
+          "Patient reports solid relief with Granddaddy Purple for insomnia.",
+        considerations: [
+          "Monitor next-day drowsiness",
+          "Check Lexapro interaction",
+        ],
       },
       SAMPLE_LOGO,
     );

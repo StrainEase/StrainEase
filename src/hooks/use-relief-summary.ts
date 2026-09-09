@@ -34,8 +34,7 @@ export function useReliefSummary() {
   }, [user?.uid]);
 
   const insights = useMemo(() => buildReliefInsights(logs), [logs]);
-  const summary =
-    insights.proseSummary || fallbackSummary(logs);
+  const summary = insights.proseSummary || fallbackSummary(logs);
 
   return {
     logs,

@@ -21,14 +21,17 @@ function detailPageHtml(name: string): string {
         strain: {
           name,
           category: "Hybrid",
-          descriptionPlain: "A full detail-page description with real substance about this strain.",
+          descriptionPlain:
+            "A full detail-page description with real substance about this strain.",
           parents: [{ name: "Blueberry" }, { name: "Haze" }],
           conditions: { pain: { name: "Pain", score: 0.8 } },
           effects: {
             relaxed: { name: "Relaxed", score: 2.0 },
             happy: { name: "Happy", score: 1.5 },
           },
-          terps: { myrcene: { name: "Myrcene", score: 0.9, description: "herbal" } },
+          terps: {
+            myrcene: { name: "Myrcene", score: 0.9, description: "herbal" },
+          },
           averageRating: 4.5,
           reviewCount: 13240,
         },
@@ -127,7 +130,10 @@ describe("fetchProfile — thin pre-defined description upgrade", () => {
   });
 
   test("keeps the cached description when Leafly is unreachable", async () => {
-    await putCachedStrainProfile("granddaddy-purple", thinProfile("Granddaddy Purple"));
+    await putCachedStrainProfile(
+      "granddaddy-purple",
+      thinProfile("Granddaddy Purple"),
+    );
 
     const mockFetch: typeof fetch = async () => {
       throw new Error("Leafly is dead");

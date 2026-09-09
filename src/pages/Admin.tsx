@@ -25,7 +25,12 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Loader2, ShieldCheck, AlertTriangle, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  ShieldCheck,
+  AlertTriangle,
+  ExternalLink,
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { isAdminOperator, adminApi, type AdminSection } from "@/lib/admin";
 import {
@@ -74,9 +79,7 @@ export function AdminPage() {
   }
 
   if (!user) {
-    return (
-      <NotAuthorized reason="Sign in to access the operator console." />
-    );
+    return <NotAuthorized reason="Sign in to access the operator console." />;
   }
 
   if (!isAdminOperator(user.uid)) {
@@ -102,9 +105,9 @@ export function AdminPage() {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Manage the reference library, drug-interaction pointers, and
-            Reddit pool that Dr. Kaya cites in recommendations. Every
-            action is audit-logged server-side.
+            Manage the reference library, drug-interaction pointers, and Reddit
+            pool that Dr. Kaya cites in recommendations. Every action is
+            audit-logged server-side.
           </p>
         </header>
 
@@ -224,17 +227,13 @@ function LibrarySection() {
             title={`Terpenes (${library.terpenes.length})`}
             entries={library.terpenes}
             rowKey={(t) => t.slug}
-            renderRow={(t) => (
-              <TerpeneRow key={t.slug} record={t} />
-            )}
+            renderRow={(t) => <TerpeneRow key={t.slug} record={t} />}
           />
           <RecordList
             title={`Cannabinoids (${library.cannabinoids.length})`}
             entries={library.cannabinoids}
             rowKey={(c) => c.slug}
-            renderRow={(c) => (
-              <CannabinoidRow key={c.slug} record={c} />
-            )}
+            renderRow={(c) => <CannabinoidRow key={c.slug} record={c} />}
           />
         </div>
       )}
@@ -276,8 +275,9 @@ function InteractionsSection() {
   const [records, setRecords] = useState<InteractionRecord[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
-  const [lastSeed, setLastSeed] =
-    useState<SeedInteractionLibraryResult | null>(null);
+  const [lastSeed, setLastSeed] = useState<SeedInteractionLibraryResult | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [drugFilter, setDrugFilter] = useState("");
 
@@ -288,7 +288,7 @@ function InteractionsSection() {
       // Use a broad filter to get the full list back; the page renders
       // the table directly. A 100-drug batch is more than the
       // current seed.
-      const result = await adminApi.interactions.seed
+      const result = (await adminApi.interactions.seed)
         ? await fetchInteractionsBatch()
         : [];
       setRecords(result);
@@ -354,8 +354,8 @@ function InteractionsSection() {
                   Interaction records ({filtered.length} of {records.length})
                 </CardTitle>
                 <CardDescription>
-                  Every record has `discussWithPrescriber: true` — the UI
-                  must surface that line.
+                  Every record has `discussWithPrescriber: true` — the UI must
+                  surface that line.
                 </CardDescription>
               </div>
               <input
@@ -495,8 +495,8 @@ function RedditSection() {
               Pending threads ({pending.length})
             </CardTitle>
             <CardDescription>
-              A thread is only surfaced in a recommendation after an
-              operator vets it.
+              A thread is only surfaced in a recommendation after an operator
+              vets it.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -523,8 +523,7 @@ function RedditSection() {
                     )}
                     <p className="text-[11px] text-muted-foreground">
                       conditions: {t.applicableConditions.join(", ") || "—"}
-                      {" · "}strains:{" "}
-                      {t.applicableStrains.join(", ") || "—"}
+                      {" · "}strains: {t.applicableStrains.join(", ") || "—"}
                     </p>
                     {t.url && (
                       <a
@@ -604,16 +603,12 @@ function ActionBar({
             onClick={onRefresh}
             disabled={loading || running}
           >
-            {loading ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : null}
+            {loading ? <Loader2 className="size-3 animate-spin" /> : null}
             Refresh
           </Button>
           {onRun && (
             <Button size="sm" onClick={onRun} disabled={loading || running}>
-              {running ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : null}
+              {running ? <Loader2 className="size-3 animate-spin" /> : null}
               {runLabel}
             </Button>
           )}

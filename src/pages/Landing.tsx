@@ -10,7 +10,11 @@ import { popularStrains as popularStrainsCall } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
 import { homeJsonLd, SITE_FAQS } from "@/lib/seo";
 import { SITE_DESCRIPTION, documentTitle } from "@/lib/site";
-import { applyCatalogPhotos, CATALOG, topMedicalUses } from "@/lib/strain-catalog";
+import {
+  applyCatalogPhotos,
+  CATALOG,
+  topMedicalUses,
+} from "@/lib/strain-catalog";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { TERPENE_PROFILES, terpeneSlug } from "@/lib/terpenes";
 import { cn } from "@/lib/utils";
@@ -273,7 +277,9 @@ function StrainCard({
           className="mb-4 h-36 w-full rounded-xl border border-border/70"
         />
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold tracking-tight">{strain.name}</h3>
+          <h3 className="text-lg font-semibold tracking-tight">
+            {strain.name}
+          </h3>
           <Badge className={cn(typeBadgeClass(strain.type), "capitalize")}>
             {TYPE_LABEL[strain.type] ?? strain.type}
           </Badge>
@@ -346,7 +352,10 @@ function LandingNav({
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-40 px-4 pt-4 sm:px-6">
       <div className="pointer-events-auto mx-auto flex w-full max-w-5xl items-center justify-between rounded-full border border-border/70 bg-background/75 px-3 py-2 backdrop-blur-md md:px-4">
-        <Link to="/" className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2">
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2"
+        >
           <BrandLogo className="size-8 rounded-[10px]" />
           <span className="text-[15px] font-semibold tracking-tight">
             StrainEase
@@ -392,7 +401,10 @@ function LandingNav({
                 )}
               />
               <span
-                className={cn("nav-burger-line", open && "-translate-y-[3.5px] -rotate-45")}
+                className={cn(
+                  "nav-burger-line",
+                  open && "-translate-y-[3.5px] -rotate-45",
+                )}
               />
             </span>
           </button>
@@ -422,7 +434,10 @@ function LandingNav({
                   {link.label}
                 </motion.a>
               ))}
-              <Button asChild className="group mt-3 w-full cursor-pointer rounded-full">
+              <Button
+                asChild
+                className="group mt-3 w-full cursor-pointer rounded-full"
+              >
                 <Link to={appHref} onClick={() => setOpen(false)}>
                   {appLabel}
                   <CtaIcon />
@@ -609,14 +624,17 @@ export default function Landing() {
             </div>
             <p className="max-w-xl text-sm leading-6 text-muted-foreground">
               Pick your symptoms and StrainEase researches the strains patients
-              report work best for them — then ranks the top matches so you
-              can compare the finalists side by side.
+              report work best for them — then ranks the top matches so you can
+              compare the finalists side by side.
             </p>
           </motion.div>
         </div>
       </section>
 
-      <section id="how-it-works" className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16">
+      <section
+        id="how-it-works"
+        className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16"
+      >
         <motion.div {...fadeUp(0)} className="mb-10 max-w-xl sm:mb-14">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
             How it works
@@ -667,8 +685,8 @@ export default function Landing() {
               </h2>
             </div>
             <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-              These are the strains patients are looking at most on Leafly
-              today — pulled live, ee add the medical expertise. Compare any of them
+              These are the strains patients are looking at most on Leafly today
+              — pulled live, ee add the medical expertise. Compare any of them
               in the app.
             </p>
           </motion.div>
@@ -698,7 +716,10 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="sources" className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16">
+      <section
+        id="sources"
+        className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16"
+      >
         <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
           <motion.div {...fadeUp(0)}>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
@@ -751,7 +772,10 @@ export default function Landing() {
               </p>
               <div className="mt-8 divide-y divide-border/60">
                 {SAMPLE_HITS.map((row) => (
-                  <div key={row.label} className="flex items-start gap-3 py-4 first:pt-0 last:pb-0">
+                  <div
+                    key={row.label}
+                    className="flex items-start gap-3 py-4 first:pt-0 last:pb-0"
+                  >
                     <row.icon className="mt-0.5 size-4 shrink-0 text-primary" />
                     <div>
                       <p className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -882,37 +906,58 @@ export default function Landing() {
             </p>
             <ul className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
               <li>
-                <a href="#how-it-works" className="transition-colors hover:text-foreground">
+                <a
+                  href="#how-it-works"
+                  className="transition-colors hover:text-foreground"
+                >
                   How it works
                 </a>
               </li>
               <li>
-                <a href="#faq" className="transition-colors hover:text-foreground">
+                <a
+                  href="#faq"
+                  className="transition-colors hover:text-foreground"
+                >
                   FAQ
                 </a>
               </li>
               <li>
-                <Link to={appHref} className="transition-colors hover:text-foreground">
+                <Link
+                  to={appHref}
+                  className="transition-colors hover:text-foreground"
+                >
                   {isAuthenticated ? "Dashboard" : "Find strains"}
                 </Link>
               </li>
               <li>
-                <Link to="/legal" className="transition-colors hover:text-foreground">
+                <Link
+                  to="/legal"
+                  className="transition-colors hover:text-foreground"
+                >
                   Age &amp; legal policy
                 </Link>
               </li>
               <li>
-                <Link to="/legal/terms" className="transition-colors hover:text-foreground">
+                <Link
+                  to="/legal/terms"
+                  className="transition-colors hover:text-foreground"
+                >
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link to="/legal/privacy" className="transition-colors hover:text-foreground">
+                <Link
+                  to="/legal/privacy"
+                  className="transition-colors hover:text-foreground"
+                >
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link to="/legal/medical" className="transition-colors hover:text-foreground">
+                <Link
+                  to="/legal/medical"
+                  className="transition-colors hover:text-foreground"
+                >
                   Medical disclaimer
                 </Link>
               </li>
@@ -937,7 +982,10 @@ export default function Landing() {
             >
               How it works
             </a>
-            <Link to={appHref} className="transition-colors hover:text-foreground">
+            <Link
+              to={appHref}
+              className="transition-colors hover:text-foreground"
+            >
               {isAuthenticated ? "Dashboard" : "Sign in"}
             </Link>
           </div>

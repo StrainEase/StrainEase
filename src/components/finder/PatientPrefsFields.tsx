@@ -19,7 +19,8 @@ export function PatientPrefsFields({
   onChange: (next: ResearchPrefs) => void;
   startAt?: number;
 }) {
-  const set = (patch: Partial<ResearchPrefs>) => onChange({ ...prefs, ...patch });
+  const set = (patch: Partial<ResearchPrefs>) =>
+    onChange({ ...prefs, ...patch });
 
   return (
     <div className="space-y-5">

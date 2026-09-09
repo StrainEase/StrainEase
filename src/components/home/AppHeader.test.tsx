@@ -10,15 +10,15 @@ describe("AppTabBar", () => {
         <AppTabBar active="find" />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("link", { name: "Home" }).getAttribute("href")).toBe(
-      "/",
-    );
-    expect(screen.getByRole("link", { name: "Find" }).getAttribute("href")).toBe(
-      "/dashboard",
-    );
-    expect(screen.getByRole("link", { name: "Browse" }).getAttribute("href")).toBe(
-      "/dashboard?mode=directory",
-    );
+    expect(
+      screen.getByRole("link", { name: "Home" }).getAttribute("href"),
+    ).toBe("/");
+    expect(
+      screen.getByRole("link", { name: "Find" }).getAttribute("href"),
+    ).toBe("/dashboard");
+    expect(
+      screen.getByRole("link", { name: "Browse" }).getAttribute("href"),
+    ).toBe("/dashboard?mode=directory");
     expect(
       screen.getByRole("link", { name: "Doctors" }).getAttribute("href"),
     ).toBe("/doctors");

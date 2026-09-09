@@ -11,13 +11,13 @@ blocked by a later one.
 
 ## Why this order
 
-| Tier | PR | What it is | Why it goes here |
-| ---- | -- | ---------- | ---------------- |
-| 1 — Data foundations | 1, 2 | Terpene/cannabinoid + drug-interaction libraries | Pure data, no AI changes, no UI yet. Later PRs cite this. |
-| 2 — AI surface | 3 | Reddit pool refresh + citation/source-attribution layer | Touches the AI callables' JSON contract; everything else either feeds or consumes it. |
-| 3 — Patient value (read existing data) | 4, 5 | Relief-log insights, clinician report export | Use data we already collect; no new writes. |
-| 4 — Patient value (new writes) | 6 | Daily check-in / symptom tracking | New collection, new chart, lowest-risk new write. |
-| 5 — AI surface, take two | 7 | "Why this strain" reasoning trace | Depends on PR1 (terpene data), PR3 (citation shape), and existing ReliefLog + ResearchPrefs. |
+| Tier                                   | PR   | What it is                                              | Why it goes here                                                                             |
+| -------------------------------------- | ---- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1 — Data foundations                   | 1, 2 | Terpene/cannabinoid + drug-interaction libraries        | Pure data, no AI changes, no UI yet. Later PRs cite this.                                    |
+| 2 — AI surface                         | 3    | Reddit pool refresh + citation/source-attribution layer | Touches the AI callables' JSON contract; everything else either feeds or consumes it.        |
+| 3 — Patient value (read existing data) | 4, 5 | Relief-log insights, clinician report export            | Use data we already collect; no new writes.                                                  |
+| 4 — Patient value (new writes)         | 6    | Daily check-in / symptom tracking                       | New collection, new chart, lowest-risk new write.                                            |
+| 5 — AI surface, take two               | 7    | "Why this strain" reasoning trace                       | Depends on PR1 (terpene data), PR3 (citation shape), and existing ReliefLog + ResearchPrefs. |
 
 The 7 PRs the user named map 1:1 to this table. The user combined
 "replace the static `reddit-seed.ts` with a vetted, growing pool" and
@@ -52,13 +52,14 @@ These apply to every PR below unless that PR calls them out as different.
 **Android mirror:** `feat/android/terpene-cannabinoid-library` (follow-up PR)
 
 ### Scope
+
 Add two server-controlled Firestore collections that back the strain detail
 "why might this work for you" content with real, citable facts:
 
 - `terpeneLibrary/{slug}` — `displayName`, `classDescription` (e.g. monoterpene
   vs sesquiterpene), `aroma`, `commonSources`, `mechanism` (short, plain English),
   `commonlyReportedEffects` (string[]), `evidenceGrade` (`"strong" | "moderate"
-  | "limited" | "anecdotal"`), `sources` (`{label, url, kind: "pubmed" | "review" | "nor.org" | "other"}[]`).
+| "limited" | "anecdotal"`), `sources` (`{label, url, kind: "pubmed" | "review" | "nor.org" | "other"}[]`).
 - `cannabinoidLibrary/{slug}` — same shape plus `cb1Affinity`, `cb2Affinity`
   (descriptive strings, not numeric — we do not invent Ki values), and
   `psychoactivity` (`"none" | "mild" | "moderate" | "high"`).
@@ -70,6 +71,7 @@ loaded by a one-shot admin migration callable (`seedReferenceLibrary`, auth-gate
 to the project owner) — no client-side writes.
 
 ### Files
+
 - `functions/src/reference-library.ts` — loaders, types, lookup helpers
 - `functions/src/seed/terpeneLibrary.json` (new)
 - `functions/src/seed/cannabinoidLibrary.json` (new)
@@ -80,6 +82,7 @@ to the project owner) — no client-side writes.
 - `src/lib/reference-library.ts` — typed client wrapper around `getReferenceLibrary`.
 
 ### Acceptance criteria
+
 1. `seedReferenceLibrary` writes the seeded JSON into Firestore, idempotently.
 2. `getReferenceLibrary({ kind: "terpene" | "cannabinoid" })` returns the
    full list with no LLM in the loop.
@@ -90,6 +93,7 @@ to the project owner) — no client-side writes.
 5. `bun test --serial` from `functions/` passes.
 
 ### Test plan
+
 - `functions/src/reference-library.test.ts` — loader parses JSON, lookups
   by slug, slug normalization, empty-collection fallback.
 - `functions/src/seed/terpeneLibrary.json` and `cannabinoidLibrary.json`
@@ -100,6 +104,7 @@ to the project owner) — no client-side writes.
   `getReferenceLibrary` end-to-end.
 
 ### Out of scope
+
 - Strain detail page UI changes. The "why this might work" block on the
   strain page is added in **PR 7** once the AI knows how to cite.
 - Editing the library from a UI. Admin-only migration only.
@@ -115,27 +120,30 @@ references it for the existing medication caution)
 **Android mirror:** `feat/android/drug-interaction-library` (follow-up PR)
 
 ### Scope
+
 Add a small, hand-curated `interactionLibrary/{drugSlug}` collection that the
 strain detail page and the AI callables can look up against a patient's
 `medications` field.
 
 Document shape per record:
+
 - `drugName`, `slug`, `drugClass` (`"SSRI" | "benzodiazepine" | "opioid" |
-  "anticoagulant" | "antihistamine" | "stimulant" | "other"`).
+"anticoagulant" | "antihistamine" | "stimulant" | "other"`).
 - `cannabisInteraction` — `{ severity: "low" | "moderate" | "high" | "theoretical",
-  mechanism: string, commonGuidance: string, discussWithPrescriber: bool }`.
+mechanism: string, commonGuidance: string, discussWithPrescriber: bool }`.
 - `sources[]` (same shape as PR 1).
 
 Seed ~15 drugs covering the most-commonly-searched classes (sertraline,
 fluoxetine, escitalopram, citalopram; alprazolam, lorazepam, clonazepam;
 oxycodone, hydrocodone, morphine; warfarin, apixaban; diphenhydramine;
- Adderall/mixed amphetamines; modafinil).
+Adderall/mixed amphetamines; modafinil).
 
 The library is **not medical advice** — every record has
 `discussWithPrescriber: true` and the UI must say so. The render is purely a
 "here is what the literature commonly reports" block, no clinical claims.
 
 ### Files
+
 - `functions/src/seed/interactionLibrary.json` (new)
 - `functions/src/reference-library.ts` (extend with `lookupInteractions(drugs: string[])`)
 - `functions/src/index.ts` — `getDrugInteractions` callable
@@ -143,6 +151,7 @@ The library is **not medical advice** — every record has
 - `src/lib/reference-library.ts` — typed client wrapper.
 
 ### Acceptance criteria
+
 1. `getDrugInteractions({ drugs: ["sertraline"] })` returns one record.
 2. Unknown drug name returns an empty array, not an error.
 3. Every record's `cannabisInteraction.discussWithPrescriber === true`.
@@ -150,12 +159,14 @@ The library is **not medical advice** — every record has
 5. `bun test --serial` passes.
 
 ### Test plan
+
 - Unit tests for the loader, slug normalization, multi-drug lookup,
   dedupe of duplicate slugs.
 - Rule test denies client writes.
 - Manual: emulator end-to-end lookup.
 
 ### Out of scope
+
 - Clinical-grade severity scoring or drug-drug-drug checks. This is a
   literature pointer, not a CDS.
 
@@ -169,6 +180,7 @@ The library is **not medical advice** — every record has
 **Android mirror:** `feat/android/reddit-pool-and-citations` (follow-up PR)
 
 ### Scope, part A — Reddit pool
+
 Replace `functions/src/reddit-seed.ts` (the static, hand-seeded array) with a
 Firestore collection `redditThreads/{threadId}` that the existing
 `redditCacheRefresh` schedule (`functions/src/reddit-refresh.ts`) can write
@@ -180,6 +192,7 @@ becomes eligible to be served:
   (e.g. `["insomnia", "chronic-pain"]`), `applicableStrains[]` (e.g. `["Granddaddy Purple"]`).
 
 New admin-only callables:
+
 - `vetRedditThread` — accept a PullPush/Arctic-Shift result, write to
   `redditThreads/{threadId}` with `vettedAt`/`vettedBy` set.
 - `listPendingRedditThreads` — list candidate threads needing review.
@@ -191,6 +204,7 @@ strain not yet covered by the live pool. The seed file is **kept** as a
 safety net for one release, then deleted in a follow-up PR.
 
 ### Scope, part B — Citation layer
+
 Add a `citations` field to every AI call JSON shape that contains prose claims.
 Dr. Kaya's JSON output gains an optional `citations: Array<{ id: string, source:
 string, label: string, kind: "pubmed" | "review" | "nor.org" | "leafly" |
@@ -203,6 +217,7 @@ rendering lands in **PR 7** (or — opportunistically — in the strain detail
 "why this might work" block that PR 7 introduces).
 
 ### Files
+
 - `functions/src/reddit.ts` — add `vetRedditThread`, `listPendingRedditThreads`,
   `unvetRedditThread`.
 - `functions/src/index.ts` — change `redditThreadsForStrain` to prefer the
@@ -218,6 +233,7 @@ rendering lands in **PR 7** (or — opportunistically — in the strain detail
   pins the `citations` array shape so PR 7 can rely on it.
 
 ### Acceptance criteria
+
 1. Admin `vetRedditThread` writes a record; `listPendingRedditThreads` returns
    candidates; `unvetRedditThread` clears the vetting.
 2. `redditThreadsForStrain("Granddaddy Purple", ["insomnia"])` returns vetted
@@ -228,6 +244,7 @@ rendering lands in **PR 7** (or — opportunistically — in the strain detail
 5. Firestore rules prevent reading unvetted threads from the client.
 
 ### Test plan
+
 - Unit tests for the three new admin callables (auth gate, idempotency).
 - Unit tests for `redditThreadsForStrain` fallback ordering.
 - Golden-prompt test: stub the Groq client, assert the system prompt now
@@ -238,6 +255,7 @@ rendering lands in **PR 7** (or — opportunistically — in the strain detail
   surface.
 
 ### Out of scope
+
 - A real admin UI for vetting. Operators use the Functions emulator + a
   small CLI in `scripts/vet-reddit.ts` (one-shot script, no UI).
 
@@ -251,6 +269,7 @@ rendering lands in **PR 7** (or — opportunistically — in the strain detail
 **Android mirror:** `feat/android/relief-log-insights` (follow-up PR)
 
 ### Scope
+
 Add a `ReliefInsights` surface on Home and Account that surfaces
 patient-specific patterns from existing `reliefLogs` (collection is already
 live under `users/{uid}/reliefLogs`). The insights are deterministic, not
@@ -258,7 +277,8 @@ LLM-derived — they run in the client and read the existing
 `listenToReliefLogs` stream.
 
 Insight rules (each shown only if data is sufficient):
-- **Top strain for a saved condition**: "For your *insomnia*, X of your last
+
+- **Top strain for a saved condition**: "For your _insomnia_, X of your last
   N logs rated relief ≥ 4 on **Strain Name**" — requires ≥ 3 logs for the
   condition and the same strain appearing in ≥ 2 of them.
 - **THC ceiling fit**: "Strains above N% THC tend to feel 'too strong' to
@@ -272,6 +292,7 @@ Insight rules (each shown only if data is sufficient):
   sessions" — last 5 logs, sorted by `createdAt`.
 
 ### Files
+
 - `src/lib/relief-insights.ts` (new) — pure functions over `ReliefLog[]`.
 - `src/components/saved/ReliefInsights.tsx` (new) — UI block.
 - `src/components/home/HomeScreen.tsx` — insert the block above the StrainRails
@@ -284,6 +305,7 @@ Insight rules (each shown only if data is sufficient):
   picker in the "How did this go?" sheet.
 
 ### Acceptance criteria
+
 1. With < 3 logs, the block is hidden (no noisy empty state).
 2. With ≥ 3 logs and a saved condition that matches, "Top strain" insight
    shows with the right numerator/denominator.
@@ -293,6 +315,7 @@ Insight rules (each shown only if data is sufficient):
 5. Firestore rule test allows the new field.
 
 ### Test plan
+
 - Unit tests for each insight rule, including edge cases (single log,
   zero logs, all-same-strain, mixed conditions).
 - Component test for `ReliefInsights` (renders nothing below threshold,
@@ -301,6 +324,7 @@ Insight rules (each shown only if data is sufficient):
 - Manual: feed a fake uid with synthetic logs and confirm the Home block.
 
 ### Out of scope
+
 - LLM-generated insights. Everything is deterministic; we add a comment
   noting that the "ask Dr. Kaya" prompt at the bottom of the block already
   goes to a non-deterministic LLM.
@@ -313,9 +337,10 @@ Insight rules (each shown only if data is sufficient):
 **Tier:** 3 (patient value)
 **Blocks:** None
 **Android mirror:** `feat/android/clinician-report` (follow-up PR; PDF
-  generation on Android uses Compose's native print framework)
+generation on Android uses Compose's native print framework)
 
 ### Scope
+
 Add a "Share with my doctor" flow on Account that renders a structured
 report from the patient's data and exports it as both a print-friendly
 HTML view and a downloadable PDF. The report includes:
@@ -336,6 +361,7 @@ The HTML is rendered with the same Tailwind tokens as the rest of the app
 to "Save as PDF" — no headless browser, no extra binary dependency.
 
 ### Files
+
 - `functions/src/index.ts` — `generateClinicianSummary` callable (auth-gated,
   same `KAYA_CORE` guardrails).
 - `src/lib/strain-api.ts` — typed wrapper.
@@ -347,6 +373,7 @@ to "Save as PDF" — no headless browser, no extra binary dependency.
   report payload from `reliefLogs` + `medications` + `savedAilments`.
 
 ### Acceptance criteria
+
 1. The report shows real data for the chosen date range, not Lorem ipsum.
 2. The Dr. Kaya summary contains no "stop taking" language (golden test
    with three example reports).
@@ -355,6 +382,7 @@ to "Save as PDF" — no headless browser, no extra binary dependency.
 5. `bun test --serial` passes; app component tests pass.
 
 ### Test plan
+
 - Unit tests for the assembler (date filtering, condition subset, note
   redaction, empty-data edge cases).
 - Golden-prompt test: stub Groq, assert the summary's `body` does not
@@ -365,6 +393,7 @@ to "Save as PDF" — no headless browser, no extra binary dependency.
   column, scannable in < 1 page for a 30-day range.
 
 ### Out of scope
+
 - Server-side PDF rendering. Browser print is enough; we explicitly avoid
   adding a headless Chromium dependency.
 
@@ -378,6 +407,7 @@ to "Save as PDF" — no headless browser, no extra binary dependency.
 **Android mirror:** `feat/android/daily-checkin` (follow-up PR)
 
 ### Scope
+
 Add a `dailyCheckIns/{yyyy-mm-dd}` collection under each user. One doc per
 day. The doc holds a small fixed-shape payload:
 
@@ -387,6 +417,7 @@ day. The doc holds a small fixed-shape payload:
   `note` (string ≤ 400), `createdAt`, `updatedAt`.
 
 UI:
+
 - A new `DailyCheckIn` sheet on the strain detail page ("How are you today?")
   and a Home tile for the signed-in user.
 - A `CheckInHistory` view (Account) that renders the last 30 days as four
@@ -394,6 +425,7 @@ UI:
   not a chart library.
 
 ### Files
+
 - `functions/src/index.ts` — none (pure client write; rules gate it).
 - `firestore.rules` — new `users/{uid}/dailyCheckIns/{dateId}` rules.
 - `src/lib/daily-checkin.ts` (new) — types + Firestore helpers.
@@ -404,6 +436,7 @@ UI:
 - `src/components/home/HomeScreen.tsx` — add the Home tile.
 
 ### Acceptance criteria
+
 1. One check-in per day per user (the date id is the doc id; Firestore
    rule rejects a second same-day create).
 2. `sideEffects` is a closed enum, validated in the rule.
@@ -412,6 +445,7 @@ UI:
 5. Component tests for the sheet and the history view pass.
 
 ### Test plan
+
 - Unit tests for the date-id helper, enum validation, history rollup.
 - Component test for the sheet (validation, save flow).
 - Component test for the history view (renders N rows of sparkline from
@@ -421,6 +455,7 @@ UI:
 - Manual: 14 days of synthetic check-ins renders cleanly.
 
 ### Out of scope
+
 - Correlating check-ins to specific strains. That's a **follow-up PR** that
   consumes the data this PR writes; we do not let it creep into scope.
 
@@ -431,10 +466,11 @@ UI:
 **Branch:** `feat/patient/why-this-strain`
 **Tier:** 5 (AI surface + UI)
 **Blocks:** None (consumes PR 1, PR 3, PR 4 outputs; not blocked by them
-  in code, but should land last for the cleanest story)
+in code, but should land last for the cleanest story)
 **Android mirror:** `feat/android/why-this-strain` (follow-up PR)
 
 ### Scope
+
 Render an auditable "evidence ledger" alongside Dr. Kaya's recommendation
 prose. Each item in the ledger is one short clause, one icon, and one source
 link. Example:
@@ -442,7 +478,7 @@ link. Example:
 > ✓ Matches your saved condition **insomnia** (ReliefLog: 4/5 on similar strains) ·
 > ✓ Below your stated 22% THC ceiling ·
 > ✓ Sedating-leaning terpene profile (myrcene, linalool — sourced from
->   `terpeneLibrary`) ·
+> `terpeneLibrary`) ·
 > ✓ 2 community notes on sleep.
 
 The AI's JSON contract (PR 3) gains a top-level `evidence: Array<{
@@ -457,6 +493,7 @@ The evidence ledger renders on the strain detail page (below the AI
 description) and inside the compare results panel.
 
 ### Files
+
 - `functions/src/index.ts` — extend the shared `KAYA_CORE` block (and each
   callable's prompt) to require the `evidence[]` field; update the JSON
   contract docs.
@@ -469,17 +506,19 @@ description) and inside the compare results panel.
   the description.
 
 ### Acceptance criteria
+
 1. The `evidence[]` field is non-empty for ≥ 90% of recommend calls in the
-  golden test fixtures.
+   golden test fixtures.
 2. Each `evidence[]` item has a `kind` from the closed enum.
 3. `citationId` resolves to either a `citations[]` entry (PR 3) or a
-  library entry (PR 1 / PR 2). Unresolved `citationId` renders as a
-  muted "(source not found)" — never throws.
+   library entry (PR 1 / PR 2). Unresolved `citationId` renders as a
+   muted "(source not found)" — never throws.
 4. The ledger never invents sources; if a `kind` would need a library
-  lookup that fails, the entry is dropped (golden test enforces this).
+   lookup that fails, the entry is dropped (golden test enforces this).
 5. App component tests pass; functions tests pass.
 
 ### Test plan
+
 - Golden-prompt test: stub Groq, assert the new prompt requires the
   `evidence[]` field and that the extraction accepts the new shape.
 - Unit tests for the `EvidenceLedger` renderer: empty state, mixed-kind
@@ -489,6 +528,7 @@ description) and inside the compare results panel.
   kind actually resolves to the user's own logs.
 
 ### Out of scope
+
 - Inline clicking to "fix" a wrong evidence item. Out of scope; logged as
   a follow-up.
 

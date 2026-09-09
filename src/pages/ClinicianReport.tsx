@@ -110,7 +110,7 @@ export default function ClinicianReportPage() {
         looksUndeployed
           ? `${detail} — the generateClinicianReportPdf Cloud Function isn't deployed yet. Run \`cd functions && npm install && npm run build && firebase deploy --only functions --force\` from the repo root, then retry.`
           : detail ||
-            "We couldn't generate the report. Please try again in a moment.",
+              "We couldn't generate the report. Please try again in a moment.",
       );
     } finally {
       setBusy(false);
@@ -134,9 +134,9 @@ export default function ClinicianReportPage() {
             Sign in to generate a clinician report
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            The report pulls from your saved conditions, medications, and
-            logged outcomes. It's never uploaded — it renders on our
-            servers and downloads as a PDF to your device.
+            The report pulls from your saved conditions, medications, and logged
+            outcomes. It's never uploaded — it renders on our servers and
+            downloads as a PDF to your device.
           </p>
           <Button
             type="button"
@@ -167,8 +167,8 @@ export default function ClinicianReportPage() {
             Clinician report needs Firebase
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Add your VITE_FIREBASE_* keys to load saved conditions,
-            medications, and relief logs.
+            Add your VITE_FIREBASE_* keys to load saved conditions, medications,
+            and relief logs.
           </p>
         </div>
       </main>
@@ -195,7 +195,9 @@ export default function ClinicianReportPage() {
               Clinician report
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              {user.name?.trim() ? `${user.name.trim()}'s report` : "Your report"}
+              {user.name?.trim()
+                ? `${user.name.trim()}'s report`
+                : "Your report"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               One-tap PDF — built on our servers, identical to what your
@@ -218,10 +220,26 @@ export default function ClinicianReportPage() {
         </header>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <DataTile label="Conditions" value={ailments.length} loading={ailmentsLoading} />
-          <DataTile label="Medications" value={medications.length} loading={medsLoading} />
-          <DataTile label="Check-ins" value={checkIns.length} loading={checkInsLoading} />
-          <DataTile label="Relief logs" value={reliefLogs.length} loading={false} />
+          <DataTile
+            label="Conditions"
+            value={ailments.length}
+            loading={ailmentsLoading}
+          />
+          <DataTile
+            label="Medications"
+            value={medications.length}
+            loading={medsLoading}
+          />
+          <DataTile
+            label="Check-ins"
+            value={checkIns.length}
+            loading={checkInsLoading}
+          />
+          <DataTile
+            label="Relief logs"
+            value={reliefLogs.length}
+            loading={false}
+          />
         </div>
 
         {!isLoading && totalDataPoints === 0 && (
@@ -240,8 +258,8 @@ export default function ClinicianReportPage() {
             <Loader2 className="size-4 animate-spin text-primary" />
             <AlertTitle>Asking Dr. Kaya for a clinical summary…</AlertTitle>
             <AlertDescription>
-              This usually takes 5–10 seconds — we're fetching your
-              snapshot, calling the model, and rendering the PDF.
+              This usually takes 5–10 seconds — we're fetching your snapshot,
+              calling the model, and rendering the PDF.
             </AlertDescription>
           </Alert>
         )}
@@ -260,7 +278,9 @@ export default function ClinicianReportPage() {
             <AlertDescription>
               Downloaded {lastResult.filename} (
               {(lastResult.byteLength / 1024).toFixed(0)} KB
-              {lastResult.kayaIncluded ? ", includes Dr. Kaya's summary" : ", structured snapshot only"}
+              {lastResult.kayaIncluded
+                ? ", includes Dr. Kaya's summary"
+                : ", structured snapshot only"}
               ). Open it in Preview, Acrobat, or your browser's PDF viewer.
             </AlertDescription>
           </Alert>
@@ -271,13 +291,22 @@ export default function ClinicianReportPage() {
             What your clinician will see
           </h2>
           <ul className="mt-3 space-y-1.5 text-sm leading-6 text-muted-foreground">
-            <li>• A branded header (StrainEase logo + your name + generated date).</li>
-            <li>• Patient facts: display name, email, age context, report window.</li>
+            <li>
+              • A branded header (StrainEase logo + your name + generated date).
+            </li>
+            <li>
+              • Patient facts: display name, email, age context, report window.
+            </li>
             <li>• Active conditions and current medications.</li>
             <li>• 14-day check-in trend (sparkline) + 4 metric averages.</li>
-            <li>• 30-day relief log table + pattern analysis (top strains + too-strong list).</li>
+            <li>
+              • 30-day relief log table + pattern analysis (top strains +
+              too-strong list).
+            </li>
             <li>• Saved strains with the actual note text you wrote.</li>
-            <li>• Dr. Kaya's 2-3 paragraph clinical summary + 3-5 considerations.</li>
+            <li>
+              • Dr. Kaya's 2-3 paragraph clinical summary + 3-5 considerations.
+            </li>
           </ul>
         </section>
       </div>
@@ -300,7 +329,11 @@ function DataTile({
         {label}
       </p>
       <p className="mt-1 text-2xl font-semibold tracking-tight">
-        {loading ? <Loader2 className="size-5 animate-spin text-muted-foreground" /> : value}
+        {loading ? (
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        ) : (
+          value
+        )}
       </p>
     </div>
   );

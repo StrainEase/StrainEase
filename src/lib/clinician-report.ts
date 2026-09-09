@@ -88,8 +88,8 @@ export function buildClinicianReport(input: {
       generatedAt: now,
       generatedOn: formatDate(now),
     },
-    conditions: normalizeAilments(input.ailments).map(
-      (s) => s.slice(0, AILMENT_NAME_MAX),
+    conditions: normalizeAilments(input.ailments).map((s) =>
+      s.slice(0, AILMENT_NAME_MAX),
     ),
     medications: input.medications,
     checkIns: {

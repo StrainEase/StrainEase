@@ -13,7 +13,10 @@ const SRC = join(ROOT, "src");
 const OUT = join(ROOT, "lib");
 
 const ASSETS = [
-  { from: join(SRC, "assets", "clinician-report-logo.svg"), to: join(OUT, "clinician-report-logo.svg") },
+  {
+    from: join(SRC, "assets", "clinician-report-logo.svg"),
+    to: join(OUT, "clinician-report-logo.svg"),
+  },
 ];
 
 for (const { from, to } of ASSETS) {
@@ -26,5 +29,7 @@ for (const { from, to } of ASSETS) {
   }
   await mkdir(dirname(to), { recursive: true });
   await copyFile(from, to);
-  console.log(`copied ${from.replace(ROOT + "/", "")} → ${to.replace(ROOT + "/", "")}`);
+  console.log(
+    `copied ${from.replace(ROOT + "/", "")} → ${to.replace(ROOT + "/", "")}`,
+  );
 }

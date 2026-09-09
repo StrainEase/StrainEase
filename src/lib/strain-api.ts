@@ -92,9 +92,10 @@ function call<TArgs, TResult>(name: string, args: TArgs): Promise<TResult> {
       ),
     );
   }
-  return httpsCallable<TArgs, TResult>(functions, name)(args).then(
-    (res) => res.data,
-  );
+  return httpsCallable<TArgs, TResult>(
+    functions,
+    name,
+  )(args).then((res) => res.data);
 }
 
 /** Popular strains on Leafly right now (public callable). */
@@ -217,7 +218,11 @@ export type StrainDescriptionSection = {
  *   - "What to expect"
  */
 export type StrainDescription = {
-  sections: [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection];
+  sections: [
+    StrainDescriptionSection,
+    StrainDescriptionSection,
+    StrainDescriptionSection,
+  ];
   citations?: Citation[];
 };
 
@@ -394,7 +399,12 @@ export type DoctorQuery = {
 
 export type DoctorResult = {
   doctors: Doctor[];
-  resolvedLocation: { city: string; state: string; lat: number; lon: number } | null;
+  resolvedLocation: {
+    city: string;
+    state: string;
+    lat: number;
+    lon: number;
+  } | null;
   source: string;
 };
 
@@ -471,9 +481,14 @@ export function submitStrainReview(args: {
   starRating: number;
   reviewText?: string;
   consumptionForm?: "flower" | "cart" | "edible" | "tincture";
-}): Promise<{ ok: true; reviewId: string; avgRating: number; reviewCount: number }> {
-  return call<typeof args, { ok: true; reviewId: string; avgRating: number; reviewCount: number }>(
-    "submitStrainReview",
-    args,
-  );
+}): Promise<{
+  ok: true;
+  reviewId: string;
+  avgRating: number;
+  reviewCount: number;
+}> {
+  return call<
+    typeof args,
+    { ok: true; reviewId: string; avgRating: number; reviewCount: number }
+  >("submitStrainReview", args);
 }

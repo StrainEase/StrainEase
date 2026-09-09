@@ -18,14 +18,7 @@
 // We deliberately default to 21+ when the user picks a country we don't list,
 // which is the safest choice under California's advertising-to-minors rules.
 
-export type RegionCode =
-  | "US"
-  | "CA"
-  | "CA-AB"
-  | "EU"
-  | "UK"
-  | "AU"
-  | "OTHER";
+export type RegionCode = "US" | "CA" | "CA-AB" | "EU" | "UK" | "AU" | "OTHER";
 
 export type Region = {
   code: RegionCode;
@@ -88,8 +81,7 @@ export const REGIONS: Region[] = [
 
 export function isRegionCode(value: unknown): value is RegionCode {
   return (
-    typeof value === "string" &&
-    REGIONS.some((region) => region.code === value)
+    typeof value === "string" && REGIONS.some((region) => region.code === value)
   );
 }
 

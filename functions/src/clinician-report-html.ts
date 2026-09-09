@@ -311,7 +311,11 @@ export function renderClinicianReportHtml(
 </html>`;
 }
 
-function renderHeader(headline: string, brandLogoSvg: string, report: ClinicianReport): string {
+function renderHeader(
+  headline: string,
+  brandLogoSvg: string,
+  report: ClinicianReport,
+): string {
   return `
 <header class="header">
   <div class="header__logo" aria-hidden="true">${brandLogoSvg}</div>
@@ -328,7 +332,10 @@ function renderPatientFacts(report: ClinicianReport): string {
     { label: "Display name", value: report.patient.displayName },
     { label: "Email", value: report.patient.email ?? "— not on file —" },
     { label: "Age context", value: report.patient.ageContext },
-    { label: "Report window", value: "Last 30 days (relief), last 14 days (check-ins)" },
+    {
+      label: "Report window",
+      value: "Last 30 days (relief), last 14 days (check-ins)",
+    },
   ];
   return section(
     "Patient facts",
@@ -414,7 +421,9 @@ function renderCheckIns(report: ClinicianReport): string {
   );
 }
 
-function renderRecentCheckIns(recent: ClinicianReport["checkIns"]["recent"]): string {
+function renderRecentCheckIns(
+  recent: ClinicianReport["checkIns"]["recent"],
+): string {
   const withNotes = recent.filter((c) => c.note.trim() !== "");
   if (recent.length === 0) return "";
   return `
@@ -465,7 +474,7 @@ function renderSparkline(trend: CheckInTrend): string {
   // Legend
   const legend = metrics
     .map(
-      (m, i) =>
+      (m) =>
         `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:8pt;color:var(--fg-muted);"><span style="display:inline-block;width:10px;height:2px;background:${METRIC_COLORS[m]};"></span>${METRIC_LABELS[m]}</span>`,
     )
     .join("");
@@ -529,7 +538,9 @@ function renderInsights(report: ClinicianReport): string {
   }
   const body: string[] = [];
   if (reliefLogs.topStrains.length > 0) {
-    body.push(`<p class="stat__label" style="margin-bottom:6px;">👍 Top strains for the patient</p>`);
+    body.push(
+      `<p class="stat__label" style="margin-bottom:6px;">👍 Top strains for the patient</p>`,
+    );
     body.push(
       reliefLogs.topStrains
         .map(
@@ -542,7 +553,9 @@ function renderInsights(report: ClinicianReport): string {
     );
   }
   if (reliefLogs.avoid.length > 0) {
-    body.push(`<p class="stat__label" style="margin:12px 0 6px 0;">⚠️ Marked "too strong" repeatedly</p>`);
+    body.push(
+      `<p class="stat__label" style="margin:12px 0 6px 0;">⚠️ Marked "too strong" repeatedly</p>`,
+    );
     body.push(
       reliefLogs.avoid
         .map(
@@ -564,7 +577,10 @@ function renderInsights(report: ClinicianReport): string {
 
 function renderSavedStrains(report: ClinicianReport): string {
   if (report.savedStrains.length === 0) return "";
-  const totalNotes = report.savedStrains.reduce((s, x) => s + x.notes.length, 0);
+  const totalNotes = report.savedStrains.reduce(
+    (s, x) => s + x.notes.length,
+    0,
+  );
   const title =
     totalNotes > 0
       ? `Saved strains (${report.savedStrains.length}) · ${totalNotes} note${totalNotes === 1 ? "" : "s"}`

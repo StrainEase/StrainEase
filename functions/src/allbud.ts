@@ -132,9 +132,7 @@ function readCannabinoids(html: string): {
     const raw = thcMatch[1].replace(/\s+/g, "").trim();
     // Allbud formats ranges as "17%-24%" (percent on each side) or
     // single values as "26%". Both shapes after whitespace stripping.
-    const range = raw.match(
-      /^(\d+(?:\.\d+)?)%?[-–](\d+(?:\.\d+)?)%$/,
-    );
+    const range = raw.match(/^(\d+(?:\.\d+)?)%?[-–](\d+(?:\.\d+)?)%$/);
     if (range) {
       out.thc = `${range[1]}–${range[2]}%`;
     } else {
@@ -157,7 +155,9 @@ function readLineage(text: string): string | undefined {
     /cross\s+between\s+(?:the\s+)?(?:hugely\s+popular\s+)?([^.,]{2,80}?)\s+(?:X|×|x|and)\s+([^.,]{2,80}?)(?:\s+strains?)?(?:[.,]|$)/i,
   );
   if (cross) {
-    const a = cross[1].trim().replace(/^(?:the\s+)?(?:hugely\s+)?popular\s+/i, "");
+    const a = cross[1]
+      .trim()
+      .replace(/^(?:the\s+)?(?:hugely\s+)?popular\s+/i, "");
     const b = cross[2].trim().replace(/\s+strains?$/i, "");
     return `${a} × ${b}`;
   }
@@ -288,7 +288,10 @@ function clipReview(text: string, max = 280): string {
  * usable body text are dropped; everything else becomes a first-person
  * patient note attributed to the reviewer.
  */
-function reviewNotesFrom(html: string, conditions: readonly string[] = []): CommunityNote[] {
+function reviewNotesFrom(
+  html: string,
+  conditions: readonly string[] = [],
+): CommunityNote[] {
   const out: CommunityNote[] = [];
   const articleRe = /<article class="infopanel review[\s\S]*?<\/article>/gi;
   let m: RegExpExecArray | null;
@@ -305,9 +308,8 @@ function reviewNotesFrom(html: string, conditions: readonly string[] = []): Comm
     const author = compressWhitespace(
       stripTags(
         htmlDecode(
-          block.match(
-            /<span class="author"[^>]*>([\s\S]*?)<\/span>/i,
-          )?.[1] ?? "",
+          block.match(/<span class="author"[^>]*>([\s\S]*?)<\/span>/i)?.[1] ??
+            "",
         ),
       ),
     );
@@ -315,8 +317,13 @@ function reviewNotesFrom(html: string, conditions: readonly string[] = []): Comm
     // mention a symptom or relief experience, while retaining a fallback
     // pool when Allbud has no medically-worded reviews.
     const lower = text.toLowerCase();
-    const medical = /\b(pain|anxiety|stress|sleep|insomnia|depression|migraine|nausea|arthritis|ptsd|relief|relieve|helps?|treat|manage|chronic|dose|thc|cbd)\b/i.test(text);
-    const conditionMatch = conditions.some((condition) => lower.includes(condition.toLowerCase()));
+    const medical =
+      /\b(pain|anxiety|stress|sleep|insomnia|depression|migraine|nausea|arthritis|ptsd|relief|relieve|helps?|treat|manage|chronic|dose|thc|cbd)\b/i.test(
+        text,
+      );
+    const conditionMatch = conditions.some((condition) =>
+      lower.includes(condition.toLowerCase()),
+    );
     out.push({
       source: author ? `Allbud review · ${author}` : "an Allbud reviewer",
       text: clipReview(text),
@@ -327,15 +334,14 @@ function reviewNotesFrom(html: string, conditions: readonly string[] = []): Comm
   return out;
 }
 
-function toProfile(html: string, conditions: readonly string[] = []): StrainProfile | null {
+function toProfile(
+  html: string,
+  conditions: readonly string[] = [],
+): StrainProfile | null {
   // Real Allbud pages render the strain's name into the <title> tag;
   // a 404 / wrong species path returns a generic page with no panels.
   const title = compressWhitespace(
-    stripTags(
-      htmlDecode(
-        html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? "",
-      ),
-    ),
+    stripTags(htmlDecode(html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? "")),
   );
   if (!title || title.toLowerCase().includes("404")) return null;
   if (!html.includes('data-label="positive_effects"')) return null;
@@ -370,9 +376,10 @@ function toProfile(html: string, conditions: readonly string[] = []): StrainProf
     cbdRange: cbd,
     lineage,
     medicalUses: medical.length > 0 ? medical : undefined,
-    effects: effects.length > 0
-      ? effects.slice(0, 5).map((name) => ({ name, intensity: 3 }))
-      : undefined,
+    effects:
+      effects.length > 0
+        ? effects.slice(0, 5).map((name) => ({ name, intensity: 3 }))
+        : undefined,
     description: leadPlain ? firstSentences(leadPlain) : undefined,
     communityNotes: [
       ...communityFrom(effects, medical, flavors),

@@ -8,12 +8,7 @@ import {
   type SentimentTone,
 } from "@/lib/quotes";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -36,14 +31,12 @@ import {
 import { useState } from "react";
 
 const TONE_BADGE: Record<SentimentTone, string> = {
-  positive:
-    "border-primary/30 bg-primary/10 text-primary",
+  positive: "border-primary/30 bg-primary/10 text-primary",
   mixed:
     "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200",
   cautious:
     "border-orange-500/30 bg-orange-500/10 text-orange-800 dark:text-orange-200",
-  insufficient:
-    "border-border/70 bg-secondary text-muted-foreground",
+  insufficient: "border-border/70 bg-secondary text-muted-foreground",
 };
 
 type ReviewSort = "relevance" | "date";
@@ -83,10 +76,7 @@ function SentimentBar({
         aria-valuemax={100}
         aria-valuenow={support}
       >
-        <span
-          className="h-full bg-primary"
-          style={{ width: `${support}%` }}
-        />
+        <span className="h-full bg-primary" style={{ width: `${support}%` }} />
         <span
           className="h-full bg-amber-500/70"
           style={{ width: `${100 - support}%` }}
@@ -120,35 +110,6 @@ function StarStrip({ value }: { value: number }) {
         );
       })}
     </span>
-  );
-}
-
-function SourceRatingCard({
-  source,
-  stars,
-  reviewCount,
-}: {
-  source: string;
-  stars: number;
-  reviewCount: number | null;
-}) {
-  return (
-    <SWCard innerClassName="flex items-center gap-4 px-4 py-3.5">
-      <StarStrip value={stars} />
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-          {source}
-        </p>
-        <p className="text-xl font-semibold tabular-nums tracking-tight">
-          {stars.toFixed(1)}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {reviewCount !== null
-            ? `${reviewCount.toLocaleString("en-US")} reviews`
-            : "Rating only"}
-        </p>
-      </div>
-    </SWCard>
   );
 }
 
@@ -193,7 +154,9 @@ function LeaflyAllbudRatingCard({
     <SWCard innerClassName="px-4 py-3.5">
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col items-center gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">Leafly</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+            Leafly
+          </span>
           <StarStrip value={leaflyStars} />
           <span className="text-sm font-semibold tabular-nums">
             {leaflyStars.toFixed(1)}
@@ -206,7 +169,9 @@ function LeaflyAllbudRatingCard({
           </span>
         </div>
         <div className="flex flex-col items-center gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">Allbud</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+            Allbud
+          </span>
           <StarStrip value={allbudStars} />
           <span className="text-sm font-semibold tabular-nums">
             {allbudStars.toFixed(1)}
@@ -414,8 +379,8 @@ function AppReviewsPanel({ appNotes }: { appNotes: QuoteNote[] }) {
   if (appNotes.length === 0) {
     return (
       <p className="text-xs leading-5 text-muted-foreground">
-        No public notes have been shared for this strain yet. Sign in to
-        leave one from the strain page.
+        No public notes have been shared for this strain yet. Sign in to leave
+        one from the strain page.
       </p>
     );
   }
@@ -464,11 +429,7 @@ function ChannelPanel({
     leaflyRating,
     leaflyReviewCount,
   });
-  const reviews = sortReviews(
-    individualReviews(notes),
-    conditions,
-    sort,
-  );
+  const reviews = sortReviews(individualReviews(notes), conditions, sort);
 
   return (
     <div className="space-y-4">
@@ -556,10 +517,7 @@ function SortPicker({
   onChange: (next: ReviewSort) => void;
 }) {
   return (
-    <Select
-      value={sort}
-      onValueChange={(v) => onChange(v as ReviewSort)}
-    >
+    <Select value={sort} onValueChange={(v) => onChange(v as ReviewSort)}>
       <SelectTrigger
         aria-label="Sort reviews"
         className="h-7 w-auto min-w-[120px] gap-1.5 rounded-full border-border/70 bg-background px-2.5 text-[11px] font-medium"
@@ -718,47 +676,47 @@ export function CommunityVoices({
         className="gap-3"
       >
         {visibleChannels.length > 0 ? (
-        <TabsList className={cn("grid h-auto w-full p-1", tabCols)}>
-          {showAll && (
-          <TabsTrigger
-            value="all"
-            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
-          >
-            <Quote className="size-3.5 shrink-0" />
-            <span className="leading-tight">All</span>
-            <span className="tabular-nums text-[10px] font-medium text-muted-foreground sm:text-xs">
-              {allCount}
-            </span>
-          </TabsTrigger>
-          )}
-          {showCannabis && (
-          <TabsTrigger
-            value="cannabis"
-            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
-          >
-            <Leaf className="size-3.5 shrink-0" />
-            <span className="leading-tight">Cannabis Sites</span>
-          </TabsTrigger>
-          )}
-          {showReddit && (
-          <TabsTrigger
-            value="reddit"
-            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
-          >
-            <MessageCircle className="size-3.5 shrink-0" />
-            <span className="leading-tight">Reddit</span>
-          </TabsTrigger>
-          )}
-          {showApp && (
-          <TabsTrigger
-            value="app"
-            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
-          >
-            <NotebookPen className="size-3.5 shrink-0" />
-            <span className="leading-tight">App Reviews</span>
-          </TabsTrigger>
-          )}
-        </TabsList>
+          <TabsList className={cn("grid h-auto w-full p-1", tabCols)}>
+            {showAll && (
+              <TabsTrigger
+                value="all"
+                className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+              >
+                <Quote className="size-3.5 shrink-0" />
+                <span className="leading-tight">All</span>
+                <span className="tabular-nums text-[10px] font-medium text-muted-foreground sm:text-xs">
+                  {allCount}
+                </span>
+              </TabsTrigger>
+            )}
+            {showCannabis && (
+              <TabsTrigger
+                value="cannabis"
+                className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+              >
+                <Leaf className="size-3.5 shrink-0" />
+                <span className="leading-tight">Cannabis Sites</span>
+              </TabsTrigger>
+            )}
+            {showReddit && (
+              <TabsTrigger
+                value="reddit"
+                className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+              >
+                <MessageCircle className="size-3.5 shrink-0" />
+                <span className="leading-tight">Reddit</span>
+              </TabsTrigger>
+            )}
+            {showApp && (
+              <TabsTrigger
+                value="app"
+                className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+              >
+                <NotebookPen className="size-3.5 shrink-0" />
+                <span className="leading-tight">App Reviews</span>
+              </TabsTrigger>
+            )}
+          </TabsList>
         ) : null}
 
         <motion.div

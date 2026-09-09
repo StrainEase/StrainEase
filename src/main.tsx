@@ -1,6 +1,7 @@
-import '@vly-ai/integrations';
+import "@vly-ai/integrations";
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AgeGate } from "@/components/compliance/AgeGate";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
@@ -75,102 +76,103 @@ function KeyboardDismiss() {
   return null;
 }
 
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <VlyToolbar />
-    <InstrumentationProvider>
-      <BrowserRouter>
-        <RouteSyncer />
-        <KeyboardDismiss />
-        <AgeGate>
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<RootPage />} />
-              <Route
-                path="/auth"
-                element={<AuthPage redirectAfterAuth="/" />}
-              />
-              <Route
-                path="/browse/:section/:ailment"
-                element={
-                  <RequireAuth>
-                    <Browse />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/browse/:section"
-                element={
-                  <RequireAuth>
-                    <Browse />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <RequireAuth>
-                    <Dashboard />
-                  </RequireAuth>
-                }
-              />
-              <Route path="/find/:rid" element={<Dashboard />} />
-              <Route path="/compare/:rid" element={<Dashboard />} />
-              <Route
-                path="/strain/:slug"
-                element={
-                  <RequireAuth>
-                    <StrainPage />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/terpene/:slug"
-                element={
-                  <RequireAuth>
-                    <TerpenePage />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/doctors"
-                element={
-                  <RequireAuth>
-                    <DoctorsPage />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/report"
-                element={
-                  <RequireAuth>
-                    <ClinicianReportPage />
-                  </RequireAuth>
-                }
-              />
+    <ErrorBoundary>
+      <VlyToolbar />
+      <InstrumentationProvider>
+        <BrowserRouter>
+          <RouteSyncer />
+          <KeyboardDismiss />
+          <AgeGate>
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                <Route path="/" element={<RootPage />} />
+                <Route
+                  path="/auth"
+                  element={<AuthPage redirectAfterAuth="/" />}
+                />
+                <Route
+                  path="/browse/:section/:ailment"
+                  element={
+                    <RequireAuth>
+                      <Browse />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/browse/:section"
+                  element={
+                    <RequireAuth>
+                      <Browse />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <RequireAuth>
+                      <Dashboard />
+                    </RequireAuth>
+                  }
+                />
+                <Route path="/find/:rid" element={<Dashboard />} />
+                <Route path="/compare/:rid" element={<Dashboard />} />
+                <Route
+                  path="/strain/:slug"
+                  element={
+                    <RequireAuth>
+                      <StrainPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/terpene/:slug"
+                  element={
+                    <RequireAuth>
+                      <TerpenePage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/doctors"
+                  element={
+                    <RequireAuth>
+                      <DoctorsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/report"
+                  element={
+                    <RequireAuth>
+                      <ClinicianReportPage />
+                    </RequireAuth>
+                  }
+                />
 
-              <Route
-                path="/admin"
-                element={
-                  <RequireAuth>
-                    <AdminPage />
-                  </RequireAuth>
-                }
-              />
-              <Route path="/legal" element={<LegalPage />} />
-              <Route path="/legal/terms" element={<TermsPage />} />
-              <Route path="/legal/privacy" element={<PrivacyPage />} />
-              <Route
-                path="/legal/medical"
-                element={<MedicalDisclaimerPage />}
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </AgeGate>
-      </BrowserRouter>
-      <Toaster />
-    </InstrumentationProvider>
+                <Route
+                  path="/admin"
+                  element={
+                    <RequireAuth>
+                      <AdminPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route path="/legal" element={<LegalPage />} />
+                <Route path="/legal/terms" element={<TermsPage />} />
+                <Route path="/legal/privacy" element={<PrivacyPage />} />
+                <Route
+                  path="/legal/medical"
+                  element={<MedicalDisclaimerPage />}
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AgeGate>
+        </BrowserRouter>
+        <Toaster />
+      </InstrumentationProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

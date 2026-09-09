@@ -108,7 +108,10 @@ export function AnalysisPanel({
         {quotes.length > 0 && (
           <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
             {quotes.map(({ strain, note }) => (
-              <SWCard key={`${strain}-${note.source}`} innerClassName="px-3 py-3 sm:px-4">
+              <SWCard
+                key={`${strain}-${note.source}`}
+                innerClassName="px-3 py-3 sm:px-4"
+              >
                 <Quote className="mb-2 size-3.5 text-primary/60" />
                 <p className="text-sm leading-6 text-foreground/90">
                   “{note.text}”
@@ -139,7 +142,10 @@ export function AnalysisPanel({
               {forCondition.runnerUp && (
                 <p className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Award className="size-3.5 text-primary" />
-                  Runner-up: <span className="font-medium text-foreground">{forCondition.runnerUp}</span>
+                  Runner-up:{" "}
+                  <span className="font-medium text-foreground">
+                    {forCondition.runnerUp}
+                  </span>
                 </p>
               )}
             </SWCard>

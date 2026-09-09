@@ -93,14 +93,12 @@ function Gate({
   onReset: _onReset,
 }: {
   initialReason?: import("@/lib/age-policy").AgeCheckFailure;
-  onVerify: (
-    input: {
-      region: RegionCodeType;
-      birthDate: string;
-      termsAccepted: boolean;
-      privacyAccepted: boolean;
-    },
-  ) => Promise<
+  onVerify: (input: {
+    region: RegionCodeType;
+    birthDate: string;
+    termsAccepted: boolean;
+    privacyAccepted: boolean;
+  }) => Promise<
     | { ok: true; record: import("@/lib/age-policy").AgeVerificationRecord }
     | { ok: false; reason: import("@/lib/age-policy").AgeCheckFailure }
   >;
@@ -156,9 +154,7 @@ function Gate({
     });
   }, [rejected, rejectedAt]);
 
-  const canSubmit = Boolean(
-    birthDate && agreedTerms && agreedPrivacy,
-  );
+  const canSubmit = Boolean(birthDate && agreedTerms && agreedPrivacy);
 
   const [submittingForm, setSubmittingForm] = useState(false);
 
@@ -356,9 +352,9 @@ function Gate({
 
         <p className="mt-6 max-w-md text-center text-xs text-muted-foreground">
           StrainEase is committed to keeping cannabis information out of the
-          hands of minors. If you are under the legal age for your region, or
-          if cannabis is illegal where you live, please don't continue. Keep
-          all cannabis products out of the reach of children and pets.
+          hands of minors. If you are under the legal age for your region, or if
+          cannabis is illegal where you live, please don't continue. Keep all
+          cannabis products out of the reach of children and pets.
         </p>
       </motion.div>
     </main>

@@ -101,7 +101,9 @@ export async function callGroq(
  * slips a preamble or reasoning block in.
  */
 export function extractJsonObject(content: string): unknown | null {
-  const stripped = content.replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, "").trim();
+  const stripped = content
+    .replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, "")
+    .trim();
   try {
     return JSON.parse(stripped);
   } catch {

@@ -145,7 +145,9 @@ export function HydratingSection({
               className="size-4 shrink-0 animate-spin text-primary"
               aria-hidden
             />
-            <span className="text-sm text-muted-foreground">{config.caption}</span>
+            <span className="text-sm text-muted-foreground">
+              {config.caption}
+            </span>
           </div>
           {Array.from({ length: config.lines }).map((_, index) => (
             <span
@@ -156,8 +158,7 @@ export function HydratingSection({
                 // Last bar in each section is narrower on iOS — match that
                 // so the placeholder reads as "content being written" rather
                 // than a uniform striped block.
-                maxWidth:
-                  index === config.lines - 1 ? "55%" : "100%",
+                maxWidth: index === config.lines - 1 ? "55%" : "100%",
               }}
             />
           ))}

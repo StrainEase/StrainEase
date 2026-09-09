@@ -24,10 +24,7 @@ import {
 } from "lucide-react";
 import type { ReasoningEvidence, ReasoningSource } from "@/lib/strain-api";
 
-const SOURCE_TONE: Record<
-  ReasoningSource,
-  { dot: string; pill: string }
-> = {
+const SOURCE_TONE: Record<ReasoningSource, { dot: string; pill: string }> = {
   Leafly: {
     dot: "bg-emerald-500",
     pill: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
@@ -82,7 +79,8 @@ export function ReasoningTrace({
           Why this strain
         </span>
         <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          {reasoning.evidence.length} {reasoning.evidence.length === 1 ? "source" : "sources"}
+          {reasoning.evidence.length}{" "}
+          {reasoning.evidence.length === 1 ? "source" : "sources"}
           <ChevronDown
             className={cn(
               "size-3.5 transition-transform",
@@ -137,7 +135,10 @@ export function ReasoningTrace({
                       className="flex items-start gap-2.5"
                     >
                       <span
-                        className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", tone.dot)}
+                        className={cn(
+                          "mt-1.5 size-1.5 shrink-0 rounded-full",
+                          tone.dot,
+                        )}
                         aria-hidden
                       />
                       <div className="min-w-0 flex-1">

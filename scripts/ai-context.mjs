@@ -46,7 +46,9 @@ function walk(currentDir, relativeDir = "") {
   const lines = [];
 
   for (const entry of entries) {
-    const relativePath = path.join(relativeDir, entry.name).replaceAll(path.sep, "/");
+    const relativePath = path
+      .join(relativeDir, entry.name)
+      .replaceAll(path.sep, "/");
     if (entry.isDirectory()) {
       if (!shouldIgnoreDirectory(entry.name, relativeDir)) {
         lines.push(`${relativePath}/`);
@@ -225,13 +227,11 @@ try {
   } else if (taskIndex !== -1) {
     const description = args
       .slice(taskIndex + 1)
-      .filter(
-        (arg) => arg !== "--" && arg !== "--force" && arg !== "--quiet",
-      )
+      .filter((arg) => arg !== "--" && arg !== "--force" && arg !== "--quiet")
       .join(" ")
       .trim();
     if (!description) {
-      throw new Error("Usage: bun run ai:task -- \"Describe the change\"");
+      throw new Error('Usage: bun run ai:task -- "Describe the change"');
     }
     const taskPath = writeTask(description, force);
     if (!quiet) console.log(`Generated ${path.relative(root, taskPath)}`);

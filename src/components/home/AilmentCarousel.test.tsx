@@ -31,12 +31,12 @@ describe("AilmentCarousel", () => {
 
     const pages = screen.getAllByRole("article");
     expect(pages).toHaveLength(2);
-    expect(within(pages[0]!).getByRole("heading", { level: 3 }).textContent).toBe(
-      "Insomnia",
-    );
-    expect(within(pages[1]!).getByRole("heading", { level: 3 }).textContent).toBe(
-      "Anxiety",
-    );
+    expect(
+      within(pages[0]!).getByRole("heading", { level: 3 }).textContent,
+    ).toBe("Insomnia");
+    expect(
+      within(pages[1]!).getByRole("heading", { level: 3 }).textContent,
+    ).toBe("Anxiety");
     // 6 posters per page (3 + 3 rows). Each poster renders a strain name link.
     const insomnia = within(pages[0]!);
     for (const strain of strains) {
@@ -45,11 +45,13 @@ describe("AilmentCarousel", () => {
   });
 
   test("caps each ailment at the iOS preview of 6 strains in two rows of 3", () => {
-    const longList: StrainProfile[] = Array.from({ length: 12 }).map((_, i) => ({
-      name: `Strain ${i + 1}`,
-      inKnowledgeBase: true,
-      type: "hybrid",
-    }));
+    const longList: StrainProfile[] = Array.from({ length: 12 }).map(
+      (_, i) => ({
+        name: `Strain ${i + 1}`,
+        inKnowledgeBase: true,
+        type: "hybrid",
+      }),
+    );
     render(
       <MemoryRouter>
         <AilmentCarousel

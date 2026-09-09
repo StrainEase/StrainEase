@@ -127,10 +127,7 @@ async function readOne(uid: string, date: string): Promise<CheckIn | null> {
   return fromDoc(snap.id, snap.data());
 }
 
-function fromDoc(
-  id: string,
-  raw: unknown,
-): CheckIn {
+function fromDoc(id: string, raw: unknown): CheckIn {
   const data = (raw ?? {}) as {
     date?: unknown;
     mood?: unknown;
@@ -160,7 +157,10 @@ function fromDoc(
  * Remove a check-in. Used by the panel's "Clear" affordance so a patient
  * can wipe a day they logged by mistake.
  */
-export async function deleteCheckIn(uid: string, dateId: string): Promise<void> {
+export async function deleteCheckIn(
+  uid: string,
+  dateId: string,
+): Promise<void> {
   await deleteDoc(doc(coll(uid), dateId));
 }
 

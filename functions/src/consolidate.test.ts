@@ -1,14 +1,5 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "bun:test";
-import {
-  clearSourceCacheForTest,
-  putSourceCache,
-} from "./source-cache";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { clearSourceCacheForTest, putSourceCache } from "./source-cache";
 import {
   consolidateStrain,
   shouldPersistRefetch,
@@ -53,14 +44,22 @@ afterEach(() => {
 describe("consolidateStrain — averaging", () => {
   test("averages THC across sources when the midpoints differ", async () => {
     await seedEmpty("Blue Dream");
-    await putSourceCache("blue-dream", "leafly", profile({
-      name: "Blue Dream",
-      thcRange: "17-24%", // mid 20.5
-    }));
-    await putSourceCache("blue-dream", "allbud", profile({
-      name: "Blue Dream",
-      thcRange: "20%", // mid 20
-    }));
+    await putSourceCache(
+      "blue-dream",
+      "leafly",
+      profile({
+        name: "Blue Dream",
+        thcRange: "17-24%", // mid 20.5
+      }),
+    );
+    await putSourceCache(
+      "blue-dream",
+      "allbud",
+      profile({
+        name: "Blue Dream",
+        thcRange: "20%", // mid 20
+      }),
+    );
     const out = await consolidateStrain("Blue Dream");
     expect(out?.thcRange).toBe("20.3%"); // (20.5 + 20) / 2 = 20.25 → 20.3
     expect(out?.sourceAttribution?.thcRange?.averaged).toBe(true);
@@ -69,9 +68,13 @@ describe("consolidateStrain — averaging", () => {
 
   test("keeps a single source's value verbatim when there's no averaging to do", async () => {
     await seedEmpty("Blue Dream");
-    await putSourceCache("blue-dream", "leafly", profile({
-      thcRange: "20%",
-    }));
+    await putSourceCache(
+      "blue-dream",
+      "leafly",
+      profile({
+        thcRange: "20%",
+      }),
+    );
     const out = await consolidateStrain("Blue Dream");
     expect(out?.thcRange).toBe("20%");
     // No attribution when the value matches the only source exactly.
@@ -85,15 +88,18 @@ describe("consolidateStrain — averaging", () => {
     const out = await consolidateStrain("X Strain");
     expect(out?.cbdRange).toBe("2%");
     expect(out?.sourceAttribution?.cbdRange?.value).toBe("2%");
-    expect(out?.sourceAttribution?.cbdRange?.sources.map((s) => s.source)).toEqual([
-      "leafly",
-      "allbud",
-    ]);
+    expect(
+      out?.sourceAttribution?.cbdRange?.sources.map((s) => s.source),
+    ).toEqual(["leafly", "allbud"]);
   });
 
   test("strips a leading 'THC:' label from Allbud raw values", async () => {
     await seedEmpty("X Strain");
-    await putSourceCache("x-strain", "allbud", profile({ thcRange: "THC: 20%" }));
+    await putSourceCache(
+      "x-strain",
+      "allbud",
+      profile({ thcRange: "THC: 20%" }),
+    );
     const out = await consolidateStrain("X Strain");
     expect(out?.thcRange).toBe("20%");
   });
@@ -154,30 +160,46 @@ describe("consolidateStrain — type / lineage / description attribution", () =>
 describe("consolidateStrain — community notes", () => {
   test("uniques notes across sources by source + text prefix", async () => {
     await seedEmpty("X Strain");
-    await putSourceCache("x-strain", "leafly", profile({
-      communityNotes: [
-        { source: "Leafly review · alice", text: "Helped my anxiety fast." },
-        { source: "Leafly review · bob", text: "Great for sleep." },
-      ],
-    }));
-    await putSourceCache("x-strain", "allbud", profile({
-      communityNotes: [
-        { source: "Allbud", text: "Commonly used for anxiety, depression." },
-        { source: "Allbud", text: "Patients report relaxation." },
-      ],
-    }));
+    await putSourceCache(
+      "x-strain",
+      "leafly",
+      profile({
+        communityNotes: [
+          { source: "Leafly review · alice", text: "Helped my anxiety fast." },
+          { source: "Leafly review · bob", text: "Great for sleep." },
+        ],
+      }),
+    );
+    await putSourceCache(
+      "x-strain",
+      "allbud",
+      profile({
+        communityNotes: [
+          { source: "Allbud", text: "Commonly used for anxiety, depression." },
+          { source: "Allbud", text: "Patients report relaxation." },
+        ],
+      }),
+    );
     const out = await consolidateStrain("X Strain");
     expect(out?.communityNotes).toHaveLength(4);
   });
 
   test("tags notes with their source kind for the UI", async () => {
     await seedEmpty("X Strain");
-    await putSourceCache("x-strain", "leafly", profile({
-      communityNotes: [{ source: "Leafly review · alice", text: "Great." }],
-    }));
-    await putSourceCache("x-strain", "allbud", profile({
-      communityNotes: [{ source: "Allbud", text: "Flavor: blueberry." }],
-    }));
+    await putSourceCache(
+      "x-strain",
+      "leafly",
+      profile({
+        communityNotes: [{ source: "Leafly review · alice", text: "Great." }],
+      }),
+    );
+    await putSourceCache(
+      "x-strain",
+      "allbud",
+      profile({
+        communityNotes: [{ source: "Allbud", text: "Flavor: blueberry." }],
+      }),
+    );
     const out = await consolidateStrain("X Strain");
     const kinds = out?.communityNotes?.map((n) => n.kind);
     expect(kinds).toContain("leafly");
@@ -258,15 +280,23 @@ describe("consolidateStrain — thin Leafly pre-defined description", () => {
 describe("consolidateStrain — JSON output shape (cross-platform)", () => {
   test("output contains only JSON-safe types (string / number / boolean / null / array / object)", async () => {
     await seedEmpty("X Strain");
-    await putSourceCache("x-strain", "leafly", profile({
-      thcRange: "17-24%",
-      type: "hybrid",
-      effects: [{ name: "Relaxed", intensity: 4 }],
-    }));
-    await putSourceCache("x-strain", "allbud", profile({
-      thcRange: "20%",
-      type: "hybrid",
-    }));
+    await putSourceCache(
+      "x-strain",
+      "leafly",
+      profile({
+        thcRange: "17-24%",
+        type: "hybrid",
+        effects: [{ name: "Relaxed", intensity: 4 }],
+      }),
+    );
+    await putSourceCache(
+      "x-strain",
+      "allbud",
+      profile({
+        thcRange: "20%",
+        type: "hybrid",
+      }),
+    );
     const out = await consolidateStrain("X Strain");
     // Round-trip through JSON to catch any non-serializable values.
     const round = JSON.parse(JSON.stringify(out));

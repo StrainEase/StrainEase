@@ -50,9 +50,7 @@ export function HomeScreen() {
   const indica = previewFor({ kind: "indica" }, popular, recents);
   const recentPreview = recents.slice(0, HOME_PREVIEW_LIMIT);
 
-  const ailmentsForCarousel = hasSavedAilments
-    ? savedAilments
-    : HOME_AILMENTS;
+  const ailmentsForCarousel = hasSavedAilments ? savedAilments : HOME_AILMENTS;
   const ailmentPreview = (name: string): StrainProfile[] =>
     previewFor({ kind: "ailment", name }, popular, recents);
 

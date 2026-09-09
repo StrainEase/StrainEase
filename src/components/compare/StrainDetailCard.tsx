@@ -80,7 +80,7 @@ export function StrainDetailCard({
   }, [strain.name]);
 
   const subtitle = [
-    strain.type ? TYPE_LABEL[strain.type] ?? strain.type : null,
+    strain.type ? (TYPE_LABEL[strain.type] ?? strain.type) : null,
     strain.thcRange ? `THC ${strain.thcRange}` : null,
     strain.thcRange && strain.cbdRange && strain.cbdRange !== "<1%"
       ? `CBD ${strain.cbdRange}`
@@ -149,10 +149,7 @@ export function StrainDetailCard({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <SaveStrainButton profile={strain} />
-            <ReliefLogButton
-              strainName={strain.name}
-              conditions={conditions}
-            />
+            <ReliefLogButton strainName={strain.name} conditions={conditions} />
             {strain.type && (
               <Badge className={typeBadgeClass(strain.type)}>
                 {TYPE_LABEL[strain.type] ?? strain.type}
@@ -165,8 +162,8 @@ export function StrainDetailCard({
           <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
             <Search className="mt-0.5 size-4 shrink-0 text-primary" />
             <p className="text-xs leading-5 text-muted-foreground">
-              Not listed on Leafly or Weedmaps — this profile is researched
-              by the AI from public sources. Reddit quotes appear below when
+              Not listed on Leafly or Weedmaps — this profile is researched by
+              the AI from public sources. Reddit quotes appear below when
               patients mention your symptoms.
             </p>
           </div>

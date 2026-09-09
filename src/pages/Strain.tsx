@@ -34,11 +34,7 @@ import {
   slugify,
   type PublicNote,
 } from "@/lib/saved-strains";
-import {
-  strainDescription,
-  strainDisplayName,
-  strainJsonLd,
-} from "@/lib/seo";
+import { strainDescription, strainDisplayName, strainJsonLd } from "@/lib/seo";
 import { documentTitle } from "@/lib/site";
 import {
   redditThreads as fetchRedditThreads,
@@ -75,10 +71,7 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { db } from "@/lib/firebase";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useStrainImage } from "@/hooks/use-strain-image";
 import { cn } from "@/lib/utils";
 
@@ -142,9 +135,7 @@ export default function Strain() {
           setStatus("ready");
           return;
         }
-        const [filled] = applyCatalogPhotos([
-          { name, inKnowledgeBase: false },
-        ]);
+        const [filled] = applyCatalogPhotos([{ name, inKnowledgeBase: false }]);
         setProfile(filled ?? { name, inKnowledgeBase: false });
         setStatus("missing");
       });
@@ -214,9 +205,7 @@ export default function Strain() {
     return savedNames.some((n) => n.trim().toLowerCase() === target);
   }, [profile, savedNames]);
 
-  const isInCompareSelection = profile
-    ? compare.isIn(profile.name)
-    : false;
+  const isInCompareSelection = profile ? compare.isIn(profile.name) : false;
   const compareAtCap = compare.atCap;
 
   // Used for the description loading state: when the profile is loaded
@@ -367,7 +356,9 @@ export default function Strain() {
             />
             <div className="flex flex-wrap items-center gap-2">
               {profile?.type ? (
-                <Badge className={cn(typeBadgeClass(profile.type), "capitalize")}>
+                <Badge
+                  className={cn(typeBadgeClass(profile.type), "capitalize")}
+                >
                   {TYPE_LABEL[profile.type] ?? profile.type}
                 </Badge>
               ) : null}
@@ -390,9 +381,13 @@ export default function Strain() {
             {profile ? (
               <p className="text-sm font-medium text-muted-foreground sm:text-base">
                 {[
-                  profile.type ? TYPE_LABEL[profile.type] ?? profile.type : null,
+                  profile.type
+                    ? (TYPE_LABEL[profile.type] ?? profile.type)
+                    : null,
                   profile.thcRange ? `THC ${profile.thcRange}` : null,
-                  profile.thcRange && profile.cbdRange && profile.cbdRange !== "<1%"
+                  profile.thcRange &&
+                  profile.cbdRange &&
+                  profile.cbdRange !== "<1%"
                     ? `CBD ${profile.cbdRange}`
                     : null,
                 ]
@@ -498,19 +493,16 @@ export default function Strain() {
             <div className="flex items-start gap-2.5 rounded-2xl border border-primary/25 bg-primary/5 p-5">
               <Search className="mt-0.5 size-4 shrink-0 text-primary" />
               <p className="text-xs leading-5 text-muted-foreground">
-                Not listed on Leafly or Weedmaps — this profile is researched
-                by the AI from public sources. Reddit quotes appear below
-                when patients mention your symptoms.
+                Not listed on Leafly or Weedmaps — this profile is researched by
+                the AI from public sources. Reddit quotes appear below when
+                patients mention your symptoms.
               </p>
             </div>
           ) : null}
 
           {/* Auth-gated compare suggestions + log + notes. */}
           {isAuthenticated && others.length > 0 && profile ? (
-            <CompareSuggestions
-              profileName={profile.name}
-              others={others}
-            />
+            <CompareSuggestions profileName={profile.name} others={others} />
           ) : null}
 
           {isAuthenticated && profile ? (
@@ -524,14 +516,14 @@ export default function Strain() {
             />
           ) : null}
 
-            {isAuthenticated && profile ? (
-              <SavedStrainNotes
-                slug={slugify(profile.name)}
-                strainName={profile.name}
-                isSaved={isSaved}
-              />
-            ) : null}
-          </motion.div>
+          {isAuthenticated && profile ? (
+            <SavedStrainNotes
+              slug={slugify(profile.name)}
+              strainName={profile.name}
+              isSaved={isSaved}
+            />
+          ) : null}
+        </motion.div>
       </div>
       <AppTabBar active="home" />
     </main>
@@ -824,7 +816,10 @@ function ReliefLogCard({
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="flex items-center gap-1.5 font-medium capitalize">
                   {log.rating ? (
-                    <span className="text-primary" aria-label={`Rated ${log.rating} of 5`}>
+                    <span
+                      className="text-primary"
+                      aria-label={`Rated ${log.rating} of 5`}
+                    >
                       {"★".repeat(log.rating)}
                       <span className="text-muted-foreground/35">
                         {"★".repeat(5 - log.rating)}
@@ -857,7 +852,10 @@ function CompareSuggestions({
 }) {
   return (
     <SWCard innerClassName="p-5">
-      <SectionEyebrow icon={GitCompareArrows} label="Compare with what you saved" />
+      <SectionEyebrow
+        icon={GitCompareArrows}
+        label="Compare with what you saved"
+      />
       <div className="mt-1 flex flex-wrap items-center gap-2">
         <span
           className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-semibold text-foreground"
@@ -889,11 +887,13 @@ function CompareSuggestions({
 function PhotoZoomDialog({
   src,
   alt,
+  type: _type,
   open,
   onOpenChange,
 }: {
   src?: string;
   alt: string;
+  type?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -913,7 +913,9 @@ function PhotoZoomDialog({
           />
         ) : (
           <div className="flex h-72 w-full items-center justify-center rounded-2xl bg-muted">
-            <span className="text-sm text-muted-foreground">No photo available</span>
+            <span className="text-sm text-muted-foreground">
+              No photo available
+            </span>
           </div>
         )}
       </DialogContent>

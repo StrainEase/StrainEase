@@ -203,7 +203,8 @@ const SEEDS: Seed[] = [
   {
     url: "https://old.reddit.com/r/MMJ/comments/qp25vh/anyone_with_anxietypanic_disorder_found_a_strain/",
     subreddit: "MMJ",
-    title: "Anyone with anxiety / panic disorder found a strain that helps with sleep?",
+    title:
+      "Anyone with anxiety / panic disorder found a strain that helps with sleep?",
     snippet:
       "CBN-rich chemovars and 'purple' strains (Purple Kush, Purple Punch, Purple Mindfuk) cited for calming sleep.",
     conditions: ["anxiety", "panic", "sleep", "insomnia"],
@@ -236,11 +237,7 @@ const SEEDS: Seed[] = [
     snippet:
       "White Cookies (White Widow x GSC) reported as a daytime anti-anxiety / anti-depression cultivar with low pinene.",
     conditions: ["anxiety", "depression"],
-    strains: [
-      "white cookies",
-      "white widow",
-      "girl scout cookies",
-    ],
+    strains: ["white cookies", "white widow", "girl scout cookies"],
     score: 0,
   },
   {
@@ -295,7 +292,8 @@ const SEEDS: Seed[] = [
   {
     url: "https://old.reddit.com/r/sleep/comments/10curzr/thc_for_sleeping_purposes_what_form_and_dose_has/",
     subreddit: "sleep",
-    title: "THC for sleeping purposes — what form and dose has worked best for you?",
+    title:
+      "THC for sleeping purposes — what form and dose has worked best for you?",
     snippet:
       "CBN-forward edibles and 1:1 CBD:THC tinctures called out as the most reliable sleep aids.",
     conditions: ["insomnia", "sleep"],
@@ -355,7 +353,8 @@ const SEEDS: Seed[] = [
   {
     url: "https://old.reddit.com/r/cannabis/comments/1m0lac8/rso_cbd_and_cbg_the_fullspectrum_cannabis_tools/",
     subreddit: "cannabis",
-    title: "RSO, CBD, and CBG: the full-spectrum cannabis tools you're not hearing enough about",
+    title:
+      "RSO, CBD, and CBG: the full-spectrum cannabis tools you're not hearing enough about",
     snippet:
       "Full-spectrum CBD for sleep, CBG for focus, RSO for breakthrough pain — a primer on minor cannabinoids.",
     conditions: ["chronic pain", "sleep", "focus"],
@@ -368,7 +367,13 @@ const SEEDS: Seed[] = [
     title: "My favourite strains for chronic and neuropathic pain, ADHD, PTSD",
     snippet:
       "Curated UK MC patient list: MAC 1, Lake Valley MAC, Gorilla Glue for pain; spicy-terpene cultivars for depression.",
-    conditions: ["chronic pain", "neuropathic pain", "adhd", "ptsd", "depression"],
+    conditions: [
+      "chronic pain",
+      "neuropathic pain",
+      "adhd",
+      "ptsd",
+      "depression",
+    ],
     strains: ["mac 1", "gorilla glue"],
     score: 0,
   },
@@ -486,8 +491,7 @@ const SEEDS: Seed[] = [
     url: "https://old.reddit.com/r/eldertrees/comments/utv667/ibs_c_medical_marijuana_question/",
     subreddit: "eldertrees",
     title: "IBS-C & medical marijuana question",
-    snippet:
-      "Runtz and GG#4 cited as personally effective for IBS symptoms.",
+    snippet: "Runtz and GG#4 cited as personally effective for IBS symptoms.",
     conditions: ["ibs", "nausea", "appetite"],
     strains: ["runtz", "gorilla glue"],
     score: 0,
@@ -553,7 +557,8 @@ const SEEDS: Seed[] = [
   {
     url: "https://old.reddit.com/r/backpain/comments/1dwgz0k/can_anyone_recommend_a_specific_strain_of_medical/",
     subreddit: "backpain",
-    title: "Can anyone recommend a specific strain of medical cannabis for back pain?",
+    title:
+      "Can anyone recommend a specific strain of medical cannabis for back pain?",
     snippet:
       "RSO (Rick Simpson Oil) called out as a high-potency rescue option for breakthrough pain.",
     conditions: ["chronic pain", "back pain"],
@@ -606,7 +611,9 @@ export function matchRedditSeeds(args: {
   strainNames: string[];
   limit?: number;
 }): RedditSource[] {
-  const conditions = args.conditions.map((c) => c.trim().toLowerCase()).filter(Boolean);
+  const conditions = args.conditions
+    .map((c) => c.trim().toLowerCase())
+    .filter(Boolean);
   const strains = args.strainNames.map((s) => s.trim()).filter(Boolean);
   const limit = Math.max(1, Math.min(args.limit ?? 6, 12));
 
@@ -618,17 +625,26 @@ export function matchRedditSeeds(args: {
       // Fuzzy match: condition keyword inside any of the seed's conditions.
       if (
         score === 0 &&
-        seed.conditions.some((c) => c.includes(condition) || condition.includes(c))
+        seed.conditions.some(
+          (c) => c.includes(condition) || condition.includes(c),
+        )
       ) {
         score += 1;
       }
     }
     for (const strain of strains) {
-      if (seed.strains.some((candidate) => strainMatches(candidate, strain))) score += 4;
+      if (seed.strains.some((candidate) => strainMatches(candidate, strain)))
+        score += 4;
     }
     // A condition-only thread is not evidence for a specific strain.
     // Require an explicit strain association whenever strains are supplied.
-    if (strains.length > 0 && !strains.some((strain) => seed.strains.some((candidate) => strainMatches(candidate, strain)))) continue;
+    if (
+      strains.length > 0 &&
+      !strains.some((strain) =>
+        seed.strains.some((candidate) => strainMatches(candidate, strain)),
+      )
+    )
+      continue;
     if (score === 0) continue;
     const { conditions: _c, strains: _s, ...source } = seed;
     scored.push({ score, source });

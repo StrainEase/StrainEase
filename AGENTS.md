@@ -22,14 +22,14 @@ conventions. This file is for machines.
 
 ## Architecture map
 
-| Concern              | Lives in                              | Auth              |
-| -------------------- | ------------------------------------- | ----------------- |
-| UI / routing         | `src/pages/`, `src/components/`       | Firebase Auth via `useAuth` |
-| User profile / saved strains / notes | Firebase Firestore (see `firestore.rules`) | Firebase UID |
-| Strain data (read)   | `functions/src/leafly.ts`, `weedmaps.ts`, `allbud.ts` (scrapes) | None (public) |
-| Per-source cache     | `functions/src/source-cache.ts` (Firestore `sourceCache/{slug}`) | Admin only |
-| Strain consolidator  | `functions/src/consolidate.ts` (averages + source attribution) | None |
-| AI compare / recommend | `functions/src/index.ts`            | Firebase ID token |
+| Concern                              | Lives in                                                         | Auth                        |
+| ------------------------------------ | ---------------------------------------------------------------- | --------------------------- |
+| UI / routing                         | `src/pages/`, `src/components/`                                  | Firebase Auth via `useAuth` |
+| User profile / saved strains / notes | Firebase Firestore (see `firestore.rules`)                       | Firebase UID                |
+| Strain data (read)                   | `functions/src/leafly.ts`, `weedmaps.ts`, `allbud.ts` (scrapes)  | None (public)               |
+| Per-source cache                     | `functions/src/source-cache.ts` (Firestore `sourceCache/{slug}`) | Admin only                  |
+| Strain consolidator                  | `functions/src/consolidate.ts` (averages + source attribution)   | None                        |
+| AI compare / recommend               | `functions/src/index.ts`                                         | Firebase ID token           |
 
 The frontend talks to Firebase through three surfaces:
 
@@ -53,6 +53,28 @@ See `README.md` for the full list. The bits AI agents most often miss:
 - Animate with `framer-motion`. No CSS transitions for entrance/exit.
 - **No shadows.** Borders only. **No nested cards.** **No skeletons** —
   use `<Loader2 />` for loading states.
+
+## Lint, format, and error detection
+
+- **Prettier 3 defaults** are pinned in `.prettierrc` (80 cols, 2-space,
+  double quotes, semicolons, `trailingComma: "all"`, `arrowParens: "always"`,
+  LF endings). `.prettierignore` excludes `ios/`, `android/`, `functions/lib/`,
+  `bun.lock`, `package-lock.json`, generated vendor dirs.
+- **ESLint 9 flat config** lives in `eslint.config.js` with three scoped
+  blocks: `src/` + root config files (browser + react-hooks + react-refresh),
+  `functions/src/**` (node, no react), `scripts/**` (node). `ios/`, `android/`,
+  `.ai/`, `.firebase/` are in the global `ignores`. Run `bun run lint` for the
+  full repo, `bun run lint:fix` to autofix.
+- **lint-staged** (`lint-staged.config.js`) runs `eslint --fix` + `prettier
+--write` on staged JS/TS, `prettier --write` on staged JSON/MD/CSS/YAML.
+  Wired into `.githooks/pre-commit`. Skip with `AI_SKIP_HOOKS=1` when needed.
+- **Pre-push hook** runs `tsc -b --noEmit` + `prettier --check` on the full
+  repo. Full-repo ESLint happens via `bun run lint`, not on push.
+- **React ErrorBoundary** at `src/components/ErrorBoundary.tsx` wraps the
+  entire app in `src/main.tsx`. It renders a friendly fallback (no shadows,
+  no skeletons), logs to `console.error`, and ships no third-party
+  telemetry. The existing `InstrumentationProvider` boundary inside still
+  catches first in practice; the new boundary is the outermost safety net.
 
 ## Firebase Auth conventions
 
@@ -143,42 +165,42 @@ functions/
 The enrichment pipeline that feeds the AI callables is now a
 three-source cache + consolidator, not a per-request scrape:
 
-  1. `consolidateStrain(name)` (in `consolidate.ts`) is the only
-     entry point. It reads the per-source Firestore cache
-     (`sourceCache/{slug}`, one document per strain with leafly /
-     weedmaps / allbud slots) and falls through to the scrapers
-     for any missing source, then writes the fresh profile back
-     to the cache.
+1. `consolidateStrain(name)` (in `consolidate.ts`) is the only
+   entry point. It reads the per-source Firestore cache
+   (`sourceCache/{slug}`, one document per strain with leafly /
+   weedmaps / allbud slots) and falls through to the scrapers
+   for any missing source, then writes the fresh profile back
+   to the cache.
 
-  2. Hard numbers (THC%, CBD%, ratings) are averaged across
-     sources. The midpoint of each source's range is computed,
-     the midpoints are averaged, and the result is re-formatted
-     as a single percent string. Sources with unparseable
-     percent values are dropped from the average; if every
-     source is unparseable the field stays empty.
+2. Hard numbers (THC%, CBD%, ratings) are averaged across
+   sources. The midpoint of each source's range is computed,
+   the midpoints are averaged, and the result is re-formatted
+   as a single percent string. Sources with unparseable
+   percent values are dropped from the average; if every
+   source is unparseable the field stays empty.
 
-  3. The consolidated StrainProfile carries a `sourceAttribution`
-     block that is only populated for fields where the sources
-     actually disagreed or where averaging changed the value.
-     Dr. Kaya's prompts mention this block — she can audit any
-     number she second-guesses without re-fetching anything.
+3. The consolidated StrainProfile carries a `sourceAttribution`
+   block that is only populated for fields where the sources
+   actually disagreed or where averaging changed the value.
+   Dr. Kaya's prompts mention this block — she can audit any
+   number she second-guesses without re-fetching anything.
 
-  4. The output is plain JSON: only string / number / boolean /
-     null / array / object values, no Date / Map / NaN / Infinity.
-     The iOS Codable decoder ignores unknown fields, so the
-     cross-platform contract is preserved.
+4. The output is plain JSON: only string / number / boolean /
+   null / array / object values, no Date / Map / NaN / Infinity.
+   The iOS Codable decoder ignores unknown fields, so the
+   cross-platform contract is preserved.
 
 When adding a new scraper:
 
-  - Add the export in the new `source.ts` (e.g. `fetchXProfile`).
-  - Add the new source id to `SourceId` in `source-cache.ts` and
-    `SOURCE_ORDER` in `consolidate.ts`.
-  - Add the scraper to the `fetchOne` switch in `consolidate.ts`.
-  - Wire `putSourceCache(slug, source, profile)` in the
-    consolidator's missing-source fan-out (the consolidator does
-    this automatically via `fetchOne`).
-  - Update the AI callables' system prompts in `index.ts` so
-    Dr. Kaya knows the new source contributes to attribution.
+- Add the export in the new `source.ts` (e.g. `fetchXProfile`).
+- Add the new source id to `SourceId` in `source-cache.ts` and
+  `SOURCE_ORDER` in `consolidate.ts`.
+- Add the scraper to the `fetchOne` switch in `consolidate.ts`.
+- Wire `putSourceCache(slug, source, profile)` in the
+  consolidator's missing-source fan-out (the consolidator does
+  this automatically via `fetchOne`).
+- Update the AI callables' system prompts in `index.ts` so
+  Dr. Kaya knows the new source contributes to attribution.
 
 Node 20 is the runtime. It's deprecated on GCP (see deprecation warning
 in deploy output) — when you upgrade, bump both `engines.node` here and
@@ -268,21 +290,21 @@ Same Firebase project (`strainfinder-84a9b`), same accounts, same AI
 callables — three surfaces, one backend. The port is broken into
 **13 sequential PRs** so each slice is reviewable on its own.
 
-| PR | Branch | Scope |
-| -- | ------ | ----- |
-| 1  | `feat/android/scaffold`   | Gradle, AGP, Kotlin, Compose, Firebase deps; brand `Palette`; `StrainEaseTheme`; `RootPlaceholder` |
-| 2  | `feat/android/theme`      | Full `Palette` + `TypeStyle` + `MeshBackground` + reusable `Components` (cards, eyebrow, buttons) |
-| 3  | `feat/android/models`     | All `StrainProfile` / `Recommendation` / `Doctor` Kotlin data classes; `LiveStrainAPI`; `strain-directory.json` resource; `PreviewData` |
-| 4  | `feat/android/auth`       | `FirebaseBootstrap`; `AuthSession` (email, Google); `AgeVerificationStore`; `AgeGateView`; `SignInView` |
-| 5  | `feat/android/shell`      | `StrainEaseApp` (Compose entry) + `RootView` + `MainTabView` + `AppNavigation` |
-| 6  | `feat/android/home`       | `HomeView`, `HomeModel`, `HomeHeadline`, `AilmentCarousel`, `StrainPoster`, `StrainGridView`, `RecentlyViewedStore` |
-| 7  | `feat/android/find`       | `FindView`, `FindModel`, `ResearchPrefs`, `SavedAilmentsStore`, `SavedMedicationsStore`, `ReliefLogStore` |
-| 8  | `feat/android/browse`     | `DirectoryView`, `DirectoryModel`, `DirectoryFilter` |
-| 9  | `feat/android/strain`     | `StrainDetailView` + `TerpeneProfile`/`Detail`, `ShopLinksView`, `NoteBadge`, `TriedNotesView`, `SharedNotesView`, `ReliefLogForm`, `StrainMeaning`, `StrainHydration` |
-| 10 | `feat/android/compare`    | `CompareResultsView`, `CompareSelectionStore`, `CompareToggleButton`, `CompareTrayBar`, `RedditThreadsView` |
-| 11 | `feat/android/account`    | `AccountView`, `SavedStrainsView`, `SavedAilmentsCard`, `SavedMedicationsCard`, `ReliefHistoryView`, `ResearchHistoryView`, `SavedStrainsStore`, `PublicNotesStore` |
-| 12 | `feat/android/doctors`    | `DoctorsView`, `DoctorsModel`, `DoctorModels`, `LocationProvider` |
-| 13 | `feat/android/polish`     | App icon set, splash polish, README, AGENTS.md update, test setup |
+| PR  | Branch                  | Scope                                                                                                                                                                  |
+| --- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `feat/android/scaffold` | Gradle, AGP, Kotlin, Compose, Firebase deps; brand `Palette`; `StrainEaseTheme`; `RootPlaceholder`                                                                     |
+| 2   | `feat/android/theme`    | Full `Palette` + `TypeStyle` + `MeshBackground` + reusable `Components` (cards, eyebrow, buttons)                                                                      |
+| 3   | `feat/android/models`   | All `StrainProfile` / `Recommendation` / `Doctor` Kotlin data classes; `LiveStrainAPI`; `strain-directory.json` resource; `PreviewData`                                |
+| 4   | `feat/android/auth`     | `FirebaseBootstrap`; `AuthSession` (email, Google); `AgeVerificationStore`; `AgeGateView`; `SignInView`                                                                |
+| 5   | `feat/android/shell`    | `StrainEaseApp` (Compose entry) + `RootView` + `MainTabView` + `AppNavigation`                                                                                         |
+| 6   | `feat/android/home`     | `HomeView`, `HomeModel`, `HomeHeadline`, `AilmentCarousel`, `StrainPoster`, `StrainGridView`, `RecentlyViewedStore`                                                    |
+| 7   | `feat/android/find`     | `FindView`, `FindModel`, `ResearchPrefs`, `SavedAilmentsStore`, `SavedMedicationsStore`, `ReliefLogStore`                                                              |
+| 8   | `feat/android/browse`   | `DirectoryView`, `DirectoryModel`, `DirectoryFilter`                                                                                                                   |
+| 9   | `feat/android/strain`   | `StrainDetailView` + `TerpeneProfile`/`Detail`, `ShopLinksView`, `NoteBadge`, `TriedNotesView`, `SharedNotesView`, `ReliefLogForm`, `StrainMeaning`, `StrainHydration` |
+| 10  | `feat/android/compare`  | `CompareResultsView`, `CompareSelectionStore`, `CompareToggleButton`, `CompareTrayBar`, `RedditThreadsView`                                                            |
+| 11  | `feat/android/account`  | `AccountView`, `SavedStrainsView`, `SavedAilmentsCard`, `SavedMedicationsCard`, `ReliefHistoryView`, `ResearchHistoryView`, `SavedStrainsStore`, `PublicNotesStore`    |
+| 12  | `feat/android/doctors`  | `DoctorsView`, `DoctorsModel`, `DoctorModels`, `LocationProvider`                                                                                                      |
+| 13  | `feat/android/polish`   | App icon set, splash polish, README, AGENTS.md update, test setup                                                                                                      |
 
 Conventions for the Android port (mirrors the iOS `StrainEase` style
 as much as Compose allows):

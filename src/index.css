@@ -48,9 +48,10 @@
    * headers, and strain names on posters/grids. System serifs stay in
    * the fallback chain so Apple/Win/Linux users still get a serif
    * while Lora loads. */
-  --font-display: "Lora", "Iowan Old Style", "Palatino Linotype", Palatino,
-    Georgia, serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-display:
+    "Lora", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono:
+    "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 /* CHANGE VALUES FOR THEME — StrainEase “Modern” theme: quiet neutrals with a
@@ -180,7 +181,8 @@
     width: 16px;
     border-radius: 9999px;
     background: currentColor;
-    transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    transition:
+      transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
       opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
@@ -211,11 +213,7 @@
   }
   .dark .mesh-bg {
     background-image:
-      linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(11, 17, 14, 0.55) 100%
-      ),
+      linear-gradient(to bottom, transparent 0%, rgba(11, 17, 14, 0.55) 100%),
       radial-gradient(
         120% 90% at 100% 0%,
         rgba(71, 158, 112, 0.28),
@@ -234,7 +232,8 @@
  * radial-gradient glow in the hero (oklch hue 158). Two-layer box-shadow
  * gives a tight inner halo plus a softer outer bloom that breathes. */
 @keyframes signin-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 10px oklch(0.43 0.1 158 / 0.25),
       0 0 24px oklch(0.43 0.1 158 / 0.12);
@@ -249,7 +248,8 @@
   animation-name: signin-glow-dark;
 }
 @keyframes signin-glow-dark {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 10px oklch(0.74 0.1 158 / 0.25),
       0 0 24px oklch(0.74 0.1 158 / 0.12);
@@ -277,11 +277,12 @@
   .tilt-card {
     transform: none !important;
     transition: none !important;
-  }  .skeleton-line,
-    .shimmer-text,
-    .signin-glow {
-      animation-duration: 0s !important;
-    }
+  }
+  .skeleton-line,
+  .shimmer-text,
+  .signin-glow {
+    animation-duration: 0s !important;
+  }
 }
 
 /* Gradient shimmer for placeholder lines. The gradient sweeps left to right

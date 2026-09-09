@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  groqRequestBody,
-  GROQ_DESCRIPTION_MODEL,
-  GROQ_MODEL,
-} from "./groq";
+import { groqRequestBody, GROQ_DESCRIPTION_MODEL, GROQ_MODEL } from "./groq";
 
 describe("groqRequestBody", () => {
   test("routes descriptions to GPT-OSS 20B with a cache-friendly message order", () => {

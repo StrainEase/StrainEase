@@ -72,7 +72,10 @@ export function historyCloudData(entry: HistoryEntry) {
 
 export async function rememberCloud(uid: string, entry: HistoryEntry) {
   if (!db) return;
-  await setDoc(doc(db, "users", uid, "history", entry.id), historyCloudData(entry));
+  await setDoc(
+    doc(db, "users", uid, "history", entry.id),
+    historyCloudData(entry),
+  );
 }
 
 export function listenToHistory(

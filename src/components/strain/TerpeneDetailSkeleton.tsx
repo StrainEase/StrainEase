@@ -6,11 +6,7 @@
  */
 export function TerpeneDetailSkeleton() {
   return (
-    <div
-      aria-hidden
-      role="status"
-      className="grid gap-3 sm:grid-cols-2"
-    >
+    <div aria-hidden role="status" className="grid gap-3 sm:grid-cols-2">
       {[0, 1, 2].map((i) => (
         <div
           key={i}

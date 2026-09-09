@@ -87,17 +87,13 @@ export function StrainImage({
   // deliberately hide the failed <img> (it's broken) and let the
   // skeleton show, so the user doesn't see the browser's default
   // broken-image state between attempts.
-  const displayUrl = loaded && url ? url : stableUrl ?? url;
+  const displayUrl = loaded && url ? url : (stableUrl ?? url);
   const hideCurrent = awaitingRetry && !loaded;
 
   if (exhausted || (showFallback && !displayUrl)) {
     return (
       <div
-        className={cn(
-          "flex items-center justify-center",
-          tone.box,
-          className,
-        )}
+        className={cn("flex items-center justify-center", tone.box, className)}
         aria-hidden
       >
         <Leaf className={cn("size-6", tone.icon, iconClassName)} />
@@ -117,10 +113,7 @@ export function StrainImage({
           URL swaps just paint the previous image behind the retry
           spinner. */}
       {!displayUrl && (
-        <span
-          aria-hidden
-          className="skeleton-line absolute inset-0"
-        />
+        <span aria-hidden className="skeleton-line absolute inset-0" />
       )}
       {/* Retry spinner. The repository convention is to use
           <Loader2 /> for loading states rather than skeletons;

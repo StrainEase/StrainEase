@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  APP_NAV,
-  dashboardModeFromSearch,
-  dashboardTab,
-} from "./app-nav";
+import { APP_NAV, dashboardModeFromSearch, dashboardTab } from "./app-nav";
 
 describe("dashboardModeFromSearch", () => {
   test("maps known modes and defaults to find", () => {

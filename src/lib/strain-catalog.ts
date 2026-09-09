@@ -60,7 +60,14 @@ const ENTRIES: CatalogEntry[] = [
     name: "Jack Herer",
     type: "sativa",
     thc: "18–23%",
-    uses: ["ADHD", "Fatigue", "Depression", "Stress", "Inflammation", "Migraine"],
+    uses: [
+      "ADHD",
+      "Fatigue",
+      "Depression",
+      "Stress",
+      "Inflammation",
+      "Migraine",
+    ],
   },
   {
     name: "Gelato",
@@ -280,9 +287,10 @@ const HOME_FEATURED_NAMES = [
   "Northern Lights",
 ] as const;
 
-export const HOME_FEATURED_STRAINS: StrainProfile[] = HOME_FEATURED_NAMES.flatMap(
-  (name) => CATALOG.filter((profile) => profile.name === name),
-);
+export const HOME_FEATURED_STRAINS: StrainProfile[] =
+  HOME_FEATURED_NAMES.flatMap((name) =>
+    CATALOG.filter((profile) => profile.name === name),
+  );
 
 // Leafly popular-list names that don't match our catalog slugs, plus a few
 // current popular strains we don't keep in the browse set. Used so homepage
@@ -318,7 +326,8 @@ function catalogDefaults(
   const slug = slugify(name);
   const key = catalogKey(name);
   const fromCatalog = CATALOG.find((profile) => profileSlug(profile) === key);
-  const medicalUses = fromCatalog?.medicalUses ?? EXTRA_USES[slug] ?? EXTRA_USES[key];
+  const medicalUses =
+    fromCatalog?.medicalUses ?? EXTRA_USES[slug] ?? EXTRA_USES[key];
   const imageUrl = fromCatalog?.imageUrl ?? PHOTOS[key] ?? PHOTOS[slug];
   if (!medicalUses && !imageUrl) return undefined;
   return { imageUrl, medicalUses };
@@ -426,9 +435,7 @@ export function matchAilments(
   live: StrainProfile[],
   limit = HOME_PREVIEW_LIMIT,
 ): StrainProfile[] {
-  const cleaned = ailments
-    .map((a) => a.trim())
-    .filter((a) => a !== "");
+  const cleaned = ailments.map((a) => a.trim()).filter((a) => a !== "");
   if (cleaned.length === 0) return [];
 
   const combined = applyCatalogPhotos(uniqueProfiles([...live, ...CATALOG]));

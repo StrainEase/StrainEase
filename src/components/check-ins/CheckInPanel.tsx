@@ -7,16 +7,19 @@
 
 import { useMemo, useState } from "react";
 import { useCheckIns } from "@/hooks/use-check-ins";
-import {
-  buildCheckInTrend,
-  todayKey,
-  type CheckIn,
-} from "@/lib/check-ins";
+import { buildCheckInTrend, todayKey, type CheckIn } from "@/lib/check-ins";
 import { CheckInForm } from "@/components/check-ins/CheckInForm";
-import { Sparkline, type SparklineSeries } from "@/components/check-ins/Sparkline";
+import {
+  Sparkline,
+  type SparklineSeries,
+} from "@/components/check-ins/Sparkline";
 import { Calendar, Loader2 } from "lucide-react";
 
-const METRIC_LEGEND: { key: keyof CheckIn["metrics"]; label: string; color: string }[] = [
+const METRIC_LEGEND: {
+  key: keyof CheckIn["metrics"];
+  label: string;
+  color: string;
+}[] = [
   { key: "mood", label: "Mood", color: "stroke-emerald-500" },
   { key: "sleep", label: "Sleep", color: "stroke-sky-500" },
   { key: "pain", label: "Pain", color: "stroke-rose-500" },
@@ -63,10 +66,7 @@ export function CheckInPanel() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[420px_1fr]">
         <div className="rounded-2xl border border-border/70 bg-card p-5">
-          <CheckInForm
-            today={today}
-            onSaved={() => setPulse((n) => n + 1)}
-          />
+          <CheckInForm today={today} onSaved={() => setPulse((n) => n + 1)} />
         </div>
 
         <div className="space-y-4">

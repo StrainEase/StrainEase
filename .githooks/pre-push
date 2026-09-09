@@ -1,4 +1,8 @@
 #!/bin/sh
+# Runs on `git push`. Slow, full-repo safety net:
+# - tsc strict typecheck (frontend).
+# - prettier --check (formatting drift across files you didn't touch).
+# tsc for `functions/` is a separate `cd functions && npm run build` step.
 set -eu
 
 if [ "${AI_SKIP_HOOKS:-}" = "1" ]; then
@@ -6,3 +10,4 @@ if [ "${AI_SKIP_HOOKS:-}" = "1" ]; then
 fi
 
 bun tsc -b --noEmit
+bun run format:check

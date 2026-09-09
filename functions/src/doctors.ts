@@ -41,7 +41,12 @@ export type DoctorQuery = {
 
 export type DoctorResult = {
   doctors: Doctor[];
-  resolvedLocation: { city: string; state: string; lat: number; lon: number } | null;
+  resolvedLocation: {
+    city: string;
+    state: string;
+    lat: number;
+    lon: number;
+  } | null;
   source: string;
 };
 
@@ -50,7 +55,10 @@ const UA =
 
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const pageCache = new Map<string, { at: number; data: Doctor[] }>();
-const geocodeCache = new Map<string, { at: number; value: GeocodeResult | null }>();
+const geocodeCache = new Map<
+  string,
+  { at: number; value: GeocodeResult | null }
+>();
 
 /** Test-only: drop the in-memory page+geocode caches so each case starts clean. */
 export function __resetDoctorsCacheForTest(): void {
@@ -68,7 +76,10 @@ function slugify(input: string): string {
 
 type GeocodeResult = { city: string; state: string; lat: number; lon: number };
 
-async function reverseGeocode(lat: number, lon: number): Promise<GeocodeResult | null> {
+async function reverseGeocode(
+  lat: number,
+  lon: number,
+): Promise<GeocodeResult | null> {
   const key = `${lat.toFixed(3)},${lon.toFixed(3)}`;
   const hit = geocodeCache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
@@ -81,7 +92,10 @@ async function reverseGeocode(lat: number, lon: number): Promise<GeocodeResult |
   url.searchParams.set("addressdetails", "1");
 
   const res = await fetch(url, {
-    headers: { "User-Agent": "StrainEase/1.0 (doctor-finder)", Accept: "application/json" },
+    headers: {
+      "User-Agent": "StrainEase/1.0 (doctor-finder)",
+      Accept: "application/json",
+    },
   });
   if (!res.ok) {
     geocodeCache.set(key, { at: Date.now(), value: null });
@@ -109,7 +123,10 @@ async function reverseGeocode(lat: number, lon: number): Promise<GeocodeResult |
   return value;
 }
 
-async function fetchLeaflyDoctorsPage(stateSlug: string, citySlug: string): Promise<Doctor[]> {
+async function fetchLeaflyDoctorsPage(
+  stateSlug: string,
+  citySlug: string,
+): Promise<Doctor[]> {
   const cacheKey = `${stateSlug}/${citySlug}`;
   const hit = pageCache.get(cacheKey);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.data;
@@ -151,7 +168,9 @@ async function fetchLeaflyDoctorsPage(stateSlug: string, citySlug: string): Prom
   const organicStores = Array.isArray(locatorData?.organicStores)
     ? (locatorData!.organicStores as unknown[])
     : null;
-  const initialState = props?.initialState as Record<string, unknown> | undefined;
+  const initialState = props?.initialState as
+    | Record<string, unknown>
+    | undefined;
   const search = initialState?.search as Record<string, unknown> | undefined;
   const results = search?.results as Record<string, unknown> | undefined;
   const legacyStores = Array.isArray(results?.dispensaries)
@@ -163,7 +182,8 @@ async function fetchLeaflyDoctorsPage(stateSlug: string, citySlug: string): Prom
   for (const raw of dispensaries) {
     if (!raw || typeof raw !== "object") continue;
     const row = raw as Record<string, unknown>;
-    const id = typeof row.id === "number" ? String(row.id) : String(row.id ?? "");
+    const id =
+      typeof row.id === "number" ? String(row.id) : String(row.id ?? "");
     const slug = typeof row.slug === "string" ? row.slug : "";
     const name = typeof row.name === "string" ? row.name : "";
     const path = typeof row.path === "string" ? row.path : `/doctors/${slug}`;
@@ -175,9 +195,12 @@ async function fetchLeaflyDoctorsPage(stateSlug: string, citySlug: string): Prom
         : {};
     const lat = typeof addr.lat === "number" ? addr.lat : null;
     const lon = typeof addr.lon === "number" ? addr.lon : null;
-    const distanceMi = typeof row.distanceMi === "number" ? row.distanceMi : null;
-    const rating = typeof row.reviewRating === "number" ? row.reviewRating : null;
-    const reviewCount = typeof row.reviewCount === "number" ? row.reviewCount : null;
+    const distanceMi =
+      typeof row.distanceMi === "number" ? row.distanceMi : null;
+    const rating =
+      typeof row.reviewRating === "number" ? row.reviewRating : null;
+    const reviewCount =
+      typeof row.reviewCount === "number" ? row.reviewCount : null;
     const reviewSnippet =
       row.reviewSnippet && typeof row.reviewSnippet === "object"
         ? (() => {
@@ -234,7 +257,12 @@ function haversineMiles(
 
 export async function findDoctors(query: DoctorQuery): Promise<DoctorResult> {
   const radius = typeof query.radiusMiles === "number" ? query.radiusMiles : 50;
-  let resolved: { city: string; state: string; lat: number; lon: number } | null = null;
+  let resolved: {
+    city: string;
+    state: string;
+    lat: number;
+    lon: number;
+  } | null = null;
 
   if (
     typeof query.lat === "number" &&
@@ -244,7 +272,12 @@ export async function findDoctors(query: DoctorQuery): Promise<DoctorResult> {
   ) {
     const geo = await reverseGeocode(query.lat, query.lon);
     if (geo) {
-      resolved = { city: geo.city, state: geo.state, lat: query.lat, lon: query.lon };
+      resolved = {
+        city: geo.city,
+        state: geo.state,
+        lat: query.lat,
+        lon: query.lon,
+      };
     }
   }
 
@@ -262,7 +295,11 @@ export async function findDoctors(query: DoctorQuery): Promise<DoctorResult> {
   }
 
   if (!resolved) {
-    return { doctors: [], resolvedLocation: null, source: "leafly.com/medical-marijuana-doctors" };
+    return {
+      doctors: [],
+      resolvedLocation: null,
+      source: "leafly.com/medical-marijuana-doctors",
+    };
   }
 
   const stateSlug = stateNameToSlug(resolved.state);
@@ -292,8 +329,7 @@ export async function findDoctors(query: DoctorQuery): Promise<DoctorResult> {
   const filtered =
     resolved.lat !== 0 || resolved.lon !== 0
       ? scored.filter(
-          (doctor) =>
-            doctor.distanceMi === null || doctor.distanceMi <= radius,
+          (doctor) => doctor.distanceMi === null || doctor.distanceMi <= radius,
         )
       : scored;
 

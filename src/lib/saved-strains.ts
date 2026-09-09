@@ -58,7 +58,8 @@ export function clipPublicNote(text: string): string {
   return text.trim().slice(0, PUBLIC_NOTE_MAX);
 }
 
-const savedColl = (uid: string) => collection(db!, "users", uid, "savedStrains");
+const savedColl = (uid: string) =>
+  collection(db!, "users", uid, "savedStrains");
 const publicNotesColl = () => collection(db!, "publicNotes");
 
 export function listenToSavedStrains(
@@ -125,7 +126,10 @@ export async function removeSavedStrain(uid: string, slug: string) {
   await deleteDoc(doc(savedColl(uid), slug));
 }
 
-export async function isStrainSaved(uid: string, slug: string): Promise<boolean> {
+export async function isStrainSaved(
+  uid: string,
+  slug: string,
+): Promise<boolean> {
   const snap = await getDoc(doc(savedColl(uid), slug));
   return snap.exists();
 }
@@ -216,11 +220,7 @@ export async function setNoteAnonymous(
   await writeNotes(uid, slug, next);
 }
 
-export async function removeNote(
-  uid: string,
-  slug: string,
-  noteId: string,
-) {
+export async function removeNote(uid: string, slug: string, noteId: string) {
   const notes = await readNotes(uid, slug);
   const target = notes.find((n) => n.id === noteId);
   if (target?.publicId) {

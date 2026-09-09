@@ -74,9 +74,7 @@ describe("CommunityVoices", () => {
         />
       </MemoryRouter>,
     );
-    const labels = screen
-      .getAllByRole("tab")
-      .map((t) => t.textContent ?? "");
+    const labels = screen.getAllByRole("tab").map((t) => t.textContent ?? "");
     expect(labels.some((l) => l.includes("App Reviews"))).toBe(false);
   });
 
@@ -89,9 +87,7 @@ describe("CommunityVoices", () => {
         />
       </MemoryRouter>,
     );
-    const labels = screen
-      .getAllByRole("tab")
-      .map((t) => t.textContent ?? "");
+    const labels = screen.getAllByRole("tab").map((t) => t.textContent ?? "");
     // No "All" tab because only one source is present.
     expect(labels.some((l) => l.includes("All"))).toBe(false);
     expect(labels.some((l) => l.includes("App Reviews"))).toBe(true);
@@ -107,9 +103,7 @@ describe("CommunityVoices", () => {
         />
       </MemoryRouter>,
     );
-    const labels = screen
-      .getAllByRole("tab")
-      .map((t) => t.textContent ?? "");
+    const labels = screen.getAllByRole("tab").map((t) => t.textContent ?? "");
     // Two sources (cannabis + app) — All tab should show.
     expect(labels.some((l) => l.includes("All"))).toBe(true);
   });

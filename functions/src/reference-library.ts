@@ -75,7 +75,10 @@ export type CannabinoidRecord = {
 };
 
 export type ReferenceLibraryKind = "terpene" | "cannabinoid" | "interaction";
-export type ReferenceRecord = TerpeneRecord | CannabinoidRecord | InteractionRecord;
+export type ReferenceRecord =
+  | TerpeneRecord
+  | CannabinoidRecord
+  | InteractionRecord;
 
 /* ── Drug interaction library ─────────────────────────────────────── */
 
@@ -88,11 +91,7 @@ export type DrugClass =
   | "stimulant"
   | "other";
 
-export type InteractionSeverity =
-  | "low"
-  | "moderate"
-  | "high"
-  | "theoretical";
+export type InteractionSeverity = "low" | "moderate" | "high" | "theoretical";
 
 export type CannabisInteraction = {
   severity: InteractionSeverity;
@@ -172,7 +171,10 @@ function validateSource(s: unknown, path: string): Source {
   if (typeof obj.url !== "string" || !/^https?:\/\//.test(obj.url)) {
     throw new Error(`${path}: source.url must be an http(s) URL`);
   }
-  if (typeof obj.kind !== "string" || !SOURCE_KINDS.has(obj.kind as SourceKind)) {
+  if (
+    typeof obj.kind !== "string" ||
+    !SOURCE_KINDS.has(obj.kind as SourceKind)
+  ) {
     throw new Error(
       `${path}: source.kind must be one of pubmed|review|nor.org|other`,
     );
@@ -217,7 +219,9 @@ function validateCommonFields(
   if (!Array.isArray(raw.sources) || raw.sources.length === 0) {
     throw new Error(`${path}.sources must be a non-empty array`);
   }
-  const sources = raw.sources.map((s, i) => validateSource(s, `${path}.sources[${i}]`));
+  const sources = raw.sources.map((s, i) =>
+    validateSource(s, `${path}.sources[${i}]`),
+  );
   return {
     displayName: raw.displayName.trim().slice(0, 120),
     mechanism: raw.mechanism.trim(),
@@ -236,7 +240,10 @@ function validateTerpene(raw: unknown, index: number): TerpeneRecord {
     throw new Error(`${path}: must be an object`);
   }
   const obj = raw as Record<string, unknown>;
-  if (typeof obj.classDescription !== "string" || obj.classDescription.trim() === "") {
+  if (
+    typeof obj.classDescription !== "string" ||
+    obj.classDescription.trim() === ""
+  ) {
     throw new Error(`${path}.classDescription must be a non-empty string`);
   }
   if (typeof obj.aroma !== "string" || obj.aroma.trim() === "") {
@@ -285,9 +292,7 @@ function validateCannabinoid(raw: unknown, index: number): CannabinoidRecord {
     typeof obj.psychoactivity !== "string" ||
     !PSYCHOACTIVITY_VALUES.has(obj.psychoactivity as Psychoactivity)
   ) {
-    throw new Error(
-      `${path}.psychoactivity must be none|mild|moderate|high`,
-    );
+    throw new Error(`${path}.psychoactivity must be none|mild|moderate|high`);
   }
   const common = validateCommonFields(obj, path);
   const slug =
@@ -334,7 +339,9 @@ export function validateSeedFile(parsed: unknown): ValidatedSeedFile {
     throw new Error("seed file: entries must be an array");
   }
   if (obj.kind === "terpene") {
-    const records = (obj.entries as unknown[]).map((e, i) => validateTerpene(e, i));
+    const records = (obj.entries as unknown[]).map((e, i) =>
+      validateTerpene(e, i),
+    );
     const slugs = new Set<string>();
     for (const r of records) {
       if (slugs.has(r.slug)) {
@@ -381,9 +388,7 @@ function validateCannabisInteraction(
     typeof raw.severity !== "string" ||
     !INTERACTION_SEVERITIES.has(raw.severity as InteractionSeverity)
   ) {
-    throw new Error(
-      `${path}.severity must be low|moderate|high|theoretical`,
-    );
+    throw new Error(`${path}.severity must be low|moderate|high|theoretical`);
   }
   if (typeof raw.mechanism !== "string" || raw.mechanism.trim() === "") {
     throw new Error(`${path}.mechanism must be a non-empty string`);
@@ -404,9 +409,7 @@ function validateCannabisInteraction(
   // must say "discuss with your prescriber". The schema rejects false
   // so a future seed edit can't quietly drop the guardrail.
   if (typeof raw.discussWithPrescriber !== "boolean") {
-    throw new Error(
-      `${path}.discussWithPrescriber must be a boolean`,
-    );
+    throw new Error(`${path}.discussWithPrescriber must be a boolean`);
   }
   if (raw.discussWithPrescriber !== true) {
     throw new Error(

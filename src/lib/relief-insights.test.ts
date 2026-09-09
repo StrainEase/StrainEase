@@ -29,7 +29,12 @@ describe("analyzeReliefLogs", () => {
       log({ createdAt: 1, relief: 2 }),
       log({ createdAt: 2, relief: 2 }),
       log({ createdAt: 3, relief: 4, strainName: "Northern Lights" }),
-      log({ createdAt: 4, relief: 5, strainName: "Northern Lights", fit: "too-strong" }),
+      log({
+        createdAt: 4,
+        relief: 5,
+        strainName: "Northern Lights",
+        fit: "too-strong",
+      }),
     ]);
 
     expect(result.trend).toBe("improving");

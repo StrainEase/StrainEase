@@ -40,9 +40,7 @@ export function StrainPoster({
         iconClassName={compact ? "size-6" : "size-7"}
       />
       {type && (
-        <Badge
-          className={cn(typeBadgeClass(type), "self-start capitalize")}
-        >
+        <Badge className={cn(typeBadgeClass(type), "self-start capitalize")}>
           {TYPE_LABEL[type] ?? type}
         </Badge>
       )}
@@ -65,10 +63,7 @@ export function StrainPoster({
             className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wide text-primary"
             title={`Leafly average rating: ${profile.leaflyRating.toFixed(1)}`}
           >
-            <Star
-              className="size-3 fill-primary text-primary"
-              aria-hidden
-            />
+            <Star className="size-3 fill-primary text-primary" aria-hidden />
             {profile.leaflyRating.toFixed(1)}
           </span>
         )}

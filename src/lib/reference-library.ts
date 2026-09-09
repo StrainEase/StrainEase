@@ -50,11 +50,7 @@ export type DrugClass =
   | "stimulant"
   | "other";
 
-export type InteractionSeverity =
-  | "low"
-  | "moderate"
-  | "high"
-  | "theoretical";
+export type InteractionSeverity = "low" | "moderate" | "high" | "theoretical";
 
 export type CannabisInteraction = {
   severity: InteractionSeverity;
@@ -84,9 +80,10 @@ function call<TArgs, TResult>(name: string, args: TArgs): Promise<TResult> {
       ),
     );
   }
-  return httpsCallable<TArgs, TResult>(functions, name)(args).then(
-    (res) => res.data,
-  );
+  return httpsCallable<TArgs, TResult>(
+    functions,
+    name,
+  )(args).then((res) => res.data);
 }
 
 /**

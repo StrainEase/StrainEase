@@ -56,19 +56,14 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 /** Cache key shared with the in-memory cache in `reddit.ts`. */
-export function redditCacheKey(
-  name: string,
-  conditions: string[],
-): string {
+export function redditCacheKey(name: string, conditions: string[]): string {
   const focus = conditions
     .map((c) => c.trim().toLowerCase())
     .filter((c) => c !== "");
   return `${name.trim().toLowerCase()}|${focus.length > 0 ? focus.join(",") : "general"}`;
 }
 
-async function readDoc(
-  cacheKey: string,
-): Promise<CachedRedditQuotes | null> {
+async function readDoc(cacheKey: string): Promise<CachedRedditQuotes | null> {
   try {
     const snap = await withTimeout(
       getFirestore().collection(COLLECTION).doc(cacheKey).get(),

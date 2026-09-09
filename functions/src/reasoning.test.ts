@@ -105,7 +105,9 @@ describe("normalizeRecommendations", () => {
         reasoning: {
           matchedConditions: ["Insomnia"],
           preferencesApplied: ["Night"],
-          evidence: [{ source: "Leafly", quote: "78% of reviewers report sleep." }],
+          evidence: [
+            { source: "Leafly", quote: "78% of reviewers report sleep." },
+          ],
           considerations: ["Start low."],
         },
       },

@@ -1,6 +1,12 @@
 import { CompareTray } from "@/components/compare/CompareTray";
 import type { CompareSelection } from "@/hooks/use-compare-selection";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, mock, test } from "bun:test";
 
 /**
@@ -39,7 +45,9 @@ describe("CompareTray", () => {
     render(<CompareTray selection={selection} onCompare={onCompare} />);
     // framer-motion exits with a transition; the region element
     // should not be in the document.
-    expect(screen.queryByRole("region", { name: /compare selection/i })).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: /compare selection/i }),
+    ).toBeNull();
     expect(onCompare).toHaveBeenCalledTimes(0);
   });
 
@@ -67,7 +75,9 @@ describe("CompareTray", () => {
     render(<CompareTray selection={selection} onCompare={() => {}} />);
 
     await waitFor(() => {
-      expect(screen.getByRole("region", { name: /compare selection/i })).toBeTruthy();
+      expect(
+        screen.getByRole("region", { name: /compare selection/i }),
+      ).toBeTruthy();
     });
 
     fireEvent.click(screen.getByRole("button", { name: /remove Blue Dream/i }));
@@ -81,7 +91,9 @@ describe("CompareTray", () => {
     render(<CompareTray selection={selection} onCompare={onCompare} />);
 
     await waitFor(() => {
-      expect(screen.getByRole("region", { name: /compare selection/i })).toBeTruthy();
+      expect(
+        screen.getByRole("region", { name: /compare selection/i }),
+      ).toBeTruthy();
     });
 
     fireEvent.click(screen.getByRole("button", { name: /compare \(2\)/i }));
@@ -94,7 +106,9 @@ describe("CompareTray", () => {
     render(<CompareTray selection={selection} onCompare={onCompare} />);
 
     await waitFor(() => {
-      expect(screen.getByRole("region", { name: /compare selection/i })).toBeTruthy();
+      expect(
+        screen.getByRole("region", { name: /compare selection/i }),
+      ).toBeTruthy();
     });
 
     const compareButton = screen.getByRole("button", {
@@ -109,7 +123,9 @@ describe("CompareTray", () => {
     render(<CompareTray selection={selection} onCompare={() => {}} />);
 
     await waitFor(() => {
-      expect(screen.getByRole("region", { name: /compare selection/i })).toBeTruthy();
+      expect(
+        screen.getByRole("region", { name: /compare selection/i }),
+      ).toBeTruthy();
     });
 
     fireEvent.click(screen.getByRole("button", { name: /^clear$/i }));
@@ -128,7 +144,9 @@ describe("CompareTray", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("region", { name: /compare selection/i })).toBeTruthy();
+      expect(
+        screen.getByRole("region", { name: /compare selection/i }),
+      ).toBeTruthy();
     });
 
     // framer-motion exit might briefly keep prior content; assert on

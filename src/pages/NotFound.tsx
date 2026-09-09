@@ -21,10 +21,7 @@ export default function NotFound() {
         noindex
       />
       <Link to="/" className="mb-10 flex items-center gap-2.5">
-        <BrandLogo
-          alt="StrainEase logo"
-          className="size-8 rounded-[10px]"
-        />
+        <BrandLogo alt="StrainEase logo" className="size-8 rounded-[10px]" />
         <span className="text-sm font-semibold tracking-tight">StrainEase</span>
       </Link>
       <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
@@ -34,10 +31,13 @@ export default function NotFound() {
         This page doesn&apos;t grow here
       </h1>
       <p className="mt-3 max-w-md text-center text-sm leading-6 text-muted-foreground">
-        The link is broken or the page moved. Head back to find strains for
-        your symptoms.
+        The link is broken or the page moved. Head back to find strains for your
+        symptoms.
       </p>
-      <Button asChild className="group mt-8 cursor-pointer rounded-full pl-5 pr-1.5">
+      <Button
+        asChild
+        className="group mt-8 cursor-pointer rounded-full pl-5 pr-1.5"
+      >
         <Link to="/">
           Back to StrainEase
           <span className="flex size-7 items-center justify-center rounded-full border border-current/20">

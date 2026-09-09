@@ -76,7 +76,8 @@ export const VETTED_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /* ── Validation ──────────────────────────────────────────────────── */
 
-const VALID_URL_PATTERN = /^https:\/\/old\.reddit\.com\/r\/[^/]+\/comments\/[a-z0-9]{4,}\//i;
+const VALID_URL_PATTERN =
+  /^https:\/\/old\.reddit\.com\/r\/[^/]+\/comments\/[a-z0-9]{4,}\//i;
 
 /** Normalize supported Reddit hostnames to the canonical old.reddit.com form. */
 export function normalizeRedditUrl(value: string): string {
@@ -92,7 +93,10 @@ export function normalizeRedditUrl(value: string): string {
  * shape errors. Returns a clean PendingRedditThread with vetting
  * fields explicitly null.
  */
-export function validateCandidateThread(raw: unknown, index: number): PendingRedditThread {
+export function validateCandidateThread(
+  raw: unknown,
+  index: number,
+): PendingRedditThread {
   const path = `redditThreads[${index}]`;
   if (typeof raw !== "object" || raw === null) {
     throw new Error(`${path}: must be an object`);
@@ -176,7 +180,9 @@ export function validateCandidateBatch(raw: unknown): PendingRedditThread[] {
   if (!Array.isArray(raw)) {
     throw new Error("candidate batch: must be an array");
   }
-  const threads = (raw as unknown[]).map((t, i) => validateCandidateThread(t, i));
+  const threads = (raw as unknown[]).map((t, i) =>
+    validateCandidateThread(t, i),
+  );
   const ids = new Set<string>();
   for (const t of threads) {
     if (ids.has(t.threadId)) {
@@ -222,7 +228,10 @@ export function filterVettedThreads(
     // If a specific strain is requested, thread must mention it.
     if (target !== "") {
       const strainMatch = t.applicableStrains.some(
-        (s) => s.toLowerCase() === target || target.includes(s.toLowerCase()) || s.toLowerCase().includes(target),
+        (s) =>
+          s.toLowerCase() === target ||
+          target.includes(s.toLowerCase()) ||
+          s.toLowerCase().includes(target),
       );
       if (!strainMatch) continue;
     }
@@ -233,7 +242,10 @@ export function filterVettedThreads(
     let score = 0;
     for (const cond of conds) {
       if (t.applicableConditions.some((c) => c === cond)) score += 3;
-      else if (t.applicableConditions.some((c) => c.includes(cond) || cond.includes(c))) score += 1;
+      else if (
+        t.applicableConditions.some((c) => c.includes(cond) || cond.includes(c))
+      )
+        score += 1;
     }
     if (target !== "" && score === 0 && t.applicableStrains.length === 0) {
       continue;
@@ -271,8 +283,9 @@ export function vettedSourcesOrFallback(
   conditions: string[],
   fallback: RedditSource[],
 ): RedditSource[] {
-  const vetted = filterVettedThreads(threads, strainName, conditions)
-    .map(toRedditSource);
+  const vetted = filterVettedThreads(threads, strainName, conditions).map(
+    toRedditSource,
+  );
   return vetted.length > 0 ? vetted : fallback;
 }
 

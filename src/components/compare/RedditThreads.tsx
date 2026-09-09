@@ -21,7 +21,9 @@ function RedditThreadsSkeleton({
           <MessageCircle className="size-3.5" />
           {title}
         </div>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          {description}
+        </p>
       </div>
       <ul className="grid gap-2.5 sm:grid-cols-2">
         {Array.from({ length: count }, (_, i) => (
@@ -57,7 +59,8 @@ export function RedditThreads({
   title?: string;
   description?: string;
 }) {
-  if (loading) return <RedditThreadsSkeleton title={title} description={description} />;
+  if (loading)
+    return <RedditThreadsSkeleton title={title} description={description} />;
   if (sources.length === 0) return null;
   return (
     <div className="space-y-4">
@@ -66,7 +69,9 @@ export function RedditThreads({
           <MessageCircle className="size-3.5" />
           {title}
         </div>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          {description}
+        </p>
       </div>
       <ul className="grid gap-2.5 sm:grid-cols-2">
         {sources.map((src) => (

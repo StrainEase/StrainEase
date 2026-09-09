@@ -44,11 +44,26 @@ function thcMidpoint(range: string | undefined): number | null {
   return null;
 }
 
-const THC_BANDS: { value: ThcBand; label: string; range: string; test: (m: number) => boolean }[] = [
+const THC_BANDS: {
+  value: ThcBand;
+  label: string;
+  range: string;
+  test: (m: number) => boolean;
+}[] = [
   { value: "any", label: "Any THC", range: "no preference", test: () => true },
   { value: "mild", label: "Mild", range: "under ~15%", test: (m) => m < 15 },
-  { value: "balanced", label: "Balanced", range: "~15–22%", test: (m) => m >= 15 && m < 22 },
-  { value: "strong", label: "Strong", range: "above ~22%", test: (m) => m >= 22 },
+  {
+    value: "balanced",
+    label: "Balanced",
+    range: "~15–22%",
+    test: (m) => m >= 15 && m < 22,
+  },
+  {
+    value: "strong",
+    label: "Strong",
+    range: "above ~22%",
+    test: (m) => m >= 22,
+  },
 ];
 
 /**
@@ -58,11 +73,27 @@ const THC_BANDS: { value: ThcBand; label: string; range: string; test: (m: numbe
  * the filter strip stays scannable.
  */
 const EFFECT_BUCKETS: { id: string; label: string; match: string[] }[] = [
-  { id: "relaxed", label: "Relaxing", match: ["relaxed", "calm", "calming", "soothing"] },
+  {
+    id: "relaxed",
+    label: "Relaxing",
+    match: ["relaxed", "calm", "calming", "soothing"],
+  },
   { id: "sleepy", label: "Sleepy", match: ["sleepy", "sedated", "drowsy"] },
-  { id: "happy", label: "Happy", match: ["happy", "euphoric", "uplifted", "giggly"] },
-  { id: "focused", label: "Focused", match: ["focused", "creative", "aroused"] },
-  { id: "energetic", label: "Energetic", match: ["energetic", "tingly", "talkative"] },
+  {
+    id: "happy",
+    label: "Happy",
+    match: ["happy", "euphoric", "uplifted", "giggly"],
+  },
+  {
+    id: "focused",
+    label: "Focused",
+    match: ["focused", "creative", "aroused"],
+  },
+  {
+    id: "energetic",
+    label: "Energetic",
+    match: ["energetic", "tingly", "talkative"],
+  },
   { id: "hungry", label: "Hungry", match: ["hungry", "appetite"] },
 ];
 
@@ -390,7 +421,8 @@ export function StrainDirectory() {
       {allPreviews !== null && allPreviews.length > 0 && (
         <p className="text-xs text-muted-foreground">
           Showing {filtered.length}
-          {filtersActive ? " filtered" : ""} of {totalCount.toLocaleString()} strains.
+          {filtersActive ? " filtered" : ""} of {totalCount.toLocaleString()}{" "}
+          strains.
         </p>
       )}
 
@@ -425,11 +457,7 @@ export function StrainDirectory() {
  * same 1-2-3 column grid the populated state uses, so the page
  * doesn't jump when the first batch of previews lands.
  */
-export function DirectoryGridSkeleton({
-  count = 6,
-}: {
-  count?: number;
-}) {
+export function DirectoryGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div
       className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"

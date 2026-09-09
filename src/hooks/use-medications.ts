@@ -41,8 +41,7 @@ export function useMedications(): UseMedications {
     list,
     names: list.map((m) => m.name),
     add: (name) => (user ? addMedication(user.uid, name) : Promise.resolve()),
-    remove: (id) =>
-      user ? removeMedication(user.uid, id) : Promise.resolve(),
+    remove: (id) => (user ? removeMedication(user.uid, id) : Promise.resolve()),
     isLoading,
   };
 }

@@ -6,11 +6,7 @@
 // one pass; this file adds Reddit quotes and the AI fallback on top.
 import { callGroq, extractJsonObject } from "./groq";
 import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
-import type {
-  CommunityNote,
-  CommunityNoteKind,
-  StrainProfile,
-} from "./types";
+import type { CommunityNote, CommunityNoteKind, StrainProfile } from "./types";
 import { consolidateStrain } from "./consolidate";
 
 const AILMENT_ALIASES: Record<string, string[]> = {
@@ -178,7 +174,9 @@ export function mergeProfiles(
   );
   const primary = sources[0]!;
   const rest = sources.slice(1);
-  const fallback = <K extends keyof StrainProfile>(key: K): StrainProfile[K] | undefined => {
+  const fallback = <K extends keyof StrainProfile>(
+    key: K,
+  ): StrainProfile[K] | undefined => {
     if (primary[key] !== undefined && primary[key] !== null) {
       return primary[key] as StrainProfile[K];
     }
@@ -189,8 +187,9 @@ export function mergeProfiles(
     }
     return undefined;
   };
-  const union = <K extends "medicalUses" | "sideEffects">(key: K): string[] | undefined =>
-    unionStrings(...sources.map((s) => s[key]));
+  const union = <K extends "medicalUses" | "sideEffects">(
+    key: K,
+  ): string[] | undefined => unionStrings(...sources.map((s) => s[key]));
   return {
     name,
     inKnowledgeBase: true,
@@ -247,7 +246,11 @@ function asEffects(
       typeof rec.intensity === "number" && Number.isFinite(rec.intensity)
         ? Math.max(1, Math.min(5, Math.round(rec.intensity)))
         : 3;
-    if (name) out.push({ name: name.charAt(0).toUpperCase() + name.slice(1), intensity });
+    if (name)
+      out.push({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        intensity,
+      });
   }
   return out.length > 0 ? out.slice(0, 5) : undefined;
 }
@@ -286,20 +289,20 @@ Patient conditions: ${conditions.length ? conditions.join(", ") : "(none given)"
 
 Strains needing research:
 ${JSON.stringify(
-    missing.map((p) => ({
-      name: p.name,
-      type: p.type,
-      thcRange: p.thcRange,
-      cbdRange: p.cbdRange,
-      lineage: p.lineage,
-      medicalUses: p.medicalUses,
-      effects: p.effects,
-      description: p.description,
-      communityNotes: p.communityNotes,
-    })),
-    null,
-    2,
-  )}
+  missing.map((p) => ({
+    name: p.name,
+    type: p.type,
+    thcRange: p.thcRange,
+    cbdRange: p.cbdRange,
+    lineage: p.lineage,
+    medicalUses: p.medicalUses,
+    effects: p.effects,
+    description: p.description,
+    communityNotes: p.communityNotes,
+  })),
+  null,
+  2,
+)}
 
 Return ONLY a JSON object of the form:
 {
@@ -323,7 +326,8 @@ Return ONLY a JSON object of the form:
     if (!value || typeof value !== "object") continue;
     const r = value as Record<string, unknown>;
     map.set(name.toLowerCase(), {
-      description: typeof r.description === "string" ? r.description : undefined,
+      description:
+        typeof r.description === "string" ? r.description : undefined,
       medicalUses: asStringArray(r.medicalUses),
       effects: asEffects(r.effects),
       communityNotes: asNotes(r.communityNotes),

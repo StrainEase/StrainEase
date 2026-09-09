@@ -7,7 +7,10 @@
 // contained (no imports from `src/`) means the functions bundle stays
 // under the Cloud Functions size limit even after we add Puppeteer.
 
-import { getFirestore, type QueryDocumentSnapshot } from "firebase-admin/firestore";
+import {
+  getFirestore,
+  type QueryDocumentSnapshot,
+} from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { isRegionCode, calculateAge, type RegionCode } from "./age";
 
@@ -136,15 +139,21 @@ export async function loadClinicianReport(
   const db = getFirestore();
   const auth = getAuth();
 
-  const [userRecord, profileDoc, medsSnap, checkInsSnap, reliefLogsSnap, savedStrainsSnap] =
-    await Promise.all([
-      auth.getUser(uid).catch(() => null),
-      db.collection("users").doc(uid).get(),
-      db.collection("users").doc(uid).collection("medications").get(),
-      db.collection("users").doc(uid).collection("checkIns").get(),
-      db.collection("users").doc(uid).collection("reliefLogs").get(),
-      db.collection("users").doc(uid).collection("savedStrains").get(),
-    ]);
+  const [
+    userRecord,
+    profileDoc,
+    medsSnap,
+    checkInsSnap,
+    reliefLogsSnap,
+    savedStrainsSnap,
+  ] = await Promise.all([
+    auth.getUser(uid).catch(() => null),
+    db.collection("users").doc(uid).get(),
+    db.collection("users").doc(uid).collection("medications").get(),
+    db.collection("users").doc(uid).collection("checkIns").get(),
+    db.collection("users").doc(uid).collection("reliefLogs").get(),
+    db.collection("users").doc(uid).collection("savedStrains").get(),
+  ]);
 
   const ailments = extractAilments(profileDoc);
   const medications = medsSnap.docs.map((d) =>
@@ -163,10 +172,11 @@ export async function loadClinicianReport(
   const ageContext = await readAgeContext(db, uid, now);
 
   const displayName =
-    (typeof userRecord?.displayName === "string" && userRecord.displayName.trim() !== ""
+    (typeof userRecord?.displayName === "string" &&
+    userRecord.displayName.trim() !== ""
       ? userRecord.displayName
-      : (profileDoc.data() as { displayName?: string } | undefined)?.displayName) ||
-    "Patient";
+      : (profileDoc.data() as { displayName?: string } | undefined)
+          ?.displayName) || "Patient";
 
   return buildClinicianReport({
     displayName,
@@ -215,7 +225,11 @@ async function readAgeContext(
   }
 }
 
-function formatAgeContext(region: RegionCode, birthDate: string, now: number): string {
+function formatAgeContext(
+  region: RegionCode,
+  birthDate: string,
+  now: number,
+): string {
   const age = calculateAge(birthDate, new Date(now));
   if (!Number.isFinite(age) || age <= 0) return `${region} (age unknown)`;
   return `${region} · age ${age}`;
@@ -281,7 +295,11 @@ function parseReliefLog(d: QueryDocumentSnapshot): ReliefLog | null {
   ) {
     return null;
   }
-  if (data.fit !== "too-strong" && data.fit !== "just-right" && data.fit !== "too-weak") {
+  if (
+    data.fit !== "too-strong" &&
+    data.fit !== "just-right" &&
+    data.fit !== "too-weak"
+  ) {
     return null;
   }
   return {
@@ -312,8 +330,15 @@ function parseSavedStrain(d: QueryDocumentSnapshot): SavedStrain {
     ? (data.notes as unknown[])
         .map((n): SavedNote | null => {
           if (!n || typeof n !== "object") return null;
-          const o = n as { id?: unknown; text?: unknown; isPublic?: unknown; createdAt?: unknown; publicId?: unknown };
-          if (typeof o.id !== "string" || typeof o.text !== "string") return null;
+          const o = n as {
+            id?: unknown;
+            text?: unknown;
+            isPublic?: unknown;
+            createdAt?: unknown;
+            publicId?: unknown;
+          };
+          if (typeof o.id !== "string" || typeof o.text !== "string")
+            return null;
           return {
             id: o.id,
             text: o.text,
@@ -436,7 +461,12 @@ function buildCheckInTrend(
 }
 
 function computeTopStrains(logs: ReliefLog[]): TopStrainForCondition[] {
-  type Bucket = { strain: string; condition: string; totalRelief: number; count: number };
+  type Bucket = {
+    strain: string;
+    condition: string;
+    totalRelief: number;
+    count: number;
+  };
   const buckets = new Map<string, Bucket>();
   for (const log of logs) {
     if (log.fit !== "just-right" || log.relief < 4) continue;
@@ -483,7 +513,11 @@ function computeAvoidStrains(logs: ReliefLog[]): AvoidStrain[] {
   return [...totalsByStrain.values()]
     .filter((s) => s.harsh >= 2)
     .sort((a, b) => b.harsh - a.harsh)
-    .map((s) => ({ strainName: s.strainName, harshCount: s.harsh, totalCount: s.total }));
+    .map((s) => ({
+      strainName: s.strainName,
+      harshCount: s.harsh,
+      totalCount: s.total,
+    }));
 }
 
 function composeReliefInsightsProse(
@@ -496,7 +530,9 @@ function composeReliefInsightsProse(
   if (topStrains.length > 0) {
     const names = topStrains
       .slice(0, 2)
-      .map((t) => `${t.strain} for ${t.condition} (${t.avgRelief.toFixed(1)}/5)`)
+      .map(
+        (t) => `${t.strain} for ${t.condition} (${t.avgRelief.toFixed(1)}/5)`,
+      )
       .join(", ");
     parts.push(`Top performers: ${names}.`);
   }
@@ -543,7 +579,9 @@ function addDaysKey(key: string, delta: number): string {
  * web's `serializeReportForModel` so the prompt the model sees is
  * identical regardless of which side initiated the call.
  */
-export function serializeReportForModel(report: ClinicianReport): Record<string, unknown> {
+export function serializeReportForModel(
+  report: ClinicianReport,
+): Record<string, unknown> {
   return {
     patient: {
       displayName: report.patient.displayName,
