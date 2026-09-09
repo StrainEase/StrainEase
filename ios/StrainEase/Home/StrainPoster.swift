@@ -20,6 +20,7 @@ struct StrainPoster: View {
         VStack(alignment: .leading, spacing: compact ? 6 : 8) {
             StrainPhoto(
                 urlString: profile.imageUrl,
+                fallbackURLString: StrainCatalog.photoURL(for: profile.slug),
                 type: profile.type,
                 height: photoHeight ?? (compact ? 108 : 132),
                 cornerRadius: 16
@@ -66,6 +67,10 @@ struct StrainPoster: View {
 
 struct StrainPhoto: View {
     let urlString: String?
+    /// Direct Leafly/Weedmaps URL to fall back to when `urlString`
+    /// fails to load. Typically `StrainCatalog.photoURL(for: slug)`.
+    /// When nil, the photo only tries the primary URL.
+    var fallbackURLString: String?
     var type: StrainType?
     var height: CGFloat = 88
     var cornerRadius: CGFloat = 16
@@ -73,6 +78,7 @@ struct StrainPhoto: View {
     var body: some View {
         StrainPhotoBody(
             urlString: urlString,
+            fallbackURLString: fallbackURLString,
             type: type,
             height: height,
             cornerRadius: cornerRadius
@@ -83,42 +89,83 @@ struct StrainPhoto: View {
 
 private struct StrainPhotoBody: View {
     let urlString: String?
+    let fallbackURLString: String?
     var type: StrainType?
     var height: CGFloat = 88
     var cornerRadius: CGFloat = 16
 
     @State private var isLoaded = false
+    /// True once both the primary and fallback URLs have failed to
+    /// load. Drives the leaf fallback so the user sees the leaf
+    /// only after every source has been tried, not after just one
+    /// transient network error.
+    @State private var isExhausted = false
 
     private var hasPhoto: Bool { urlString?.isEmpty == false }
+    private var hasFallback: Bool { fallbackURLString?.isEmpty == false }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(hasPhoto ? Color.white : TypeStyle.color(for: type).opacity(0.14))
-            if let urlString, let url = URL(string: urlString) {
+
+            if isExhausted {
+                leaf
+            } else if let urlString, let url = URL(string: urlString) {
                 if !isLoaded {
                     loadingPlaceholder
                 }
+                // Try the primary URL first. If it fails, fall through
+                // to the fallback URL below. The hidden AsyncImage
+                // exists only to detect the primary's load state; the
+                // visible image is whichever one is currently active.
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .opacity(isLoaded ? 1 : 0)
-                            .onAppear {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    isLoaded = true
-                                }
-                            }
+                        ResilientPhotoView(
+                            primary: image,
+                            primaryURL: url,
+                            fallbackURLString: fallbackURLString,
+                            type: type,
+                            height: height,
+                            cornerRadius: cornerRadius,
+                            isLoaded: $isLoaded,
+                            isExhausted: $isExhausted
+                        )
                     case .failure:
-                        leaf
+                        // Primary URL failed. Try the fallback if we
+                        // have one; otherwise mark exhausted so the
+                        // leaf renders.
+                        if hasFallback,
+                           let fallbackURL = URL(string: fallbackURLString ?? "") {
+                            FallbackPhotoView(
+                                fallbackURL: fallbackURL,
+                                type: type,
+                                height: height,
+                                cornerRadius: cornerRadius,
+                                isLoaded: $isLoaded,
+                                isExhausted: $isExhausted
+                            )
+                        } else {
+                            Color.clear
+                                .onAppear { isExhausted = true }
+                        }
                     case .empty:
                         Color.clear
                     @unknown default:
-                        leaf
+                        Color.clear
                     }
                 }
+            } else if hasFallback, let fallbackURL = URL(string: fallbackURLString ?? "") {
+                // No primary URL — go straight to the fallback.
+                FallbackPhotoView(
+                    fallbackURL: fallbackURL,
+                    type: type,
+                    height: height,
+                    cornerRadius: cornerRadius,
+                    isLoaded: $isLoaded,
+                    isExhausted: $isExhausted
+                )
             } else {
                 leaf
             }
@@ -149,6 +196,86 @@ private struct StrainPhotoBody: View {
             .font(.system(size: height > 120 ? 32 : 24, weight: .semibold))
             .foregroundStyle(TypeStyle.color(for: type).opacity(0.7))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Renders the primary image once it has loaded. The hidden primary
+/// AsyncImage above exists only to detect when the primary URL
+/// resolved, so the success branch can mount the visible image with
+/// the standard fade-in.
+private struct ResilientPhotoView: View {
+    let primary: Image
+    let primaryURL: URL
+    let fallbackURLString: String?
+    let type: StrainType?
+    let height: CGFloat
+    let cornerRadius: CGFloat
+    @Binding var isLoaded: Bool
+    @Binding var isExhausted: Bool
+
+    var body: some View {
+        primary
+            .resizable()
+            .scaledToFit()
+            .opacity(isLoaded ? 1 : 0)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isLoaded = true
+                }
+            }
+    }
+}
+
+/// Tries the fallback URL when the primary fails. Shows a spinner
+/// while the fallback is loading, the fallback image on success,
+/// or the leaf when the fallback also fails. Critically, this
+/// keeps the previous good image (or spinner) visible while the
+/// fallback loads — the old code flashed the leaf immediately on
+/// the first failure even though the fallback might have worked.
+private struct FallbackPhotoView: View {
+    let fallbackURL: URL
+    let type: StrainType?
+    let height: CGFloat
+    let cornerRadius: CGFloat
+    @Binding var isLoaded: Bool
+    @Binding var isExhausted: Bool
+
+    @State private var fallbackLoaded = false
+
+    var body: some View {
+        ZStack {
+            if !fallbackLoaded {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Palette.muted)
+                    .overlay {
+                        ProgressView()
+                            .tint(Palette.mutedForeground)
+                            .controlSize(height > 120 ? .regular : .mini)
+                    }
+            }
+            AsyncImage(url: fallbackURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .opacity(fallbackLoaded ? 1 : 0)
+                        .onAppear {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                fallbackLoaded = true
+                                isLoaded = true
+                            }
+                        }
+                case .failure:
+                    Color.clear
+                        .onAppear { isExhausted = true }
+                case .empty:
+                    Color.clear
+                @unknown default:
+                    Color.clear
+                }
+            }
+        }
     }
 }
 

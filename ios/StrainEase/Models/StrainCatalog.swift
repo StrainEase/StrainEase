@@ -168,6 +168,14 @@ enum StrainCatalog {
         slugAliases[slug] ?? slug
     }
 
+    /// Direct Leafly/Weedmaps URL for a known catalog photo, or nil
+    /// if the slug has no curated photo. The resilient image view
+    /// uses this as a fallback tier when the backend's Firebase
+    /// Storage URL fails to load.
+    static func photoURL(for slug: String) -> String? {
+        photos[photoKey(for: slug)]
+    }
+
     private static func applyKnownPhoto(_ profile: StrainProfile) -> StrainProfile {
         var next = profile
         let key = photoKey(for: profile.slug)
