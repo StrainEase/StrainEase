@@ -151,8 +151,14 @@ export function useStrainImage(src: string | undefined): {
     getCachedImage(src)
       .then((hit) => {
         if (cancelled || !hit) return;
-        tierRef.current = "done";
+        // Only mark the cache tier as "done" if we actually won the
+        // race. If the proxy already published, resolvedForSrcRef
+        // is already src and publish() below will be a no-op — but
+        // flipping tierRef here would block retry() from advancing
+        // to the upstream tier if the proxy URL turns out to be dead.
+        if (resolvedForSrcRef.current === src) return;
         publish(hit.url, true);
+        tierRef.current = "done";
       })
       .catch(() => {
         // IndexedDB unavailable or errored — fall through to proxy.
