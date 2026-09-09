@@ -54,6 +54,28 @@ See `README.md` for the full list. The bits AI agents most often miss:
 - **No shadows.** Borders only. **No nested cards.** **No skeletons** —
   use `<Loader2 />` for loading states.
 
+## Lint, format, and error detection
+
+- **Prettier 3 defaults** are pinned in `.prettierrc` (80 cols, 2-space,
+  double quotes, semicolons, `trailingComma: "all"`, `arrowParens: "always"`,
+  LF endings). `.prettierignore` excludes `ios/`, `android/`, `functions/lib/`,
+  `bun.lock`, `package-lock.json`, generated vendor dirs.
+- **ESLint 9 flat config** lives in `eslint.config.js` with three scoped
+  blocks: `src/` + root config files (browser + react-hooks + react-refresh),
+  `functions/src/**` (node, no react), `scripts/**` (node). `ios/`, `android/`,
+  `.ai/`, `.firebase/` are in the global `ignores`. Run `bun run lint` for the
+  full repo, `bun run lint:fix` to autofix.
+- **lint-staged** (`lint-staged.config.js`) runs `eslint --fix` + `prettier
+--write` on staged JS/TS, `prettier --write` on staged JSON/MD/CSS/YAML.
+  Wired into `.githooks/pre-commit`. Skip with `AI_SKIP_HOOKS=1` when needed.
+- **Pre-push hook** runs `tsc -b --noEmit` + `prettier --check` on the full
+  repo. Full-repo ESLint happens via `bun run lint`, not on push.
+- **React ErrorBoundary** at `src/components/ErrorBoundary.tsx` wraps the
+  entire app in `src/main.tsx`. It renders a friendly fallback (no shadows,
+  no skeletons), logs to `console.error`, and ships no third-party
+  telemetry. The existing `InstrumentationProvider` boundary inside still
+  catches first in practice; the new boundary is the outermost safety net.
+
 ## Firebase Auth conventions
 
 - The hook is `useAuth` in `src/hooks/use-auth.ts` (uses
