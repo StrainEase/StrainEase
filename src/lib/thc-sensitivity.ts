@@ -15,6 +15,7 @@ import { db } from "./firebase";
  */
 export const THC_SENSITIVITY_VALUES = [
   "anxious-high-thc",
+  "moderate-tolerance",
   "experienced",
 ] as const;
 
@@ -26,6 +27,11 @@ export const THC_SENSITIVITY_OPTIONS: { value: ThcSensitivity; label: string; de
     value: "anxious-high-thc",
     label: "Anxious around high-THC",
     description: "High-THC flower tends to spike my anxiety. Prefer gentler options.",
+  },
+  {
+    value: "moderate-tolerance",
+    label: "Moderate tolerance",
+    description: "I have some experience but prefer to be mindful of potency levels.",
   },
   {
     value: "experienced",

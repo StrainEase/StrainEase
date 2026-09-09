@@ -246,7 +246,7 @@ export function describeStrainForUser(args: {
    * `lib/thc-sensitivity.ts`. Forwarded to the Kaya system prompt
    * so the "What to expect" section calibrates the potency call-out.
    */
-  thcSensitivity?: "anxious-high-thc" | "experienced";
+  thcSensitivity?: "anxious-high-thc" | "moderate-tolerance" | "experienced";
   /** Human-readable language name, e.g. "English". Defaults to English. */
   language?: string;
 }): Promise<StrainDescription> {
