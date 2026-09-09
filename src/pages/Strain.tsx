@@ -1,5 +1,4 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
-import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
 import {
   HydratingLine,
   HydratingSection,
@@ -14,6 +13,7 @@ import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { StrainPageHeader } from "@/components/strain/StrainPageHeader";
 import { TailoredDescriptionLoading } from "@/components/strain/TailoredDescriptionLoading";
 import { TerpeneDetailDialog } from "@/components/strain/TerpeneDetailDialog";
 import { MeshBackground } from "@/components/theme/MeshBackground";
@@ -59,7 +59,6 @@ import { terpeneProfile } from "@/lib/terpenes";
 import { toTitleCase } from "@/lib/title-case";
 import {
   Activity,
-  ArrowLeft,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -67,7 +66,6 @@ import {
   GitCompareArrows,
   HeartPulse,
   Moon,
-  NotebookPen,
   Search,
   Sparkles,
   Sun,
@@ -316,27 +314,13 @@ export default function Strain() {
       <AppHeader active="home" />
 
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back
-          </button>
-          {profile ? (
-            <CompareToggleButton
-              isInSelection={isInCompareSelection}
-              isFull={compareAtCap}
-              onToggle={() => compare.toggle(profile.name)}
-            />
-          ) : (
-            // Match the visible button footprint so the top bar doesn't
-            // reflow when the profile lands.
-            <span aria-hidden className="h-8 w-[7.5rem] rounded-full" />
-          )}
-        </div>
+        <StrainPageHeader
+          profile={profile}
+          isInCompare={isInCompareSelection}
+          compareAtCap={compareAtCap}
+          onToggleCompare={() => profile && compare.toggle(profile.name)}
+          onBack={() => navigate(-1)}
+        />
 
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -370,7 +354,6 @@ export default function Strain() {
             <PhotoZoomDialog
               src={profile?.imageUrl}
               alt={`${displayName} flower`}
-              type={profile?.type}
               open={photoZoomOpen}
               onOpenChange={setPhotoZoomOpen}
             />
@@ -907,13 +890,11 @@ function CompareSuggestions({
 function PhotoZoomDialog({
   src,
   alt,
-  type,
   open,
   onOpenChange,
 }: {
   src?: string;
   alt: string;
-  type?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
