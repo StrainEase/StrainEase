@@ -169,9 +169,12 @@ private struct TerpeneFamilyRow: View {
                 // Real strain "nug" photo when the profile has one;
                 // StrainPhoto falls back to the type-tinted leaf
                 // when no URL is set or the load fails, so the
-                // row never looks broken.
+                // row never looks broken. The terpene rail poster
+                // has no catalog slug to look up, so the fallback
+                // tier is nil here.
                 StrainPhoto(
                     urlString: profile.imageUrl,
+                    fallbackURLString: nil,
                     type: profile.type,
                     height: 44,
                     cornerRadius: 10

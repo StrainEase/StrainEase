@@ -413,6 +413,7 @@ struct StrainDetailView: View {
             ZStack(alignment: .bottomTrailing) {
                 StrainPhoto(
                     urlString: profile.imageUrl,
+                    fallbackURLString: StrainCatalog.photoURL(for: profile.slug),
                     type: profile.type,
                     height: 248,
                     cornerRadius: 20
