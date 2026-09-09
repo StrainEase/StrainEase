@@ -165,11 +165,13 @@ function CompareIcon({ isInSelection }: { isInSelection: boolean }) {
     >
       {/* Top arrow points left, bottom arrow points right. Stacked
           vertically inside the same square viewBox so the icon
-          reads as "compare / swap" at the small 4×4 size. */}
-      <path d="M4 7h12" />
-      <path d="M12 3l4 4-4 4" />
-      <path d="M20 17H8" />
-      <path d="M12 21l-4-4 4-4" />
+          reads as "compare / swap" at the small 4×4 size. The
+          arrows are spread toward the top/bottom edges of the
+          box so there's a clear vertical gap between them. */}
+      <path d="M4 5h12" />
+      <path d="M12 1l4 4-4 4" />
+      <path d="M20 19H8" />
+      <path d="M12 23l-4-4 4-4" />
     </svg>
   );
 }
