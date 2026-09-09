@@ -44,7 +44,7 @@ export function StrainPageHeader({
   onBack: () => void;
 }) {
   return (
-    <div className="sticky top-16 z-30 -mx-6 mb-6 flex items-center justify-between gap-3 border-b border-border/60 bg-background/85 px-6 py-3 backdrop-blur-md">
+    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-3 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur-md sm:px-6">
       <button
         type="button"
         onClick={onBack}

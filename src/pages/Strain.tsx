@@ -312,7 +312,7 @@ export default function Strain() {
       />
       <MeshBackground />
 
-      <div className="mx-auto w-full max-w-3xl px-6 py-10">
+      <div className="mx-auto w-full max-w-3xl px-6 pb-10 pt-20">
         <StrainPageHeader
           profile={profile}
           isInCompare={isInCompareSelection}
