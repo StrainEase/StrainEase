@@ -1,4 +1,4 @@
-import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
+import { AppTabBar } from "@/components/home/AppHeader";
 import {
   HydratingLine,
   HydratingSection,
@@ -311,7 +311,6 @@ export default function Strain() {
         }
       />
       <MeshBackground />
-      <AppHeader active="home" />
 
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
         <StrainPageHeader
