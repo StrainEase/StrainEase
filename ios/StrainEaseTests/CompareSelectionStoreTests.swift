@@ -156,9 +156,11 @@ private struct StubCompareAPI: StrainServicing {
         ailments: [String],
         medications: [String],
         reliefHistory: String,
+        thcSensitivity: ThcSensitivity,
         language: String
     ) async throws -> StrainDescription? {
-        .sample
+        _ = thcSensitivity
+        return .sample
     }
 
     func elaborate(
