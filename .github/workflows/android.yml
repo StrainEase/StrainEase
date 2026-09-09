@@ -72,14 +72,23 @@ jobs:
           build-tools-version: '34.0.0'
           cache: gradle
 
+      - name: Make gradlew executable
+        working-directory: android
+        run: |
+          # gradlew is checked in with CRLF line endings, which makes
+          # the kernel unable to parse the #!/bin/sh shebang (it sees
+          # "/bin/sh" — a path that doesn't exist). Strip the CRs
+          # before chmod'ing; without this the runner dies with
+          # "cannot execute: required file not found" (exit 127).
+          sed -i 's/\r$//' ./gradlew
+          chmod +x ./gradlew
+          file ./gradlew
+
       - name: Show toolchain
+        working-directory: android
         run: |
           java -version
           ./gradlew --version
-
-      - name: Make gradlew executable
-        working-directory: android
-        run: chmod +x ./gradlew
 
       - name: Cache Gradle build cache
         uses: actions/cache@v4
@@ -129,7 +138,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: StrainEase-debug-${{ github.sha }}
+          name: StrainEase-android-debug-${{ github.sha }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
@@ -138,7 +147,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-test-results-${{ github.sha }}
+          name: StrainEase-android-test-results-${{ github.sha }}
           path: |
             android/app/build/reports/tests/
             android/app/build/outputs/androidTest-results/
@@ -149,7 +158,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-lint-${{ github.sha }}
+          name: StrainEase-android-lint-${{ github.sha }}
           path: android/app/build/reports/lint-results-*.html
           if-no-files-found: ignore
           retention-days: 14
@@ -180,7 +189,15 @@ jobs:
 
       - name: Make gradlew executable
         working-directory: android
-        run: chmod +x ./gradlew
+        run: |
+          # gradlew is checked in with CRLF line endings, which makes
+          # the kernel unable to parse the #!/bin/sh shebang (it sees
+          # "/bin/sh" — a path that doesn't exist). Strip the CRs
+          # before chmod'ing; without this the runner dies with
+          # "cannot execute: required file not found" (exit 127).
+          sed -i 's/\r$//' ./gradlew
+          chmod +x ./gradlew
+          file ./gradlew
 
       - name: Cache Gradle build cache
         uses: actions/cache@v4
@@ -222,7 +239,7 @@ jobs:
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: StrainEase-release-unsigned-${{ github.sha }}
+          name: StrainEase-android-release-unsigned-${{ github.sha }}
           path: android/app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 30
