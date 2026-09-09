@@ -117,12 +117,19 @@ export function StrainImage({
           className="skeleton-line absolute inset-0"
         />
       )}
-      {/* Keep the stable (previous) image under the new one while it loads. */}
-      {stableUrl && stableUrl !== url && !hideCurrent && (
+      {/* Show the previous loaded image while the new URL is
+          resolving. We deliberately don't render the new <img>
+          visually until it has actually loaded — the browser would
+          otherwise paint a broken-image glyph for the few hundred
+          ms between src swap and load completion, which read as
+          "image gone" even when the next source was about to come
+          through. The new <img> is still in the DOM (sr-only) so
+          its onLoad / onError handlers fire and can drive the
+          retry path. */}
+      {displayUrl && (
         <img
-          src={stableUrl}
-          alt=""
-          aria-hidden
+          src={displayUrl}
+          alt={alt}
           className="absolute inset-0 h-full w-full object-contain"
         />
       )}
@@ -130,15 +137,9 @@ export function StrainImage({
         <img
           key={url}
           src={url}
-          alt={alt}
-          className={cn(
-            "relative h-full w-full object-contain transition-opacity duration-300",
-            hideCurrent
-              ? "opacity-0"
-              : loaded || !stableUrl
-                ? "opacity-100"
-                : "opacity-0",
-          )}
+          alt=""
+          aria-hidden
+          className="sr-only"
           onLoad={() => {
             setLoaded(true);
             setStableUrl(url);
