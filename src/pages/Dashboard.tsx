@@ -3,6 +3,7 @@ import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useAilments } from "@/hooks/use-ailments";
 import { useMedications } from "@/hooks/use-medications";
 import { useThcSensitivity } from "@/hooks/use-thc-sensitivity";
+import type { ThcSensitivity } from "@/lib/research-prefs";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { Seo } from "@/components/Seo";
