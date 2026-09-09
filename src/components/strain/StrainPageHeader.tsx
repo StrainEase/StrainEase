@@ -13,22 +13,22 @@ import { useEffect, useState } from "react";
 
 /**
  * Top header bar for the strain detail page. Mirrors the iOS
- * `StrainDetailView` toolbar (back, compare, favorites) so both
- * surfaces expose the same actions in the same place.
+ * `StrainDetailView` toolbar (compare on the leading edge, strain
+ * name in the middle, favorites on the trailing edge, plus a back
+ * affordance just before compare) so both surfaces expose the same
+ * actions in the same place.
  *
  *  - **Back** — icon only on narrow screens, icon + "Back" text on
  *    wide screens (the existing web convention).
- *  - **Compare** — circular icon-only button. Three states (idle /
- *    in compare / full) match the inline CompareToggleButton but
- *    without the label, so the header stays compact.
- *  - **Favorites** — circular heart that toggles membership in the
- *    user's saved strains. Replaces the global ProfileMenu when the
- *    user is on a strain, the same way iOS replaces the system
- *    navigation bar with the strain toolbar.
- *
- * The back button is always rendered so the top bar does not
- * reflow when the profile lands; the action buttons reserve a
- * footprint and become interactive as soon as the profile arrives.
+ *  - **Compare** — circular icon-only button on the leading side.
+ *    Idle shows the two-arrow compare glyph (one left, one right);
+ *    selected shows a check. Three states (idle / in compare / full)
+ *    match the inline CompareToggleButton.
+ *  - **Favorites** — circular heart on the trailing side that
+ *    toggles membership in the user's saved strains.
+ *  - **Title** — strain name centered, only when the profile has
+ *    arrived, so the bar does not reflow while the page is
+ *    hydrating.
  */
 export function StrainPageHeader({
   profile,
@@ -44,7 +44,7 @@ export function StrainPageHeader({
   onBack: () => void;
 }) {
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-3 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur-md sm:px-6">
+    <div className="fixed top-0 left-0 right-0 z-50 grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur-md sm:px-6">
       <button
         type="button"
         onClick={onBack}
@@ -54,22 +54,36 @@ export function StrainPageHeader({
         <ArrowLeft className="size-4" />
         <span className="hidden sm:inline">Back</span>
       </button>
+      <div className="min-w-0 text-center">
+        {profile ? (
+          <h1 className="truncate text-sm font-semibold text-foreground">
+            {profile.name}
+          </h1>
+        ) : null}
+      </div>
       {profile ? (
-        <div className="flex items-center gap-2">
-          <FavoritesButton profile={profile} />
-          <CompareIconButton
-            isInSelection={isInCompare}
-            isFull={compareAtCap}
-            onToggle={onToggleCompare}
-          />
-        </div>
+        <CompareIconButton
+          isInSelection={isInCompare}
+          isFull={compareAtCap}
+          onToggle={onToggleCompare}
+        />
       ) : (
-        // Reserve the action footprint so the bar does not jump when
-        // the profile lands.
-        <span aria-hidden className="flex items-center gap-2">
-          <span className="size-9 rounded-full border border-border/70 bg-background" />
-          <span className="size-9 rounded-full border border-border/70 bg-background" />
-        </span>
+        // Reserve the compare footprint so the bar does not jump
+        // when the profile lands.
+        <span
+          aria-hidden
+          className="size-9 rounded-full border border-border/70 bg-background"
+        />
+      )}
+      {profile ? (
+        <FavoritesButton profile={profile} />
+      ) : (
+        // Reserve the favorites footprint so the bar does not jump
+        // when the profile lands.
+        <span
+          aria-hidden
+          className="size-9 rounded-full border border-border/70 bg-background"
+        />
       )}
     </div>
   );
@@ -118,9 +132,10 @@ function CompareIconButton({
 
 function CompareIcon({ isInSelection }: { isInSelection: boolean }) {
   // Two states share the same circular footprint. Selected uses a
-  // check inside the same circular outline; idle uses the compare
-  // glyph. (A full state still renders the compare glyph but the
-  // parent disables the button.)
+  // check inside the same circular outline; idle uses the two-
+  // arrow compare glyph (one left, one right) that the iOS
+  // StrainDetailView toolbar ships with. A full state still
+  // renders the compare glyph but the parent disables the button.
   if (isInSelection) {
     return (
       <svg
@@ -148,12 +163,13 @@ function CompareIcon({ isInSelection }: { isInSelection: boolean }) {
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M7 5v14" />
-      <path d="M17 5v14" />
-      <path d="M3 8h4" />
-      <path d="M17 8h4" />
-      <path d="M3 16h4" />
-      <path d="M17 16h4" />
+      {/* Top arrow points left, bottom arrow points right. Stacked
+          vertically inside the same square viewBox so the icon
+          reads as "compare / swap" at the small 4×4 size. */}
+      <path d="M4 7h12" />
+      <path d="M12 3l4 4-4 4" />
+      <path d="M20 17H8" />
+      <path d="M12 21l-4-4 4-4" />
     </svg>
   );
 }
