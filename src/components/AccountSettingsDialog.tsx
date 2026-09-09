@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useAilments } from "@/hooks/use-ailments";
+import { useMedications } from "@/hooks/use-medications";
 import { useThcSensitivity } from "@/hooks/use-thc-sensitivity";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,7 @@ import {
 } from "@/lib/thc-sensitivity";
 import { CONDITIONS } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
-import { Clock, FileText, LogOut, ShieldCheck, Sparkles, User } from "lucide-react";
+import { Clock, FileText, LogOut, Pill, Plus, ShieldCheck, Sparkles, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
@@ -37,20 +38,24 @@ export function AccountSettingsDialog({
 }) {
   const { user, signOut } = useAuth();
   const ailments = useAilments();
+  const medications = useMedications();
   const thcSensitivity = useThcSensitivity();
   const [draftName, setDraftName] = useState("");
   const [draftAilments, setDraftAilments] = useState<string[]>([]);
+  const [draftMedications, setDraftMedications] = useState<string[]>([]);
   const [draftThc, setDraftThc] = useState<ThcSensitivity | null>(null);
+  const [newMedication, setNewMedication] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  // Seed drafts when the dialog opens, and re-sync name/ailments/THC
+  // Seed drafts when the dialog opens, and re-sync name/ailments/THC/medications
   // from live sources while the dialog is open and the user hasn't
   // edited yet.
   useEffect(() => {
     if (!open || !user) return;
     setDraftName(user.name);
     setDraftAilments(ailments.names.slice());
+    setDraftMedications(medications.names.slice());
     setDraftThc(thcSensitivity.value);
     setSavedAt(null);
   }, [open, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -64,6 +69,17 @@ export function AccountSettingsDialog({
     );
   }, [open, ailments.names]);
 
+  // Keep draft medications aligned with remote updates.
+  useEffect(() => {
+    if (!open) return;
+    setDraftMedications((prev) =>
+      prev.length === medications.names.length &&
+      prev.every((m) => medications.names.includes(m))
+        ? medications.names.slice()
+        : prev,
+    );
+  }, [open, medications.names]);
+
   // Same idea for THC sensitivity: only resync when the user hasn't
   // picked something different locally.
   useEffect(() => {
@@ -76,8 +92,11 @@ export function AccountSettingsDialog({
   const nameDirty =
     draftName.trim() !== "" && draftName.trim() !== user.name.trim();
   const ailmentsDirty = !ailmentsEqual(draftAilments, ailments.names);
+  const medicationsDirty =
+    draftMedications.length !== medications.names.length ||
+    !draftMedications.every((m) => medications.names.includes(m));
   const thcDirty = draftThc !== thcSensitivity.value;
-  const dirty = nameDirty || ailmentsDirty || thcDirty;
+  const dirty = nameDirty || ailmentsDirty || medicationsDirty || thcDirty;
 
   const toggleDraftAilment = (name: string) => {
     const key = name.trim().toLowerCase();
@@ -92,6 +111,25 @@ export function AccountSettingsDialog({
 
   const selectDraftThc = (next: ThcSensitivity | null) => {
     setDraftThc((prev) => (prev === next ? null : next));
+    setSavedAt(null);
+  };
+
+  const addDraftMedication = () => {
+    const name = newMedication.trim();
+    if (!name) return;
+    if (draftMedications.some((m) => m.toLowerCase() === name.toLowerCase())) {
+      setNewMedication("");
+      return;
+    }
+    setDraftMedications((prev) => [...prev, name]);
+    setNewMedication("");
+    setSavedAt(null);
+  };
+
+  const removeDraftMedication = (name: string) => {
+    setDraftMedications((prev) =>
+      prev.filter((m) => m.toLowerCase() !== name.toLowerCase()),
+    );
     setSavedAt(null);
   };
 
@@ -110,6 +148,29 @@ export function AccountSettingsDialog({
       }
       if (ailmentsDirty) {
         await ailments.save(draftAilments);
+      }
+      if (medicationsDirty) {
+        // Sync medications: remove ones not in draft, add ones not in list
+        const currentNames = medications.names;
+        const toRemove = currentNames.filter(
+          (m) => !draftMedications.some((d) => d.toLowerCase() === m.toLowerCase()),
+        );
+        const toAdd = draftMedications.filter(
+          (d) => !currentNames.some((m) => m.toLowerCase() === d.toLowerCase()),
+        );
+        // Find IDs to remove
+        for (const medName of toRemove) {
+          const med = medications.list.find(
+            (m) => m.name.toLowerCase() === medName.toLowerCase(),
+          );
+          if (med) {
+            await medications.remove(med.id);
+          }
+        }
+        // Add new ones
+        for (const medName of toAdd) {
+          await medications.add(medName);
+        }
       }
       if (thcDirty) {
         await thcSensitivity.save(draftThc);
@@ -210,6 +271,76 @@ export function AccountSettingsDialog({
                 );
               })}
             </div>
+          </div>
+
+          {/* Medications section */}
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Pill className="size-3 text-primary" />
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Your medications
+                </p>
+              </div>
+              {draftMedications.length > 0 && (
+                <Link
+                  to={FIND_HREF}
+                  onClick={() => onOpenChange(false)}
+                  className="text-xs font-semibold text-primary"
+                >
+                  Find with these
+                </Link>
+              )}
+            </div>
+            <p className="mb-2.5 text-xs text-muted-foreground">
+              Saved so Find can consider them when suggesting strains.
+            </p>
+
+            {/* Add medication input */}
+            <div className="mb-2.5 flex gap-2">
+              <Input
+                value={newMedication}
+                onChange={(e) => setNewMedication(e.target.value)}
+                placeholder="Add a medication (e.g. Lexapro)"
+                className="h-8"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addDraftMedication();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="cursor-pointer rounded-full"
+                onClick={addDraftMedication}
+              >
+                <Plus className="size-4" />
+              </Button>
+            </div>
+
+            {/* Saved medications */}
+            {draftMedications.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {draftMedications.map((med) => (
+                  <span
+                    key={med}
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
+                  >
+                    {med}
+                    <button
+                      type="button"
+                      onClick={() => removeDraftMedication(med)}
+                      className="cursor-pointer rounded-full p-0.5 hover:bg-primary/20"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
