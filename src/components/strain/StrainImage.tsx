@@ -1,5 +1,5 @@
 import { useStrainImage } from "@/hooks/use-strain-image";
-import { Leaf } from "lucide-react";
+import { Leaf, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -55,11 +55,11 @@ export function StrainImage({
   // Last URL that successfully painted. Kept across URL changes so we
   // can keep the previous image visible while the next one loads.
   const [stableUrl, setStableUrl] = useState<string | undefined>(undefined);
-  const { url, retry } = useStrainImage(src);
+  const { url, retry, exhausted } = useStrainImage(src);
   const prevUrlRef = useRef<string | undefined>(undefined);
   // True once the hook has acknowledged a failure for the current URL
   // and we are waiting for the next source. While this is set the
-  // broken <img> is hidden behind the skeleton so the user never sees
+  // broken <img> is hidden behind the spinner so the user never sees
   // a browser "missing image" icon between retries.
   const [awaitingRetry, setAwaitingRetry] = useState(false);
 
@@ -73,7 +73,13 @@ export function StrainImage({
     setAwaitingRetry(false);
   }, [url]);
 
-  const showFallback = (!url && !stableUrl) || (url != null && failedSrc === url && !awaitingRetry);
+  // Once the hook reports every source tier has been tried, surface
+  // the leaf fallback. Without this, the shimmer would sit forever
+  // after the upstream URL also failed.
+  const showFallback =
+    exhausted ||
+    (!url && !stableUrl) ||
+    (url != null && failedSrc === url && !awaitingRetry);
   const tone = fallbackTone(type);
 
   // Prefer the newly resolved URL once it has loaded; otherwise keep
@@ -84,7 +90,7 @@ export function StrainImage({
   const displayUrl = loaded && url ? url : stableUrl ?? url;
   const hideCurrent = awaitingRetry && !loaded;
 
-  if (showFallback && !displayUrl) {
+  if (exhausted || (showFallback && !displayUrl)) {
     return (
       <div
         className={cn(
@@ -106,23 +112,40 @@ export function StrainImage({
         className,
       )}
     >
-      {/* Skeleton while we have nothing to show OR while we are
-          waiting for the hook to publish the next source after a
-          failure. The second case used to render a broken <img>
-          instead, which read as "gave up" even though the next
-          retry was on its way. */}
-      {(!displayUrl || hideCurrent) && (
+      {/* First-load placeholder (no prior image to keep up). Once
+          we have a stable image, this never reappears — subsequent
+          URL swaps just paint the previous image behind the retry
+          spinner. */}
+      {!displayUrl && (
         <span
           aria-hidden
           className="skeleton-line absolute inset-0"
         />
       )}
-      {/* Keep the stable (previous) image under the new one while it loads. */}
-      {stableUrl && stableUrl !== url && !hideCurrent && (
+      {/* Retry spinner. The repository convention is to use
+          <Loader2 /> for loading states rather than skeletons;
+          the spinner only appears when an image failed and we
+          are waiting for the next source, so it never races
+          with the first-load skeleton above. */}
+      {hideCurrent && (
+        <Loader2
+          className="size-5 animate-spin text-muted-foreground/60"
+          aria-label="Loading alternate image"
+        />
+      )}
+      {/* Show the previous loaded image while the new URL is
+          resolving. We deliberately don't render the new <img>
+          visually until it has actually loaded — the browser would
+          otherwise paint a broken-image glyph for the few hundred
+          ms between src swap and load completion, which read as
+          "image gone" even when the next source was about to come
+          through. The new <img> is still in the DOM (sr-only) so
+          its onLoad / onError handlers fire and can drive the
+          retry path. */}
+      {displayUrl && (
         <img
-          src={stableUrl}
-          alt=""
-          aria-hidden
+          src={displayUrl}
+          alt={alt}
           className="absolute inset-0 h-full w-full object-contain"
         />
       )}
@@ -130,15 +153,9 @@ export function StrainImage({
         <img
           key={url}
           src={url}
-          alt={alt}
-          className={cn(
-            "relative h-full w-full object-contain transition-opacity duration-300",
-            hideCurrent
-              ? "opacity-0"
-              : loaded || !stableUrl
-                ? "opacity-100"
-                : "opacity-0",
-          )}
+          alt=""
+          aria-hidden
+          className="sr-only"
           onLoad={() => {
             setLoaded(true);
             setStableUrl(url);
