@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ai.strainease.app.data.StrainCatalog
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.StrainPhoto
@@ -112,6 +113,7 @@ fun StrainPoster(
                 urlString = profile.imageUrl,
                 type = profile.type,
                 height = photoHeight ?: if (compact) 108.dp else 132.dp,
+                fallbackURLString = StrainCatalog.photoURL(for = profile.slug),
             )
             TypeBadge(type = profile.type)
             Row(
