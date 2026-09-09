@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.RadioButtonChecked
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +53,8 @@ import ai.strainease.app.data.CheckInStore
 import ai.strainease.app.ui.checkin.CheckInPanel
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.data.SavedMedicationsStore
+import ai.strainease.app.data.ThcSensitivity
+import ai.strainease.app.data.ThcSensitivityStore
 import ai.strainease.app.data.SavedStrain
 import ai.strainease.app.data.SavedStrainsStore
 import ai.strainease.app.models.Conditions
@@ -80,6 +84,7 @@ import kotlinx.coroutines.launch
 fun AccountView(
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
+    thcSensitivity: ThcSensitivityStore,
     savedStrains: SavedStrainsStore,
     relief: ReliefLogStore,
     checkIns: CheckInStore,
@@ -158,6 +163,11 @@ fun AccountView(
                         savedMedications.set(medications.filterNot { it.name == name })
                     }
                 },
+            )
+            ThcSensitivityCard(
+                value = thcSensitivity.sensitivity,
+                isBusy = thcSensitivity.isBusy,
+                onSelect = { value -> scope.launch { thcSensitivity.set(value) } },
             )
             SavedStrainsView(
                 saved = saved,
@@ -599,6 +609,65 @@ private fun ClinicianReportCard(onOpen: () -> Unit) {
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+/** THC sensitivity picker. Mirrors the iOS `ThcSensitivityCard`
+ *  and the web `AccountSettingsDialog` chip row, so the same pick
+ *  in any client survives a round-trip through `users/{uid}`. */
+@Composable
+private fun ThcSensitivityCard(
+    value: ThcSensitivity,
+    isBusy: Boolean,
+    onSelect: (ThcSensitivity) -> Unit,
+) {
+    SWCard {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionLabel(title = "THC sensitivity", index = 4)
+            Text(
+                text = "Calibrates the strain descriptions and recommendations Kaya writes for you. Pick the closest match, or leave it on Typical for the default read.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ThcSensitivity.values().forEach { option ->
+                val isSelected = value == option
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                        )
+                        .clickable(enabled = !isBusy) { onSelect(option) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Icon(
+                        imageVector = if (isSelected) Icons.Filled.RadioButtonChecked else Icons.Filled.RadioButtonUnchecked,
+                        contentDescription = null,
+                        tint = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = option.label,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (option.hint != null) {
+                            Text(
+                                text = option.hint!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

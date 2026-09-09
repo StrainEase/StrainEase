@@ -62,6 +62,7 @@ class PreviewStrainAPI(
         ailments: List<String>,
         medications: List<String>,
         reliefHistory: String,
+        thcSensitivity: ThcSensitivity,
         language: String,
     ): StrainDescription? = SampleDescription
 

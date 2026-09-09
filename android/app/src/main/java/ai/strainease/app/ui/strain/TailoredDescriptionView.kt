@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ai.strainease.app.data.StrainAPI
+import ai.strainease.app.data.ThcSensitivity
 import ai.strainease.app.models.StrainDescription
 import ai.strainease.app.models.StrainDescriptionSection
 import ai.strainease.app.models.StrainProfile
@@ -70,6 +71,7 @@ fun TailoredDescriptionView(
     ailments: List<String>,
     medications: List<String>,
     reliefHistory: String,
+    thcSensitivity: ThcSensitivity = ThcSensitivity.Typical,
     modifier: Modifier = Modifier,
 ) {
     var tailoredDescription by remember { mutableStateOf<StrainDescription?>(null) }
@@ -86,6 +88,7 @@ fun TailoredDescriptionView(
                 ailments = ailments,
                 medications = medications,
                 reliefHistory = reliefHistory,
+                thcSensitivity = thcSensitivity,
                 language = "English",
             )
         } catch (_: Throwable) {
