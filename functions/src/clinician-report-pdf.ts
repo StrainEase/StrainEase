@@ -14,46 +14,8 @@
 
 import chromium from "@sparticuz/chromium";
 import puppeteer, { type Browser } from "puppeteer-core";
-import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { logger } from "firebase-functions";
-import { renderClinicianReportHtml } from "./clinician-report-html";
 
 const PDF_TIMEOUT_MS = 60_000;
-
-// CommonJS provides __dirname at runtime. The compiled file lives at
-// functions/lib/clinician-report-pdf.js, with the SVG dropped next to
-// it by scripts/copy-assets.mjs.
-declare const __dirname: string;
-
-let cachedLogoSvg: string | null = null;
-
-/** Lazily read the brand SVG so the function bundle stays small. */
-function loadBrandLogoSvg(): string {
-  if (cachedLogoSvg !== null) return cachedLogoSvg;
-  // The function bundle drops the source SVG next to the compiled
-  // JS as `clinician-report-logo.svg`. The fallbacks cover local
-  // tsc-only dev runs.
-  const candidates = [
-    join(__dirname, "clinician-report-logo.svg"),
-    join(__dirname, "..", "assets", "clinician-report-logo.svg"),
-    join(__dirname, "..", "src", "assets", "clinician-report-logo.svg"),
-    join(__dirname, "..", "..", "public", "logo.svg"),
-  ];
-  for (const path of candidates) {
-    try {
-      cachedLogoSvg = readFileSync(path, "utf8");
-      return cachedLogoSvg;
-    } catch {
-      // try next
-    }
-  }
-  logger.warn("Brand SVG not found; falling back to inline placeholder");
-  cachedLogoSvg = FALLBACK_LOGO_SVG;
-  return cachedLogoSvg;
-}
-
-const FALLBACK_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="200" fill="#0c5238"/><text x="512" y="640" text-anchor="middle" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="640" font-weight="700" fill="#ffffff">S</text></svg>`;
 
 /** Render the given HTML to a PDF byte buffer via headless Chromium. */
 export async function renderHtmlToPdf(html: string): Promise<Buffer> {
@@ -117,7 +79,11 @@ export function buildReportFilename(
   return `strainease-clinician-report-${safe || "patient"}-${date}.pdf`;
 }
 
-async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string,
+): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(message)), ms);
