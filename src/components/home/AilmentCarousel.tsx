@@ -59,12 +59,13 @@ export function AilmentCarousel({
     <section className="space-y-3">
       <StrainSectionHeader title="For your symptoms" />
       {/* The scroller stays inside the page content area so the cards
-          line up with the section header above. The right edge still
-          fades into the page padding via the mask so the next page
-          hints at itself without taking visual weight. */}
+          line up with the section header above. No right-edge mask
+          here — the page dots at the bottom already hint at the next
+          page, and a fade was clipping the "See more" link in the
+          page header. */}
       <div
         ref={scrollerRef}
-        className="flex snap-x snap-mandatory gap-0 overflow-x-auto [scrollbar-width:none] [scroll-padding-inline-start:0] [mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-0 overflow-x-auto [scrollbar-width:none] [scroll-padding-inline-start:0] [&::-webkit-scrollbar]:hidden"
         aria-label="Symptom pages"
       >
         {ailments.map((name) => (
