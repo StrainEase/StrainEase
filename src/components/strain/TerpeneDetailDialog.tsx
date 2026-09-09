@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -198,6 +199,7 @@ function FamilyStrainRow({
       <div className="size-12 shrink-0 overflow-hidden rounded-xl bg-primary/10">
         <StrainImage
           src={strain.imageUrl}
+          fallbackSrc={getPhotoURL(strain.name)}
           alt={strain.name}
           type={strain.type}
           className="size-12 rounded-xl"

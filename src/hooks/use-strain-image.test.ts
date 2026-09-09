@@ -241,4 +241,88 @@ describe("useStrainImage", () => {
     });
     await waitFor(() => expect(result.current.exhausted).toBe(true));
   });
+
+  test("fallback URL is published only after every other tier has been tried and failed", async () => {
+    cachedStrainImageMock.mockImplementation(() =>
+      Promise.resolve({ url: "https://proxy.example/img.jpg", contentType: "image/jpeg" }),
+    );
+
+    const fallbackUrl = "https://leafly.com/flower-images/blue-dream.png";
+    const { result } = renderHook(() =>
+      useStrainImage("https://leafly.com/strain", { fallback: fallbackUrl }),
+    );
+    await waitFor(() => expect(result.current.url).toBe("https://proxy.example/img.jpg"));
+
+    await act(async () => {
+      result.current.retry();
+    });
+    expect(result.current.exhausted).toBe(false);
+    await waitFor(() => expect(result.current.url).toBe("https://leafly.com/strain"));
+
+    await act(async () => {
+      result.current.retry();
+    });
+    expect(result.current.exhausted).toBe(false);
+    await waitFor(() => expect(result.current.url).toBe(fallbackUrl));
+
+    await act(async () => {
+      result.current.retry();
+    });
+    await waitFor(() => expect(result.current.exhausted).toBe(true));
+  });
+
+  test("fallback URL is NOT consulted when the primary succeeds", async () => {
+    cachedStrainImageMock.mockImplementation(() =>
+      Promise.resolve({ url: "https://proxy.example/img.jpg", contentType: "image/jpeg" }),
+    );
+
+    const fallbackUrl = "https://leafly.com/flower-images/blue-dream.png";
+    const { result } = renderHook(() =>
+      useStrainImage("https://leafly.com/strain", { fallback: fallbackUrl }),
+    );
+    await waitFor(() => expect(result.current.url).toBe("https://proxy.example/img.jpg"));
+    expect(result.current.url).not.toBe(fallbackUrl);
+    expect(result.current.exhausted).toBe(false);
+  });
+
+  test("fallback equal to src is ignored (would re-publish the dead URL)", async () => {
+    cachedStrainImageMock.mockImplementation(() =>
+      Promise.resolve({ url: "https://proxy.example/img.jpg", contentType: "image/jpeg" }),
+    );
+
+    const src = "https://leafly.com/strain";
+    const { result } = renderHook(() => useStrainImage(src, { fallback: src }));
+    await waitFor(() => expect(result.current.url).toBe("https://proxy.example/img.jpg"));
+
+    await act(async () => {
+      result.current.retry();
+    });
+    await waitFor(() => expect(result.current.url).toBe(src));
+
+    await act(async () => {
+      result.current.retry();
+    });
+    await waitFor(() => expect(result.current.exhausted).toBe(true));
+  });
+
+  test("no fallback option -> exhausted after upstream tier, no extra retry needed", async () => {
+    cachedStrainImageMock.mockImplementation(() =>
+      Promise.resolve({ url: "https://proxy.example/img.jpg", contentType: "image/jpeg" }),
+    );
+
+    const { result } = renderHook(() => useStrainImage("https://leafly.com/strain"));
+    await waitFor(() => expect(result.current.url).toBe("https://proxy.example/img.jpg"));
+
+    await act(async () => {
+      result.current.retry();
+    });
+    expect(result.current.exhausted).toBe(false);
+    await waitFor(() => expect(result.current.url).toBe("https://leafly.com/strain"));
+
+    await act(async () => {
+      result.current.retry();
+    });
+    await waitFor(() => expect(result.current.exhausted).toBe(true));
+  });
 });
+

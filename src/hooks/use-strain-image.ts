@@ -21,7 +21,24 @@ function safeReleaseImage(url: string | undefined): void {
 }
 
 /**
- * Resolve a strain image through three layered caches:
+ * Options for `useStrainImage`.
+ *
+ * `fallback` is an optional curated direct upstream URL (typically
+ * `getPhotoURL(slug)` from `@/lib/strain-catalog`) the caller can supply
+ * as a *fourth* tier in the resolver. The first three tiers (cache, proxy,
+ * upstream) are tried in order; if the primary `src` URL is dead at every
+ * one of those tiers, the fallback is published as a last-ditch attempt
+ * before the hook reports `exhausted`. This mirrors the iOS / Android
+ * resilience story (see `ios/StrainEase/Home/StrainPoster.swift` and
+ * `android/.../StrainPhoto.kt`): the dead Firebase Storage URL falls back
+ * to a curated direct Leafly / Weedmaps URL instead of flashing the leaf.
+ */
+export type UseStrainImageOptions = {
+  fallback?: string;
+};
+
+/**
+ * Resolve a strain image through three (or four) layered caches:
  *
  *   1. **IndexedDB blob cache** (`getCachedImage`) — on-device, instant
  *      on repeat visits. Best path for the Home rail once a user has
@@ -32,9 +49,16 @@ function safeReleaseImage(url: string | undefined): void {
  *   3. **Direct upstream URL** (Leafly / Weedmaps) — last-resort
  *      fallback. Sometimes 404s, sometimes slow, but it's the source
  *      of truth.
+ *   4. **Caller-supplied `fallback` URL** (optional) — typically a
+ *      curated direct photo URL looked up via `getPhotoURL(slug)`. The
+ *      primary use case is when the primary `src` is a Firebase Storage
+ *      URL that has been deleted or is on a stale CDN edge; the proxy
+ *      tier (2) re-resolves that same Storage URL and so can also fail.
+ *      In that case the curated direct URL is a genuinely different
+ *      source with a different failure surface.
  *
- * On every successful network response (proxy or direct) we also
- * hydrate the IndexedDB blob cache so the next visit is instant.
+ * On every successful network response (proxy, upstream, or fallback) we
+ * also hydrate the IndexedDB blob cache so the next visit is instant.
  *
  * First successful result wins. Later results are ignored so a slow
  * proxy cannot overwrite a fast blob hit (which previously caused a
@@ -49,24 +73,28 @@ function safeReleaseImage(url: string | undefined): void {
  * edge is stale, etc.). When that happens the proxy call has already
  * resolved successfully so the hook would otherwise sit on the bad
  * URL forever. `retry` tells the hook the current URL is dead and
- * to publish the next-best source — first the upstream, then a fresh
- * proxy attempt if the upstream is also bad.
+ * to publish the next-best source — upstream first, then the
+ * caller-supplied fallback, then exhausted.
  *
  * Returns `undefined` only on the very first resolve for a given
  * component mount (no prior image). After that the last good URL
  * stays until a better one arrives or the component unmounts.
  *
- * `exhausted` is `true` once every source tier (proxy + upstream)
- * has been tried and the upstream URL also failed to load. The
- * caller renders the leaf fallback once it goes `true`; without
- * it the leaf never shows because the hook would otherwise sit on
- * the dead upstream URL indefinitely.
+ * `exhausted` is `true` once every source tier (proxy + upstream +
+ * fallback, if provided) has been tried and the last one also failed
+ * to load. The caller renders the leaf fallback once it goes `true`;
+ * without it the leaf never shows because the hook would otherwise
+ * sit on the dead URL indefinitely.
  */
-export function useStrainImage(src: string | undefined): {
+export function useStrainImage(
+  src: string | undefined,
+  options: UseStrainImageOptions = {},
+): {
   url: string | undefined;
   retry: () => void;
   exhausted: boolean;
 } {
+  const fallback = options.fallback;
   const [url, setUrl] = useState<string | undefined>(undefined);
   // True once the hook has tried every source tier and none of them
   // could deliver a paintable image. Stays true until the next src
@@ -84,14 +112,24 @@ export function useStrainImage(src: string | undefined): {
   const failedUrlRef = useRef<string | undefined>(undefined);
   // Tracks which source tiers have been published for the current src
   // so retry() can advance to the next tier instead of repeating.
-  // The order is cache → proxy → upstream → done, and tierRef stays
-  // on the tier we last published from until retry() bumps it.
-  const tierRef = useRef<"cache" | "proxy" | "upstream" | "done">("cache");
+  // The order is cache → proxy → upstream → fallback (optional) → done,
+  // and tierRef stays on the tier we last published from until retry()
+  // bumps it. The "fallback" tier is only ever reached when the caller
+  // passed a `fallback` option that is distinct from `src` and from
+  // the proxy URL.
+  const tierRef = useRef<
+    "cache" | "proxy" | "upstream" | "fallback" | "done"
+  >("cache");
   // Remember the proxy URL even when the cache wins the race, so
   // retry() can publish the proxy tier after a cache miss.
   const proxyUrlRef = useRef<string | undefined>(undefined);
   // Remember the proxy content type for the same reason.
   const proxyContentTypeRef = useRef<string | undefined>(undefined);
+  // The fallback option for the current src, so the cleanup-then-rerun
+  // path on src change can reset tier state and pick up a new fallback
+  // without races.
+  const fallbackRef = useRef<string | undefined>(fallback);
+  fallbackRef.current = fallback;
 
   useEffect(() => {
     if (!src) {
@@ -268,11 +306,48 @@ export function useStrainImage(src: string | undefined): {
         .catch(() => {});
       return;
     }
-    // tierRef is "upstream" — every tier has been tried and the
-    // upstream URL also just failed. Mark exhausted so the
-    // component can render the leaf fallback.
-    tierRef.current = "done";
-    setExhausted(true);
+    if (tierRef.current === "upstream") {
+      // Upstream URL (== src) failed. If the caller passed a
+      // distinct fallback URL, publish it as a 4th tier. If the
+      // fallback is the same as src (or there is no fallback),
+      // fall through to the exhausted branch.
+      const fb = fallbackRef.current;
+      if (
+        fb &&
+        fb !== src &&
+        !fb.startsWith("data:") &&
+        !fb.startsWith("blob:") &&
+        /^https?:\/\//i.test(fb) &&
+        // Avoid re-publishing the proxy URL on the fallback tier:
+        // the proxy is the tier that already failed.
+        fb !== proxyUrlRef.current
+      ) {
+        tierRef.current = "fallback";
+        setUrl(fb);
+        failedUrlRef.current = undefined;
+        void fetch(fb, { cache: "force-cache" })
+          .then(async (r) => {
+            if (!r.ok) return;
+            const blob = await r.blob();
+            const contentType = r.headers.get("content-type") ?? undefined;
+            await putCachedImage(src, blob, fb, contentType);
+          })
+          .catch(() => {});
+        return;
+      }
+      // No usable fallback — mark exhausted.
+      tierRef.current = "done";
+      setExhausted(true);
+      return;
+    }
+    if (tierRef.current === "fallback") {
+      // The 4th-tier fallback URL also failed. Mark exhausted so
+      // the component can render the leaf placeholder.
+      tierRef.current = "done";
+      setExhausted(true);
+      return;
+    }
+    // tierRef is "done" — already exhausted.
   }, []);
 
   return { url, retry, exhausted };

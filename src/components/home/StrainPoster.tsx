@@ -1,4 +1,5 @@
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { Badge } from "@/components/ui/badge";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import { slugify } from "@/lib/saved-strains";
@@ -34,6 +35,7 @@ export function StrainPoster({
     >
       <StrainImage
         src={profile.imageUrl}
+        fallbackSrc={getPhotoURL(profile.name)}
         alt=""
         type={type}
         className="aspect-[4/3] w-full rounded-2xl border border-border/70"

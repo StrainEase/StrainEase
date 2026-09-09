@@ -2,6 +2,7 @@ import { HeroSpecimen } from "@/components/landing/HeroSpecimen";
 import { Seo } from "@/components/Seo";
 import { ComplianceFooter } from "@/components/compliance/ComplianceFooter";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -272,6 +273,7 @@ function StrainCard({
       >
         <StrainImage
           src={strain.imageUrl}
+          fallbackSrc={getPhotoURL(strain.name)}
           alt={`${strain.name} flower`}
           type={strain.type}
           className="mb-4 h-36 w-full rounded-xl border border-border/70"

@@ -12,6 +12,7 @@ import {
 import { listenToReliefLogs, type ReliefLog } from "@/lib/relief-log";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -167,6 +168,7 @@ export function SavedStrainsPanel() {
               >
                 <StrainImage
                   src={strain.imageUrl}
+                  fallbackSrc={getPhotoURL(strain.name)}
                   alt=""
                   className="size-11 shrink-0 rounded-lg border border-border/70"
                   iconClassName="size-4"
