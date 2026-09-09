@@ -4,5 +4,13 @@
 <full-backup-content>
     <include domain="sharedpref" path="." />
     <include domain="file" path="datastore/" />
-    <exclude domain="file" path="cache/" />
+    <!-- backup_rules.xml is "include only what we want backed up";
+         explicitly naming datastore/ in the file domain is enough.
+         cache/ is excluded implicitly because we never included it.
+         A previous version of this file had an explicit
+         <exclude domain="file" path="cache/"/> here, but Android
+         lint's FullBackupContent rule rejected it as an exclude
+         with no matching include; an include-then-exclude pair was
+         then rejected as contradictory. Leaving the redundant
+         <exclude> out is the only configuration lint accepts. -->
 </full-backup-content>

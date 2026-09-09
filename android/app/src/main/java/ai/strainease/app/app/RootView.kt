@@ -83,4 +83,4 @@ private fun LoadingScreen() {
 
 @Composable
 private fun <T> kotlinx.coroutines.flow.StateFlow<T>.collectAsStateCompat() =
-    this.collectAsState(initial = this.value)
+    this.collectAsState()

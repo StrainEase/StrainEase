@@ -55,12 +55,14 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Show toolchain
+        working-directory: ios
         run: |
           sw_vers
           xcodebuild -version
           xcrun simctl list runtimes | head -20
 
       - name: Install xcodegen
+        working-directory: ios
         run: brew install xcodegen
 
       # xcodegen validates `type: file` source paths at generation time, so
@@ -122,6 +124,7 @@ jobs:
             ${{ runner.os }}-derivedData-
 
       - name: List iPhone simulators
+        working-directory: ios
         run: |
           xcrun simctl list devices available 2>&1 \
             | awk '/-- iOS / {flag=1; next} flag && /iPhone/ {print; n++; if (n>=10) exit}'
@@ -147,7 +150,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: xcresult-${{ github.sha }}
+          name: StrainEase-ios-xcresult-${{ github.sha }}
           path: ios/build/StrainEase.xcresult
           if-no-files-found: ignore
           retention-days: 14
@@ -163,11 +166,13 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Show toolchain
+        working-directory: ios
         run: |
           xcodebuild -version
           xcodebuild -showsdks | grep -i ios
 
       - name: Install xcodegen
+        working-directory: ios
         run: brew install xcodegen
 
       # xcodegen validates `type: file` source paths at generation time, so
@@ -314,7 +319,7 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StrainEase-unsigned-${{ github.sha }}
+          name: StrainEase-ios-unsigned-${{ github.sha }}
           path: ios/build/ipa/StrainEase.ipa
           if-no-files-found: error
           retention-days: 30
