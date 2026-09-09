@@ -25,6 +25,7 @@
 		40F78819BDD6644E28554D04 /* DoctorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6D390C809E908B60291D9F /* DoctorsView.swift */; };
 		450F165B97AFC13929E28A22 /* AgeVerificationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3242DCEB248AF1EB03D7D260 /* AgeVerificationStore.swift */; };
 		45CA673B1D2B8E90BD9C7188 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = B753437C0905F74D8A03BC81 /* FirebaseFunctions */; };
+		4D866D88C1EF8C772EC1BA25 /* ThcSensitivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F755BD7ED4FB46A6A725EB3 /* ThcSensitivityStore.swift */; };
 		4DA010E98DCB40DB10413B6A /* ResearchHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40CA2FBB0AC1AA8BB87FD3B9 /* ResearchHistoryStore.swift */; };
 		4DCAF1ABD8695FB588743763 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C19AE37513363125582CB69B /* Palette.swift */; };
 		4FEF8A9D41415449EBE5E795 /* DirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F710CFE2D5AF753EC289EA2 /* DirectoryView.swift */; };
@@ -62,6 +63,7 @@
 		A7A84C0DD94085FDE3CDEAB8 /* ResearchHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053157392C5DFFE9E6D0B84D /* ResearchHistoryView.swift */; };
 		A9CFD2BD2605FDB8FBFDCC7B /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 5F34F1004D1F4B48A4AA1E2B /* GoogleSignIn */; };
 		AD0EBD7FEF01923D1BB4FBAE /* DirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3529D6377C857E301486363D /* DirectoryModel.swift */; };
+		AE0F27115EC032E0238515AA /* ThcSensitivityCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3888A0B1FE18AB530D40A8 /* ThcSensitivityCard.swift */; };
 		AF4DA0F5D436F2B435F7A630 /* SavedStrainsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B1BA91D2E7438F55F48388D /* SavedStrainsView.swift */; };
 		B33628F312A7D91C09D6EB09 /* AilmentCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0417DA2001497AE57D0920 /* AilmentCarousel.swift */; };
 		B4420F253D641CC17E6A7301 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4340CAFEFBB8F469A7BBE142 /* HomeView.swift */; };
@@ -131,6 +133,7 @@
 		571A0DFDD74705698C15D1AF /* ClinicianReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicianReportView.swift; sourceTree = "<group>"; };
 		5B20BA017AD7D61E5E149923 /* ReliefLogForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogForm.swift; sourceTree = "<group>"; };
 		5D098106AAA5573A2FF065B5 /* StrainDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainDetailView.swift; sourceTree = "<group>"; };
+		5F755BD7ED4FB46A6A725EB3 /* ThcSensitivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThcSensitivityStore.swift; sourceTree = "<group>"; };
 		60200884971058678D018248 /* SavedAilmentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAilmentsStore.swift; sourceTree = "<group>"; };
 		61875CB7A206EE1BB3B5C792 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
 		65979D7D0365186077E51DD4 /* RedditThreadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedditThreadsView.swift; sourceTree = "<group>"; };
@@ -155,6 +158,7 @@
 		99DCE5C0880FE59E5D994798 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9BDF10B70191C0BD228EBA60 /* StrainGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainGridView.swift; sourceTree = "<group>"; };
 		A8E19C7E33E227D0EF7E49F2 /* ReliefHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefHistoryView.swift; sourceTree = "<group>"; };
+		AB3888A0B1FE18AB530D40A8 /* ThcSensitivityCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThcSensitivityCard.swift; sourceTree = "<group>"; };
 		AED345F3CFEEB4580F6C89E3 /* MeshBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshBackground.swift; sourceTree = "<group>"; };
 		AF07512E648F1012EF33C227 /* CompareTrayBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareTrayBar.swift; sourceTree = "<group>"; };
 		B0D707FED754B3084F471E94 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
@@ -235,6 +239,7 @@
 				990CED9E0E8C4ED69DC133F5 /* SavedStrainsStore.swift */,
 				B2E8C71C6D08BA5C1AE863F4 /* StrainAPI.swift */,
 				06951EF18E159E99848A0CCB /* StrainImageCache.swift */,
+				5F755BD7ED4FB46A6A725EB3 /* ThcSensitivityStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -296,6 +301,7 @@
 				2FBA9F2DA24E3238FC0120D8 /* SavedAilmentsCard.swift */,
 				DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */,
 				6B1BA91D2E7438F55F48388D /* SavedStrainsView.swift */,
+				AB3888A0B1FE18AB530D40A8 /* ThcSensitivityCard.swift */,
 			);
 			path = Account;
 			sourceTree = "<group>";
@@ -586,6 +592,8 @@
 				B9F1AFFCE4FBD63D548C1478 /* StrainPoster.swift in Sources */,
 				9CDBE29279D53E725FD1B821 /* TerpeneDetailView.swift in Sources */,
 				C79044ADF49937D5F8AA7ED7 /* TerpeneProfile.swift in Sources */,
+				AE0F27115EC032E0238515AA /* ThcSensitivityCard.swift in Sources */,
+				4D866D88C1EF8C772EC1BA25 /* ThcSensitivityStore.swift in Sources */,
 				81A40AD53D72F540C5802A81 /* TriedNotesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
