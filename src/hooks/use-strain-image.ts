@@ -204,14 +204,15 @@ export function useStrainImage(src: string | undefined): {
     if (!src || !shouldProxy(src)) return;
     if (failedUrlRef.current === resolvedForSrcRef.current) return;
     failedUrlRef.current = resolvedForSrcRef.current;
-    // Allow the next tier to publish even though we already have a
-    // URL for this src — the current one just failed to load.
-    resolvedForSrcRef.current = undefined;
     if (tierRef.current === "proxy") {
-      // Proxy already gave us a URL once and it didn't load. Skip
-      // straight to the upstream source.
+      // Proxy already gave us a URL once and it didn't load. Publish
+      // the upstream source and reset failedUrlRef so the next retry
+      // (when the upstream also fails) is not treated as a duplicate
+      // attempt for the same URL. resolvedForSrcRef stays pointing
+      // at the src so the upstream-tier retry() can find it.
       tierRef.current = "done";
       setUrl(src);
+      failedUrlRef.current = undefined;
       void fetch(src, { cache: "force-cache" })
         .then(async (r) => {
           if (!r.ok) return;

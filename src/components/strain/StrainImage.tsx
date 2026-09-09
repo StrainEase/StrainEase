@@ -90,7 +90,7 @@ export function StrainImage({
   const displayUrl = loaded && url ? url : stableUrl ?? url;
   const hideCurrent = awaitingRetry && !loaded;
 
-  if (showFallback && !displayUrl) {
+  if (exhausted || (showFallback && !displayUrl)) {
     return (
       <div
         className={cn(
