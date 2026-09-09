@@ -58,12 +58,13 @@ export function AilmentCarousel({
   return (
     <section className="space-y-3">
       <StrainSectionHeader title="For your symptoms" />
-      {/* No card wrapper — the posters sit straight on the page like the
-          iOS carousel. The scroller bleeds through the page padding so
-          pages slide under the edges while the mask fades them out. */}
+      {/* The scroller stays inside the page content area so the cards
+          line up with the section header above. The right edge still
+          fades into the page padding via the mask so the next page
+          hints at itself without taking visual weight. */}
       <div
         ref={scrollerRef}
-        className="-mx-6 flex snap-x snap-mandatory gap-0 overflow-x-auto px-6 [scrollbar-width:none] [scroll-padding-inline:24px] [mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-0 overflow-x-auto [scrollbar-width:none] [scroll-padding-inline-start:0] [mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [&::-webkit-scrollbar]:hidden"
         aria-label="Symptom pages"
       >
         {ailments.map((name) => (
@@ -102,7 +103,7 @@ function AilmentPage({
       // fast finger flick only advances one page instead of jumping several.
       // The right-side padding is the gutter between adjacent pages; the
       // scroller's px-6 keeps page edges flush with the section header.
-      className="flex w-full shrink-0 snap-start snap-always flex-col gap-3 pr-4"
+      className="flex w-full shrink-0 snap-start snap-always flex-col gap-3"
       data-ailment={name}
     >
       <header className="flex items-baseline justify-between gap-3">
