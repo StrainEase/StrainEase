@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CompareSelection } from "@/hooks/use-compare-selection";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GitCompareArrows, Sparkles, X } from "lucide-react";
 
 export type CompareTrayProps = {
@@ -45,6 +45,7 @@ export function CompareTray({
   const { names, count, cap, remove, clear } = selection;
   const open = count > 0;
   const canRun = count >= 2 && !isRunning;
+  const reduce = useReducedMotion();
 
   return (
     <AnimatePresence>
@@ -53,10 +54,14 @@ export function CompareTray({
           key="compare-tray"
           role="region"
           aria-label="Compare selection"
-          initial={{ y: 80, opacity: 0 }}
+          initial={reduce ? { y: 0, opacity: 0 } : { y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
-          transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+          exit={reduce ? { opacity: 0 } : { y: 80, opacity: 0 }}
+          transition={
+            reduce
+              ? { duration: 0 }
+              : { duration: 0.28, ease: [0.32, 0.72, 0, 1] }
+          }
           className={cn(
             "fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/85 backdrop-blur-md",
             "pb-[env(safe-area-inset-bottom)]",

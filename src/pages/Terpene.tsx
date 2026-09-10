@@ -16,12 +16,13 @@ import {
   strainsWithTerpene,
 } from "@/lib/terpenes";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link, useParams } from "react-router";
 import { slugify } from "@/lib/saved-strains";
 import type { StrainProfile } from "@/lib/strain-profile";
 
 export default function Terpene() {
+  const reduce = useReducedMotion();
   const { slug = "" } = useParams();
   const { popular, isLoading } = usePopularStrains();
 
@@ -172,9 +173,13 @@ export default function Terpene() {
               {matches.map((strain, index) => (
                 <motion.li
                   key={strain.name}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={reduce ? false : { opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.04, 0.4) }}
+                  transition={
+                    reduce
+                      ? { duration: 0 }
+                      : { delay: Math.min(index * 0.04, 0.4) }
+                  }
                 >
                   <TerpeneStrainRow strain={strain} />
                 </motion.li>

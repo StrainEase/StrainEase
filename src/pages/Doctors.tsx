@@ -7,7 +7,7 @@ import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { documentTitle } from "@/lib/site";
 import { findDoctors, type Doctor, type DoctorResult } from "@/lib/strain-api";
 import { ArrowLeft, Loader2, MapPin, Navigation, Star } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -49,6 +49,7 @@ function saveLocation(loc: SavedLocation) {
 }
 
 export default function Doctors() {
+  const reduce = useReducedMotion();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DoctorResult | null>(null);
@@ -283,6 +284,7 @@ function DoctorResults({
   radius: number;
   coords: { lat: number; lon: number } | null;
 }) {
+  const reduce = useReducedMotion();
   if (result.doctors.length === 0) {
     return (
       <div className="rounded-2xl border border-border/70 bg-card p-6 text-sm text-muted-foreground">
@@ -327,9 +329,13 @@ function DoctorResults({
         {result.doctors.map((doctor, index) => (
           <motion.li
             key={doctor.id}
-            initial={{ opacity: 0, y: 12 }}
+            initial={reduce ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.4 }}
+            transition={
+              reduce
+                ? { duration: 0 }
+                : { delay: Math.min(index * 0.04, 0.4), duration: 0.4 }
+            }
             className="rounded-2xl border border-border/70 bg-card p-5"
           >
             <DoctorCard doctor={doctor} />

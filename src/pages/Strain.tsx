@@ -73,7 +73,7 @@ import {
   Sun,
   ZoomIn,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { db } from "@/lib/firebase";
@@ -85,6 +85,7 @@ import { useStrainImage } from "@/hooks/use-strain-image";
 import { cn } from "@/lib/utils";
 
 export default function Strain() {
+  const reduce = useReducedMotion();
   const { slug = "" } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
@@ -339,9 +340,13 @@ export default function Strain() {
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+          transition={
+            reduce
+              ? { duration: 0 }
+              : { duration: 0.4, ease: [0.32, 0.72, 0, 1] }
+          }
           className="space-y-6"
         >
           {/* Header — image, name, subtitle, lineage. The name is always

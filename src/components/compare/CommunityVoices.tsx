@@ -24,7 +24,7 @@ import {
 import { SWCard } from "@/components/ui/sw-card";
 import type { PublicNote } from "@/lib/saved-strains";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowDownUp,
   Leaf,
@@ -612,6 +612,7 @@ export function CommunityVoices({
    */
   appReviews?: PublicNote[];
 }) {
+  const reduce = useReducedMotion();
   const mergedNotes: QuoteNote[] = (() => {
     const base = (notes ?? []).slice();
     const seen = new Set(
@@ -763,9 +764,13 @@ export function CommunityVoices({
 
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+          transition={
+            reduce
+              ? { duration: 0 }
+              : { duration: 0.28, ease: [0.32, 0.72, 0, 1] }
+          }
         >
           {/* No forceMount: force-mounted Radix tabs stay VISIBLE when
               inactive, which stacked every panel on the page — two Leafly

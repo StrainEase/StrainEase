@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { StrainImage } from "@/components/strain/StrainImage";
@@ -145,6 +145,7 @@ function FamilyStrainsSection({
   loading: boolean;
   onSelect: (strain: StrainProfile) => void;
 }) {
+  const reduce = useReducedMotion();
   return (
     <section>
       <div className="flex items-center justify-between gap-3">
@@ -172,9 +173,13 @@ function FamilyStrainsSection({
           {strains.map((strain, index) => (
             <motion.li
               key={strain.name}
-              initial={{ opacity: 0, y: 12 }}
+              initial={reduce ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(index * 0.04, 0.4) }}
+              transition={
+                reduce
+                  ? { duration: 0 }
+                  : { delay: Math.min(index * 0.04, 0.4) }
+              }
             >
               <FamilyStrainRow strain={strain} onSelect={onSelect} />
             </motion.li>

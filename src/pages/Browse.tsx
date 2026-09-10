@@ -9,11 +9,12 @@ import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { CATALOG } from "@/lib/strain-catalog";
 import { parseBrowseParams, sectionTitle, strainsFor } from "@/lib/home-sections";
 import { documentTitle } from "@/lib/site";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router";
 
 export default function Browse() {
+  const reduce = useReducedMotion();
   const { section, ailment } = useParams();
   const parsed = parseBrowseParams(section, ailment);
   const { popular: apiPopular } = usePopularStrains();
@@ -65,9 +66,13 @@ export default function Browse() {
           </div>
         ) : (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={reduce ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+            transition={
+              reduce
+                ? { duration: 0 }
+                : { duration: 0.45, ease: [0.32, 0.72, 0, 1] }
+            }
             className="mt-8"
           >
             <StrainGrid strains={strains} />

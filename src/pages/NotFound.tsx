@@ -2,16 +2,21 @@ import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { documentTitle } from "@/lib/site";
 import { BrandLogo } from "@/components/BrandLogo";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { Link } from "react-router";
 
 export default function NotFound() {
+  const reduce = useReducedMotion();
   return (
     <motion.main
-      initial={{ opacity: 0, y: 16 }}
+      initial={reduce ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+      transition={
+        reduce
+          ? { duration: 0 }
+          : { duration: 0.6, ease: [0.32, 0.72, 0, 1] }
+      }
       className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-6 text-foreground"
     >
       <Seo
