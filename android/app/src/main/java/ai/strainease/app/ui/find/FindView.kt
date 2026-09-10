@@ -49,6 +49,7 @@ import ai.strainease.app.models.ThcSensitivity
 import ai.strainease.app.models.TimeOfDay
 import ai.strainease.app.models.RecommendationResult
 import ai.strainease.app.models.StrainRecommendation
+import ai.strainease.app.util.toTitleCase
 import ai.strainease.app.ui.compare.CompareResultsView
 import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.Eyebrow
@@ -347,7 +348,12 @@ private fun conditionsBlock(
         SWFlowRow {
             ai.strainease.app.models.Conditions.catalog.forEach { name ->
                 SWChip(
-                    title = name,
+                    // Title-Case so "Chronic pain" reads as
+                    // "Chronic Pain" on the Find symptom chips.
+                    // Lookup still uses the original-cased
+                    // name (Conditions.catalog.contains is
+                    // case-insensitive).
+                    title = name.toTitleCase(),
                     selected = model.isSelected(name),
                     onClick = { model.toggleAilment(name) },
                 )
@@ -390,7 +396,10 @@ private fun conditionsBlock(
             SWFlowRow {
                 custom.forEach { name ->
                     SWChip(
-                        title = name,
+                        // Title-Case the user-typed custom
+                        // symptom. ToggleAilment still uses the
+                        // underlying original-cased string.
+                        title = name.toTitleCase(),
                         selected = true,
                         onClick = { model.toggleAilment(name) },
                     )

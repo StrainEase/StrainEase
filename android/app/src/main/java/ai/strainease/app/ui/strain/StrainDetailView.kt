@@ -71,6 +71,7 @@ import ai.strainease.app.ui.components.SectionLabel
 import ai.strainease.app.ui.components.StrainPhoto
 import ai.strainease.app.ui.components.TypeBadge
 import ai.strainease.app.ui.theme.StrainEaseTypography
+import ai.strainease.app.util.toTitleCase
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.launch
@@ -503,7 +504,11 @@ private fun chipSection(title: String, index: Int, items: List<String>) {
         SectionLabel(title = title, index = index)
         SWFlowRow {
             items.forEach { item ->
-                SWChip(title = item, selected = false, onClick = {})
+                // Title-Case the chip label so "Chronic pain" and
+                // "Dry mouth" match the iOS / web display ("Chronic
+                // Pain" / "Dry Mouth"). Backend payloads stay
+                // untouched; we only re-case what the user sees.
+                SWChip(title = item.toTitleCase(), selected = false, onClick = {})
             }
         }
     }
@@ -523,7 +528,12 @@ private fun effectsSection(effects: List<ai.strainease.app.models.StrainEffect>)
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Text(
-                            text = effect.name,
+                            // Title-Case the effect name so a wire
+                            // payload of "dry mouth" reads as
+                            // "Dry Mouth" the way the iOS / web
+                            // chips do. The effect's intensity
+                            // bar is unchanged.
+                            text = effect.name.toTitleCase(),
                             style = StrainEaseTypography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f),

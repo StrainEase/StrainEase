@@ -70,6 +70,7 @@ import ai.strainease.app.ui.components.TypeBadge
 import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.home.StrainPoster
 import ai.strainease.app.ui.theme.StrainEaseTypography
+import ai.strainease.app.util.toTitleCase
 import kotlinx.coroutines.launch
 
 /**
@@ -273,7 +274,12 @@ private fun SavedAilmentsCard(
                 SWFlowRow {
                     ailments.forEach { name ->
                         SWChip(
-                            title = name,
+                            // Title-Case the saved-ailment label
+                            // so the Account chips match the Find
+                            // chips and the iOS / web rendering.
+                            // onRemove still uses the underlying
+                            // original-cased string.
+                            title = name.toTitleCase(),
                             selected = true,
                             onClick = { onRemove(name) },
                         )
@@ -342,7 +348,9 @@ private fun SavedMedicationsCard(
                 SWFlowRow {
                     medications.forEach { name ->
                         SWChip(
-                            title = name,
+                            // Title-Case the saved-medication
+                            // label to match the iOS / web chips.
+                            title = name.toTitleCase(),
                             selected = true,
                             onClick = { onRemove(name) },
                         )

@@ -46,6 +46,7 @@ import coil.compose.AsyncImage
 import ai.strainease.app.data.TriedStrain
 import ai.strainease.app.data.StrainCatalog
 import ai.strainease.app.models.StrainProfile
+import ai.strainease.app.util.toTitleCase
 
 /**
  * Autocomplete for tried strains with photo, THC, and type display.
@@ -418,7 +419,11 @@ fun MedicationAutocomplete(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = suggestion,
+                                    // Title-Case the suggestion
+                                    // label so it matches the
+                                    // chip rendering. Underlying
+                                    // data stays untouched.
+                                    text = suggestion.toTitleCase(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = if (isSelected) {
                                         MaterialTheme.colorScheme.onSurfaceVariant
@@ -459,7 +464,9 @@ fun MedicationChip(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = name,
+            // Title-Case so "aspirin" displays as "Aspirin" to
+            // match the iOS / web chip rendering.
+            text = name.toTitleCase(),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary,
         )
