@@ -114,12 +114,12 @@ fun FindView(
 
     // Hydrate tried strains and medications from profile
     LaunchedEffect(triedStrainsStore.triedStrains) {
-        if (triedStrainsList.isEmpty && triedStrainsStore.triedStrains.isNotEmpty()) {
+        if (triedStrainsList.isEmpty() && triedStrainsStore.triedStrains.isNotEmpty()) {
             triedStrainsList = triedStrainsStore.triedStrains
         }
     }
     LaunchedEffect(savedMedications.medications) {
-        if (medicationsList.isEmpty && savedMedications.medications.isNotEmpty()) {
+        if (medicationsList.isEmpty() && savedMedications.medications.isNotEmpty()) {
             medicationsList = savedMedications.medications.map { it.name }
         }
     }

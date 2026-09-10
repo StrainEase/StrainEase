@@ -79,6 +79,7 @@ fun MainTabView() {
     val savedMedications = remember { ai.strainease.app.data.SavedMedicationsStore(app) }
     val thcSensitivity = remember { ai.strainease.app.data.ThcSensitivityStore(app) }
     val savedStrains = remember { ai.strainease.app.data.SavedStrainsStore(app) }
+    val triedStrains = remember { ai.strainease.app.data.TriedStrainsStore(app) }
     val relief = remember { ai.strainease.app.data.ReliefLogStore(app) }
     val checkIns = remember { ai.strainease.app.data.CheckInStore(app) }
     val authSession = ai.strainease.app.auth.LocalAuthSession.current
@@ -177,6 +178,7 @@ fun MainTabView() {
                         model = findModel,
                         savedAilments = savedAilments,
                         savedMedications = savedMedications,
+                        triedStrainsStore = triedStrains,
                         relief = relief,
                         compareStore = compareStore,
                         researchHistory = researchHistory,
