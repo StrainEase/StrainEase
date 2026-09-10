@@ -75,6 +75,7 @@ import ai.strainease.app.ui.components.SectionLabel
 import ai.strainease.app.ui.components.StrainPhoto
 import ai.strainease.app.ui.components.TypeBadge
 import ai.strainease.app.ui.theme.StrainEaseTypography
+import ai.strainease.app.util.toTitleCase
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.launch
@@ -606,7 +607,7 @@ private fun chipSection(title: String, items: List<String>?) {
             } else if (items.isNotEmpty()) {
                 SWFlowRow {
                     items.forEach { item ->
-                        SWChip(title = item, selected = false, onClick = {})
+                        SWChip(title = item.toTitleCase(), selected = false, onClick = {})
                     }
                 }
             }
@@ -638,7 +639,7 @@ private fun effectsSection(effects: List<ai.strainease.app.models.StrainEffect>?
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Text(
-                                text = effect.name,
+                                text = effect.name.toTitleCase(),
                                 style = StrainEaseTypography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f),
