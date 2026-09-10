@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -499,30 +504,118 @@ private fun SavedStrainsList(
         }
         return
     }
+    // Group the saved strains into pages of 6 and render each
+    // page as a 2-column x 3-row grid of StrainPosters. The
+    // whole carousel snaps page-to-page so a fling commits to
+    // the nearest page instead of stopping mid-grid, matching
+    // the AilmentCarousel "For your symptoms" UX.
+    val pages: List<List<SavedStrain>> = remember(saved) {
+        saved.chunked(6)
+    }
+    var currentPage by remember(pages.size) { mutableIntStateOf(0) }
+    val listState = rememberLazyListState()
     SWCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SectionLabel(title = "Saved strains", index = 1)
-            saved.take(16).forEach { item ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(360.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp)),
+            ) {
+                LazyRow(
+                    contentPadding = PaddingValues(0.dp),
+                    state = listState,
+                    flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
+                    items(items = pages, key = { it.firstOrNull()?.slug ?: it }) { page ->
+                        SavedStrainsGrid(
+                            page = page,
+                            onOpen = onOpen,
+                            onRemove = onRemove,
+                            compareStore = compareStore,
+                            modifier = Modifier.fillParentMaxWidth(),
+                        )
+                    }
+                }
+            }
+            if (pages.size > 1) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    pages.indices.forEach { index ->
+                        val active = index == currentPage
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .size(7.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(
+                                    if (active) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                                )
+                                .clickable { currentPage = index },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** One page of the saved-strains 2x3 grid: 3 rows of 2
+ *  StrainPosters, plus a long-press remove chip in the
+ *  top-right of each cell so the user can drop a strain
+ *  without leaving the sheet. */
+@Composable
+private fun SavedStrainsGrid(
+    page: List<SavedStrain>,
+    onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
+    onRemove: (String) -> Unit,
+    compareStore: CompareSelectionStore?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        page.chunked(2).forEach { rowItems ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                rowItems.forEach { item ->
                     Box(modifier = Modifier.weight(1f)) {
                         StrainPoster(
                             profile = item.toProfile(),
                             onClick = { onOpen(item.toProfile()) },
                             compareStore = compareStore,
                         )
+                        // Small remove chip pinned to the poster's
+                        // top-right so the user can drop a strain
+                        // from the saved list without opening the
+                        // detail view first.
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Remove ${item.name}",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                                .clickable { onRemove(item.slug) }
+                                .padding(4.dp)
+                                .size(18.dp),
+                        )
                     }
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Remove ${item.name}",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { onRemove(item.slug) }
-                            .padding(8.dp),
-                    )
+                }
+                // Pad the trailing slot when the row has only one
+                // item so the lone poster still spans the half
+                // width and the grid lines up.
+                if (rowItems.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
