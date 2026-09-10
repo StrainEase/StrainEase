@@ -1,4 +1,6 @@
 import { Input } from "@/components/ui/input";
+import { MedicationAutocomplete } from "@/components/ui/MedicationAutocomplete";
+import { StrainAutocomplete } from "@/components/ui/StrainAutocomplete";
 import {
   FORM_OPTIONS,
   SENSITIVITY_OPTIONS,
@@ -14,10 +16,18 @@ export function PatientPrefsFields({
   prefs,
   onChange,
   startAt = 3,
+  defaultTriedStrains = [],
+  defaultMedications = [],
+  onTriedStrainsChange,
+  onMedicationsChange,
 }: {
   prefs: ResearchPrefs;
   onChange: (next: ResearchPrefs) => void;
   startAt?: number;
+  defaultTriedStrains?: { name: string; type: string; thc: string }[];
+  defaultMedications?: string[];
+  onTriedStrainsChange?: (items: { name: string; type: string; thc: string }[]) => void;
+  onMedicationsChange?: (items: string[]) => void;
 }) {
   const set = (patch: Partial<ResearchPrefs>) =>
     onChange({ ...prefs, ...patch });
@@ -79,26 +89,26 @@ export function PatientPrefsFields({
 
       <div>
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {startAt + 4} · Already have / other meds
+          {startAt + 4} · Other strains I&apos;ve tried
         </p>
-        <Input
-          value={(prefs.ownedStrains ?? []).join(", ")}
-          onChange={(e) =>
-            set({
-              ownedStrains: e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean),
-            })
-          }
-          placeholder="Strains you already have — e.g. Blue Dream"
-          className="h-9"
+        <StrainAutocomplete
+          value={defaultTriedStrains}
+          onChange={onTriedStrainsChange ?? (() => {})}
+          placeholder="Search strains you&apos;ve tried…"
         />
-        <Input
-          value={prefs.medications ?? ""}
-          onChange={(e) => set({ medications: e.target.value })}
-          placeholder="Other medication we should be careful around"
-          className="mt-2 h-9"
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Help Kaya understand what has and hasn&apos;t worked for you.
+        </p>
+      </div>
+
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {startAt + 5} · Other medications
+        </p>
+        <MedicationAutocomplete
+          value={defaultMedications}
+          onChange={onMedicationsChange ?? (() => {})}
+          placeholder="Add a medication…"
         />
         <p className="mt-1.5 text-xs text-muted-foreground">
           We never tell you to stop a prescription — only to check with your
