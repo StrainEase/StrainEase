@@ -33,8 +33,8 @@ export function StrainAutocomplete({
       .slice(0, 8)
       .map((s) => ({
         name: s.name,
-        type: s.type,
-        thc: s.thcRange,
+        type: s.type ?? "hybrid",
+        thc: s.thcRange ?? "",
       }));
   }, [query]);
 
