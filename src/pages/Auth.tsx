@@ -313,13 +313,19 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               ))}
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <CardContent className="space-y-3">
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="auth-email"
                     type="email"
+                    inputMode="email"
+                    autoComplete="email"
                     placeholder="name@example.com"
+                    aria-label="Email address"
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={error ? "auth-error" : undefined}
                     className="pl-9"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -330,8 +336,13 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="auth-password"
                     type="password"
+                    autoComplete={mode === "signUp" ? "new-password" : "current-password"}
                     placeholder={mode === "signUp" ? "Create a password (6+ characters)" : "Password"}
+                    aria-label="Password"
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={error ? "auth-error" : undefined}
                     className="pl-9"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -340,7 +351,15 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     required
                   />
                 </div>
-                {error && <p className="text-sm text-red-500">{error}</p>}
+                {error && (
+                  <p
+                    id="auth-error"
+                    role="alert"
+                    className="text-sm text-red-500"
+                  >
+                    {error}
+                  </p>
+                )}
                 <Button
                   type="submit"
                   className="w-full cursor-pointer rounded-full"

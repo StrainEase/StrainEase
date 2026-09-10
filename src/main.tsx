@@ -56,6 +56,20 @@ function RouteSyncer() {
     );
   }, [location.pathname]);
 
+  // Move keyboard focus to the <main> landmark on every SPA navigation so
+  // screen readers announce the new page instead of leaving focus stranded
+  // on the link that triggered the navigation. `preventScroll` keeps the
+  // browser from jumping to the top — the route component handles its own
+  // scroll. Also fires on initial mount, which is fine: the <main> element
+  // is present from the first render even while the lazy route is loading,
+  // and announcing the landmark early is a net positive for AT users.
+  useEffect(() => {
+    const main = document.getElementById("main-content");
+    if (main) {
+      main.focus({ preventScroll: true });
+    }
+  }, [location.pathname]);
+
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.data?.type === "navigate") {
@@ -75,17 +89,38 @@ function KeyboardDismiss() {
   return null;
 }
 
+// First focusable element on the page. Hidden visually until it receives
+// keyboard focus, then it pins to the top-left so keyboard / screen-reader
+// users can jump past the age gate and the marketing header to the route
+// content. Anchors to <main id="main-content"> below.
+function SkipToMain() {
+  return (
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-md focus:border focus:border-ring focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-sm"
+    >
+      Skip to main content
+    </a>
+  );
+}
+
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <VlyToolbar />
     <InstrumentationProvider>
       <BrowserRouter>
+        <SkipToMain />
         <RouteSyncer />
         <KeyboardDismiss />
         <AgeGate>
           <Suspense fallback={<RouteLoading />}>
-            <Routes>
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="min-h-[100dvh] focus:outline-none"
+            >
+              <Routes>
               <Route path="/" element={<RootPage />} />
               <Route
                 path="/auth"
@@ -167,6 +202,7 @@ createRoot(document.getElementById("root")!).render(
               />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </main>
           </Suspense>
         </AgeGate>
       </BrowserRouter>
