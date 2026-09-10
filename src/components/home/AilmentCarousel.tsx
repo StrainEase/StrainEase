@@ -64,12 +64,16 @@ export function AilmentCarousel({
       <div
         ref={scrollerRef}
         className="-mx-6 flex snap-x snap-mandatory gap-0 overflow-x-auto px-6 [scrollbar-width:none] [scroll-padding-inline:24px] [mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [&::-webkit-scrollbar]:hidden"
+        role="region"
+        aria-roledescription="carousel"
         aria-label="Symptom pages"
       >
-        {ailments.map((name) => (
+        {ailments.map((name, index) => (
           <AilmentPage
             key={name}
             name={name}
+            position={index + 1}
+            total={ailments.length}
             strains={preview(name).slice(0, AILMENT_PREVIEW)}
             seeMoreHref={seeMoreHref(name)}
           />
@@ -86,10 +90,14 @@ export function AilmentCarousel({
 
 function AilmentPage({
   name,
+  position,
+  total,
   strains,
   seeMoreHref,
 }: {
   name: string;
+  position: number;
+  total: number;
   strains: StrainProfile[];
   seeMoreHref: string;
 }) {
@@ -103,6 +111,9 @@ function AilmentPage({
       // The right-side padding is the gutter between adjacent pages; the
       // scroller's px-6 keeps page edges flush with the section header.
       className="flex w-full shrink-0 snap-start snap-always flex-col gap-3 pr-4"
+      role="group"
+      aria-roledescription="slide"
+      aria-label={`Page ${position} of ${total}: ${name}`}
       data-ailment={name}
     >
       <header className="flex items-baseline justify-between gap-3">
