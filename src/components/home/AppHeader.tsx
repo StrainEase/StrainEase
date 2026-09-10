@@ -1,13 +1,20 @@
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import {
   APP_NAV,
   DIRECTORY_HREF,
   FIND_HREF,
-  SAVED_HREF,
   type AppNavId,
 } from "@/lib/app-nav";
 import { cn } from "@/lib/utils";
@@ -55,33 +62,46 @@ export function AppCompareTray({
 
 export function AppHeader({
   active,
-  favorites = false,
+  favoritesOpen: controlledFavoritesOpen,
+  onFavoritesOpenChange,
   onCompare,
   isComparing = false,
 }: {
   active?: AppNavId;
-  favorites?: boolean;
+  /** Controlled state for the favorites modal. When omitted
+   *  the header falls back to local state so it can be
+   *  embedded anywhere. */
+  favoritesOpen?: boolean;
+  onFavoritesOpenChange?: (open: boolean) => void;
   onCompare?: () => void;
   isComparing?: boolean;
 }) {
   const { user } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [localFavoritesOpen, setLocalFavoritesOpen] = useState(false);
+  const favoritesOpen = controlledFavoritesOpen ?? localFavoritesOpen;
+  const setFavoritesOpen = onFavoritesOpenChange ?? setLocalFavoritesOpen;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
         <div className="flex items-center gap-2">
-          <Link
-            to={SAVED_HREF}
+          {/* Heart button — opens the Favorites modal instead
+              of navigating to /dashboard?mode=saved so the
+              surface is a self-contained 2x3 grid on every
+              platform (iOS / Android / web). */}
+          <button
+            type="button"
             aria-label="Favorites"
-            aria-current={favorites ? "page" : undefined}
+            aria-expanded={favoritesOpen}
+            onClick={() => setFavoritesOpen(true)}
             className={cn(
               "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary",
-              favorites && "border-primary/40 bg-primary/10 text-primary",
+              favoritesOpen && "border-primary/40 bg-primary/10 text-primary",
             )}
           >
-            <Heart className="size-4" strokeWidth={favorites ? 2.4 : 2} />
-          </Link>
+            <Heart className="size-4" strokeWidth={favoritesOpen ? 2.4 : 2} />
+          </button>
           <Link
             to={DIRECTORY_HREF}
             aria-label="Open strain library"
@@ -128,6 +148,21 @@ export function AppHeader({
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
         />
+        <Dialog open={favoritesOpen} onOpenChange={setFavoritesOpen}>
+          <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto border-border/70">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <Heart className="size-4 text-primary" />
+                Favorites
+              </DialogTitle>
+              <DialogDescription>
+                Saved strains. Tap any card to open the strain page; tap the
+                close icon to drop it from the list.
+              </DialogDescription>
+            </DialogHeader>
+            <SavedStrainsPanel />
+          </DialogContent>
+        </Dialog>
       </div>
       <AppCompareTray onCompare={onCompare} isRunning={isComparing} />
     </header>

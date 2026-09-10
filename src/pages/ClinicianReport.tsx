@@ -127,7 +127,7 @@ export default function ClinicianReportPage() {
           noindex
         />
         <MeshBackground />
-        <AppHeader favorites={false} />
+        <AppHeader  />
         <div className="mx-auto w-full max-w-3xl px-6 py-16 text-center">
           <FileText className="mx-auto size-10 text-primary" />
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">
@@ -160,7 +160,7 @@ export default function ClinicianReportPage() {
           noindex
         />
         <MeshBackground />
-        <AppHeader favorites={false} />
+        <AppHeader  />
         <div className="mx-auto w-full max-w-3xl px-6 py-16 text-center">
           <FileText className="mx-auto size-10 text-primary" />
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">
@@ -184,7 +184,7 @@ export default function ClinicianReportPage() {
         noindex
       />
       <MeshBackground />
-      <AppHeader favorites={false} />
+      <AppHeader  />
 
       <div className="mx-auto w-full max-w-3xl px-6 py-8">
         <MedicalDisclaimer className="mb-6" />

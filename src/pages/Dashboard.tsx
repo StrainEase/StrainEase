@@ -32,7 +32,6 @@ import { StrainImage } from "@/components/strain/StrainImage";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
 import { StrainFinder } from "@/components/finder/StrainFinder";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
-import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import { CheckInPanel } from "@/components/check-ins/CheckInPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { pullQuotesFromStrains } from "@/lib/quotes";
@@ -57,7 +56,6 @@ import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
 import {
   ArrowRight,
-  Bookmark,
   BookOpen,
   Calendar,
   Check,
@@ -325,7 +323,6 @@ export default function Dashboard() {
       <MeshBackground />
       <AppHeader
         active={dashboardTab(mode)}
-        favorites={mode === "saved"}
         onCompare={() => void handleCompare()}
         isComparing={isRunning}
       />
@@ -380,20 +377,6 @@ export default function Dashboard() {
             </button>
             <button
               type="button"
-              onClick={() => applyMode("saved")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "saved"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Bookmark className="size-4" />
-              <span className="sm:hidden">Saved</span>
-              <span className="hidden sm:inline">Saved strains</span>
-            </button>
-            <button
-              type="button"
               onClick={() => applyMode("history")}
               className={cn(
                 "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
@@ -437,11 +420,6 @@ export default function Dashboard() {
         {/* ── Strain directory ───────────────────────────── */}
         <div className={cn(mode !== "directory" && "hidden")}>
           <StrainDirectory />
-        </div>
-
-        {/* ── Saved strains ────────────────────────────────── */}
-        <div className={cn(mode !== "saved" && "hidden")}>
-          <SavedStrainsPanel />
         </div>
 
         {/* ── History (reopen shareable results) ────────────── */}

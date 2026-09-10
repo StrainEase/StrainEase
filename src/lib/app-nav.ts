@@ -4,7 +4,6 @@ export type DashboardMode =
   | "find"
   | "directory"
   | "compare"
-  | "saved"
   | "history"
   | "checkins";
 
@@ -12,7 +11,6 @@ export const HOME_HREF = "/";
 export const FIND_HREF = "/dashboard";
 export const DIRECTORY_HREF = "/dashboard?mode=directory";
 export const DOCTORS_HREF = "/doctors";
-export const SAVED_HREF = "/dashboard?mode=saved";
 export const HISTORY_HREF = "/dashboard?mode=history";
 export const CHECKINS_HREF = "/dashboard?mode=checkins";
 export const REPORT_HREF = "/report";
@@ -28,7 +26,6 @@ export function dashboardModeFromSearch(mode: string | null): DashboardMode {
   if (
     mode === "directory" ||
     mode === "compare" ||
-    mode === "saved" ||
     mode === "history" ||
     mode === "checkins"
   ) {

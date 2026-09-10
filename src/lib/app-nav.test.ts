@@ -8,10 +8,13 @@ import {
 describe("dashboardModeFromSearch", () => {
   test("maps known modes and defaults to find", () => {
     expect(dashboardModeFromSearch("directory")).toBe("directory");
-    expect(dashboardModeFromSearch("saved")).toBe("saved");
     expect(dashboardModeFromSearch("compare")).toBe("compare");
     expect(dashboardModeFromSearch("history")).toBe("history");
     expect(dashboardModeFromSearch("checkins")).toBe("checkins");
+    // "saved" used to be a dashboard mode; it now lives in the
+    // heart-button modal so URLs with ?mode=saved fall through
+    // to the default find view.
+    expect(dashboardModeFromSearch("saved")).toBe("find");
     expect(dashboardModeFromSearch(null)).toBe("find");
     expect(dashboardModeFromSearch("nope")).toBe("find");
   });
@@ -21,7 +24,6 @@ describe("dashboardTab", () => {
   test("only find and browse light a tab", () => {
     expect(dashboardTab("find")).toBe("find");
     expect(dashboardTab("directory")).toBe("directory");
-    expect(dashboardTab("saved")).toBeUndefined();
     expect(dashboardTab("compare")).toBeUndefined();
     expect(dashboardTab("history")).toBeUndefined();
   });
