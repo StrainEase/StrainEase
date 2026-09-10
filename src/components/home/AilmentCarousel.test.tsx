@@ -29,7 +29,7 @@ describe("AilmentCarousel", () => {
       </MemoryRouter>,
     );
 
-    const pages = screen.getAllByRole("article");
+    const pages = screen.getAllByRole("group");
     expect(pages).toHaveLength(2);
     expect(
       within(pages[0]!).getByRole("heading", { level: 3 }).textContent,
@@ -62,7 +62,7 @@ describe("AilmentCarousel", () => {
       </MemoryRouter>,
     );
 
-    const page = screen.getByRole("article");
+    const page = screen.getByRole("group");
     const rows = page.querySelectorAll("div.grid.grid-cols-3");
     expect(rows).toHaveLength(2);
     // Only the first 6 strain names should appear in the DOM.
@@ -82,7 +82,7 @@ describe("AilmentCarousel", () => {
         />
       </MemoryRouter>,
     );
-    expect(screen.queryByRole("article")).toBeNull();
+    expect(screen.queryByRole("group")).toBeNull();
     expect(screen.queryByText("For your symptoms")).toBeNull();
   });
 
@@ -99,7 +99,7 @@ describe("AilmentCarousel", () => {
       </MemoryRouter>,
     );
 
-    const pages = screen.getAllByRole("article");
+    const pages = screen.getAllByRole("group");
     const scroller = pages[0]?.parentElement;
     expect(scroller?.className ?? "").toContain("snap-mandatory");
 

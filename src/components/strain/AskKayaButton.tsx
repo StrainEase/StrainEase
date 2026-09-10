@@ -3,7 +3,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { elaborateSection } from "@/lib/strain-api";
 import type { StrainProfile } from "@/lib/strain-profile";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -134,15 +134,16 @@ export function AskKayaElaboration({
   text: string | null;
   error: string | null;
 }) {
+  const reduce = useReducedMotion();
   return (
     <AnimatePresence initial={false}>
       {open && text ? (
         <motion.aside
           key="elaboration"
-          initial={{ opacity: 0, y: 4 }}
+          initial={reduce ? false : { opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 4 }}
-          transition={{ duration: 0.2 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: 4 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.2 }}
           className="w-full rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-2.5 text-[12px] leading-5 text-foreground/85"
         >
           <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider text-primary uppercase">
@@ -155,10 +156,10 @@ export function AskKayaElaboration({
       {open && error ? (
         <motion.p
           key="error"
-          initial={{ opacity: 0, y: 4 }}
+          initial={reduce ? false : { opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 4 }}
-          transition={{ duration: 0.2 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: 4 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.2 }}
           className="w-full text-[11px] text-muted-foreground"
         >
           {error}
