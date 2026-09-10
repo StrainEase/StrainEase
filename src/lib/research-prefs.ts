@@ -4,7 +4,7 @@
 
 export type TimeOfDay = "morning" | "afternoon" | "night" | "anytime";
 export type ConsumeForm = "flower" | "cart" | "edible" | "tincture" | "any";
-export type ThcSensitivity = "anxious-high-thc" | "typical" | "experienced";
+export type ThcSensitivity = "anxious-high-thc" | "typical" | "moderate-tolerance" | "experienced";
 
 export type ResearchPrefs = {
   timeOfDay?: TimeOfDay;
@@ -45,6 +45,11 @@ export const SENSITIVITY_OPTIONS: {
     value: "anxious-high-thc",
     label: "THC-sensitive",
     hint: "High THC can make me anxious",
+  },
+  {
+    value: "moderate-tolerance",
+    label: "Moderate tolerance",
+    hint: "I prefer moderate to higher potency",
   },
   {
     value: "experienced",
