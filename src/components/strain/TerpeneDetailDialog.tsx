@@ -7,7 +7,12 @@ import { StrainImage } from "@/components/strain/StrainImage";
 import { getPhotoURL } from "@/lib/strain-catalog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { SWCard } from "@/components/ui/sw-card";
 import { applyCatalogPhotos } from "@/lib/strain-catalog";
 import { slugify } from "@/lib/saved-strains";
@@ -50,24 +55,24 @@ export function TerpeneDetailDialog({
       : [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-h-[90vh] w-full max-w-xl gap-0 overflow-y-auto p-0 sm:max-w-xl"
-        showCloseButton
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl"
       >
         {terpeneName && profile ? (
           <div className="flex flex-col gap-5 p-6 text-left">
-            <div className="space-y-2 pr-8">
+            <SheetHeader className="space-y-2 pr-8">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
                 Terpene
               </p>
-              <DialogTitle className="font-display text-3xl tracking-tight capitalize">
+              <SheetTitle className="font-display text-3xl tracking-tight capitalize">
                 {terpeneName}
-              </DialogTitle>
+              </SheetTitle>
               <p className="max-w-xl text-[15px] leading-6 text-muted-foreground">
                 {profile.summary}
               </p>
-            </div>
+            </SheetHeader>
 
             <SWCard innerClassName="p-5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -126,8 +131,8 @@ export function TerpeneDetailDialog({
             That terpene is not in the StrainEase guide yet.
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

@@ -4,15 +4,15 @@ import { useMedications } from "@/hooks/use-medications";
 import { useThcSensitivity } from "@/hooks/use-thc-sensitivity";
 import { useTriedStrains } from "@/hooks/use-tried-strains";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { MedicationAutocomplete } from "@/components/ui/MedicationAutocomplete";
 import { StrainAutocomplete } from "@/components/ui/StrainAutocomplete";
 import { FIND_HREF, HISTORY_HREF } from "@/lib/app-nav";
@@ -219,17 +219,17 @@ export function AccountSettingsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85dvh] max-w-md overflow-y-auto border-border/70">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto rounded-t-2xl">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2 text-base">
             <User className="size-4 text-primary" />
             Account settings
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription>
             Update how your name appears on notes you share with other patients.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <div className="space-y-5">
           <div>
@@ -502,7 +502,7 @@ export function AccountSettingsDialog({
           </Link>
         </div>
 
-        <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <SheetFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             variant="outline"
@@ -543,8 +543,8 @@ export function AccountSettingsDialog({
               {saving ? "Saving…" : "Save"}
             </Button>
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
