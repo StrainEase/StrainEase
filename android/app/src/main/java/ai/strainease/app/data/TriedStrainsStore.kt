@@ -29,13 +29,8 @@ private val Context.triedStrainsDataStore: DataStore<Preferences> by preferences
 private val TRIED_STRAINS_KEY = stringPreferencesKey("tried_strains_v1")
 
 /**
- * The signed-in user's tried strains. Mirrors the iOS
- * `TriedStrainsStore`. Persisted to DataStore preferences as
- * a single JSON list.
- *
- * Read sites:
- *  - FindView hydrates the Find screen with tried strains
- *  - CompareResultsView may use tried strains for context
+ * The signed-in user's tried strains list. Stores as `users/{uid}/triedStrains/{id}`
+ * docs with name, type, thc, and addedAt. Mirrors the iOS `TriedStrainsStore`.
  */
 class TriedStrainsStore(private val context: Context) {
 
@@ -52,31 +47,41 @@ class TriedStrainsStore(private val context: Context) {
     val triedStrains: List<TriedStrain>
         get() = cached
 
+    /** Just the names, in display order. */
+    val names: List<String>
+        get() = cached.map { it.name }
+
+    /** Flow of just the strain names. */
+    val namesFlow: Flow<List<String>> = triedStrainsFlow.map { strains ->
+        strains.map { it.name }
+    }
+
     suspend fun refresh() {
         cached = triedStrainsFlow.first()
+    }
+
+    suspend fun add(strain: TriedStrain) {
+        // Check for duplicates (case-insensitive)
+        if (cached.any { it.name.equals(strain.name, ignoreCase = true) }) return
+        val newList = listOf(strain) + cached
+        cached = newList
+        context.triedStrainsDataStore.edit { prefs ->
+            prefs[TRIED_STRAINS_KEY] = json.encodeToString(newList)
+        }
+    }
+
+    suspend fun remove(strainId: String) {
+        val newList = cached.filter { it.id != strainId }
+        cached = newList
+        context.triedStrainsDataStore.edit { prefs ->
+            prefs[TRIED_STRAINS_KEY] = json.encodeToString(newList)
+        }
     }
 
     suspend fun set(strains: List<TriedStrain>) {
         cached = strains
         context.triedStrainsDataStore.edit { prefs ->
             prefs[TRIED_STRAINS_KEY] = json.encodeToString(strains)
-        }
-    }
-
-    suspend fun add(strain: TriedStrain) {
-        if (cached.any { it.id == strain.id }) return
-        val next = cached + strain
-        cached = next
-        context.triedStrainsDataStore.edit { prefs ->
-            prefs[TRIED_STRAINS_KEY] = json.encodeToString(next)
-        }
-    }
-
-    suspend fun remove(strainId: String) {
-        val next = cached.filterNot { it.id == strainId }
-        cached = next
-        context.triedStrainsDataStore.edit { prefs ->
-            prefs[TRIED_STRAINS_KEY] = json.encodeToString(next)
         }
     }
 
@@ -87,8 +92,8 @@ class TriedStrainsStore(private val context: Context) {
         emptyList()
     }
 
-    // Stub no-ops so the AuthBound wiring compiles. See
-    // SavedAilmentsStore for the parallel note.
+    // Stub no-ops so the AuthBound wiring compiles. The actual Firestore
+    // listener wiring lands in a follow-up Android PR.
     fun start(uid: String) { /* TODO: Firestore listener */ }
     fun stop() { /* TODO: Firestore listener */ }
 }
