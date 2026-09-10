@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -104,6 +105,14 @@ fun AccountView(
     val log by relief.logFlow.collectAsState(initial = emptyList())
     var newAilment by remember { mutableStateOf("") }
     var newMed by remember { mutableStateOf("") }
+    // Display name editor state. Mirrors the iOS AccountView's
+    // `displayName` block: text field bound to a draft, save
+    // action calls AuthSession.updateDisplayName, and a one-shot
+    // "Display name updated." confirmation surfaces after a
+    // successful save.
+    var draftName by remember(user?.name) { mutableStateOf(user?.name.orEmpty()) }
+    var nameSaved by remember { mutableStateOf(false) }
+    var nameSaving by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         savedAilments.refresh()
@@ -123,6 +132,31 @@ fun AccountView(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             headerRow(user?.name ?: "Patient", onDismiss = onDismiss, onSignOut = { session.signOut() })
+            // Display name editor — matches the iOS AccountView's
+            // `displayName` SWCard so the user can rename themselves
+            // without leaving the settings sheet. iOS shows the
+            // field as a TextField in a tinted rounded rect; we use
+            // OutlinedTextField for a Material 3 look.
+            DisplayNameCard(
+                draft = draftName,
+                onDraftChange = {
+                    draftName = it
+                    nameSaved = false
+                },
+                saving = nameSaving,
+                justSaved = nameSaved,
+                onSave = {
+                    val trimmed = draftName.trim()
+                    if (trimmed.isNotEmpty() && trimmed != user?.name.orEmpty()) {
+                        nameSaving = true
+                        scope.launch {
+                            session.updateDisplayName(trimmed)
+                            nameSaving = false
+                            nameSaved = session.errorMessage == null
+                        }
+                    }
+                },
+            )
             SavedAilmentsCard(
                 ailments = ailments,
                 newValue = newAilment,
@@ -179,6 +213,17 @@ fun AccountView(
             }
             ReliefHistoryView(log = log)
             ClinicianReportCard(onOpen = onOpenClinicianReport)
+            // Account info card — email + account type + age
+            // verification status, matching the iOS AccountView's
+            // "Email / Account / Age verified" SWCard. iOS shows
+            // these as labeled rows; the Android side uses the
+            // same SWCard + SectionLabel + label-row pattern as
+            // the other settings cards so the three platforms
+            // read identically.
+            AccountInfoCard(
+                email = user?.email,
+                ageStore = ageStore,
+            )
             ComplianceFooter(
                 ageStore = ageStore,
                 onReset = { scope.launch { ageStore.reset() } },
@@ -530,6 +575,103 @@ private fun ReliefHistoryView(log: List<ReliefLog>) {
                 }
             }
         }
+    }
+}
+
+/** Display name editor. Mirrors the iOS AccountView's
+ *  `displayName` block so the user can rename themselves without
+ *  leaving the settings sheet. iOS uses a tinted rounded-rect
+ *  TextField; we use Material 3 OutlinedTextField. The save
+ *  button only fires when the trimmed draft differs from the
+ *  current name and is non-empty, mirroring iOS. */
+@Composable
+private fun DisplayNameCard(
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    saving: Boolean,
+    justSaved: Boolean,
+    onSave: () -> Unit,
+) {
+    SWCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(title = "Display name")
+            OutlinedTextField(
+                value = draft,
+                onValueChange = onDraftChange,
+                placeholder = { Text("Display name") },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "Shown next to notes you mark public on a strain's page.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (justSaved) {
+                Text(
+                    text = "Display name updated.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            SWPrimaryButton(
+                title = if (saving) "Saving…" else "Save display name",
+                onClick = onSave,
+                enabled = !saving && draft.isNotBlank(),
+            )
+        }
+    }
+}
+
+/** Account info card. Mirrors the iOS AccountView's
+ *  "Email / Account / Age verified" SWCard. Shows the
+ *  signed-in email, the account type line, and the age
+ *  verification region + minimum age (or "Not on this
+ *  device" if the user hasn't verified). */
+@Composable
+private fun AccountInfoCard(
+    email: String?,
+    ageStore: AgeVerificationStore,
+) {
+    SWCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(title = "Account")
+            LabeledRow(label = "Email", value = email ?: "Not on file")
+            LabeledRow(
+                label = "Account",
+                value = "Same Firebase login as the web app",
+            )
+            val ageStatus = if (ageStore.isVerified) {
+                val region = ageStore.region?.label ?: "—"
+                val min = ageStore.region?.minimumAge ?: 21
+                "$region (${min}+)"
+            } else {
+                "Not on this device"
+            }
+            LabeledRow(label = "Age verified", value = ageStatus)
+        }
+    }
+}
+
+@Composable
+private fun LabeledRow(label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = label,
+            style = StrainEaseTypography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(120.dp),
+        )
+        Text(
+            text = value,
+            style = StrainEaseTypography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
