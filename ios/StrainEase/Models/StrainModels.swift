@@ -347,12 +347,14 @@ enum ConsumeForm: String, CaseIterable, Identifiable, Hashable, Sendable {
 enum ThcSensitivity: String, CaseIterable, Identifiable, Hashable, Sendable {
     case typical
     case anxiousHighThc = "anxious-high-thc"
+    case moderateTolerance = "moderate-tolerance"
     case experienced
     var id: String { rawValue }
     var label: String {
         switch self {
         case .typical: "Typical"
         case .anxiousHighThc: "THC-sensitive"
+        case .moderateTolerance: "Moderate tolerance"
         case .experienced: "Experienced"
         }
     }
@@ -360,6 +362,7 @@ enum ThcSensitivity: String, CaseIterable, Identifiable, Hashable, Sendable {
         switch self {
         case .typical: nil
         case .anxiousHighThc: "High THC can make me anxious"
+        case .moderateTolerance: "I prefer moderate to higher potency"
         case .experienced: "I tolerate stronger flower"
         }
     }

@@ -69,6 +69,31 @@ class SavedMedicationsStore(private val context: Context) {
         }
     }
 
+    suspend fun add(medication: SavedMedication) {
+        if (cached.any { it.name.equals(medication.name, ignoreCase = true) }) return
+        val next = cached + medication
+        cached = next
+        context.medicationsDataStore.edit { prefs ->
+            prefs[MEDICATIONS_KEY] = json.encodeToString(next)
+        }
+    }
+
+    suspend fun remove(medication: SavedMedication) {
+        val next = cached.filterNot { it.name.equals(medication.name, ignoreCase = true) }
+        cached = next
+        context.medicationsDataStore.edit { prefs ->
+            prefs[MEDICATIONS_KEY] = json.encodeToString(next)
+        }
+    }
+
+    suspend fun addByName(name: String) {
+        add(SavedMedication(name = name, addedAt = System.currentTimeMillis()))
+    }
+
+    suspend fun removeByName(name: String) {
+        cached.firstOrNull { it.name.equals(name, ignoreCase = true) }?.let { remove(it) }
+    }
+
     private fun decode(raw: String): List<SavedMedication> = try {
         json.decodeFromString<List<SavedMedication>>(raw)
     } catch (t: Throwable) {

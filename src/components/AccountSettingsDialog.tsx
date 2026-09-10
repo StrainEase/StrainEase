@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAilments } from "@/hooks/use-ailments";
 import { useMedications } from "@/hooks/use-medications";
 import { useThcSensitivity } from "@/hooks/use-thc-sensitivity";
+import { useTriedStrains } from "@/hooks/use-tried-strains";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { MedicationAutocomplete } from "@/components/ui/MedicationAutocomplete";
+import { StrainAutocomplete } from "@/components/ui/StrainAutocomplete";
 import { FIND_HREF, HISTORY_HREF } from "@/lib/app-nav";
 import { ailmentsEqual } from "@/lib/ailments";
 import {
@@ -40,10 +43,14 @@ export function AccountSettingsDialog({
   const ailments = useAilments();
   const medications = useMedications();
   const thcSensitivity = useThcSensitivity();
+  const triedStrains = useTriedStrains();
   const [draftName, setDraftName] = useState("");
   const [draftAilments, setDraftAilments] = useState<string[]>([]);
   const [draftMedications, setDraftMedications] = useState<string[]>([]);
   const [draftThc, setDraftThc] = useState<ThcSensitivity | null>(null);
+  const [draftTriedStrains, setDraftTriedStrains] = useState<
+    { name: string; type: string; thc: string }[]
+  >([]);
   const [newMedication, setNewMedication] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -57,6 +64,13 @@ export function AccountSettingsDialog({
     setDraftAilments(ailments.names.slice());
     setDraftMedications(medications.names.slice());
     setDraftThc(thcSensitivity.value);
+    setDraftTriedStrains(
+      triedStrains.list.map((s) => ({
+        name: s.name,
+        type: s.type,
+        thc: s.thc,
+      })),
+    );
     setSavedAt(null);
   }, [open, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -96,7 +110,11 @@ export function AccountSettingsDialog({
     draftMedications.length !== medications.names.length ||
     !draftMedications.every((m) => medications.names.includes(m));
   const thcDirty = draftThc !== thcSensitivity.value;
-  const dirty = nameDirty || ailmentsDirty || medicationsDirty || thcDirty;
+  const triedStrainsDirty = JSON.stringify(draftTriedStrains) !== JSON.stringify(
+    triedStrains.list.map((s) => ({ name: s.name, type: s.type, thc: s.thc })),
+  );
+  const dirty =
+    nameDirty || ailmentsDirty || thcDirty || triedStrainsDirty || medicationsDirty;
 
   const toggleDraftAilment = (name: string) => {
     const key = name.trim().toLowerCase();
@@ -149,31 +167,48 @@ export function AccountSettingsDialog({
       if (ailmentsDirty) {
         await ailments.save(draftAilments);
       }
+      if (thcDirty) {
+        await thcSensitivity.save(draftThc);
+      }
+      if (triedStrainsDirty) {
+        // Sync tried strains: add new ones, remove deleted ones
+        const currentStrainNames = new Set(
+          triedStrains.list.map((s) => s.name.toLowerCase()),
+        );
+        const draftStrainNames = new Set(
+          draftTriedStrains.map((s) => s.name.toLowerCase()),
+        );
+        // Add new strains
+        for (const strain of draftTriedStrains) {
+          if (!currentStrainNames.has(strain.name.toLowerCase())) {
+            await triedStrains.add(strain);
+          }
+        }
+        // Remove deleted strains
+        for (const strain of triedStrains.list) {
+          if (!draftStrainNames.has(strain.name.toLowerCase())) {
+            await triedStrains.remove(strain.id);
+          }
+        }
+      }
       if (medicationsDirty) {
-        // Sync medications: remove ones not in draft, add ones not in list
-        const currentNames = medications.names;
-        const toRemove = currentNames.filter(
-          (m) => !draftMedications.some((d) => d.toLowerCase() === m.toLowerCase()),
+        // Sync medications: add new ones, remove deleted ones
+        const currentMedNames = new Set(medications.names.map((n) => n.toLowerCase()));
+        const draftMedNames = new Set(
+          draftMedications.map((n) => n.toLowerCase()),
         );
-        const toAdd = draftMedications.filter(
-          (d) => !currentNames.some((m) => m.toLowerCase() === d.toLowerCase()),
-        );
-        // Find IDs to remove
-        for (const medName of toRemove) {
-          const med = medications.list.find(
-            (m) => m.name.toLowerCase() === medName.toLowerCase(),
-          );
-          if (med) {
+        // Add new medications
+        for (const med of draftMedications) {
+          if (!currentMedNames.has(med.toLowerCase())) {
+            await medications.add(med);
+          }
+        }
+        // Remove deleted medications
+        for (const med of medications.list) {
+          if (!draftMedNames.has(med.name.toLowerCase())) {
             await medications.remove(med.id);
           }
         }
-        // Add new ones
-        for (const medName of toAdd) {
-          await medications.add(medName);
-        }
-      }
-      if (thcDirty) {
-        await thcSensitivity.save(draftThc);
       }
       setSavedAt(Date.now());
     } catch (err) {
@@ -395,6 +430,43 @@ export function AccountSettingsDialog({
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Tried strains */}
+          <div>
+            <div className="mb-1.5 flex items-center gap-2">
+              <Sparkles className="size-3 text-primary" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Other strains I&apos;ve tried
+              </p>
+            </div>
+            <p className="mb-2.5 text-xs text-muted-foreground">
+              Add strains you&apos;ve already tried so Kaya knows what worked and
+              what didn&apos;t.
+            </p>
+            <StrainAutocomplete
+              value={draftTriedStrains}
+              onChange={setDraftTriedStrains}
+              placeholder="Search strains you&apos;ve tried…"
+            />
+          </div>
+
+          {/* Medications */}
+          <div>
+            <div className="mb-1.5 flex items-center gap-2">
+              <Sparkles className="size-3 text-primary" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Other medications
+              </p>
+            </div>
+            <p className="mb-2.5 text-xs text-muted-foreground">
+              List prescription or OTC meds so Kaya can note interactions.
+            </p>
+            <MedicationAutocomplete
+              value={draftMedications}
+              onChange={setDraftMedications}
+              placeholder="Add a medication…"
+            />
           </div>
 
           <Link

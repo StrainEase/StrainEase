@@ -7,7 +7,9 @@ import {
   rememberLocal,
 } from "@/lib/research-history";
 import { useAuth } from "@/hooks/use-auth";
+import { useMedications } from "@/hooks/use-medications";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
+import { useTriedStrains } from "@/hooks/use-tried-strains";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
@@ -42,6 +44,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router";
+import { toast } from "sonner";
 
 type Potency = "" | "mild" | "balanced" | "strong";
 
@@ -90,13 +93,22 @@ export function StrainFinder({
 
   const { user } = useAuth();
   const { hint: reliefHint, summary: reliefSummary } = useReliefSummary();
+  const triedStrains = useTriedStrains();
+  const medications = useMedications();
   const [ailments, setAilments] = useState<string[]>([]);
   const [searched, setSearched] = useState<string[]>([]);
   const [customAilment, setCustomAilment] = useState("");
   const [potency, setPotency] = useState<Potency>("");
   const [prefs, setPrefs] = useState<ResearchPrefs>({});
+  const [triedStrainsList, setTriedStrainsList] = useState<
+    { name: string; type: string; thc: string }[]
+  >([]);
+  const [medicationsList, setMedicationsList] = useState<string[]>([]);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
   const seededMedsRef = useRef(false);
   const seededAilmentsRef = useRef(false);
+  const seededTriedStrainsRef = useRef(false);
+  const seededMedicationsRef = useRef(false);
   const [result, setResult] = useState<RecommendResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +135,28 @@ export function StrainFinder({
     setAilments((prev) => (prev.length > 0 ? prev : defaultAilments));
     seededAilmentsRef.current = true;
   }, [defaultAilments]);
+
+  // Seed tried strains from profile on first mount.
+  useEffect(() => {
+    if (seededTriedStrainsRef.current) return;
+    if (!triedStrains.list || triedStrains.list.length === 0) return;
+    setTriedStrainsList(
+      triedStrains.list.map((s) => ({
+        name: s.name,
+        type: s.type,
+        thc: s.thc,
+      })),
+    );
+    seededTriedStrainsRef.current = true;
+  }, [triedStrains.list]);
+
+  // Seed medications from profile on first mount.
+  useEffect(() => {
+    if (seededMedicationsRef.current) return;
+    if (!medications.names || medications.names.length === 0) return;
+    setMedicationsList(medications.names.slice());
+    seededMedicationsRef.current = true;
+  }, [medications.names]);
 
   useEffect(() => {
     if (!restoreId) return;
@@ -186,9 +220,41 @@ export function StrainFinder({
     pref: Potency = potency,
   ) => {
     if (targets.length === 0 || isRunning) return;
+
+    // Check if tried strains or medications differ from saved profile
+    const savedTriedStrainsNames = new Set(
+      triedStrains.list.map((s) => s.name.toLowerCase()),
+    );
+    const currentTriedStrainsNames = new Set(
+      triedStrainsList.map((s) => s.name.toLowerCase()),
+    );
+    const triedStrainsDiffer =
+      triedStrainsList.length !== triedStrains.list.length ||
+      [...currentTriedStrainsNames].some((n) => !savedTriedStrainsNames.has(n));
+
+    const savedMedicationsNames = new Set(
+      medications.names.map((n) => n.toLowerCase()),
+    );
+    const currentMedicationsNames = new Set(
+      medicationsList.map((n) => n.toLowerCase()),
+    );
+    const medicationsDiffer =
+      medicationsList.length !== medications.names.length ||
+      [...currentMedicationsNames].some((n) => !savedMedicationsNames.has(n));
+
+    const hasNewItems = triedStrainsDiffer || medicationsDiffer;
+
     setIsRunning(true);
     setError(null);
     setSearched(targets);
+
+    // Show save prompt after successful search
+    const showSavePromptAfterSearch = () => {
+      if (hasNewItems) {
+        setShowSavePrompt(true);
+      }
+    };
+
     try {
       const args = {
         conditions: targets,
@@ -199,6 +265,7 @@ export function StrainFinder({
         recommendStrainsCall(args),
       );
       setResult(res);
+      showSavePromptAfterSearch();
       if (res.resultId) {
         const entry = {
           id: res.resultId,
@@ -218,6 +285,55 @@ export function StrainFinder({
     } finally {
       setIsRunning(false);
     }
+  };
+
+  const handleSaveToProfile = async () => {
+    try {
+      // Sync tried strains
+      const savedTriedStrainsNames = new Set(
+        triedStrains.list.map((s) => s.name.toLowerCase()),
+      );
+      for (const strain of triedStrainsList) {
+        if (!savedTriedStrainsNames.has(strain.name.toLowerCase())) {
+          await triedStrains.add(strain);
+        }
+      }
+      for (const strain of triedStrains.list) {
+        if (
+          !triedStrainsList.some(
+            (s) => s.name.toLowerCase() === strain.name.toLowerCase(),
+          )
+        ) {
+          await triedStrains.remove(strain.id);
+        }
+      }
+      // Sync medications
+      const savedMedicationsNames = new Set(
+        medications.names.map((n) => n.toLowerCase()),
+      );
+      for (const med of medicationsList) {
+        if (!savedMedicationsNames.has(med.toLowerCase())) {
+          await medications.add(med);
+        }
+      }
+      for (const med of medications.list) {
+        if (
+          !medicationsList.some(
+            (n) => n.toLowerCase() === med.name.toLowerCase(),
+          )
+        ) {
+          await medications.remove(med.id);
+        }
+      }
+      setShowSavePrompt(false);
+      toast("Saved to your profile.");
+    } catch (err) {
+      toast("Failed to save. Please try again.");
+    }
+  };
+
+  const handleDismissSavePrompt = () => {
+    setShowSavePrompt(false);
   };
 
   const resetSearch = () => {
@@ -370,7 +486,15 @@ export function StrainFinder({
               </div>
             )}
 
-            <PatientPrefsFields prefs={prefs} onChange={setPrefs} startAt={3} />
+            <PatientPrefsFields
+              prefs={prefs}
+              onChange={setPrefs}
+              startAt={3}
+              defaultTriedStrains={triedStrainsList}
+              defaultMedications={medicationsList}
+              onTriedStrainsChange={setTriedStrainsList}
+              onMedicationsChange={setMedicationsList}
+            />
 
             {/* Run */}
             <div className="space-y-2 pt-1">
@@ -452,6 +576,40 @@ export function StrainFinder({
                 New search
               </Button>
             </div>
+
+            {/* Save prompt for new tried strains/medications */}
+            {showSavePrompt && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-5 py-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold tracking-tight">
+                    Save your tried strains and medications?
+                  </p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    You added tried strains or medications here. Save them to your
+                    profile so they auto-fill on future searches.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer rounded-full"
+                    onClick={handleDismissSavePrompt}
+                  >
+                    Skip
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="cursor-pointer rounded-full"
+                    onClick={() => void handleSaveToProfile()}
+                  >
+                    Save to profile
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div>
               <h2 className="text-xl font-semibold tracking-tight text-balance sm:text-2xl">
