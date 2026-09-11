@@ -79,7 +79,10 @@ function KeyboardDismiss() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
-      <VlyToolbar />
+      {/* VlyToolbar is a third-party DOM overlay that pulls in
+          `@zumer/snapdom` and `framer-motion`. It's a debug tool for
+          local dev only — never ship it to production users. */}
+      {import.meta.env.DEV && <VlyToolbar />}
       <InstrumentationProvider>
         <BrowserRouter>
           <RouteSyncer />
