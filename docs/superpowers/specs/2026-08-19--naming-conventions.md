@@ -302,7 +302,7 @@ described in the slug, link the spec from the commit body and the PR body.
 - Anything else — server-only. Firebase Functions secrets (`GROQ_API_KEY`) and integration
   keys (`VLY_INTEGRATION_KEY`) follow this convention.
 
-Document new env vars in `README.md` and add them to `.github/workflows/cloudflare-pages.yml`
+Document new env vars in `README.md` and add them to the Cloudflare Pages project env vars (configured in the Cloudflare dashboard for the `strainease` Pages project)
 before shipping the PR that consumes them. That's a hard rule from `AGENTS.md`.
 
 ### Firestore collections / document fields

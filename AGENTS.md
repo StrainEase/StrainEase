@@ -22,7 +22,9 @@ conventions. This file is for machines.
   ```
   (`--force` is required once to set the Artifact Registry cleanup
   policy; subsequent deploys don't need it). Frontend deploys through
-  Cloudflare Pages (`.github/workflows/cloudflare-pages.yml`).
+  Cloudflare Pages via Cloudflare's GitHub integration (the deploy is
+  triggered by pushes to `main`; no GitHub Actions workflow is needed
+  for the frontend).
 - Don't write innovative code, write reliable code.
 
 ## Architecture map
@@ -298,8 +300,9 @@ is no server-side custom claim or callable gate anymore (see PR #134).
 - Do not run `npm run build` from the repo root expecting it to build
   functions — the root `package.json` only builds the frontend.
 - Do not add new env vars without documenting them in `README.md` and
-  adding them to the Cloudflare Pages deploy workflow
-  (`.github/workflows/cloudflare-pages.yml`).
+  adding them to the Cloudflare Pages project (env vars are configured
+  in the Cloudflare dashboard for the `strainease` Pages project, not
+  in a GitHub Actions workflow).
 
 ## Working style for this codebase
 

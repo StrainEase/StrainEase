@@ -26,7 +26,7 @@ This project is set up already and running on a cloud environment.
 
 ## Environment Variables
 
-The frontend needs Firebase config at build time (Vite). Set these in your `.env` (or in Cloudflare Pages environment variables for deploys):
+The frontend needs Firebase config at build time (Vite). Set these in your `.env` (and in the Cloudflare Pages project env vars for deploys):
 
 ```
 VITE_FIREBASE_API_KEY=...
@@ -365,7 +365,7 @@ functions-report/          # PDF generation codebase (Firebase "report")
 
 - **Build functions before deploying.** Skipping `npm run build` in `functions/` gives you `functions/lib/index.js does not exist, can't deploy Cloud Functions`. Same for `functions-report/`.
 - Don't import `firebase/functions` directly in components — use the typed wrappers in `src/lib/strain-api.ts`.
-- Don't add new env vars without updating both `README.md` and the Cloudflare Pages deploy workflow.
+- Don't add new env vars without updating `README.md` and adding them to the Cloudflare Pages project env vars (configured in the Cloudflare dashboard, not in a GitHub Actions workflow).
 - Cloud Functions code uses Node 22. If you bump the runtime, bump `engines.node` in both `functions/package.json` and `functions-report/package.json`, and the `Setup Node.js` step in `.github/workflows/firebase-functions-deploy.yml`.
 - Firestore rules are the security source of truth. Don't bypass them with admin SDKs in the client.
 - A new function that touches the PDF pipeline belongs in `functions-report/`. A new function that touches Leafly/Weedmaps/AllBud scraping, AI synthesis, or auth-gated user data belongs in `functions/`.
