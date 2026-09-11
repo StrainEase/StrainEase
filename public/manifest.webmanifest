@@ -13,15 +13,21 @@
   "categories": ["health", "medical", "lifestyle"],
   "icons": [
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/favicon-32.webp",
+      "sizes": "32x32",
+      "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "/icon-dark-1024.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
+      "src": "/favicon-dark-32.webp",
+      "sizes": "32x32",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.webp",
+      "sizes": "180x180",
+      "type": "image/webp",
       "purpose": "any"
     }
   ]
