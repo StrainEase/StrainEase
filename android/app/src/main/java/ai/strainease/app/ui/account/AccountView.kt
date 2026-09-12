@@ -77,8 +77,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -142,7 +140,6 @@ fun AccountView(
             // as the user scrolls through the cards below, mirroring
             // the iOS sheet title that is always pinned at the top.
             AccountSheetTopBar(onDismiss = onDismiss)
-            HeaderToCardsFade()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -334,33 +331,8 @@ private fun headerRow(userName: String) {
 }
 
 /**
- * Soft fade overlay that sits between the header and the first card.
- * Tints the top of the cards section with the sheet background color
- * and fades to transparent so the transition between the header and
- * the DISPLAY NAME card doesn't read as a hard line.
- */
-@Composable
-private fun HeaderToCardsFade() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
-                        MaterialTheme.colorScheme.background.copy(alpha = 0.45f),
-                        Color.Transparent,
-                    ),
-                    startY = 0f,
-                    endY = 168f,
-                ),
-            ),
-    )
-}
-
-/**
  * Pinned top bar for the Account sheet. Renders the iOS-style
+ * "Close" pill on the left and the centered "Account settings"
  * "Close" pill on the left and the centered "Account settings"
  * title. Sits above the scrollable column so the title stays
  * visible while the cards scroll, matching the iOS sheet header.

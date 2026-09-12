@@ -275,11 +275,13 @@ fun MainTabView() {
                 // No handlebar — the sheet should hug the title row
                 // and rely on the default expanded shape's rounded top
                 // corners so the sheet still reads as a floating
-                // surface rather than a flat panel. windowInsets is
-                // forced to zero so the sheet's background covers the
-                // full screen with no top margin; the modal card sits
-                // on top of the background as the user scrolls.
+                // surface rather than a flat panel. The sheet's own
+                // container is transparent so the dim scrim + the
+                // MeshBackground gradient inside AccountView read as
+                // a single continuous frosted background with no hard
+                // line where the pinned top bar meets the rest.
                 dragHandle = null,
+                containerColor = Color.Transparent,
                 windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
             ) {
                 ai.strainease.app.ui.account.AccountView(
