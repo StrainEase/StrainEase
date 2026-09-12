@@ -2,6 +2,7 @@ package ai.strainease.app.ui.strain
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +46,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,11 +56,10 @@ import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.ReliefLogStore
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.data.SavedMedicationsStore
-import ai.strainease.app.data.SavedStrainsStore
-import ai.strainease.app.data.StrainAPI
-import ai.strainease.app.data.StrainCatalog
 import ai.strainease.app.data.ThcSensitivity
 import ai.strainease.app.data.ThcSensitivityStore
+import ai.strainease.app.data.SavedStrainsStore
+import ai.strainease.app.data.StrainAPI
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.models.Terpene
 import ai.strainease.app.ui.compare.CompareSelectionStore
@@ -71,6 +75,7 @@ import ai.strainease.app.ui.components.SectionLabel
 import ai.strainease.app.ui.components.StrainPhoto
 import ai.strainease.app.ui.components.TypeBadge
 import ai.strainease.app.ui.theme.StrainEaseTypography
+import ai.strainease.app.util.toTitleCase
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.launch
@@ -178,6 +183,13 @@ fun StrainDetailView(
 
     val triedNotes = relief.forStrain(profile.name)
 
+    // Active hydration slots — empty once the search() call has
+    // settled (success or failure) so placeholders collapse on
+    // their own. Mirrors the iOS StrainDetailView's `pending`
+    // computed property so the same set of sections can show
+    // their skeleton state on Android.
+    val pending: Set<StrainHydrationSection> = if (isHydrating) current.pendingHydrationSections else emptySet()
+
     Box(modifier = modifier.fillMaxSize()) {
         MeshBackground()
         Column(
@@ -187,13 +199,16 @@ fun StrainDetailView(
                 // must pad itself below the status bar (edge-to-edge).
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
-                // Bottom margin matches the iOS detail page (48pt).
+                // 20dp horizontal gutter so the section cards stop at
+                // the screen edges and match the iOS detail page.
+                // Bottom margin still matches the iOS detail page (48pt).
                 .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             header(
                 profile = current,
                 isHydrating = isHydrating,
+                pending = pending,
                 compareStore = compareStore,
                 savedStrains = savedStrains,
                 onToggleSave = {
@@ -208,18 +223,28 @@ fun StrainDetailView(
                 medications = medications,
                 reliefHistory = relief.summary,
                 thcSensitivity = thcSensitivity.sensitivity,
+                pending = pending,
             )
-            if (!current.medicalUses.isNullOrEmpty()) {
+            val uses = current.medicalUses
+            if (!uses.isNullOrEmpty() || StrainHydrationSection.Uses in pending) {
+                // Render the card with a null list (skeleton) when
+                // the data hasn't arrived yet so the chip rail
+                // doesn't pop in suddenly when search() lands.
                 chipSection(
                     title = "Commonly used for",
-                    index = 1,
-                    items = current.medicalUses!!,
+                    items = if (StrainHydrationSection.Uses in pending && uses.isNullOrEmpty()) null else uses,
                 )
             }
-            effectsSection(effects = current.effects ?: emptyList())
-            if (!current.terpenes.isNullOrEmpty()) {
+            val effects = current.effects
+            if (!effects.isNullOrEmpty() || StrainHydrationSection.Effects in pending) {
+                effectsSection(
+                    effects = if (StrainHydrationSection.Effects in pending && effects.isNullOrEmpty()) null else effects,
+                )
+            }
+            val terpenes = current.terpenes
+            if (!terpenes.isNullOrEmpty() || StrainHydrationSection.Terpenes in pending) {
                 terpenesSection(
-                    terpenes = current.terpenes!!,
+                    terpenes = if (StrainHydrationSection.Terpenes in pending && terpenes.isNullOrEmpty()) null else terpenes,
                     familyStrains = familyStrains,
                     familyLoading = familyLoading,
                     onSelectStrain = { selected ->
@@ -228,11 +253,11 @@ fun StrainDetailView(
                 )
             }
             ShopLinksView(profile = current)
-            if (!current.sideEffects.isNullOrEmpty()) {
+            val sides = current.sideEffects
+            if (!sides.isNullOrEmpty() || StrainHydrationSection.SideEffects in pending) {
                 chipSection(
                     title = "Watch for",
-                    index = 2,
-                    items = current.sideEffects!!,
+                    items = if (StrainHydrationSection.SideEffects in pending && sides.isNullOrEmpty()) null else sides,
                 )
             }
             triedNotesSection(triedNotes)
@@ -244,7 +269,11 @@ fun StrainDetailView(
             CommunityVoicesSection(
                 ratings = current.resolvedCommunityRatings,
                 quotes = current.quoteNotes,
-                isHydrating = isHydrating,
+                // CommunityVoicesSection already renders its own
+                // loading card when this is true, so the section
+                // doubles as the community hydration placeholder
+                // (matches the iOS call site).
+                isHydrating = StrainHydrationSection.Community in pending,
             )
             RedditThreadsView(sources = redditThreads)
             SharedNotesView(strainSlug = profile.slug)
@@ -305,13 +334,27 @@ fun StrainDetailView(
 }
 
 @Composable
-private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: CompareSelectionStore, savedStrains: SavedStrainsStore, onToggleSave: () -> Unit, onPhotoClick: () -> Unit = {}) {
+private fun header(
+    profile: StrainProfile,
+    isHydrating: Boolean,
+    pending: Set<StrainHydrationSection>,
+    compareStore: CompareSelectionStore,
+    savedStrains: SavedStrainsStore,
+    onToggleSave: () -> Unit,
+    onPhotoClick: () -> Unit = {},
+) {
     val score = StrainMeaning.dayNightScore(profile)
     val dayNightLabel = StrainMeaning.labelFor(score)
     val compareNames by compareStore.names.collectAsState()
     val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
     val isLiked = saved.any { it.slug == profile.slug }
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    // The parent Column above already provides the 20dp horizontal
+    // gutter that matches the iOS detail page, so the header doesn't
+    // need its own. The photo, name, type badge, rating, etc. all
+    // sit inside that shared gutter.
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
         // Photo with two floating toolbar buttons pinned to the
         // top-right: heart (save / unsave) and compare-toggle.
         // Mirrors the iOS `StrainDetailView` toolbar pair so the
@@ -322,7 +365,6 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                 type = profile.type,
                 height = 220.dp,
                 cornerRadius = 22.dp,
-                fallbackURLString = StrainCatalog.photoURL(profile.slug),
                 modifier = Modifier.clickable { onPhotoClick() },
             )
             // Zoom icon in the bottom-right corner
@@ -406,6 +448,41 @@ private fun header(profile: StrainProfile, isHydrating: Boolean, compareStore: C
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        // Lineage is rendered inline next to the name. While the
+        // search() call is still in flight, swap the static text
+        // for a small spinner + caption so the slot doesn't
+        // collapse to nothing. Mirrors the iOS header's
+        // `else if pending.contains(.lineage) { HStack { ... } }`
+        // branch so the two surfaces stay in step.
+        val lineage = profile.lineage
+        if (!lineage.isNullOrEmpty()) {
+            Text(
+                text = lineage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (StrainHydrationSection.Lineage in pending) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "Loading Lineage"
+                    }
+                    .testTag("strain.hydrating.lineage"),
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(
+                    text = StrainHydrationSection.Lineage.caption,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         val rating = profile.resolvedCommunityRatings.firstOrNull { it.source == "Leafly" }
         if (rating != null) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -454,6 +531,7 @@ private fun descriptionBlock(
     medications: List<String>,
     reliefHistory: String,
     thcSensitivity: ThcSensitivity,
+    pending: Set<StrainHydrationSection>,
 ) {
     TailoredDescriptionView(
         profile = profile,
@@ -463,16 +541,21 @@ private fun descriptionBlock(
         reliefHistory = reliefHistory,
         thcSensitivity = thcSensitivity,
     )
-    // The full, non-processed description always renders below the
-    // tailored cards when one exists — iOS + web match. It starts
-    // collapsed to two lines; tap Show more / Show less to expand.
+    // The "Full Description" card always renders, even before
+    // search() lands, so the user sees the page structure
+    // immediately. Inside the card we either show the real
+    // text (with a Show more / Show less toggle) or a skeleton
+    // block of placeholder lines while the data is still
+    // being fetched. This matches the "card loads initially"
+    // pattern used by the other detail cards.
     val description = profile.description
-    if (description.isNullOrEmpty()) return
-    var expanded by remember { mutableStateOf(false) }
+    val isLoading = StrainHydrationSection.Description in pending
     SWCard {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Header inside the card, matching the tailored section
-            // cards' bold heading style.
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Header inside the card, matching the tailored
+            // section cards' bold heading style. Renders
+            // during loading too so the card title is
+            // visible from the first frame.
             Text(
                 text = "Full Description",
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -480,55 +563,51 @@ private fun descriptionBlock(
                 ),
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = if (expanded) Int.MAX_VALUE else 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = if (expanded) "Show less" else "Show more",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { expanded = !expanded },
-            )
-        }
-    }
-}
-
-@Composable
-private fun chipSection(title: String, index: Int, items: List<String>) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionLabel(title = title, index = index)
-        SWFlowRow {
-            items.forEach { item ->
-                SWChip(title = item, selected = false, onClick = {})
+            when {
+                isLoading || description.isNullOrEmpty() -> {
+                    PlaceholderTextLines(count = 4)
+                }
+                else -> {
+                    var expanded by remember { mutableStateOf(false) }
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = if (expanded) Int.MAX_VALUE else 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = if (expanded) "Show less" else "Show more",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { expanded = !expanded },
+                    )
+                }
             }
         }
     }
 }
 
+/**
+ * Chip-rail section ("Commonly used for" / "Watch for"). The
+ * card always renders; inside, we either show real chips or a
+ * skeleton row of pill placeholders while the data is still
+ * being fetched. `items == null` means the search() call is
+ * in flight; `items.isEmpty()` means the strain genuinely has
+ * no entries for this slot (an edge case for partial catalog
+ * coverage) and the card renders empty rather than disappearing.
+ */
 @Composable
-private fun effectsSection(effects: List<ai.strainease.app.models.StrainEffect>) {
-    if (effects.isEmpty()) return
+private fun chipSection(title: String, items: List<String>?) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionLabel(title = "How it might feel", index = 3)
+        SectionLabel(title = title)
         SWCard {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                effects.forEach { effect ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Text(
-                            text = effect.name,
-                            style = StrainEaseTypography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                        )
-                        IntensityBar(value = effect.intensity)
+            if (items == null) {
+                PlaceholderChipRow()
+            } else if (items.isNotEmpty()) {
+                SWFlowRow {
+                    items.forEach { item ->
+                        SWChip(title = item.toTitleCase(), selected = false, onClick = {})
                     }
                 }
             }
@@ -536,23 +615,73 @@ private fun effectsSection(effects: List<ai.strainease.app.models.StrainEffect>)
     }
 }
 
+/**
+ * "How it might feel" section. The card always renders; inside
+ * we either show real effect rows (name + IntensityBar) or a
+ * matching number of skeleton rows while the data is in
+ * flight. `effects == null` is the loading signal.
+ */
+@Composable
+private fun effectsSection(effects: List<ai.strainease.app.models.StrainEffect>?) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionLabel(title = "How it might feel")
+        SWCard {
+            if (effects == null) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    repeat(4) { PlaceholderEffectRow() }
+                }
+            } else if (effects.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    effects.forEach { effect ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text(
+                                text = effect.name.toTitleCase(),
+                                style = StrainEaseTypography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f),
+                            )
+                            IntensityBar(value = effect.intensity)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "Terpenes" section. The section label + outer column always
+ * render; inside we either show real [TerpeneProfile] rows or
+ * a matching number of skeleton card rows while the data is
+ * in flight. `terpenes == null` is the loading signal. Real
+ * terpene rows are passed through with the same family-strain
+ * cache + handler the previous version used.
+ */
 @Composable
 private fun terpenesSection(
-    terpenes: List<Terpene>,
+    terpenes: List<Terpene>?,
     familyStrains: List<ai.strainease.app.models.StrainProfile>,
     familyLoading: Boolean,
     onSelectStrain: (ai.strainease.app.models.StrainProfile) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionLabel(title = "Terpenes", index = 4)
+        SectionLabel(title = "Terpenes")
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            terpenes.forEach { terpene ->
-                TerpeneProfile(
-                    terpene = terpene,
-                    familyStrains = familyStrains,
-                    familyLoading = familyLoading,
-                    onSelectStrain = onSelectStrain,
-                )
+            if (terpenes == null) {
+                repeat(3) { PlaceholderTerpeneRow() }
+            } else if (terpenes.isNotEmpty()) {
+                terpenes.forEach { terpene ->
+                    TerpeneProfile(
+                        terpene = terpene,
+                        familyStrains = familyStrains,
+                        familyLoading = familyLoading,
+                        onSelectStrain = onSelectStrain,
+                    )
+                }
             }
         }
     }
@@ -561,7 +690,7 @@ private fun terpenesSection(
 @Composable
 private fun triedNotesSection(notes: List<ai.strainease.app.data.ReliefLog>) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionLabel(title = "Your tried notes", index = 5)
+        SectionLabel(title = "Your tried notes")
         if (notes.isEmpty()) {
             Text(
                 text = "Log how this strain worked for you below — only you see these notes.",
@@ -599,6 +728,160 @@ private fun triedNotesSection(notes: List<ai.strainease.app.data.ReliefLog>) {
                     }
                 }
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Card-internal placeholders
+// ---------------------------------------------------------------------------
+//
+// The strain detail page now renders every card from the start
+// (so the user sees the page structure immediately, not blank
+// gaps that "pop in" as the search() call lands). Each card
+// swaps its content for one of these skeletons while the
+// underlying data is still missing, and back to real content
+// when the fresh profile arrives. This is the "card loads
+// initially" UX the user asked for — the cards themselves are
+// always present, only the contents animate in.
+
+/**
+ * Skeleton pill matching [SWChip] dimensions. Rounded at 50%
+ * so it reads as a chip, not a rectangle. The caller picks a
+ * width so successive chips don't all line up at the same
+ * length and the row looks natural.
+ */
+@Composable
+private fun PlaceholderChip(widthDp: Int) {
+    Box(
+        modifier = Modifier
+            .width(widthDp.dp)
+            .height(34.dp)
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    )
+}
+
+/**
+ * Row of skeleton pills used inside the "Commonly used for"
+ * and "Watch for" cards while the chip list is being
+ * hydrated. The widths are fixed and slightly varied so the
+ * row looks like real chips rather than a uniform stripe.
+ */
+@Composable
+private fun PlaceholderChipRow() {
+    val widths = listOf(74, 96, 82, 108, 68, 92)
+    SWFlowRow {
+        widths.forEach { w -> PlaceholderChip(widthDp = w) }
+    }
+}
+
+/**
+ * Skeleton row matching the real "How it might feel" effect
+ * row — name bar on the left, intensity bar on the right (5
+ * segments). Both bars use the muted surfaceVariant fill so
+ * they read as "loading" without competing for attention
+ * with the real text.
+ */
+@Composable
+private fun PlaceholderEffectRow() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(16.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            repeat(5) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 14.dp, height = 8.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Skeleton row matching the real [TerpeneProfile] card —
+ * card-shaped surface with a name placeholder on the first
+ * line, a "Details" placeholder on the right, and a shorter
+ * profile placeholder underneath. The chrome (rounded
+ * corners, border, padding) matches the real row so the
+ * skeleton doesn't shift the layout when the real terpene
+ * name lands.
+ */
+@Composable
+private fun PlaceholderTerpeneRow() {
+    val border = MaterialTheme.colorScheme.outline
+    val card = MaterialTheme.colorScheme.surface
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(card)
+            .border(1.dp, border, RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(16.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
+            Box(
+                modifier = Modifier
+                    .width(48.dp)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.72f)
+                .height(12.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        )
+    }
+}
+
+/**
+ * A block of N horizontal text-line placeholders, used inside
+ * the "Full Description" card while the static
+ * `profile.description` is still being fetched. The last line
+ * is capped at 60% width so the block reads as "text" rather
+ * than a uniform stripe — mirrors the iOS skeleton line
+ * width-capping pattern.
+ */
+@Composable
+private fun PlaceholderTextLines(count: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        repeat(count) { i ->
+            val isLast = i == count - 1
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(if (isLast) 0.6f else 1f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
         }
     }
 }
