@@ -352,18 +352,18 @@ enum ThcSensitivity: String, CaseIterable, Identifiable, Hashable, Sendable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .typical: "Typical"
+        case .typical: "Not sure yet"
         case .anxiousHighThc: "THC-sensitive"
-        case .moderateTolerance: "Moderate tolerance"
+        case .moderateTolerance: "Moderate"
         case .experienced: "Experienced"
         }
     }
     var hint: String? {
         switch self {
-        case .typical: nil
-        case .anxiousHighThc: "High THC can make me anxious"
-        case .moderateTolerance: "Some tolerance, but mindful of potency"
-        case .experienced: "I tolerate stronger flower"
+        case .typical: "I don't notice THC strongly, or I'm still figuring it out."
+        case .anxiousHighThc: "Strong THC makes me anxious, paranoid, or jittery."
+        case .moderateTolerance: "Most strains work; really strong ones still feel like a lot."
+        case .experienced: "I've built up real tolerance over time."
         }
     }
 }
