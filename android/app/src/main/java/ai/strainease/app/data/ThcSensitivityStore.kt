@@ -71,12 +71,14 @@ class ThcSensitivityStore(private val context: Context) {
 enum class ThcSensitivity(val rawValue: String) {
     Typical(""),
     AnxiousHighThc("anxious-high-thc"),
+    ModerateTolerance("moderate-tolerance"),
     Experienced("experienced");
 
     val label: String
         get() = when (this) {
             Typical -> "Typical"
             AnxiousHighThc -> "Anxious around high-THC"
+            ModerateTolerance -> "Moderate tolerance"
             Experienced -> "Experienced with stronger flower"
         }
 
@@ -84,6 +86,7 @@ enum class ThcSensitivity(val rawValue: String) {
         get() = when (this) {
             Typical -> null
             AnxiousHighThc -> "High-THC flower spikes my anxiety. Lean toward gentler options."
+            ModerateTolerance -> "Some tolerance, but mindful of potency levels."
             Experienced -> "I have a higher tolerance. Honest potency reads are fine."
         }
 
