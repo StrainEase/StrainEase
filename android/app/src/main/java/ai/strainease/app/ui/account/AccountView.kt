@@ -77,6 +77,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -302,31 +304,47 @@ fun AccountView(
  */
 @Composable
 private fun headerRow(userName: String) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
-    ) {
-        // Eyebrow pill, left-aligned to match the big serif name.
-        Eyebrow(text = "Settings")
-        Text(
-            text = userName,
-            style = StrainEaseTypography.displayLarge.copy(
-                fontSize = 44.sp,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Light,
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.Transparent,
+                        MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
+                    ),
+                    startY = 0f,
+                    endY = 240f,
+                ),
             ),
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Start,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            text = "Update how your name appears on notes you share, or sign out.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Start,
-            modifier = Modifier.fillMaxWidth(),
-        )
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+        ) {
+            // Eyebrow pill, left-aligned to match the big serif name.
+            Eyebrow(text = "Settings")
+            Text(
+                text = userName,
+                style = StrainEaseTypography.displayLarge.copy(
+                    fontSize = 44.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Light,
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Start,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "Update how your name appears on notes you share, or sign out.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Start,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
