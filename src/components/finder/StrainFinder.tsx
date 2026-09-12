@@ -8,6 +8,8 @@ import {
 } from "@/lib/research-history";
 import { useAuth } from "@/hooks/use-auth";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
+import { useThcSensitivity } from "@/hooks/use-thc-sensitivity";
+import { useMedications } from "@/hooks/use-medications";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
@@ -27,8 +29,9 @@ import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
 import { slugify } from "@/lib/saved-strains";
 import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
-import { compactPrefs, type ResearchPrefs } from "@/lib/research-prefs";
+import { compactPrefs, SENSITIVITY_OPTIONS, type ResearchPrefs, type ThcSensitivity } from "@/lib/research-prefs";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
+import { thcSensitivityLabel } from "@/lib/thc-sensitivity";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
@@ -37,8 +40,10 @@ import {
   HeartPulse,
   Loader2,
   Moon,
+  Pill,
   Plus,
   Sparkles,
+  Star,
   X,
 } from "lucide-react";
 import { Link } from "react-router";
@@ -90,6 +95,8 @@ export function StrainFinder({
 
   const { user } = useAuth();
   const { hint: reliefHint, summary: reliefSummary } = useReliefSummary();
+  const thcSensitivity = useThcSensitivity();
+  const medications = useMedications();
   const [ailments, setAilments] = useState<string[]>([]);
   const [searched, setSearched] = useState<string[]>([]);
   const [customAilment, setCustomAilment] = useState("");
@@ -97,6 +104,7 @@ export function StrainFinder({
   const [prefs, setPrefs] = useState<ResearchPrefs>({});
   const seededMedsRef = useRef(false);
   const seededAilmentsRef = useRef(false);
+  const seededSensitivityRef = useRef(false);
   const [result, setResult] = useState<RecommendResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,17 +112,20 @@ export function StrainFinder({
   const resultsRef = useRef<HTMLDivElement>(null);
 
   // Seed prefs.medications from the user's saved profile list on first mount.
-  // Only happens once; later edits to the field win.
+  // Only happens once; later edits to the field win. Use hook medications if no prop provided.
   useEffect(() => {
     if (seededMedsRef.current) return;
-    if (!defaultMedications || defaultMedications.length === 0) return;
+    const meds = defaultMedications && defaultMedications.length > 0
+      ? defaultMedications
+      : medications.names;
+    if (!meds || meds.length === 0) return;
     setPrefs((p) =>
       p.medications && p.medications !== ""
         ? p
-        : { ...p, medications: defaultMedications.join(", ") },
+        : { ...p, medications: meds.join(", ") },
     );
     seededMedsRef.current = true;
-  }, [defaultMedications]);
+  }, [defaultMedications, medications.names]);
 
   // Seed symptom chips from Account saved ailments once, if Find is empty.
   useEffect(() => {
@@ -123,6 +134,17 @@ export function StrainFinder({
     setAilments((prev) => (prev.length > 0 ? prev : defaultAilments));
     seededAilmentsRef.current = true;
   }, [defaultAilments]);
+
+  // Seed THC sensitivity from user's saved profile on first mount.
+  // Always import the saved sensitivity by default.
+  useEffect(() => {
+    if (seededSensitivityRef.current) return;
+    if (!thcSensitivity.value) return;
+    setPrefs((p) =>
+      p.thcSensitivity ? p : { ...p, thcSensitivity: thcSensitivity.value as ThcSensitivity },
+    );
+    seededSensitivityRef.current = true;
+  }, [thcSensitivity.value]);
 
   useEffect(() => {
     if (!restoreId) return;
@@ -265,6 +287,30 @@ export function StrainFinder({
                 1 · What are you treating?
               </p>
               <div className="flex flex-wrap gap-1.5">
+                {/* My Ailments chip with gold gradient - always first */}
+                {defaultAilments && defaultAilments.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Import all saved ailments
+                      setAilments((prev) => {
+                        const merged = [...new Set([...prev, ...defaultAilments])];
+                        return merged;
+                      });
+                    }}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      "bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500",
+                      "border-amber-400/50 text-amber-900",
+                      "hover:from-amber-400 hover:via-yellow-300 hover:to-amber-400",
+                    )}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Star className="size-3" />
+                      My Ailments ({defaultAilments.length})
+                    </span>
+                  </button>
+                )}
                 {CONDITIONS.map((c) => {
                   const active = ailments.some(
                     (a) => a.toLowerCase() === c.toLowerCase(),
@@ -367,6 +413,33 @@ export function StrainFinder({
                 <p className="text-xs leading-5 text-foreground">
                   {reliefHint}
                 </p>
+              </div>
+            )}
+
+            {/* Show imported sensitivity indicator */}
+            {thcSensitivity.value && (
+              <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500/10 via-yellow-400/10 to-amber-500/10 px-3 py-2 text-xs">
+                <Sparkles className="size-3 text-amber-600" />
+                <span className="text-muted-foreground">
+                  Sensitivity from profile:{" "}
+                  <span className="font-medium text-amber-700">
+                    {thcSensitivityLabel(thcSensitivity.value)}
+                  </span>
+                </span>
+              </div>
+            )}
+
+            {/* Show imported medications indicator */}
+            {medications.names.length > 0 && prefs.medications && (
+              <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-3 py-2 text-xs">
+                <Pill className="size-3 text-blue-600" />
+                <span className="text-muted-foreground">
+                  Medications from profile:{" "}
+                  <span className="font-medium text-blue-700">
+                    {medications.names.slice(0, 3).join(", ")}
+                    {medications.names.length > 3 && ` +${medications.names.length - 3} more`}
+                  </span>
+                </span>
               </div>
             )}
 

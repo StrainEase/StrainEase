@@ -3,6 +3,7 @@ import SwiftUI
 struct FindView: View {
     @Environment(SavedAilmentsStore.self) private var savedAilments
     @Environment(SavedMedicationsStore.self) private var savedMedications
+    @Environment(TriedStrainsStore.self) private var triedStrains
     @Environment(ReliefLogStore.self) private var relief
     @Environment(\.strainAPI) private var api
     @Environment(CompareSelectionStore.self) private var compareStore
@@ -14,6 +15,10 @@ struct FindView: View {
     @FocusState private var focused: Field?
     @State private var didHydrateAilments = false
     @State private var didHydrateMedications = false
+    @State private var didHydrateTriedStrains = false
+    @State private var triedStrainsList: [TriedStrainItem] = []
+    @State private var medicationsList: [String] = []
+    @State private var showSavePrompt = false
 
     /// Identifies every text input on this screen so a single `@FocusState`
     /// can dismiss any of them. Without these bindings, SwiftUI wouldn't
@@ -259,27 +264,34 @@ struct FindView: View {
                 text: $model.prefs.patientNote
             )
             .focused($focused, equals: .patientNote)
-            SWField(
-                title: "Already have",
-                placeholder: "Blue Dream, Gelato",
-                text: $model.prefs.ownedStrainsText
-            )
-            .focused($focused, equals: .ownedStrains)
-            VStack(alignment: .leading, spacing: 6) {
-                SWField(
-                    title: "Other meds",
-                    placeholder: "Medication we should be careful around",
-                    text: $model.prefs.medications
-                )
-                .focused($focused, equals: .medications)
+
+            // Tried strains with autocomplete
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Other strains I've tried", index: 6)
+                StrainAutocomplete(items: $triedStrainsList)
+                Text("Help Kaya understand what has and hasn't worked for you.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.mutedForeground)
+            }
+
+            // Medications with autocomplete
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Other medications", index: 7)
+                MedicationAutocomplete(items: $medicationsList, suggestions: savedMedications.names)
                 Text("We never tell you to stop a prescription — only to check with your clinician.")
                     .font(.system(size: 12))
                     .foregroundStyle(Palette.mutedForeground)
             }
         }
-        .onAppear { hydrateMedicationsIfNeeded() }
+        .onAppear {
+            hydrateMedicationsIfNeeded()
+            hydrateTriedStrainsIfNeeded()
+        }
         .onChange(of: savedMedications.names) { _, _ in
             hydrateMedicationsIfNeeded()
+        }
+        .onChange(of: triedStrains.items) { _, _ in
+            hydrateTriedStrainsIfNeeded()
         }
     }
 
@@ -322,12 +334,66 @@ struct FindView: View {
     /// edits win — only runs when the field is still empty.
     private func hydrateMedicationsIfNeeded() {
         guard !didHydrateMedications else { return }
-        if model.prefs.medications.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           !savedMedications.names.isEmpty {
-            model.prefs.medications = savedMedications.names.joined(separator: ", ")
+        if medicationsList.isEmpty, !savedMedications.names.isEmpty {
+            medicationsList = savedMedications.names
         }
-        if !savedMedications.names.isEmpty || !model.prefs.medications.isEmpty {
+        if !savedMedications.names.isEmpty || !medicationsList.isEmpty {
             didHydrateMedications = true
+        }
+    }
+
+    /// Prefill triedStrainsList from the saved profile list once. Subsequent
+    /// edits win — only runs when the list is still empty.
+    private func hydrateTriedStrainsIfNeeded() {
+        guard !didHydrateTriedStrains else { return }
+        if triedStrainsList.isEmpty, !triedStrains.items.isEmpty {
+            triedStrainsList = triedStrains.items
+        }
+        if !triedStrains.items.isEmpty || !triedStrainsList.isEmpty {
+            didHydrateTriedStrains = true
+        }
+    }
+
+    /// Check if tried strains or medications differ from saved profile.
+    private var hasUnsavedChanges: Bool {
+        let savedTriedStrainsNames = Set(triedStrains.items.map { $0.name.lowercased() })
+        let currentTriedStrainsNames = Set(triedStrainsList.map { $0.name.lowercased() })
+        let triedStrainsDiffer = triedStrainsList.count != triedStrains.items.count ||
+            !currentTriedStrainsNames.isSubset(of: savedTriedStrainsNames)
+
+        let savedMedsNames = Set(savedMedications.names.map { $0.lowercased() })
+        let currentMedsNames = Set(medicationsList.map { $0.lowercased() })
+        let medsDiffer = medicationsList.count != savedMedications.names.count ||
+            !currentMedsNames.isSubset(of: savedMedsNames)
+
+        return triedStrainsDiffer || medsDiffer
+    }
+
+    /// Save tried strains and medications to profile.
+    private func saveToProfile() async {
+        // Sync tried strains
+        let savedTriedStrainsNames = Set(triedStrains.items.map { $0.name.lowercased() })
+        for strain in triedStrainsList {
+            if !savedTriedStrainsNames.contains(strain.name.lowercased()) {
+                await triedStrains.add(strain)
+            }
+        }
+        for strain in triedStrains.items {
+            if !triedStrainsList.contains(where: { $0.name.lowercased() == strain.name.lowercased() }) {
+                await triedStrains.remove(strain)
+            }
+        }
+        // Sync medications
+        let savedMedsNames = Set(savedMedications.names.map { $0.lowercased() })
+        for med in medicationsList {
+            if !savedMedsNames.contains(med.lowercased()) {
+                await savedMedications.add(med)
+            }
+        }
+        for med in savedMedications.items {
+            if !medicationsList.contains(where: { $0.lowercased() == med.name.lowercased() }) {
+                await savedMedications.remove(med)
+            }
         }
     }
 
@@ -470,22 +536,67 @@ struct FindView: View {
 
 
     private var findButton: some View {
-        SWPrimaryButton(
-            title: model.canFind || model.isRunning ? "Find strains" : "Pick a symptom first",
-            systemImage: "sparkles",
-            isBusy: model.isRunning
-        ) {
-            focused = nil
-            Task {
-                await model.find(reliefSummary: relief.summary.isEmpty ? nil : relief.summary)
-                if let result = model.result {
-                    await history.remember(find: result, conditions: model.searched)
+        VStack(spacing: 12) {
+            // Save prompt
+            if showSavePrompt && hasUnsavedChanges {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Save your tried strains and medications?")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Palette.foreground)
+                        Text("You added tried strains or medications here. Save them to your profile so they auto-fill on future searches.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.mutedForeground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    HStack(spacing: 8) {
+                        Button("Skip") {
+                            showSavePrompt = false
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Palette.mutedForeground)
+                        Button("Save") {
+                            Task {
+                                await saveToProfile()
+                                showSavePrompt = false
+                            }
+                        }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Palette.primaryForeground)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Palette.primary, in: Capsule())
+                    }
+                }
+                .padding(16)
+                .background(Palette.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Palette.primary.opacity(0.25), lineWidth: 1)
+                )
+            }
+
+            SWPrimaryButton(
+                title: model.canFind || model.isRunning ? "Find strains" : "Pick a symptom first",
+                systemImage: "sparkles",
+                isBusy: model.isRunning
+            ) {
+                focused = nil
+                Task {
+                    await model.find(reliefSummary: relief.summary.isEmpty ? nil : relief.summary)
+                    if let result = model.result {
+                        await history.remember(find: result, conditions: model.searched)
+                        // Show save prompt if there are unsaved changes
+                        if hasUnsavedChanges {
+                            showSavePrompt = true
+                        }
+                    }
                 }
             }
+            .disabled(!model.canFind)
+            .opacity(model.canFind || model.isRunning ? 1 : 0.55)
+            .sensoryFeedback(.impact(weight: .medium), trigger: model.isRunning)
         }
-        .disabled(!model.canFind)
-        .opacity(model.canFind || model.isRunning ? 1 : 0.55)
-        .sensoryFeedback(.impact(weight: .medium), trigger: model.isRunning)
     }
 
     private var running: some View {
@@ -644,6 +755,7 @@ struct FindView: View {
         .environment(SavedStrainsStore.preview())
         .environment(SavedAilmentsStore.preview())
         .environment(SavedMedicationsStore.preview(["Lexapro"]))
+        .environment(TriedStrainsStore.preview())
 
         .environment(RecentlyViewedStore.preview())
         .environment(ReliefLogStore.preview([.sampleSleep]))
@@ -659,6 +771,7 @@ struct FindView: View {
         .environment(SavedStrainsStore.preview(["granddaddy-purple"]))
         .environment(SavedAilmentsStore.preview(["Insomnia"]))
         .environment(SavedMedicationsStore.preview(["Lexapro", "Ibuprofen"]))
+        .environment(TriedStrainsStore.preview(["Blue Dream"]))
 
         .environment(RecentlyViewedStore.preview())
         .environment(ReliefLogStore.preview())

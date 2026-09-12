@@ -29,8 +29,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import ai.strainease.app.data.ReliefLogStore
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.data.SavedMedicationsStore
+import ai.strainease.app.data.TriedStrain
+import ai.strainease.app.data.TriedStrainsStore
 import ai.strainease.app.models.ConsumeForm
 import ai.strainease.app.models.Potency
 import ai.strainease.app.models.StrainProfile
@@ -48,6 +52,7 @@ import ai.strainease.app.models.StrainRecommendation
 import ai.strainease.app.ui.compare.CompareResultsView
 import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.Eyebrow
+import ai.strainease.app.ui.components.MedicationAutocomplete
 import ai.strainease.app.ui.components.MeshBackground
 import ai.strainease.app.ui.components.SWCard
 import ai.strainease.app.ui.components.SWChip
@@ -56,6 +61,7 @@ import ai.strainease.app.ui.components.SWField
 import ai.strainease.app.ui.components.SWFlowRow
 import ai.strainease.app.ui.components.SWPrimaryButton
 import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.components.StrainAutocomplete
 import ai.strainease.app.ui.home.StrainPoster
 import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.launch
@@ -77,6 +83,7 @@ fun FindView(
     model: FindModel,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
+    triedStrainsStore: TriedStrainsStore,
     relief: ReliefLogStore,
     compareStore: CompareSelectionStore,
     researchHistory: ai.strainease.app.data.ResearchHistoryStore,
@@ -93,10 +100,30 @@ fun FindView(
     val comparison by compareStore.comparison.collectAsState()
     val scope = rememberCoroutineScope()
 
+    // Tried strains and medications state
+    var triedStrainsList by remember { mutableStateOf<List<TriedStrain>>(emptyList()) }
+    var medicationsList by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showSavePrompt by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         model.hydrateAilmentsIfNeeded(savedAilments)
         savedAilments.refresh()
+        savedMedications.refresh()
+        triedStrainsStore.refresh()
     }
+
+    // Hydrate tried strains and medications from profile
+    LaunchedEffect(triedStrainsStore.triedStrains) {
+        if (triedStrainsList.isEmpty && triedStrainsStore.triedStrains.isNotEmpty()) {
+            triedStrainsList = triedStrainsStore.triedStrains
+        }
+    }
+    LaunchedEffect(savedMedications.medications) {
+        if (medicationsList.isEmpty && savedMedications.medications.isNotEmpty()) {
+            medicationsList = savedMedications.medications.map { it.name }
+        }
+    }
+
     // Keep the picked ailments in sync with the
     // SavedAilmentsStore so symptoms the user added via
     // AccountView show up here. Mirrors iOS FindView's
@@ -136,6 +163,49 @@ fun FindView(
         }
     }
 
+    // Check if there are unsaved changes
+    val hasUnsavedChanges = remember(triedStrainsList, medicationsList, triedStrainsStore.triedStrains, savedMedications.medications) {
+        val savedTriedStrainsNames = triedStrainsStore.triedStrains.map { it.name.lowercase() }.toSet()
+        val currentTriedStrainsNames = triedStrainsList.map { it.name.lowercase() }.toSet()
+        val triedStrainsDiffer = triedStrainsList.size != triedStrainsStore.triedStrains.size ||
+                currentTriedStrainsNames != savedTriedStrainsNames
+
+        val savedMedsNames = savedMedications.medications.map { it.name.lowercase() }.toSet()
+        val currentMedsNames = medicationsList.map { it.lowercase() }.toSet()
+        val medsDiffer = medicationsList.size != savedMedications.medications.size ||
+                currentMedsNames != savedMedsNames
+
+        triedStrainsDiffer || medsDiffer
+    }
+
+    // Save to profile
+    val saveToProfile: suspend () -> Unit = {
+        // Sync tried strains
+        val savedTriedStrainsNames = triedStrainsStore.triedStrains.map { it.name.lowercase() }.toSet()
+        triedStrainsList.forEach { strain ->
+            if (!savedTriedStrainsNames.contains(strain.name.lowercase())) {
+                triedStrainsStore.add(strain)
+            }
+        }
+        triedStrainsStore.triedStrains.forEach { strain ->
+            if (!triedStrainsList.any { it.name.lowercase() == strain.name.lowercase() }) {
+                triedStrainsStore.remove(strain.id)
+            }
+        }
+        // Sync medications
+        val savedMedsNames = savedMedications.medications.map { it.name.lowercase() }.toSet()
+        medicationsList.forEach { med ->
+            if (!savedMedsNames.contains(med.lowercase())) {
+                savedMedications.add(ai.strainease.app.data.SavedMedication(med, null, System.currentTimeMillis()))
+            }
+        }
+        savedMedications.medications.forEach { med ->
+            if (!medicationsList.any { it.lowercase() == med.name.lowercase() }) {
+                savedMedications.remove(med)
+            }
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         MeshBackground()
         Column(
@@ -157,7 +227,54 @@ fun FindView(
             }
             conditionsBlock(model, ailments, customAilment)
             potencyBlock(model, potency)
-            prefsBlock(model, prefs)
+            prefsBlock(
+                model = model,
+                prefs = prefs,
+                triedStrainsList = triedStrainsList,
+                onTriedStrainsChange = { triedStrainsList = it },
+                medicationsList = medicationsList,
+                onMedicationsChange = { medicationsList = it },
+                savedMedicationNames = savedMedications.medications.map { it.name },
+            )
+
+            // Save prompt
+            if (showSavePrompt && hasUnsavedChanges) {
+                SWCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "Save your tried strains and medications?",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "You added tried strains or medications here. Save them to your profile so they auto-fill on future searches.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "Skip",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.clickable { showSavePrompt = false },
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                text = "Save",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable {
+                                    scope.launch {
+                                        saveToProfile()
+                                        showSavePrompt = false
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
             SWPrimaryButton(
                 title = "Find recommendations",
                 isBusy = isRunning,
@@ -178,6 +295,10 @@ fun FindView(
                                 find = result,
                                 conditions = model.searched.value,
                             )
+                        }
+                        // Show save prompt if there are unsaved changes
+                        if (hasUnsavedChanges) {
+                            showSavePrompt = true
                         }
                     }
                 },
@@ -301,7 +422,15 @@ private fun potencyBlock(model: FindModel, potency: Potency) {
 }
 
 @Composable
-private fun prefsBlock(model: FindModel, prefs: ai.strainease.app.models.ResearchPrefs) {
+private fun prefsBlock(
+    model: FindModel,
+    prefs: ai.strainease.app.models.ResearchPrefs,
+    triedStrainsList: List<TriedStrain>,
+    onTriedStrainsChange: (List<TriedStrain>) -> Unit,
+    medicationsList: List<String>,
+    onMedicationsChange: (List<String>) -> Unit,
+    savedMedicationNames: List<String>,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         SectionLabel(title = "Your night", index = 3)
         prefsPanel(
@@ -323,25 +452,36 @@ private fun prefsBlock(model: FindModel, prefs: ai.strainease.app.models.Researc
             onSelect = { model.updatePrefs { p -> p.copy(thcSensitivity = it as ThcSensitivity) } },
         )
         SWField(
-            value = prefs.ownedStrainsText,
-            onValueChange = { v -> model.updatePrefs { it.copy(ownedStrainsText = v) } },
-            placeholder = "Strains you already own (comma-separated)",
-            label = "Owned strains",
-            multiLine = true,
-        )
-        SWField(
-            value = prefs.medications,
-            onValueChange = { v -> model.updatePrefs { it.copy(medications = v) } },
-            placeholder = "Medications you're taking (one per line)",
-            label = "Medications",
-            multiLine = true,
-        )
-        SWField(
             value = prefs.patientNote,
             onValueChange = { v -> model.updatePrefs { it.copy(patientNote = v) } },
             placeholder = "Anything else we should know?",
             label = "Patient note",
             multiLine = true,
+        )
+
+        // Tried strains with autocomplete
+        SectionLabel(title = "Other strains I've tried", index = 6)
+        Text(
+            text = "Help Kaya understand what has and hasn't worked for you.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        StrainAutocomplete(
+            strains = triedStrainsList,
+            onStrainsChange = onTriedStrainsChange,
+        )
+
+        // Medications with autocomplete
+        SectionLabel(title = "Other medications", index = 7)
+        Text(
+            text = "We never tell you to stop a prescription — only to check with your clinician.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        MedicationAutocomplete(
+            medications = medicationsList,
+            onMedicationsChange = onMedicationsChange,
+            suggestions = savedMedicationNames,
         )
     }
 }
