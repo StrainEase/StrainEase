@@ -80,6 +80,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 /**
@@ -132,128 +133,134 @@ fun AccountView(
 
     Box(modifier = modifier.fillMaxSize()) {
         MeshBackground()
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(top = 8.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            headerRow(
-                userName = user?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Patient",
-                onDismiss = onDismiss,
-            )
-            DisplayNameCard(
-                draft = draftName,
-                onDraftChange = {
-                    draftName = it
-                    nameSaved = false
-                },
-                saving = nameSaving,
-                justSaved = nameSaved,
-                onSave = {
-                    val trimmed = draftName.trim()
-                    if (trimmed.isNotEmpty() && trimmed != user?.name.orEmpty()) {
-                        nameSaving = true
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Pinned top bar — the ModalBottomSheet's own drag handle
+            // sits above this row, so "Account settings" stays visible
+            // as the user scrolls through the cards below, mirroring
+            // the iOS sheet title that is always pinned at the top.
+            AccountSheetTopBar(onDismiss = onDismiss)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 4.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                headerRow(
+                    userName = user?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Patient",
+                )
+                DisplayNameCard(
+                    draft = draftName,
+                    onDraftChange = {
+                        draftName = it
+                        nameSaved = false
+                    },
+                    saving = nameSaving,
+                    justSaved = nameSaved,
+                    onSave = {
+                        val trimmed = draftName.trim()
+                        if (trimmed.isNotEmpty() && trimmed != user?.name.orEmpty()) {
+                            nameSaving = true
+                            scope.launch {
+                                session.updateDisplayName(trimmed)
+                                nameSaving = false
+                                nameSaved = session.errorMessage.value == null
+                            }
+                        }
+                    },
+                )
+                SavedAilmentsCard(
+                    selected = ailments,
+                    onToggle = { name ->
                         scope.launch {
-                            session.updateDisplayName(trimmed)
-                            nameSaving = false
-                            nameSaved = session.errorMessage.value == null
+                            if (ailments.any { it.equals(name, ignoreCase = true) }) {
+                                savedAilments.remove(name)
+                            } else {
+                                savedAilments.add(name)
+                            }
                         }
-                    }
-                },
-            )
-            SavedAilmentsCard(
-                selected = ailments,
-                onToggle = { name ->
-                    scope.launch {
-                        if (ailments.any { it.equals(name, ignoreCase = true) }) {
-                            savedAilments.remove(name)
-                        } else {
-                            savedAilments.add(name)
+                    },
+                    onFindFor = { names ->
+                        nav.openFind(ailments = names)
+                        onDismiss()
+                    },
+                )
+                ThcSensitivityCard(
+                    value = thcSensitivity.sensitivity,
+                    isBusy = thcSensitivity.isBusy,
+                    onSelect = { value -> scope.launch { thcSensitivity.set(value) } },
+                )
+                SavedMedicationsCard(
+                    medications = medications.map { it.name },
+                    newValue = newMed,
+                    onNewChange = { newMed = it },
+                    onAdd = {
+                        val v = newMed.trim()
+                        if (v.isNotEmpty()) {
+                            scope.launch {
+                                savedMedications.set(
+                                    medications + ai.strainease.app.data.SavedMedication(
+                                        name = v,
+                                        addedAt = System.currentTimeMillis(),
+                                    ),
+                                )
+                            }
+                            newMed = ""
                         }
-                    }
-                },
-                onFindFor = { names ->
-                    nav.openFind(ailments = names)
-                    onDismiss()
-                },
-            )
-            ThcSensitivityCard(
-                value = thcSensitivity.sensitivity,
-                isBusy = thcSensitivity.isBusy,
-                onSelect = { value -> scope.launch { thcSensitivity.set(value) } },
-            )
-            SavedMedicationsCard(
-                medications = medications.map { it.name },
-                newValue = newMed,
-                onNewChange = { newMed = it },
-                onAdd = {
-                    val v = newMed.trim()
-                    if (v.isNotEmpty()) {
+                    },
+                    onRemove = { name ->
                         scope.launch {
-                            savedMedications.set(
-                                medications + ai.strainease.app.data.SavedMedication(
-                                    name = v,
-                                    addedAt = System.currentTimeMillis(),
-                                ),
-                            )
+                            savedMedications.set(medications.filterNot { it.name == name })
                         }
-                        newMed = ""
-                    }
-                },
-                onRemove = { name ->
-                    scope.launch {
-                        savedMedications.set(medications.filterNot { it.name == name })
-                    }
-                },
-            )
-            SavedStrainsView(
-                saved = saved,
-                onOpen = onOpenStrain,
-                onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
-            )
-            NavRowCard(
-                title = "Past research",
-                subtitle = "Reopen a find or comparison",
-                icon = Icons.Filled.History,
-                onClick = {
-                    nav.openAccountDestination(AccountDestination.PastResearch)
-                },
-            )
-            NavRowCard(
-                title = "Relief history",
-                subtitle = "How strains actually went for you",
-                icon = Icons.Filled.Refresh,
-                onClick = {
-                    nav.openAccountDestination(AccountDestination.ReliefHistory)
-                },
-            )
-            NavRowCard(
-                title = "Daily check-in",
-                subtitle = "Mood, sleep, pain, and anxiety over time",
-                icon = Icons.Filled.Mood,
-                onClick = {
-                    nav.openAccountDestination(AccountDestination.DailyCheckIn)
-                },
-            )
-            ClinicianReportCard(onOpen = onOpenClinicianReport)
-            AccountInfoCard(
-                email = user?.email,
-                ageStore = ageStore,
-            )
-            ResetAgeVerificationCard(
-                onClick = { showResetConfirm = true },
-            )
-            SWPrimaryButton(
-                title = if (sessionBusy) "Signing out…" else "Sign out",
-                icon = Icons.AutoMirrored.Filled.Logout,
-                onClick = { scope.launch { session.signOut() } },
-                isBusy = sessionBusy,
-                enabled = !sessionBusy,
-                modifier = Modifier.fillMaxWidth(),
-            )
+                    },
+                )
+                SavedStrainsView(
+                    saved = saved,
+                    onOpen = onOpenStrain,
+                    onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
+                )
+                NavRowCard(
+                    title = "Past research",
+                    subtitle = "Reopen a find or comparison",
+                    icon = Icons.Filled.History,
+                    onClick = {
+                        nav.openAccountDestination(AccountDestination.PastResearch)
+                    },
+                )
+                NavRowCard(
+                    title = "Relief history",
+                    subtitle = "How strains actually went for you",
+                    icon = Icons.Filled.Refresh,
+                    onClick = {
+                        nav.openAccountDestination(AccountDestination.ReliefHistory)
+                    },
+                )
+                NavRowCard(
+                    title = "Daily check-in",
+                    subtitle = "Mood, sleep, pain, and anxiety over time",
+                    icon = Icons.Filled.Mood,
+                    onClick = {
+                        nav.openAccountDestination(AccountDestination.DailyCheckIn)
+                    },
+                )
+                ClinicianReportCard(onOpen = onOpenClinicianReport)
+                AccountInfoCard(
+                    email = user?.email,
+                    ageStore = ageStore,
+                )
+                ResetAgeVerificationCard(
+                    onClick = { showResetConfirm = true },
+                )
+                SWPrimaryButton(
+                    title = if (sessionBusy) "Signing out…" else "Sign out",
+                    icon = Icons.AutoMirrored.Filled.Logout,
+                    onClick = { scope.launch { session.signOut() } },
+                    isBusy = sessionBusy,
+                    enabled = !sessionBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 
@@ -285,46 +292,66 @@ fun AccountView(
 }
 
 /**
- * iOS-style header. "Close" pill in the top-left, "Account
- * settings" title centered, then a "SETTINGS" eyebrow pill, the
- * user's display name in big serif text, and a one-line helper.
- * The avatar circle from earlier revisions is removed; sign-out
- * is its own full-width primary button at the bottom of the
- * sheet, matching iOS.
+ * iOS-style header. "SETTINGS" eyebrow pill at the top, the user's
+ * display name in big serif text (centered, displayLarge = 40sp),
+ * and a one-line helper. The Close pill and "Account settings"
+ * title are pinned in [AccountSheetTopBar] above this header so
+ * the title is always visible while the user scrolls through the
+ * cards below, mirroring the iOS sheet.
  */
 @Composable
-private fun headerRow(
-    userName: String,
-    onDismiss: () -> Unit,
-) {
+private fun headerRow(userName: String) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Eyebrow(
+            text = "Settings",
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            ClosePillButton(onClick = onDismiss)
-            Text(
-                text = "Account settings",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp),
-            )
-        }
-        Eyebrow(text = "Settings")
+        )
         Text(
             text = userName,
-            style = StrainEaseTypography.displayMedium,
+            style = StrainEaseTypography.displayLarge.copy(
+                fontSize = 44.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Light,
+            ),
             color = MaterialTheme.colorScheme.onBackground,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
         Text(
             text = "Update how your name appears on notes you share, or sign out.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * Pinned top bar for the Account sheet. Renders the iOS-style
+ * "Close" pill on the left and the centered "Account settings"
+ * title. Sits above the scrollable column so the title stays
+ * visible while the cards scroll, matching the iOS sheet header.
+ */
+@Composable
+private fun AccountSheetTopBar(onDismiss: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+    ) {
+        ClosePillButton(onClick = onDismiss)
+        Text(
+            text = "Account settings",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 16.dp),
         )
     }
 }
