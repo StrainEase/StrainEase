@@ -302,19 +302,13 @@ fun AccountView(
 @Composable
 private fun headerRow(userName: String) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(32.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
     ) {
-        // Eyebrow pill, horizontally centered so it lines up with
-        // the big serif name below it.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            Eyebrow(text = "Settings")
-        }
+        // Eyebrow pill, left-aligned to match the big serif name.
+        Eyebrow(text = "Settings")
         Text(
             text = userName,
             style = StrainEaseTypography.displayLarge.copy(
@@ -322,14 +316,14 @@ private fun headerRow(userName: String) {
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Light,
             ),
             color = MaterialTheme.colorScheme.onBackground,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Start,
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
             text = "Update how your name appears on notes you share, or sign out.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Start,
             modifier = Modifier.fillMaxWidth(),
         )
     }

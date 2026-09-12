@@ -275,8 +275,11 @@ fun MainTabView() {
                 // No handlebar — the sheet should hug the title row
                 // and rely on the default expanded shape's rounded top
                 // corners so the sheet still reads as a floating
-                // surface rather than a flat panel.
+                // surface rather than a flat panel. The 24dp top
+                // window inset keeps the sheet's top edge clear of the
+                // status bar when fully expanded.
                 dragHandle = null,
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(top = 24.dp),
             ) {
                 ai.strainease.app.ui.account.AccountView(
                     savedAilments = savedAilments,
