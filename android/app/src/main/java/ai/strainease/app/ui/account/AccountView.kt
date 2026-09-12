@@ -36,15 +36,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,7 +67,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -216,7 +213,7 @@ fun AccountView(
                         }
                     },
                 )
-                SavedStrainsView(
+                SavedStrainsList(
                     saved = saved,
                     onOpen = onOpenStrain,
                     onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
@@ -542,7 +539,6 @@ fun SavedStrainsSheet(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -566,17 +562,31 @@ fun SavedStrainsSheet(
             onOpen = onOpen,
             onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
             compareStore = compareStore,
+            modifier = Modifier.weight(1f),
         )
     }
 }
 
-/** Saved strains list. */
+/**
+ * Vertical 2-column grid of saved strains. Rendered inside
+ * [SavedStrainsSheet] (the modal the shell's heart button
+ * opens) and inline in [AccountView]. Mirrors the iOS
+ * `SavedStrainsView` 2-column grid:
+ *
+ * - Render the saved list inside a `LazyVerticalGrid` with
+ *   two fixed columns so all favorites fit on one vertical
+ *   scroll, no paging.
+ * - Pin a small `Close` remove chip to each cell's top-right
+ *   so the user can drop a strain from Favorites without
+ *   opening the detail view first.
+ */
 @Composable
 private fun SavedStrainsList(
     saved: List<SavedStrain>,
     onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
     onRemove: (String) -> Unit,
     compareStore: CompareSelectionStore? = null,
+    modifier: Modifier = Modifier,
 ) {
     if (saved.isEmpty()) {
         SWCard {
@@ -588,115 +598,38 @@ private fun SavedStrainsList(
         }
         return
     }
-    val pages: List<List<SavedStrain>> = remember(saved) {
-        saved.chunked(6)
-    }
-    var currentPage by remember(pages.size) { mutableIntStateOf(0) }
-    val listState = rememberLazyListState()
-    SWCard {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionLabel(title = "Saved strains", index = 1)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(360.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(22.dp)),
-            ) {
-                LazyRow(
-                    contentPadding = PaddingValues(0.dp),
-                    state = listState,
-                    flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    items(items = pages, key = { it.firstOrNull()?.slug ?: it.hashCode().toString() }) { page ->
-                        SavedStrainsGrid(
-                            page = page,
-                            onOpen = onOpen,
-                            onRemove = onRemove,
-                            compareStore = compareStore,
-                            modifier = Modifier.fillParentMaxWidth(),
-                        )
-                    }
-                }
-            }
-            if (pages.size > 1) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    pages.indices.forEach { index ->
-                        val active = index == currentPage
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 4.dp)
-                                .size(7.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(
-                                    if (active) MaterialTheme.colorScheme.onSurface
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
-                                )
-                                .clickable { currentPage = index },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SavedStrainsGrid(
-    page: List<SavedStrain>,
-    onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
-    onRemove: (String) -> Unit,
-    compareStore: CompareSelectionStore?,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.padding(14.dp),
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(0.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.fillMaxWidth(),
     ) {
-        page.chunked(2).forEach { rowItems ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                rowItems.forEach { item ->
-                    Box(modifier = Modifier.weight(1f)) {
-                        StrainPoster(
-                            profile = item.toProfile(),
-                            onClick = { onOpen(item.toProfile()) },
-                            compareStore = compareStore,
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "Remove ${item.name}",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-                                .clickable { onRemove(item.slug) }
-                                .padding(4.dp)
-                                .size(18.dp),
-                        )
-                    }
-                }
-                if (rowItems.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+        items(items = saved, key = { it.slug }) { item ->
+            Box(modifier = Modifier.fillMaxWidth()) {
+                StrainPoster(
+                    profile = item.toProfile(),
+                    onClick = { onOpen(item.toProfile()) },
+                    compareStore = compareStore,
+                    compact = true,
+                    photoHeight = 90.dp,
+                )
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Remove ${item.name}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                        .clickable { onRemove(item.slug) }
+                        .padding(4.dp)
+                        .size(18.dp),
+                )
             }
         }
     }
 }
-
-@Composable
-private fun SavedStrainsView(
-    saved: List<SavedStrain>,
-    onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
-    onRemove: (String) -> Unit,
-    compareStore: CompareSelectionStore? = null,
-) = SavedStrainsList(saved, onOpen, onRemove, compareStore)
 
 /**
  * Generic row card used for the Past research / Relief
