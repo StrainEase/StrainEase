@@ -275,12 +275,12 @@ fun MainTabView() {
                 // No handlebar — the sheet should hug the title row
                 // and rely on the default expanded shape's rounded top
                 // corners so the sheet still reads as a floating
-                // surface rather than a flat panel. The 80dp top
-                // window inset pushes the Close pill row down past
-                // the status bar so the modal's top edge never reads
-                // as flush with the chrome when fully expanded.
+                // surface rather than a flat panel. windowInsets is
+                // forced to zero so the sheet's background covers the
+                // full screen with no top margin; the modal card sits
+                // on top of the background as the user scrolls.
                 dragHandle = null,
-                windowInsets = androidx.compose.foundation.layout.WindowInsets(top = 80.dp),
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
             ) {
                 ai.strainease.app.ui.account.AccountView(
                     savedAilments = savedAilments,
