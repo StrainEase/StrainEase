@@ -144,8 +144,8 @@ fun AccountView(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
-                    .padding(top = 4.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                    .padding(top = 4.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 headerRow(
                     userName = user?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Patient",
@@ -302,10 +302,10 @@ fun AccountView(
 @Composable
 private fun headerRow(userName: String) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(32.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
     ) {
         // Eyebrow pill, left-aligned to match the big serif name.
         Eyebrow(text = "Settings")
