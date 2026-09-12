@@ -272,14 +272,11 @@ fun MainTabView() {
         if (showAccount) {
             ModalBottomSheet(
                 onDismissRequest = closeAccount,
-                // Smaller handle (40dp wide, 4dp tall) so the sheet
-                // hugs the title row. iOS uses a similar slim pill.
-                dragHandle = {
-                    androidx.compose.material3.BottomSheetDefaults.DragHandle(
-                        width = 40.dp,
-                        height = 4.dp,
-                    )
-                },
+                // No handlebar — the sheet should hug the title row
+                // and rely on the default expanded shape's rounded top
+                // corners so the sheet still reads as a floating
+                // surface rather than a flat panel.
+                dragHandle = null,
             ) {
                 ai.strainease.app.ui.account.AccountView(
                     savedAilments = savedAilments,
