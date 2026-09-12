@@ -1,6 +1,7 @@
 package ai.strainease.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -77,6 +78,11 @@ fun StrainPhoto(
             .fillMaxWidth()
             .height(height)
             .clip(RoundedCornerShape(cornerRadius))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline,
+                shape = RoundedCornerShape(cornerRadius),
+            )
             .background(if (hasPrimary || hasFallback) Color.White else tint),
         contentAlignment = Alignment.Center,
     ) {

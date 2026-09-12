@@ -52,6 +52,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mood
@@ -615,16 +616,24 @@ private fun SavedStrainsList(
                     photoHeight = 90.dp,
                 )
                 Icon(
-                    imageVector = Icons.Filled.Close,
+                    imageVector = Icons.Filled.Delete,
                     contentDescription = "Remove ${item.name}",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-                        .clickable { onRemove(item.slug) }
                         .padding(4.dp)
-                        .size(18.dp),
+                        .size(24.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = CircleShape,
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                            shape = CircleShape,
+                        )
+                        .clickable { onRemove(item.slug) }
+                        .padding(4.dp),
                 )
             }
         }
