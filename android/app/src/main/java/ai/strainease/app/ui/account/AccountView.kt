@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -133,7 +134,11 @@ fun AccountView(
 
     Box(modifier = modifier.fillMaxSize()) {
         MeshBackground()
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding(),
+        ) {
             // Pinned top bar — the ModalBottomSheet's own drag handle
             // sits above this row, so "Account settings" stays visible
             // as the user scrolls through the cards below, mirroring
