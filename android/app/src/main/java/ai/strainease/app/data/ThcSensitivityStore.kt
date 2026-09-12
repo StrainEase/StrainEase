@@ -84,7 +84,7 @@ enum class ThcSensitivity(val rawValue: String) {
 
     val hint: String?
         get() = when (this) {
-            Typical -> "I don't notice THC strongly, or I'm still figuring it out."
+            Typical -> "No sensitivity line. Use the default read."
             AnxiousHighThc -> "Strong THC makes me anxious, paranoid, or jittery."
             ModerateTolerance -> "Most strains work; really strong ones still feel like a lot."
             Experienced -> "I've built up real tolerance over time."

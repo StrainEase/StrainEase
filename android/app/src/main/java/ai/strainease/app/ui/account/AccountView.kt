@@ -19,6 +19,7 @@ import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
 import ai.strainease.app.ui.components.SWCard
 import ai.strainease.app.ui.components.SWChip
+import ai.strainease.app.ui.components.SWChipWithRemove
 import ai.strainease.app.ui.components.SWFlowRow
 import ai.strainease.app.ui.components.SWPrimaryButton
 import ai.strainease.app.ui.components.SectionLabel
@@ -435,10 +436,9 @@ private fun SavedMedicationsCard(
             if (medications.isNotEmpty()) {
                 SWFlowRow {
                     medications.forEach { name ->
-                        SWChip(
+                        SWChipWithRemove(
                             title = name,
-                            selected = true,
-                            onClick = { onRemove(name) },
+                            onRemove = { onRemove(name) },
                         )
                     }
                 }
@@ -857,7 +857,7 @@ private fun ThcSensitivityCard(
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SectionLabel(title = "THC sensitivity", index = 4)
             Text(
-                text = "Calibrates the strain descriptions and recommendations Kaya writes for you. Pick the closest match, or leave it on Typical for the default read.",
+                text = "Calibrates the strain descriptions and recommendations Kaya writes for you. Pick the closest match, or leave it off for the default read.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
