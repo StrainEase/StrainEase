@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.ui.compare.CompareSelectionStore
+import ai.strainease.app.util.toTitleCase
 import ai.strainease.app.ui.components.SectionLabel
 
 /**
@@ -121,7 +122,10 @@ private fun AilmentPage(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = name,
+                // Title-Case so "Chronic pain" reads as "Chronic
+                // Pain" on the home carousel. Mirrors the
+                // iOS / web display.
+                text = name.toTitleCase(),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f),

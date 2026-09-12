@@ -6,7 +6,7 @@ import SwiftUI
 struct StrainAutocomplete: View {
     @Binding var items: [TriedStrainItem]
     @State private var draft = ""
-    @FocusState private var focused: Bool
+    @FocusState private var focused: Bool?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -66,7 +66,7 @@ struct StrainAutocomplete: View {
             }
 
             // Suggestions dropdown
-            if focused && !draft.isEmpty {
+            if focused == true && !draft.isEmpty {
                 let catalog = StrainCatalog.all
                 let matches = catalog.filter { strain in
                     strain.name.lowercased().contains(draft.lowercased()) &&
@@ -79,8 +79,8 @@ struct StrainAutocomplete: View {
                                 let item = TriedStrainItem(
                                     id: match.slug,
                                     name: match.name,
-                                    type: match.type.rawValue,
-                                    thc: match.thc,
+                                    type: match.type?.rawValue ?? "",
+                                    thc: match.thcRange ?? "",
                                     addedAt: Int(Date().timeIntervalSince1970 * 1000)
                                 )
                                 items.append(item)
@@ -91,15 +91,15 @@ struct StrainAutocomplete: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(match.name)
                                             .font(.system(size: 14, weight: .medium))
-                                        if !match.thc.isEmpty {
-                                            Text(match.thc)
+                                        if let thc = match.thcRange, !thc.isEmpty {
+                                            Text(thc)
                                                 .font(.system(size: 11))
                                                 .foregroundStyle(Palette.mutedForeground)
                                         }
                                     }
                                     Spacer()
-                                    if let type = match.type.label {
-                                        Text(type)
+                                    if let type = match.type {
+                                        Text(type.rawValue.capitalized)
                                             .font(.system(size: 11, weight: .medium))
                                             .foregroundStyle(Palette.mutedForeground)
                                     }

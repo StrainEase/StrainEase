@@ -70,6 +70,13 @@ fun TerpeneProfile(
     val card = MaterialTheme.colorScheme.surface
     val border = MaterialTheme.colorScheme.outline
     val curated = TerpeneCatalog.isCurated(terpene.name)
+    // iOS's TerpeneRow prefers the curated summary (e.g. "Earthy.
+    // Often linked with body heaviness and easier sleep.") over
+    // the wire's terse `terpene.profile` ("Earthy grape"). Mirror
+    // that here so the strain detail card and the drill-down
+    // sheet show the same one-sentence copy on both platforms.
+    val curatedProfile = if (curated) TerpeneCatalog.profileFor(terpene.name) else null
+    val displayProfile = curatedProfile?.summary ?: terpene.profile
     var showSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -112,33 +119,30 @@ fun TerpeneProfile(
             }
         }
         Text(
-            text = terpene.profile,
+            text = displayProfile,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 
-    if (showSheet && curated) {
-        val profile = TerpeneCatalog.profileFor(terpene.name)
-        if (profile != null) {
-            ModalBottomSheet(
-                onDismissRequest = { showSheet = false },
-                sheetState = sheetState,
-            ) {
-                TerpeneDetailSheet(
-                    name = terpene.name,
-                    profile = profile,
-                    familyStrains = familyStrains,
-                    familyLoading = familyLoading,
-                    onSelectStrain = { selected ->
-                        scope.launch {
-                            sheetState.hide()
-                            showSheet = false
-                            onSelectStrain(selected)
-                        }
-                    },
-                )
-            }
+    if (showSheet && curated && curatedProfile != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheet = false },
+            sheetState = sheetState,
+        ) {
+            TerpeneDetailSheet(
+                name = terpene.name,
+                profile = curatedProfile,
+                familyStrains = familyStrains,
+                familyLoading = familyLoading,
+                onSelectStrain = { selected ->
+                    scope.launch {
+                        sheetState.hide()
+                        showSheet = false
+                        onSelectStrain(selected)
+                    }
+                },
+            )
         }
     }
 }
