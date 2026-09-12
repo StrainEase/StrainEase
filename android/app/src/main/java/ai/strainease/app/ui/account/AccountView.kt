@@ -142,6 +142,7 @@ fun AccountView(
             // as the user scrolls through the cards below, mirroring
             // the iOS sheet title that is always pinned at the top.
             AccountSheetTopBar(onDismiss = onDismiss)
+            HeaderToCardsFade()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -153,7 +154,6 @@ fun AccountView(
                 headerRow(
                     userName = user?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Patient",
                 )
-                HeaderToCardsFade()
                 DisplayNameCard(
                     draft = draftName,
                     onDraftChange = {
