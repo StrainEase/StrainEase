@@ -302,8 +302,10 @@ fun AccountView(
 @Composable
 private fun headerRow(userName: String) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp),
     ) {
         // Eyebrow pill, horizontally centered so it lines up with
         // the big serif name below it.
@@ -348,7 +350,7 @@ private fun AccountSheetTopBar(onDismiss: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         // Title sits in the Box's true center; the Close pill
