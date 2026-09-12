@@ -8,7 +8,7 @@ struct MedicationAutocomplete: View {
     var suggestions: [String]
 
     @State private var draft = ""
-    @FocusState private var focused: Bool
+    @FocusState private var focused: Bool?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -67,7 +67,7 @@ struct MedicationAutocomplete: View {
             }
 
             // Suggestions dropdown
-            if focused && !draft.isEmpty {
+            if focused == true && !draft.isEmpty {
                 let matches = suggestions.filter { suggestion in
                     suggestion.lowercased().contains(draft.lowercased()) &&
                     !items.contains(where: { $0.lowercased() == suggestion.lowercased() })

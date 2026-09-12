@@ -23,6 +23,7 @@
 		3F4C5061E4FF22A66C740A32 /* CheckInStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF8EFFDC89F63169E936880 /* CheckInStoreTests.swift */; };
 		407BD5F6A05F5793D8267D31 /* DoctorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C2507C3625C8F13CD229C5 /* DoctorModels.swift */; };
 		40F78819BDD6644E28554D04 /* DoctorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6D390C809E908B60291D9F /* DoctorsView.swift */; };
+		41C0A36F61D696CCF421E5CB /* StrainAutocomplete.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A40096AFEA3E0711AF57C1 /* StrainAutocomplete.swift */; };
 		450F165B97AFC13929E28A22 /* AgeVerificationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3242DCEB248AF1EB03D7D260 /* AgeVerificationStore.swift */; };
 		45CA673B1D2B8E90BD9C7188 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = B753437C0905F74D8A03BC81 /* FirebaseFunctions */; };
 		4D866D88C1EF8C772EC1BA25 /* ThcSensitivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F755BD7ED4FB46A6A725EB3 /* ThcSensitivityStore.swift */; };
@@ -46,6 +47,7 @@
 		7A322B759D93F9D1C6613BC7 /* StrainEaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7D82D46B66A8ADA43EB1AC /* StrainEaseApp.swift */; };
 		7A8309E8EA8D0E2364DEB179 /* StrainGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BDF10B70191C0BD228EBA60 /* StrainGridView.swift */; };
 		7F2E1EE47981663282EA6C9B /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F47622037366802A741794 /* AppNavigation.swift */; };
+		812D273050572644E2724C31 /* TriedStrainsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9D166D4A6C6F4941E54105 /* TriedStrainsStore.swift */; };
 		81A40AD53D72F540C5802A81 /* TriedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 800987791E1F518D554E62E9 /* TriedNotesView.swift */; };
 		83AA03F3CD07EA1470D50114 /* SavedAilmentsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FBA9F2DA24E3238FC0120D8 /* SavedAilmentsCard.swift */; };
 		83EA73A892B8C6B26CEECC0A /* RedditThreadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65979D7D0365186077E51DD4 /* RedditThreadsView.swift */; };
@@ -79,6 +81,7 @@
 		C871DAE6896A49E335358ABD /* ShopLinksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9260DE0FFE6267E937E1A /* ShopLinksView.swift */; };
 		CACD61394A1D12B8E66DD4F9 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 235892787F55F043A14105B9 /* LocationProvider.swift */; };
 		CD71D52017BF06CD200BFA9B /* FirebaseBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8580E65316184FC977EA342 /* FirebaseBootstrap.swift */; };
+		D46E86CE15254307DE871520 /* MedicationAutocomplete.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BCF4A1E87785264925E5E30 /* MedicationAutocomplete.swift */; };
 		D4C65477D64D159898BD24BC /* NoteBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECF081715875F995ACA498B /* NoteBadge.swift */; };
 		D629DC6D9D838391DF72179E /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE93586BFFA074DBB0966BEC /* SplashScreenView.swift */; };
 		E44B53DC77F5FC62D2A195D4 /* HomeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A078B2554B7AADEFFC69D19 /* HomeModel.swift */; };
@@ -108,6 +111,7 @@
 		0A7D82D46B66A8ADA43EB1AC /* StrainEaseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainEaseApp.swift; sourceTree = "<group>"; };
 		142F451C0248D840607AB587 /* ReasoningTraceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReasoningTraceView.swift; sourceTree = "<group>"; };
 		1B081DF2959AB0E179292722 /* TerpeneDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerpeneDetailView.swift; sourceTree = "<group>"; };
+		1BCF4A1E87785264925E5E30 /* MedicationAutocomplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationAutocomplete.swift; sourceTree = "<group>"; };
 		1ECF081715875F995ACA498B /* NoteBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteBadge.swift; sourceTree = "<group>"; };
 		1EF8EFFDC89F63169E936880 /* CheckInStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInStoreTests.swift; sourceTree = "<group>"; };
 		215718860397BD1269E5C6E6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -141,6 +145,7 @@
 		6F710CFE2D5AF753EC289EA2 /* DirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryView.swift; sourceTree = "<group>"; };
 		719373E37B4F3B019CF5EE80 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		741F33CF63DBBAD6CFBB9D15 /* DoctorsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorsModel.swift; sourceTree = "<group>"; };
+		75A40096AFEA3E0711AF57C1 /* StrainAutocomplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainAutocomplete.swift; sourceTree = "<group>"; };
 		7654C7DB91529B0072BA52A8 /* StrainEaseTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StrainEaseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		768082826A2B68D9AC1CD490 /* CompareToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareToggleButton.swift; sourceTree = "<group>"; };
 		7819115AFCD2DD9763440358 /* StrainMeaning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainMeaning.swift; sourceTree = "<group>"; };
@@ -186,6 +191,7 @@
 		F5B020FE53FDE8A2FB99CDFB /* CompareSelectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareSelectionStore.swift; sourceTree = "<group>"; };
 		F950618134AAA21910D868E7 /* ReliefLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliefLogStore.swift; sourceTree = "<group>"; };
 		F9F47FC9A29B772C77E176A3 /* StrainEaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainEaseTests.swift; sourceTree = "<group>"; };
+		FE9D166D4A6C6F4941E54105 /* TriedStrainsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedStrainsStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -240,6 +246,7 @@
 				B2E8C71C6D08BA5C1AE863F4 /* StrainAPI.swift */,
 				06951EF18E159E99848A0CCB /* StrainImageCache.swift */,
 				5F755BD7ED4FB46A6A725EB3 /* ThcSensitivityStore.swift */,
+				FE9D166D4A6C6F4941E54105 /* TriedStrainsStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -311,6 +318,8 @@
 			children = (
 				81E75551C008AEA069E59362 /* FindModel.swift */,
 				E47E2787F643CB812402CC1B /* FindView.swift */,
+				1BCF4A1E87785264925E5E30 /* MedicationAutocomplete.swift */,
+				75A40096AFEA3E0711AF57C1 /* StrainAutocomplete.swift */,
 			);
 			path = Find;
 			sourceTree = "<group>";
@@ -556,6 +565,7 @@
 				B4420F253D641CC17E6A7301 /* HomeView.swift in Sources */,
 				CACD61394A1D12B8E66DD4F9 /* LocationProvider.swift in Sources */,
 				3F0381DB4D6020781EA68899 /* MainTabView.swift in Sources */,
+				D46E86CE15254307DE871520 /* MedicationAutocomplete.swift in Sources */,
 				33A734AB97EAAF307F80626D /* MeshBackground.swift in Sources */,
 				D4C65477D64D159898BD24BC /* NoteBadge.swift in Sources */,
 				4DCAF1ABD8695FB588743763 /* Palette.swift in Sources */,
@@ -581,6 +591,7 @@
 				EF79B8B38CFF3FF648DD7135 /* SignInView.swift in Sources */,
 				D629DC6D9D838391DF72179E /* SplashScreenView.swift in Sources */,
 				988C243EA2833F9D93C99BDC /* StrainAPI.swift in Sources */,
+				41C0A36F61D696CCF421E5CB /* StrainAutocomplete.swift in Sources */,
 				3B1B0455CF4A02409D06013E /* StrainCatalog.swift in Sources */,
 				53245EDF4EFA59E577A6A2C5 /* StrainDetailView.swift in Sources */,
 				7A322B759D93F9D1C6613BC7 /* StrainEaseApp.swift in Sources */,
@@ -595,6 +606,7 @@
 				AE0F27115EC032E0238515AA /* ThcSensitivityCard.swift in Sources */,
 				4D866D88C1EF8C772EC1BA25 /* ThcSensitivityStore.swift in Sources */,
 				81A40AD53D72F540C5802A81 /* TriedNotesView.swift in Sources */,
+				812D273050572644E2724C31 /* TriedStrainsStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
