@@ -1,5 +1,29 @@
 package ai.strainease.app.ui.account
 
+import ai.strainease.app.app.AccountDestination
+import ai.strainease.app.app.LocalAppNavigation
+import ai.strainease.app.auth.LocalAuthSession
+import ai.strainease.app.compliance.AgeVerificationStore
+import ai.strainease.app.data.ReliefLogStore
+import ai.strainease.app.data.CheckInStore
+import ai.strainease.app.data.SavedAilmentsStore
+import ai.strainease.app.data.SavedMedicationsStore
+import ai.strainease.app.data.SavedStrain
+import ai.strainease.app.data.SavedStrainsStore
+import ai.strainease.app.data.ThcSensitivity
+import ai.strainease.app.data.ThcSensitivityStore
+import ai.strainease.app.models.Conditions
+import ai.strainease.app.ui.checkin.CheckInPanel
+import ai.strainease.app.ui.compare.CompareSelectionStore
+import ai.strainease.app.ui.components.Eyebrow
+import ai.strainease.app.ui.components.MeshBackground
+import ai.strainease.app.ui.components.SWCard
+import ai.strainease.app.ui.components.SWChip
+import ai.strainease.app.ui.components.SWFlowRow
+import ai.strainease.app.ui.components.SWPrimaryButton
+import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.home.StrainPoster
+import ai.strainease.app.ui.theme.StrainEaseTypography
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,13 +48,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -40,51 +67,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ai.strainease.app.app.LocalAppNavigation
-import ai.strainease.app.auth.LocalAuthSession
-import ai.strainease.app.compliance.AgeVerificationStore
-import ai.strainease.app.data.ReliefLog
-import ai.strainease.app.data.ReliefLogStore
-import ai.strainease.app.data.CheckInStore
-import ai.strainease.app.ui.checkin.CheckInPanel
-import ai.strainease.app.data.SavedAilmentsStore
-import ai.strainease.app.data.SavedMedicationsStore
-import ai.strainease.app.data.ThcSensitivity
-import ai.strainease.app.data.ThcSensitivityStore
-import ai.strainease.app.data.SavedStrain
-import ai.strainease.app.data.SavedStrainsStore
-import ai.strainease.app.models.Conditions
-import ai.strainease.app.ui.components.Eyebrow
-import ai.strainease.app.ui.components.MeshBackground
-import ai.strainease.app.ui.components.SWCard
-import ai.strainease.app.ui.components.SWChip
-import ai.strainease.app.ui.components.SWErrorBanner
-import ai.strainease.app.ui.components.SWFlowRow
-import ai.strainease.app.ui.components.SWPrimaryButton
-import ai.strainease.app.ui.components.SectionLabel
-import ai.strainease.app.ui.components.TypeBadge
-import ai.strainease.app.ui.compare.CompareSelectionStore
-import ai.strainease.app.ui.home.StrainPoster
-import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.launch
 
 /**
- * Account / Settings sheet. 1:1 port of the iOS
- * `AccountView`. Shows the user's display name, a sign-out
- * button, the saved ailments editor, the saved medications
- * editor, the saved strains list, the relief log history,
- * and the compliance footer with the "Reset age
- * verification" action.
+ * Account / Settings sheet. Mirrors the iOS `AccountView.swift`
+ * layout end-to-end: a "SETTINGS" eyebrow, the user's display
+ * name in big serif text, a sign-out caption, and then a vertical
+ * stack of settings cards ordered exactly like iOS — Display
+ * name, Ailments (chip grid from [Conditions.catalog]), THC
+ * sensitivity, Medications, then three row cards (Past research,
+ * Relief history, Daily check-in) that open dedicated sub-pages,
+ * then the Clinician report row, the Account info card, the
+ * Reset age verification row, and finally a full-width green
+ * Sign out button at the bottom.
  */
 @Composable
 fun AccountView(
@@ -102,22 +109,17 @@ fun AccountView(
 ) {
     val session = LocalAuthSession.current
     val user = session.user
+    val sessionBusy by session.isBusy.collectAsState()
     val nav = LocalAppNavigation.current
     val scope = rememberCoroutineScope()
     val ailments by savedAilments.ailmentsFlow.collectAsState(initial = emptyList())
     val medications by savedMedications.medicationsFlow.collectAsState(initial = emptyList())
     val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
-    val log by relief.logFlow.collectAsState(initial = emptyList())
-    var newAilment by remember { mutableStateOf("") }
     var newMed by remember { mutableStateOf("") }
-    // Display name editor state. Mirrors the iOS AccountView's
-    // `displayName` block: text field bound to a draft, save
-    // action calls AuthSession.updateDisplayName, and a one-shot
-    // "Display name updated." confirmation surfaces after a
-    // successful save.
     var draftName by remember(user?.name) { mutableStateOf(user?.name.orEmpty()) }
     var nameSaved by remember { mutableStateOf(false) }
     var nameSaving by remember { mutableStateOf(false) }
+    var showResetConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         savedAilments.refresh()
@@ -133,15 +135,14 @@ fun AccountView(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp)
+                .padding(top = 8.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            headerRow(user?.name ?: "Patient", onDismiss = onDismiss, onSignOut = { session.signOut() })
-            // Display name editor — matches the iOS AccountView's
-            // `displayName` SWCard so the user can rename themselves
-            // without leaving the settings sheet. iOS shows the
-            // field as a TextField in a tinted rounded rect; we use
-            // OutlinedTextField for a Material 3 look.
+            headerRow(
+                userName = user?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Patient",
+                onDismiss = onDismiss,
+            )
             DisplayNameCard(
                 draft = draftName,
                 onDraftChange = {
@@ -157,27 +158,31 @@ fun AccountView(
                         scope.launch {
                             session.updateDisplayName(trimmed)
                             nameSaving = false
-                            nameSaved = session.errorMessage == null
+                            nameSaved = session.errorMessage.value == null
                         }
                     }
                 },
             )
             SavedAilmentsCard(
-                ailments = ailments,
-                newValue = newAilment,
-                onNewChange = { newAilment = it },
-                onAdd = {
-                    val v = newAilment.trim()
-                    if (v.isNotEmpty()) {
-                        scope.launch { savedAilments.add(v) }
-                        newAilment = ""
+                selected = ailments,
+                onToggle = { name ->
+                    scope.launch {
+                        if (ailments.any { it.equals(name, ignoreCase = true) }) {
+                            savedAilments.remove(name)
+                        } else {
+                            savedAilments.add(name)
+                        }
                     }
                 },
-                onRemove = { name -> scope.launch { savedAilments.remove(name) } },
                 onFindFor = { names ->
                     nav.openFind(ailments = names)
                     onDismiss()
                 },
+            )
+            ThcSensitivityCard(
+                value = thcSensitivity.sensitivity,
+                isBusy = thcSensitivity.isBusy,
+                onSelect = { value -> scope.launch { thcSensitivity.set(value) } },
             )
             SavedMedicationsCard(
                 medications = medications.map { it.name },
@@ -203,175 +208,214 @@ fun AccountView(
                     }
                 },
             )
-            ThcSensitivityCard(
-                value = thcSensitivity.sensitivity,
-                isBusy = thcSensitivity.isBusy,
-                onSelect = { value -> scope.launch { thcSensitivity.set(value) } },
-            )
             SavedStrainsView(
                 saved = saved,
                 onOpen = onOpenStrain,
                 onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
             )
-            SWCard {
-                CheckInPanel(store = checkIns, compact = true)
-            }
-            ReliefHistoryView(log = log)
+            NavRowCard(
+                title = "Past research",
+                subtitle = "Reopen a find or comparison",
+                icon = Icons.Filled.History,
+                onClick = {
+                    nav.openAccountDestination(AccountDestination.PastResearch)
+                },
+            )
+            NavRowCard(
+                title = "Relief history",
+                subtitle = "How strains actually went for you",
+                icon = Icons.Filled.Refresh,
+                onClick = {
+                    nav.openAccountDestination(AccountDestination.ReliefHistory)
+                },
+            )
+            NavRowCard(
+                title = "Daily check-in",
+                subtitle = "Mood, sleep, pain, and anxiety over time",
+                icon = Icons.Filled.Mood,
+                onClick = {
+                    nav.openAccountDestination(AccountDestination.DailyCheckIn)
+                },
+            )
             ClinicianReportCard(onOpen = onOpenClinicianReport)
-            // Account info card — email + account type + age
-            // verification status, matching the iOS AccountView's
-            // "Email / Account / Age verified" SWCard. iOS shows
-            // these as labeled rows; the Android side uses the
-            // same SWCard + SectionLabel + label-row pattern as
-            // the other settings cards so the three platforms
-            // read identically.
             AccountInfoCard(
                 email = user?.email,
                 ageStore = ageStore,
             )
-            ComplianceFooter(
-                ageStore = ageStore,
-                onReset = { scope.launch { ageStore.reset() } },
+            ResetAgeVerificationCard(
+                onClick = { showResetConfirm = true },
+            )
+            SWPrimaryButton(
+                title = if (sessionBusy) "Signing out…" else "Sign out",
+                icon = Icons.AutoMirrored.Filled.Logout,
+                onClick = { scope.launch { session.signOut() } },
+                isBusy = sessionBusy,
+                enabled = !sessionBusy,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
+
+    if (showResetConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = { Text("Reset age verification?") },
+            text = {
+                Text("The next user of this device will need to verify their own date of birth.")
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showResetConfirm = false
+                    scope.launch {
+                        ageStore.reset()
+                        onDismiss()
+                    }
+                }) {
+                    Text("Reset")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showResetConfirm = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 }
 
+/**
+ * iOS-style header. "Close" pill in the top-left, "Account
+ * settings" title centered, then a "SETTINGS" eyebrow pill, the
+ * user's display name in big serif text, and a one-line helper.
+ * The avatar circle from earlier revisions is removed; sign-out
+ * is its own full-width primary button at the bottom of the
+ * sheet, matching iOS.
+ */
 @Composable
 private fun headerRow(
-    name: String,
+    userName: String,
     onDismiss: () -> Unit,
-    onSignOut: () -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-            contentAlignment = Alignment.Center,
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
         ) {
+            ClosePillButton(onClick = onDismiss)
             Text(
-                text = initials(name),
-                style = StrainEaseTypography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                text = "Account settings",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp),
             )
         }
-        Spacer(Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "Account",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Eyebrow(text = "Settings")
         Text(
-            text = "Sign out",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .clickable(onClick = onSignOut)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+            text = userName,
+            style = StrainEaseTypography.displayMedium,
+            color = MaterialTheme.colorScheme.onBackground,
         )
-        Spacer(Modifier.size(8.dp))
+        Text(
+            text = "Update how your name appears on notes you share, or sign out.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun ClosePillButton(onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    ) {
         Icon(
             imageVector = Icons.Filled.Close,
-            contentDescription = "Close",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .clip(CircleShape)
-                .clickable(onClick = onDismiss)
-                .padding(8.dp),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp),
+        )
+        Text(
+            text = "Close",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
 
-private fun initials(name: String): String {
-    val parts = name.trim().split(" ").filter { it.isNotEmpty() }
-    return when {
-        parts.isEmpty() -> "·"
-        parts.size == 1 -> parts[0].take(2).uppercase()
-        else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
-    }
-}
-
-/** Saved ailments editor. */
+/**
+ * Saved ailments editor. Mirrors the iOS `SavedAilmentsCard`
+ * exactly: a chip grid sourced from [Conditions.catalog], no
+ * free-text input. Tapping a chip toggles its saved state; the
+ * "Find for these" button at the bottom pushes the same ailments
+ * list into the Find tab via `AppNavigation.openFind`.
+ */
 @Composable
 private fun SavedAilmentsCard(
-    ailments: List<String>,
-    newValue: String,
-    onNewChange: (String) -> Unit,
-    onAdd: () -> Unit,
-    onRemove: (String) -> Unit,
+    selected: List<String>,
+    onToggle: (String) -> Unit,
     onFindFor: (List<String>) -> Unit,
 ) {
+    val selectedSet = remember(selected) { selected.map { it.lowercase() }.toSet() }
     SWCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionLabel(title = "Your symptoms", index = 1)
-            Text(
-                text = "What we should treat first. Used to pick the strains in the Home rails.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (ailments.isNotEmpty()) {
-                SWFlowRow {
-                    ailments.forEach { name ->
-                        SWChip(
-                            title = name,
-                            selected = true,
-                            onClick = { onRemove(name) },
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = "No symptoms saved yet. The Home rails fall back to the general catalog.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = newValue,
-                    onValueChange = onNewChange,
-                    placeholder = { Text("Add a symptom") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(50),
-                    colors = fieldColors(),
+            Row(verticalAlignment = Alignment.Top) {
+                Column(
                     modifier = Modifier.weight(1f),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .clickable(onClick = onAdd),
-                    contentAlignment = Alignment.Center,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Add",
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                    SectionLabel(title = "Your ailments")
+                    Text(
+                        text = "Saved so Find and Home can jump back to them.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (selected.isNotEmpty()) {
+                    Text(
+                        text = "Find for these",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable { onFindFor(selected) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                     )
                 }
             }
-            if (ailments.isNotEmpty()) {
-                SWPrimaryButton(
-                    title = "Find for these",
-                    onClick = { onFindFor(ailments) },
-                )
+            SWFlowRow {
+                Conditions.catalog.forEach { name ->
+                    val isSelected = selectedSet.contains(name.lowercase())
+                    SWChip(
+                        title = name,
+                        selected = isSelected,
+                        onClick = { onToggle(name) },
+                    )
+                }
             }
         }
     }
 }
 
-/** Saved medications editor. */
+/**
+ * Saved medications editor. Free-text add + chip list with
+ * per-chip remove. The iOS counterpart uses an autocomplete
+ * against the FDA label corpus; on Android we keep the simple
+ * add field for now (the autocomplete widget from PR #260
+ * already lives in `ui/components/MedicationAutocomplete.kt`
+ * and is available as a drop-in replacement in a follow-up).
+ */
 @Composable
 private fun SavedMedicationsCard(
     medications: List<String>,
@@ -382,7 +426,7 @@ private fun SavedMedicationsCard(
 ) {
     SWCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionLabel(title = "Medications", index = 2)
+            SectionLabel(title = "Medications", index = 3)
             Text(
                 text = "Helps the AI callables warn about interactions, never auto-recommends stopping a prescription.",
                 style = MaterialTheme.typography.bodySmall,
@@ -405,7 +449,10 @@ private fun SavedMedicationsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 OutlinedTextField(
                     value = newValue,
                     onValueChange = onNewChange,
@@ -437,10 +484,7 @@ private fun SavedMedicationsCard(
 /**
  * Public Saved Strains sheet. Direct port of the iOS
  * `SavedStrainsView` sheet (the iOS app pops it from the
- * home toolbar heart). The Android app already had the same
- * content inlined in [AccountView] as a private composable;
- * this version is the standalone "favorites only" sheet that
- * the shell's heart button now targets.
+ * home toolbar heart).
  */
 @Composable
 fun SavedStrainsSheet(
@@ -460,9 +504,7 @@ fun SavedStrainsSheet(
             .padding(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        androidx.compose.foundation.layout.Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "Saved strains",
                 style = MaterialTheme.typography.titleLarge,
@@ -504,11 +546,6 @@ private fun SavedStrainsList(
         }
         return
     }
-    // Group the saved strains into pages of 6 and render each
-    // page as a 2-column x 3-row grid of StrainPosters. The
-    // whole carousel snaps page-to-page so a fling commits to
-    // the nearest page instead of stopping mid-grid, matching
-    // the AilmentCarousel "For your symptoms" UX.
     val pages: List<List<SavedStrain>> = remember(saved) {
         saved.chunked(6)
     }
@@ -531,7 +568,7 @@ private fun SavedStrainsList(
                     flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    items(items = pages, key = { it.firstOrNull()?.slug ?: it }) { page ->
+                    items(items = pages, key = { it.firstOrNull()?.slug ?: it.hashCode().toString() }) { page ->
                         SavedStrainsGrid(
                             page = page,
                             onOpen = onOpen,
@@ -568,10 +605,6 @@ private fun SavedStrainsList(
     }
 }
 
-/** One page of the saved-strains 2x3 grid: 3 rows of 2
- *  StrainPosters, plus a long-press remove chip in the
- *  top-right of each cell so the user can drop a strain
- *  without leaving the sheet. */
 @Composable
 private fun SavedStrainsGrid(
     page: List<SavedStrain>,
@@ -593,10 +626,6 @@ private fun SavedStrainsGrid(
                             onClick = { onOpen(item.toProfile()) },
                             compareStore = compareStore,
                         )
-                        // Small remove chip pinned to the poster's
-                        // top-right so the user can drop a strain
-                        // from the saved list without opening the
-                        // detail view first.
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = "Remove ${item.name}",
@@ -611,9 +640,6 @@ private fun SavedStrainsGrid(
                         )
                     }
                 }
-                // Pad the trailing slot when the row has only one
-                // item so the lone poster still spans the half
-                // width and the grid lines up.
                 if (rowItems.size == 1) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -622,8 +648,6 @@ private fun SavedStrainsGrid(
     }
 }
 
-/** Backwards-compatible private alias for the inlined
- *  card inside [AccountView]. */
 @Composable
 private fun SavedStrainsView(
     saved: List<SavedStrain>,
@@ -632,51 +656,65 @@ private fun SavedStrainsView(
     compareStore: CompareSelectionStore? = null,
 ) = SavedStrainsList(saved, onOpen, onRemove, compareStore)
 
-/** Relief log history. */
+/**
+ * Generic row card used for the Past research / Relief
+ * history / Daily check-in / Clinician report / Reset age
+ * destinations. Mirrors the iOS `NavigationLink { SWCard {
+ * HStack { ... chevron.right } } }` pattern in
+ * `AccountView.swift`.
+ */
 @Composable
-private fun ReliefHistoryView(log: List<ReliefLog>) {
-    if (log.isEmpty()) return
-    SWCard {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionLabel(title = "Relief log", index = 4)
-            log.takeLast(5).reversed().forEach { entry ->
-                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                            .padding(top = 6.dp),
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = entry.strainName,
-                            style = StrainEaseTypography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = entry.notes,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Text(
-                        text = "★".repeat(entry.rating),
-                        style = StrainEaseTypography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+private fun NavRowCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector? = null,
+    trailingIcon: ImageVector? = Icons.Filled.ChevronRight,
+    onClick: () -> Unit,
+) {
+    SWCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            if (trailingIcon != null) {
+                Icon(
+                    imageVector = trailingIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
     }
 }
 
 /** Display name editor. Mirrors the iOS AccountView's
- *  `displayName` block so the user can rename themselves without
- *  leaving the settings sheet. iOS uses a tinted rounded-rect
- *  TextField; we use Material 3 OutlinedTextField. The save
- *  button only fires when the trimmed draft differs from the
- *  current name and is non-empty, mirroring iOS. */
+ *  `displayName` block so the user can rename themselves
+ *  without leaving the settings sheet. */
 @Composable
 private fun DisplayNameCard(
     draft: String,
@@ -721,11 +759,7 @@ private fun DisplayNameCard(
     }
 }
 
-/** Account info card. Mirrors the iOS AccountView's
- *  "Email / Account / Age verified" SWCard. Shows the
- *  signed-in email, the account type line, and the age
- *  verification region + minimum age (or "Not on this
- *  device" if the user hasn't verified). */
+/** Account info card. Email / Account / Age verified. */
 @Composable
 private fun AccountInfoCard(
     email: String?,
@@ -768,29 +802,21 @@ private fun LabeledRow(label: String, value: String) {
     }
 }
 
-/** Compliance footer. */
+/**
+ * Reset age verification row. Mirrors the iOS
+ * "Reset age verification" NavigationLink-style card with the
+ * "Use this on a shared device between users." subtitle and
+ * the chevron-right trailing icon.
+ */
 @Composable
-private fun ComplianceFooter(
-    ageStore: AgeVerificationStore,
-    onReset: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Eyebrow(text = "Compliance")
-        Text(
-            text = "StrainEase is a research tool. It does not sell or dispense cannabis products. Verification expires every 30 days.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = "Reset age verification",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .clickable(onClick = onReset)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-        )
-    }
+private fun ResetAgeVerificationCard(onClick: () -> Unit) {
+    NavRowCard(
+        title = "Reset age verification",
+        subtitle = "Use this on a shared device between users.",
+        icon = null,
+        trailingIcon = Icons.Filled.ChevronRight,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -807,50 +833,20 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
 /**
  * Entry point on the Account sheet for the Clinician Report PDF.
  * Tapping the card dismisses the account sheet and opens the
- * dedicated report screen (which builds the PDF on the server and
- * hands it to the system PDF viewer). Mirrors the iOS
- * `ClinicianReportView` NavigationLink in `AccountView.swift`.
+ * dedicated report screen.
  */
 @Composable
 private fun ClinicianReportCard(onOpen: () -> Unit) {
-    SWCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            androidx.compose.foundation.layout.Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = "Clinician report",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "A one-page PDF for your doctor",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = Icons.Filled.Description,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Icon(
-                imageVector = Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+    NavRowCard(
+        title = "Clinician report",
+        subtitle = "A one-page PDF for your doctor",
+        icon = Icons.Filled.Description,
+        trailingIcon = Icons.Filled.ChevronRight,
+        onClick = onOpen,
+    )
 }
 
-/** THC sensitivity picker. Mirrors the iOS `ThcSensitivityCard`
- *  and the web `AccountSettingsDialog` chip row, so the same pick
- *  in any client survives a round-trip through `users/{uid}`. */
+/** THC sensitivity picker. */
 @Composable
 private fun ThcSensitivityCard(
     value: ThcSensitivity,

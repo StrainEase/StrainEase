@@ -313,6 +313,41 @@ fun MainTabView() {
                 )
             }
         }
+
+        // Account sub-page sheets. The Account sheet's row cards
+        // (Past research / Relief history / Daily check-in) write
+        // `nav.accountDestination`, which we observe here and
+        // surface as a sibling ModalBottomSheet so the user can
+        // drill into the destination without leaving the app
+        // shell. Tapping Back clears the destination and the
+        // Account sheet stays open.
+        val destination = nav.accountDestination
+        if (showAccount && destination != null) {
+            ModalBottomSheet(
+                onDismissRequest = { nav.consumeAccountDestination() },
+            ) {
+                when (destination) {
+                    AccountDestination.PastResearch -> {
+                        ai.strainease.app.ui.account.ResearchHistoryView(
+                            history = researchHistory,
+                            onBack = { nav.consumeAccountDestination() },
+                        )
+                    }
+                    AccountDestination.ReliefHistory -> {
+                        ai.strainease.app.ui.account.ReliefHistoryScreen(
+                            store = relief,
+                            onBack = { nav.consumeAccountDestination() },
+                        )
+                    }
+                    AccountDestination.DailyCheckIn -> {
+                        ai.strainease.app.ui.account.DailyCheckInScreen(
+                            store = checkIns,
+                            onBack = { nav.consumeAccountDestination() },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

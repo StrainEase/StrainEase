@@ -45,9 +45,22 @@ sealed class RestoredResearch {
 }
 
 /**
+ * Account sheet sub-destinations reached from the row cards
+ * on the Account sheet. Mirrors the iOS `NavigationLink`
+ * destinations in `AccountView.swift` (Past research, Relief
+ * history, Daily check-in).
+ */
+enum class AccountDestination {
+    PastResearch,
+    ReliefHistory,
+    DailyCheckIn,
+}
+
+/**
  * Process-wide navigation state. 1:1 port of the iOS
  * `AppNavigation.swift` Observable. Holds the current tab, the
- * account / saved sheets, and the cross-tab handoff payload.
+ * account / saved sheets, the account sub-destinations, and
+ * the cross-tab handoff payload.
  *
  * Cross-tab handoffs:
  *  - [pendingStrain] — Home observes this and pushes the strain
@@ -64,6 +77,7 @@ class AppNavigation {
     var tab: AppTab = AppTab.Home
     var showAccount: Boolean = false
     var showSaved: Boolean = false
+    var accountDestination: AccountDestination? = null
     var pendingStrain: StrainProfile? = null
     var pendingFindAilments: List<String> = emptyList()
     var pendingResearch: RestoredResearch? = null
@@ -76,16 +90,28 @@ class AppNavigation {
         showAccount = true
     }
 
+    fun openAccountDestination(destination: AccountDestination) {
+        accountDestination = destination
+    }
+
     fun openFind(ailments: List<String>) {
         pendingFindAilments = ailments
         showAccount = false
+        accountDestination = null
         tab = AppTab.Find
     }
 
     fun openResearch(research: RestoredResearch) {
         pendingResearch = research
         showAccount = false
+        accountDestination = null
         tab = AppTab.Find
+    }
+
+    fun consumeAccountDestination(): AccountDestination? {
+        val next = accountDestination
+        accountDestination = null
+        return next
     }
 
     fun consumeFindAilments(): List<String> {
