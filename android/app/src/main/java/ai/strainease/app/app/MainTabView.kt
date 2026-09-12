@@ -272,6 +272,17 @@ fun MainTabView() {
         if (showAccount) {
             ModalBottomSheet(
                 onDismissRequest = closeAccount,
+                // No handlebar — the sheet should hug the title row
+                // and rely on the default expanded shape's rounded top
+                // corners so the sheet still reads as a floating
+                // surface rather than a flat panel. The sheet's own
+                // container is transparent so the dim scrim + the
+                // MeshBackground gradient inside AccountView read as
+                // a single continuous frosted background with no hard
+                // line where the pinned top bar meets the rest.
+                dragHandle = null,
+                containerColor = Color.Transparent,
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
             ) {
                 ai.strainease.app.ui.account.AccountView(
                     savedAilments = savedAilments,
@@ -311,6 +322,41 @@ fun MainTabView() {
                 ai.strainease.app.ui.report.ClinicianReportScreen(
                     onDismiss = closeReport,
                 )
+            }
+        }
+
+        // Account sub-page sheets. The Account sheet's row cards
+        // (Past research / Relief history / Daily check-in) write
+        // `nav.accountDestination`, which we observe here and
+        // surface as a sibling ModalBottomSheet so the user can
+        // drill into the destination without leaving the app
+        // shell. Tapping Back clears the destination and the
+        // Account sheet stays open.
+        val destination = nav.accountDestination
+        if (showAccount && destination != null) {
+            ModalBottomSheet(
+                onDismissRequest = { nav.consumeAccountDestination() },
+            ) {
+                when (destination) {
+                    AccountDestination.PastResearch -> {
+                        ai.strainease.app.ui.account.ResearchHistoryView(
+                            history = researchHistory,
+                            onBack = { nav.consumeAccountDestination() },
+                        )
+                    }
+                    AccountDestination.ReliefHistory -> {
+                        ai.strainease.app.ui.account.ReliefHistoryScreen(
+                            store = relief,
+                            onBack = { nav.consumeAccountDestination() },
+                        )
+                    }
+                    AccountDestination.DailyCheckIn -> {
+                        ai.strainease.app.ui.account.DailyCheckInScreen(
+                            store = checkIns,
+                            onBack = { nav.consumeAccountDestination() },
+                        )
+                    }
+                }
             }
         }
     }
