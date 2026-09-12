@@ -305,6 +305,15 @@ fun MainTabView() {
         if (showSaved) {
             ModalBottomSheet(
                 onDismissRequest = closeSaved,
+                // Match the Account sheet chrome: no handlebar, transparent
+                // container, and zero window insets so SavedStrainsSheet's
+                // own pinned top bar reads as the sheet's header. Mirrors
+                // the iOS `NavigationStack { SavedStrainsView(showsClose:)
+                // }` sheet, where the title is pinned by SwiftUI's
+                // navigation chrome.
+                dragHandle = null,
+                containerColor = Color.Transparent,
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
             ) {
                 ai.strainease.app.ui.account.SavedStrainsSheet(
                     savedStrains = savedStrains,

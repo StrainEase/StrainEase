@@ -536,34 +536,58 @@ fun SavedStrainsSheet(
     val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { savedStrains.refresh() }
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Saved strains",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f),
+    Box(modifier = modifier.fillMaxSize()) {
+        MeshBackground()
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Pinned top bar — mirrors AccountSheetTopBar so the
+            // "Saved strains" title and Close pill stay visible as
+            // the user scrolls the grid below, matching the iOS
+            // sheet where SwiftUI pins the navigation title.
+            SavedStrainsSheetTopBar(onDismiss = onDismiss)
+            SavedStrainsList(
+                saved = saved,
+                onOpen = onOpen,
+                onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
+                compareStore = compareStore,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 16.dp),
             )
-            androidx.compose.material3.IconButton(onClick = onDismiss) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
         }
-        SavedStrainsList(
-            saved = saved,
-            onOpen = onOpen,
-            onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
-            compareStore = compareStore,
-            modifier = Modifier.weight(1f),
+    }
+}
+
+/**
+ * iOS-style pinned header for [SavedStrainsSheet]. Mirrors the
+ * Account sheet's [AccountSheetTopBar]: a centered title with a
+ * Close pill overlaid at the start. Lives outside the scrolling
+ * grid so the title stays visible as the user scrolls through the
+ * saved strains.
+ */
+@Composable
+private fun SavedStrainsSheetTopBar(onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "Saved strains",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
+        Box(
+            modifier = Modifier.align(Alignment.CenterStart),
+        ) {
+            ClosePillButton(onClick = onDismiss)
+        }
     }
 }
 
