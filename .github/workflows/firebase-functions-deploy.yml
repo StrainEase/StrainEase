@@ -25,6 +25,7 @@ on:
       - main
     paths:
       - "functions/**"
+      - "functions-report/**"
       - "firebase.json"
       - ".firebaserc"
       - "firestore.rules"
@@ -34,6 +35,7 @@ on:
   pull_request:
     paths:
       - "functions/**"
+      - "functions-report/**"
       - "firebase.json"
       - ".firebaserc"
       - "firestore.rules"
@@ -64,10 +66,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: functions/package-lock.json
+          cache-dependency-path: |
+            functions/package-lock.json
+            functions-report/package-lock.json
 
       - name: Install & Build Functions
         working-directory: functions
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install & Build Report Functions
+        working-directory: functions-report
         run: |
           npm ci
           npm run build
@@ -87,10 +97,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: functions/package-lock.json
+          cache-dependency-path: |
+            functions/package-lock.json
+            functions-report/package-lock.json
 
       - name: Install & Build Functions
         working-directory: functions
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install & Build Report Functions
+        working-directory: functions-report
         run: |
           npm ci
           npm run build

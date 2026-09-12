@@ -1,7 +1,9 @@
 import {
   addDoc,
   collection,
+  limit,
   onSnapshot,
+  orderBy,
   query,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -73,14 +75,18 @@ export function listenToReliefLogs(
   cb: (list: ReliefLog[]) => void,
 ): Unsubscribe {
   return onSnapshot(
-    query(collection(db!, "users", uid, "reliefLogs")),
+    query(
+      collection(db!, "users", uid, "reliefLogs"),
+      orderBy("createdAt", "desc"),
+      limit(100),
+    ),
     (snap) => {
       const list: ReliefLog[] = [];
       snap.forEach((d) => {
         const data = d.data() as Omit<ReliefLog, "id">;
         list.push({ id: d.id, ...data });
       });
-      cb(list.sort((a, b) => b.createdAt - a.createdAt));
+      cb(list);
     },
     () => cb([]),
   );

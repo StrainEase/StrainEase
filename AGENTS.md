@@ -12,12 +12,19 @@ conventions. This file is for machines.
 - **Stack:** Vite + React 19 + Tailwind v4 + shadcn/ui (frontend) +
   **Firebase end-to-end** (Auth + Firestore + Cloud Functions). There is
   no Convex, no other backend — don't add one without a real reason.
-- **Package manager:** bun for the app, npm for `functions/`.
+- **Package manager:** bun for the app, npm for `functions/` and `functions-report/`.
 - **Local dev:** `bun run dev` from the repo root.
-- **Deploy backend:** `cd functions && npm run build && firebase deploy --only functions,firestore:rules --force`
+- **Deploy backend:** build both codebases, then deploy:
+  ```
+  (cd functions && npm run build)
+  (cd functions-report && npm run build)
+  firebase deploy --only functions,firestore:rules --force
+  ```
   (`--force` is required once to set the Artifact Registry cleanup
   policy; subsequent deploys don't need it). Frontend deploys through
-  Cloudflare Pages (`.github/workflows/cloudflare-pages.yml`).
+  Cloudflare Pages via Cloudflare's GitHub integration (the deploy is
+  triggered by pushes to `main`; no GitHub Actions workflow is needed
+  for the frontend).
 - Don't write innovative code, write reliable code.
 
 ## Architecture map
@@ -160,6 +167,29 @@ functions/
   tsconfig.json
 ```
 
+The Cloud Functions source is split into **two codebases** (declared in
+`firebase.json` as `default` and `report`):
+
+```
+functions/             # public scraper + AI (Firebase "default")
+  src/index.ts         # callable function exports
+
+functions-report/     # PDF generation (Firebase "report")
+  src/index.ts         # clinicianReportSummary + generateClinicianReportPdf
+  src/clinician-report-html.ts
+  src/clinician-report-pdf.ts # @sparticuz/chromium + puppeteer-core
+  src/clinician-report-data.ts
+  src/groq.ts          # duplicate (each codebase is self-contained for Firebase deploy)
+  lib/                 # compiled output, gitignored
+  package.json
+  tsconfig.json
+```
+
+The split exists so the Puppeteer/Chromium cold-start cost never hits the
+public scrapers. See `functions-report/README.md`. A new function that touches
+the PDF pipeline goes in `functions-report/`; everything else goes in
+`functions/`.
+
 ## Strain data pipeline (Leafly + Weedmaps + Allbud → Dr. Kaya)
 
 The enrichment pipeline that feeds the AI callables is now a
@@ -202,9 +232,9 @@ When adding a new scraper:
 - Update the AI callables' system prompts in `index.ts` so
   Dr. Kaya knows the new source contributes to attribution.
 
-Node 20 is the runtime. It's deprecated on GCP (see deprecation warning
-in deploy output) — when you upgrade, bump both `engines.node` here and
-the `Setup Node.js` step in `firebase-functions-deploy.yml`.
+Node 22 is the runtime in both `functions/` and `functions-report/`.
+If you bump the runtime, update `engines.node` in **both** `package.json`
+files plus the `Setup Node.js` step in `firebase-functions-deploy.yml`.
 
 ### Adding a new callable
 
@@ -238,14 +268,17 @@ is no server-side custom claim or callable gate anymore (see PR #134).
 - The age gate is `<AgeGate>` (`src/components/compliance/AgeGate.tsx`) on the
   web and `AgeGateView` (`ios/StrainEase/App/AgeGateView.swift`) on iOS.
   Both wrap the entire `<Routes>` / `RootView` so every page is gated.
-- Region list + minimum ages live in `src/lib/age-policy.ts` (web) and
-  `functions/src/age.ts` (server, kept for shared constants only).
-  Tests live in `src/lib/age-policy.test.ts` and
-  `functions/src/age.test.ts`.
+- Region list + minimum ages live in `src/lib/age-policy.ts` (web),
+  `functions/src/age.ts` (public codebase, kept for `age.test.ts` only),
+  and `functions-report/src/age.ts` (report codebase, canonical for the
+  Cloud Functions runtime). Tests live in `src/lib/age-policy.test.ts`,
+  `functions/src/age.test.ts`, and `functions-report/src/age.test.ts`
+  (none for the report codebase yet — copy the public test if you need
+  one). Keep all three tables in sync.
 - Verification is purely local: the client writes a record to localStorage
   (`src/lib/age-storage.ts` on web, `AgeVerificationStore` on iOS) holding
-  region + birth date. No Firebase custom claim, no Firestore mirror, no
-  `setAgeVerified` callable.
+  region + birth date. There is no Firebase custom claim, no Firestore
+  mirror, no server-side age callable.
 - AI callables (`compareStrains`, `recommendStrainsForConditions`,
   `describeStrainForUser`, `findDoctors`, `elaborateSection`) trust the
   client gate implicitly — the page is gated before any callable fires,
@@ -267,8 +300,9 @@ is no server-side custom claim or callable gate anymore (see PR #134).
 - Do not run `npm run build` from the repo root expecting it to build
   functions — the root `package.json` only builds the frontend.
 - Do not add new env vars without documenting them in `README.md` and
-  adding them to the Cloudflare Pages deploy workflow
-  (`.github/workflows/cloudflare-pages.yml`).
+  adding them to the Cloudflare Pages project (env vars are configured
+  in the Cloudflare dashboard for the `strainease` Pages project, not
+  in a GitHub Actions workflow).
 
 ## Working style for this codebase
 
