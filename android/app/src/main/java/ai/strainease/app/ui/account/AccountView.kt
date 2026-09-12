@@ -305,8 +305,14 @@ private fun headerRow(userName: String) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        // Compact pill that hugs its content (default Eyebrow sizing).
-        Eyebrow(text = "Settings")
+        // Eyebrow pill, horizontally centered so it lines up with
+        // the big serif name below it.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Eyebrow(text = "Settings")
+        }
         Text(
             text = userName,
             style = StrainEaseTypography.displayLarge.copy(
@@ -339,13 +345,16 @@ private fun headerRow(userName: String) {
  */
 @Composable
 private fun AccountSheetTopBar(onDismiss: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        ClosePillButton(onClick = onDismiss)
+        // Title sits in the Box's true center; the Close pill
+        // overlays at the start. The Close pill has its own
+        // transparent padding around it, so it does not visually
+        // collide with the title even when the title is short.
         Text(
             text = "Account settings",
             style = MaterialTheme.typography.titleMedium.copy(
@@ -353,22 +362,15 @@ private fun AccountSheetTopBar(onDismiss: () -> Unit) {
             ),
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
         )
-        // Mirrors the Close pill width so the title's visual
-        // center sits on the sheet's true center.
-        Spacer(modifier = Modifier.width(ClosePillWidth))
+        Box(
+            modifier = Modifier.align(Alignment.CenterStart),
+        ) {
+            ClosePillButton(onClick = onDismiss)
+        }
     }
 }
-
-/**
- * Width of the [ClosePillButton] content. Used by
- * [AccountSheetTopBar] to keep the title visually centered on
- * the sheet. Measured from the iOS pill (X icon + label + 28dp
- * padding) — rounded up to the nearest 4dp so the alignment
- * doesn't shift half a pixel when the device scales fonts.
- */
-private val ClosePillWidth = 88.dp
 
 @Composable
 private fun ClosePillButton(onClick: () -> Unit) {
