@@ -1,63 +1,50 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
-import { callWithGroqFallback } from "./ai-fallback";
+import { callWithDeepInfraFallback } from "./ai-fallback";
 
+// We mock fetch so we can drive both providers independently. The real
+// callGroq and callDeepInfra are exercised in their own test files; here
+// we only need them to honour the fetch mock so the fallback path can
+// observe a DeepInfra failure and route to Groq.
 const ORIGINAL_FETCH = globalThis.fetch;
-let mockImpl: (url: string) => Promise<Response> = () =>
-  Promise.resolve(
-    new Response(
-      JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
-      {
-        status: 200,
-      },
-    ),
-  );
+let fetchMock: ReturnType<typeof mock> | undefined;
 
 beforeEach(() => {
-  globalThis.fetch = ((url: unknown, init: unknown) =>
-    mockImpl(String(url))) as unknown as typeof fetch;
+  fetchMock = mock(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
+        {
+          status: 200,
+        },
+      ),
+    ),
+  );
+  globalThis.fetch = fetchMock as unknown as typeof fetch;
 });
 
 afterEach(() => {
   globalThis.fetch = ORIGINAL_FETCH;
-  mockImpl = () =>
-    Promise.resolve(
-      new Response(
-        JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
-        { status: 200 },
-      ),
-    );
+  fetchMock = undefined;
 });
 
-function groqFail(): Response {
+function deepInfraFail(): Response {
   return new Response(
     JSON.stringify({ error: { message: "Rate limit reached (TPM)" } }),
     { status: 429 },
   );
 }
 
-function groqBadKeyFail(): Response {
-  return new Response(
-    JSON.stringify({
-      error: {
-        message:
-          "The Groq API key is missing. Run `firebase functions:secrets:set GROQ_API_KEY`",
-      },
-    }),
-    { status: 400 },
-  );
-}
-
-function deepInfraOk(body: string): Response {
+function groqOk(body: string): Response {
   return new Response(
     JSON.stringify({ choices: [{ message: { content: body } }] }),
     { status: 200 },
   );
 }
 
-function deepInfraFail(): Response {
+function groqFail(): Response {
   return new Response(
-    JSON.stringify({ error: { message: "DeepInfra also rate-limited" } }),
+    JSON.stringify({ error: { message: "Groq also rate-limited" } }),
     { status: 429 },
   );
 }
@@ -65,38 +52,42 @@ function deepInfraFail(): Response {
 const isGroqUrl = (url: string) => url.includes("api.groq.com");
 const isDeepInfraUrl = (url: string) => url.includes("api.deepinfra.com");
 
-describe("callWithGroqFallback", () => {
-  test("returns the Groq response when Groq succeeds (no fallback)", async () => {
-    mockImpl = (url) =>
-      isGroqUrl(url)
-        ? Promise.resolve(deepInfraOk("from-groq"))
-        : Promise.resolve(deepInfraOk("from-deepinfra"));
-    const out = await callWithGroqFallback(
-      "g",
-      "d",
-      [{ role: "user", content: "x" }],
-      "openai/gpt-oss-20b",
+describe("callWithDeepInfraFallback", () => {
+  test("returns the DeepInfra response when DeepInfra succeeds (no fallback)", async () => {
+    fetchMock!.mockImplementation((url) =>
+      isDeepInfraUrl(String(url))
+        ? Promise.resolve(groqOk("from-deepinfra"))
+        : Promise.resolve(groqOk("from-groq")),
     );
-    expect(out).toBe("from-groq");
-  });
-
-  test("falls through to DeepInfra when Groq returns 429 (transient)", async () => {
-    mockImpl = (url) =>
-      isGroqUrl(url)
-        ? Promise.resolve(groqFail())
-        : Promise.resolve(deepInfraOk("from-deepinfra"));
-    const out = await callWithGroqFallback(
-      "g",
+    const out = await callWithDeepInfraFallback(
       "d",
+      "g",
       [{ role: "user", content: "x" }],
+      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
       "openai/gpt-oss-20b",
     );
     expect(out).toBe("from-deepinfra");
   });
 
-  test("falls through on Groq 503 (transient)", async () => {
-    mockImpl = (url) =>
-      isGroqUrl(url)
+  test("falls through to Groq when DeepInfra returns 429 (transient)", async () => {
+    fetchMock!.mockImplementation((url) =>
+      isDeepInfraUrl(String(url))
+        ? Promise.resolve(deepInfraFail())
+        : Promise.resolve(groqOk("from-groq")),
+    );
+    const out = await callWithDeepInfraFallback(
+      "d",
+      "g",
+      [{ role: "user", content: "x" }],
+      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "openai/gpt-oss-20b",
+    );
+    expect(out).toBe("from-groq");
+  });
+
+  test("falls through on DeepInfra 503 (transient)", async () => {
+    fetchMock!.mockImplementation((url) =>
+      isDeepInfraUrl(String(url))
         ? Promise.resolve(
             new Response(
               JSON.stringify({ message: "503 Service Unavailable" }),
@@ -105,92 +96,84 @@ describe("callWithGroqFallback", () => {
               },
             ),
           )
-        : Promise.resolve(deepInfraOk("from-deepinfra"));
-    const out = await callWithGroqFallback(
-      "g",
+        : Promise.resolve(groqOk("from-groq")),
+    );
+    const out = await callWithDeepInfraFallback(
       "d",
+      "g",
       [{ role: "user", content: "x" }],
+      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
       "openai/gpt-oss-120b",
     );
-    expect(out).toBe("from-deepinfra");
+    expect(out).toBe("from-groq");
   });
 
   test("falls through on a transport-level rejection (no HttpsError)", async () => {
-    mockImpl = (url) =>
-      isGroqUrl(url)
+    fetchMock!.mockImplementation((url) =>
+      isDeepInfraUrl(String(url))
         ? Promise.reject(new Error("dns failure"))
-        : Promise.resolve(deepInfraOk("from-deepinfra"));
-    const out = await callWithGroqFallback(
-      "g",
+        : Promise.resolve(groqOk("from-groq")),
+    );
+    const out = await callWithDeepInfraFallback(
       "d",
+      "g",
       [{ role: "user", content: "x" }],
+      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
       "openai/gpt-oss-20b",
     );
-    expect(out).toBe("from-deepinfra");
+    expect(out).toBe("from-groq");
   });
 
-  test("does NOT fall through on a permanent Groq failure (bad key)", async () => {
-    // An empty api key triggers a failed-precondition HttpsError from
-    // callGroq BEFORE fetch is called. The fallback helper sees the
-    // non-transient code and rethrows.
-    let deepInfraCalled = false;
-    mockImpl = (url) => {
-      if (isDeepInfraUrl(url)) deepInfraCalled = true;
-      return Promise.resolve(deepInfraOk("never"));
-    };
+  test("does NOT fall through on a permanent DeepInfra failure (bad key)", async () => {
+    let groqCalled = false;
+    fetchMock!.mockImplementation((url) => {
+      if (isGroqUrl(String(url))) groqCalled = true;
+      return Promise.resolve(groqOk("never"));
+    });
     await expect(
-      callWithGroqFallback(
+      callWithDeepInfraFallback(
         "",
-        "d",
-        [{ role: "user", content: "x" }],
-        "openai/gpt-oss-20b",
-      ),
-    ).rejects.toThrow(/GROQ_API_KEY/);
-    expect(deepInfraCalled).toBe(false);
-  });
-
-  test("surfaces the DeepInfra error if DeepInfra also fails", async () => {
-    mockImpl = (url) =>
-      isGroqUrl(url)
-        ? Promise.resolve(groqFail())
-        : Promise.resolve(deepInfraFail());
-    await expect(
-      callWithGroqFallback(
         "g",
-        "d",
         [{ role: "user", content: "x" }],
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "openai/gpt-oss-20b",
       ),
-    ).rejects.toThrow(/DeepInfra also rate-limited/);
+    ).rejects.toThrow(/DEEPINFRA_API_KEY/);
+    expect(groqCalled).toBe(false);
   });
 
-  test("routes to the DeepInfra model the caller asked for", async () => {
-    let seenModel: string | undefined;
-    mockImpl = (url) => {
-      if (isGroqUrl(url)) return Promise.resolve(groqFail());
-      seenModel = JSON.parse(url as unknown as never as never) as never;
-      return Promise.resolve(deepInfraOk("ok"));
-    };
-    // Capture the second fetch's body to verify the model name.
-    let deepInfraBody: Record<string, unknown> | undefined;
+  test("surfaces the Groq error if Groq also fails", async () => {
+    fetchMock!.mockImplementation((url) =>
+      isDeepInfraUrl(String(url))
+        ? Promise.resolve(deepInfraFail())
+        : Promise.resolve(groqFail()),
+    );
+    await expect(
+      callWithDeepInfraFallback(
+        "d",
+        "g",
+        [{ role: "user", content: "x" }],
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "openai/gpt-oss-20b",
+      ),
+    ).rejects.toThrow(/Groq also rate-limited/);
+  });
+
+  test("routes to the Groq model the caller asked for", async () => {
+    let groqBody: Record<string, unknown> | undefined;
     globalThis.fetch = (async (u: unknown, init: unknown) => {
       const url = String(u);
-      if (isDeepInfraUrl(url)) {
-        deepInfraBody = JSON.parse(String(init?.body)) as Record<
-          string,
-          unknown
-        >;
-        return deepInfraOk("ok");
-      }
-      return groqFail();
+      if (isDeepInfraUrl(url)) return deepInfraFail();
+      groqBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return groqOk("ok");
     }) as unknown as typeof fetch;
-    await callWithGroqFallback(
-      "g",
+    await callWithDeepInfraFallback(
       "d",
+      "g",
       [{ role: "user", content: "x" }],
+      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
       "openai/gpt-oss-120b",
-      "deepseek-ai/DeepSeek-V4-Pro",
     );
-    expect(deepInfraBody?.model).toBe("deepseek-ai/DeepSeek-V4-Pro");
+    expect(groqBody?.model).toBe("openai/gpt-oss-120b");
   });
 });

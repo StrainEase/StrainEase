@@ -180,8 +180,8 @@ functions/
                      # the Groq-routed callables to keep repeat
                      # strain-page views inside the free-tier TPM
                      # limit (descriptionCache, compareCache)
-    ai-fallback.ts   # Groq → DeepInfra (Llama 3.3 70B Turbo) fallback
-                     # helper for transient 429/5xx on the free tier
+    ai-fallback.ts   # DeepInfra → Groq (Llama 3.3 70B Turbo primary)
+                     # fallback helper for transient 429/5xx on DeepInfra
     deepinfra.ts     # DeepInfra Chat Completions client (Llama 3.3 70B
                      # Turbo, chat-tuned for prose; replaces an earlier
                      # DeepSeek V4 Flash default that produced too-terse
@@ -294,32 +294,43 @@ language return the stored response without spending tokens.
 - `descriptionCache` and `compareCache` are admin-SDK-only (no client
   rule); the callable is the only writer.
 
-### Provider fallback (Groq → DeepInfra / Llama 3.3 70B Turbo)
+### Provider fallback (DeepInfra → Groq / Llama 3.3 70B Turbo)
 
-Groq is the primary free-tier backend but is rate-limited at 8000 TPM
-per model. When Groq returns a transient failure (429, 5xx, transport
-error, message text mentioning "rate limit" / "TPM" / "tokens per
-minute"), `ai-fallback.ts` retries the same messages against DeepInfra
-using `meta-llama/Llama-3.3-70B-Instruct-Turbo`. Permanent failures
-(bad key, invalid-argument) skip the fallback because the same input
-would just burn a paid token. Every fallback emits a `logger.warn` so
-the rate is visible in Cloud Logging.
+DeepInfra is the primary backend, Groq is the last-resort fallback.
+Reasoning: Groq's free tier caps each chat model at 8000 TPM and we
+observed it truncating responses mid-stream when the ceiling is hit
+mid-generation (2-of-3 sections coming back from gpt-oss-20b on a
+routine call). DeepInfra charges per token but produces complete
+responses, so the failure mode shifts from "user sees a 500" to
+"user pays a tenth of a cent". When DeepInfra returns a transient
+failure (429, 5xx, transport error, message text mentioning "rate
+limit" / "TPM" / "tokens per minute"), `ai-fallback.ts` retries the
+same messages against Groq. Permanent failures (bad key,
+invalid-argument) skip the fallback because the same input would
+just burn a paid token. Every fallback emits a `logger.warn` so the
+rate is visible in Cloud Logging.
 
-Model choice: we used to fall back to `deepseek-ai/DeepSeek-V4-Flash`
-because it is the cheapest metered option on DeepInfra. In production
-it produced too-terse 1-2 sentence paragraphs even with the prompt
-explicitly asking for more, because V4 Flash is coding/agentic-tuned
-not chat-tuned. Llama 3.3 70B Turbo is Meta's chat-tuned 70B at
-$0.10 / $0.32 per 1M tokens (slightly more on output, identical on
-input) and writes the multi-paragraph prose the prompt is asking for.
+Model choice: the DeepInfra primary is `meta-llama/Llama-3.3-70B-Instruct-Turbo`
+(Meta's chat-tuned 70B at $0.10 / $0.32 per 1M tokens). It writes
+the multi-paragraph prose the prompt asks for, unlike the older
+DeepSeek V4 Flash default which produced terse 1-2 sentence
+paragraphs. The Groq fallback model is the existing routing split:
+descriptions fall back to `openai/gpt-oss-20b` (smaller, cheaper on
+tokens), comparisons fall back to `openai/gpt-oss-120b` (heavier
+reasoning).
 
-Cost: DeepInfra charges $0.10 input / $0.32 output per 1M tokens for
-Llama 3.3 70B Turbo. Set a hard monthly usage limit in the DeepInfra
-console so a worst case is bounded. `DEEPINFRA_API_KEY` is a Firebase
-Secret registered next to `GROQ_API_KEY`.
+Cost: DeepInfra charges $0.10 input / $0.32 output per 1M tokens
+for Llama 3.3 70B Turbo. Set a hard monthly usage limit in the
+DeepInfra console so a worst case is bounded. `DEEPINFRA_API_KEY` is
+a Firebase Secret registered next to `GROQ_API_KEY`. The Firestore
+cache in `ai-cache.ts` absorbs most repeat traffic so the bill
+stays low.
 
-The cache layer sits _in front of_ the fallback, so repeat strain-page
-views never reach either provider.
+Latency: DeepInfra on-demand is cold-start-heavy (~15-20s on first
+call, dropping to 5-15s warm). Acceptable because the cache absorbs
+the bulk of repeat views. If latency becomes a problem we can move
+to Llama-3.1-8B (much faster, weaker prose) or a paid dedicated
+endpoint.
 
 ## Firestore conventions
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup for the Groq → DeepInfra fallback alert.
+# One-time setup for the DeepInfra → Groq fallback alert.
 #
 # Creates:
 #   1. An email notification channel (idempotent: skip if exists)
@@ -9,14 +9,22 @@
 # Run this once after the first deploy of the new functions, or any
 # time you set up a fresh project. Safe to re-run.
 #
-# Why this exists: ai-fallback.ts logs a WARN line every time Groq
-# fails transiently and we route the call to DeepInfra instead.
-# Sustained fallbacks mean Groq is in a wider outage or the cache is
-# not absorbing as much repeat traffic as expected. Without an alert,
-# you'd only notice when users start complaining about 5xx responses.
+# Why this exists: ai-fallback.ts logs a WARN line every time DeepInfra
+# fails transiently and we route the call to Groq instead.
+# Sustained fallbacks mean DeepInfra is in a wider outage or the
+# cache is not absorbing as much repeat traffic as expected. Without
+# an alert, you'd only notice when users start complaining about 5xx
+# responses.
 #
 # The metric takes up to 10 minutes to propagate after creation, so
 # the alert policy creation retries with a backoff.
+#
+# Historical note: a previous version of this script created a
+# `groq_to_deepinfra_fallbacks` metric that watched the reverse
+# direction. The DeepInfra primary swap made that metric dormant;
+# this script now creates `deepinfra_to_groq_fallbacks` for the
+# current direction. The old metric can be deleted manually via
+# `gcloud logging metrics delete groq_to_deepinfra_fallbacks`.
 
 set -euo pipefail
 
@@ -59,10 +67,10 @@ fi
 
 # 2. Log-based metric
 echo "[2/3] Creating log-based metric..."
-gcloud logging metrics create groq_to_deepinfra_fallbacks \
+gcloud logging metrics create deepinfra_to_groq_fallbacks \
   --project="$PROJECT" \
-  --description="Count of Groq → DeepInfra fallback warnings from ai-fallback.ts. Fires when Groq is rate-limited or 5xx-ing and we route to DeepInfra instead." \
-  --log-filter='resource.type="cloud_run_revision" AND textPayload=~"ai-fallback: groq failed transiently, falling through to deepinfra"' \
+  --description="Count of DeepInfra → Groq fallback warnings from ai-fallback.ts. Fires when DeepInfra is rate-limited or 5xx-ing and we route to Groq instead." \
+  --log-filter='resource.type="cloud_run_revision" AND textPayload=~"ai-fallback: deepinfra failed transiently, falling through to groq"' \
   2>&1 | tail -1 || echo "    metric already exists, continuing"
 
 # 3. Alert policy (with retry for metric propagation)
@@ -70,9 +78,9 @@ echo "[3/3] Creating alert policy (retries for metric propagation)..."
 TMP_POLICY=$(mktemp -t strainease-alert.XXXXXX.json)
 cat > "$TMP_POLICY" <<POLICY
 {
-  "displayName": "Groq → DeepInfra fallback rate spike",
+  "displayName": "DeepInfra → Groq fallback rate spike",
   "documentation": {
-    "content": "Fires when more than 1 Groq → DeepInfra fallback happens in 5 minutes. Groq is our free-tier primary; sustained fallbacks mean either Groq is in a wider outage or the cache is not absorbing as much repeat traffic as expected. Investigate: check Cloud Logging for the underlying HttpsError message, check Groq status, and review descriptionCache / compareCache hit rates in the same period. Permanent fixes: tighten cache key scope, raise the Firestore TTL, or move additional callables to the fallback path.",
+    "content": "Fires when more than 1 DeepInfra → Groq fallback happens in 5 minutes. DeepInfra is the metered primary; sustained fallbacks mean either DeepInfra is in a wider outage or the cache is not absorbing as much repeat traffic as expected. Investigate: check Cloud Logging for the underlying HttpsError message, check DeepInfra status, and review descriptionCache / compareCache hit rates in the same period. Permanent fixes: tighten cache key scope, raise the Firestore TTL, or switch the primary to a different DeepInfra model.",
     "mimeType": "text/markdown"
   },
   "combiner": "OR",
@@ -80,7 +88,7 @@ cat > "$TMP_POLICY" <<POLICY
     {
       "displayName": "fallback count > 1 in 5 min",
       "conditionThreshold": {
-        "filter": "metric.type=\"logging.googleapis.com/user/groq_to_deepinfra_fallbacks\" AND resource.type=\"cloud_run_revision\"",
+        "filter": "metric.type=\"logging.googleapis.com/user/deepinfra_to_groq_fallbacks\" AND resource.type=\"cloud_run_revision\"",
         "aggregations": [
           {
             "alignmentPeriod": "300s",
@@ -126,3 +134,7 @@ rm -f "$TMP_POLICY"
 echo
 echo "Done. Verify with:"
 echo "  gcloud alpha monitoring policies list --project=$PROJECT"
+echo
+echo "Note: a previous run created a 'groq_to_deepinfra_fallbacks'"
+echo "metric that no longer fires. Delete it with:"
+echo "  gcloud logging metrics delete groq_to_deepinfra_fallbacks --project=$PROJECT"

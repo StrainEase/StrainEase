@@ -34,8 +34,8 @@ import {
   GROQ_DESCRIPTION_MODEL,
   GROQ_MODEL,
 } from "./groq";
-import { callDeepInfra } from "./deepinfra";
-import { callWithGroqFallback } from "./ai-fallback";
+import { callWithDeepInfraFallback } from "./ai-fallback";
+import { DEEPINRA_FALLBACK_MODEL } from "./deepinfra";
 import { matchRedditSeeds } from "./reddit-seed";
 import {
   buildVettedWrite,
@@ -1607,9 +1607,9 @@ export const compareStrains = onCall(
       GROQ_API_KEY.value(),
     );
 
-    const content = await callWithGroqFallback(
-      GROQ_API_KEY.value(),
+    const content = await callWithDeepInfraFallback(
       DEEPINFRA_API_KEY.value(),
+      GROQ_API_KEY.value(),
       [
         {
           role: "system",
@@ -1620,6 +1620,7 @@ export const compareStrains = onCall(
           content: await comparePrompt(strains, condition, prefs),
         },
       ],
+      DEEPINRA_FALLBACK_MODEL,
       GROQ_MODEL,
     );
 
@@ -2219,9 +2220,9 @@ export const describeStrainForUser = onCall(
       return cached.result;
     }
 
-    const content = await callWithGroqFallback(
-      GROQ_API_KEY.value(),
+    const content = await callWithDeepInfraFallback(
       DEEPINFRA_API_KEY.value(),
+      GROQ_API_KEY.value(),
       [
         {
           role: "system",
@@ -2238,6 +2239,7 @@ export const describeStrainForUser = onCall(
           ),
         },
       ],
+      DEEPINRA_FALLBACK_MODEL,
       GROQ_DESCRIPTION_MODEL,
     );
 

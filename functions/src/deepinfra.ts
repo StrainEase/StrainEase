@@ -45,7 +45,7 @@ export function deepInfraRequestBody(
     model,
     messages,
     temperature: 0.5,
-    max_tokens: 2200,
+    max_tokens: 1500,
     stream: false,
     response_format: { type: "json_object" },
   };
