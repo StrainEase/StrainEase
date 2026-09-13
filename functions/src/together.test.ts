@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
-import {
-  callDeepInfra,
-  DEEPINRA_FALLBACK_MODEL,
-  deepInfraRequestBody,
-} from "./deepinfra";
+import { callTogether, TOGETHER_MODEL, togetherRequestBody } from "./together";
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -20,31 +16,24 @@ afterEach(() => {
   fetchMock = undefined;
 });
 
-describe("deepInfraRequestBody", () => {
-  test("targets the Llama 3.1 8B Turbo model on DeepInfra", () => {
-    const body = deepInfraRequestBody(DEEPINRA_FALLBACK_MODEL, [
+describe("togetherRequestBody", () => {
+  test("targets the Llama 3.1 8B Turbo model on Together.ai", () => {
+    const body = togetherRequestBody(TOGETHER_MODEL, [
       { role: "system", content: "stable instructions" },
       { role: "user", content: "dynamic strain data" },
     ]);
-    expect(body.model).toBe(DEEPINRA_FALLBACK_MODEL);
-  });
-
-  test("forces non-streaming (DeepInfra OpenAI shim defaults to streaming)", () => {
-    const body = deepInfraRequestBody(DEEPINRA_FALLBACK_MODEL, [
-      { role: "user", content: "x" },
-    ]);
-    expect(body.stream).toBe(false);
+    expect(body.model).toBe(TOGETHER_MODEL);
   });
 
   test("requests strict JSON output", () => {
-    const body = deepInfraRequestBody(DEEPINRA_FALLBACK_MODEL, [
+    const body = togetherRequestBody(TOGETHER_MODEL, [
       { role: "user", content: "x" },
     ]);
     expect(body.response_format).toEqual({ type: "json_object" });
   });
 });
 
-describe("callDeepInfra", () => {
+describe("callTogether", () => {
   test("returns the first-choice content on a 2xx response", async () => {
     fetchMock!.mockImplementationOnce(() =>
       Promise.resolve(
@@ -56,7 +45,7 @@ describe("callDeepInfra", () => {
         ),
       ),
     );
-    const out = await callDeepInfra("test-key", [
+    const out = await callTogether("test-key", [
       { role: "user", content: "hi" },
     ]);
     expect(out).toBe('{"sections":[]}');
@@ -64,8 +53,8 @@ describe("callDeepInfra", () => {
 
   test("throws failed-precondition when the key is missing", async () => {
     await expect(
-      callDeepInfra("", [{ role: "user", content: "x" }]),
-    ).rejects.toThrow(/DeepInfra API key is missing/);
+      callTogether("", [{ role: "user", content: "x" }]),
+    ).rejects.toThrow(/Together.ai API key is missing/);
   });
 
   test("throws internal with the upstream message on a 429", async () => {
@@ -78,7 +67,7 @@ describe("callDeepInfra", () => {
       ),
     );
     await expect(
-      callDeepInfra("k", [{ role: "user", content: "x" }]),
+      callTogether("k", [{ role: "user", content: "x" }]),
     ).rejects.toThrow(/Rate limit reached/);
   });
 
@@ -91,7 +80,7 @@ describe("callDeepInfra", () => {
       ),
     );
     await expect(
-      callDeepInfra("k", [{ role: "user", content: "x" }]),
+      callTogether("k", [{ role: "user", content: "x" }]),
     ).rejects.toThrow(/internal error/);
   });
 
@@ -104,7 +93,7 @@ describe("callDeepInfra", () => {
       ),
     );
     await expect(
-      callDeepInfra("k", [{ role: "user", content: "x" }]),
+      callTogether("k", [{ role: "user", content: "x" }]),
     ).rejects.toThrow(/empty response/);
   });
 
@@ -113,7 +102,7 @@ describe("callDeepInfra", () => {
       Promise.reject(new Error("dns failure")),
     );
     await expect(
-      callDeepInfra("k", [{ role: "user", content: "x" }]),
+      callTogether("k", [{ role: "user", content: "x" }]),
     ).rejects.toThrow(/Could not reach/);
   });
 
@@ -126,8 +115,7 @@ describe("callDeepInfra", () => {
         ),
       ),
     );
-    await callDeepInfra("secret-key", [{ role: "user", content: "x" }]);
-    // Inspect the most recent call's init (second positional arg).
+    await callTogether("secret-key", [{ role: "user", content: "x" }]);
     const call = fetchMock!.mock.calls.at(-1) as
       | [unknown, RequestInit]
       | undefined;

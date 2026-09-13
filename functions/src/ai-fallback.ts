@@ -1,22 +1,22 @@
-// DeepInfra → Groq fallback helper for the AI callables.
+// Together.ai → Groq fallback helper for the AI callables.
 //
-// DeepInfra is now the primary backend (Llama 3.1 8B Turbo on
-// Meta-Llama-3.1-8B-Instruct-Turbo). Groq is the last-resort
-// fallback. Reasoning: Groq's free tier caps each chat model at
-// 8000 TPM and intermittently truncates responses mid-stream when
-// the TPM ceiling is hit mid-generation (we observed 2-of-3 sections
-// coming back from gpt-oss-20b on a routine call). DeepInfra charges
-// per token but produces complete responses, so the failure mode
-// shifts from "user sees a 500" to "user pays a tenth of a cent". The
-// Firestore cache in ai-cache.ts absorbs most repeat traffic so the
-// bill stays bounded.
+// Together.ai is the primary backend (Llama 3.1 8B Turbo on
+// meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo). Groq is the
+// last-resort fallback. Reasoning: Groq's free tier caps each chat
+// model at 8000 TPM and intermittently truncates responses
+// mid-stream when the TPM ceiling is hit mid-generation (we observed
+// 2-of-3 sections coming back from gpt-oss-20b on a routine call).
+// Together.ai charges per token but produces complete responses, so
+// the failure mode shifts from "user sees a 500" to "user pays a
+// tenth of a cent". The Firestore cache in ai-cache.ts absorbs most
+// repeat traffic so the bill stays bounded.
 //
-// Model choice: the 70B variant (Llama 3.3 70B Turbo) is the
-// richer-prose choice but steady-state latency on DeepInfra's
-// on-demand tier was 15-25s with occasional 40s+ spikes. The 8B
-// variant dropped that to ~5s steady-state with the prompt asking
-// for the same multi-paragraph structure, so we trade a little
-// prose richness for substantially faster responses.
+// Model choice: Together.ai's inference engine is materially faster
+// than DeepInfra's on-demand tier (15-25s on the 70B and still 5s+
+// on the 8B). The 8B chat-tuned variant drops warm-call latency
+// enough to ship, and the prompt asks for the same multi-paragraph
+// prose shape either way, so the prose-quality difference vs a
+// larger model is small in practice.
 //
 // "Unavailable" means the request failed for a reason that suggests
 // the next call would also fail (rate limit, 5xx, transport error).
@@ -25,14 +25,13 @@
 //
 // Logging: every fallback emits a `logger.warn` with the source so
 // ops can see the rate in Cloud Logging. The Cloud Monitoring alert
-// `Groq → DeepInfra fallback rate spike` should be renamed to
-// `DeepInfra → Groq fallback rate spike` because the fallback
-// direction is now reversed.
+// `Together.ai → Groq fallback rate spike` is set up by
+// scripts/setup-fallback-alert.sh.
 
 import { logger } from "firebase-functions";
 import { HttpsError } from "firebase-functions/v2/https";
 
-import { callDeepInfra, type ChatMessage } from "./deepinfra";
+import { callTogether, type ChatMessage } from "./together";
 import { callGroq } from "./groq";
 
 function isTransient(err: unknown): boolean {
@@ -60,33 +59,33 @@ function isTransient(err: unknown): boolean {
 }
 
 /**
- * Try DeepInfra first; if it returns a transient failure, retry the
- * same messages against Groq (free tier, paid nothing but capped at
- * 8000 TPM). Returns the model's raw content string.
+ * Try Together.ai first; if it returns a transient failure, retry
+ * the same messages against Groq (free tier, paid nothing but capped
+ * at 8000 TPM). Returns the model's raw content string.
  *
- * `deepInfraModel` is the primary model id (always Llama 3.1 8B
- * Turbo at the moment). `groqModel` is the fallback model id the
- * caller wants — descriptions pass `openai/gpt-oss-20b` (small,
- * cheap on tokens), comparisons pass `openai/gpt-oss-120b` (heavier
+ * `togetherModel` is the primary model id (always Llama 3.1 8B Turbo
+ * at the moment). `groqModel` is the fallback model id the caller
+ * wants — descriptions pass `openai/gpt-oss-20b` (small, cheap on
+ * tokens), comparisons pass `openai/gpt-oss-120b` (heavier
  * reasoning). The split mirrors the existing deliberate Groq routing
  * and lets us pick a smaller model on the fallback when the prompt
  * is small.
  */
-export async function callWithDeepInfraFallback(
-  deepInfraApiKey: string,
+export async function callWithTogetherFallback(
+  togetherApiKey: string,
   groqApiKey: string,
   messages: ChatMessage[],
-  deepInfraModel: string,
+  togetherModel: string,
   groqModel: string,
 ): Promise<string> {
   try {
-    return await callDeepInfra(deepInfraApiKey, messages, deepInfraModel);
+    return await callTogether(togetherApiKey, messages, togetherModel);
   } catch (err) {
     if (!isTransient(err)) throw err;
     logger.warn(
-      "ai-fallback: deepinfra failed transiently, falling through to groq",
+      "ai-fallback: together failed transiently, falling through to groq",
       {
-        deepInfraModel,
+        togetherModel,
         groqModel,
         message: err instanceof Error ? err.message : String(err),
       },
@@ -95,5 +94,5 @@ export async function callWithDeepInfraFallback(
   }
 }
 
-/** Re-export for callers that need the default fallback model. */
-export { DEEPINRA_FALLBACK_MODEL } from "./deepinfra";
+/** Re-export for callers that need the default primary model. */
+export { TOGETHER_MODEL } from "./together";

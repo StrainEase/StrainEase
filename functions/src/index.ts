@@ -34,8 +34,8 @@ import {
   GROQ_DESCRIPTION_MODEL,
   GROQ_MODEL,
 } from "./groq";
-import { callWithDeepInfraFallback } from "./ai-fallback";
-import { DEEPINRA_FALLBACK_MODEL } from "./deepinfra";
+import { callWithTogetherFallback } from "./ai-fallback";
+import { TOGETHER_MODEL } from "./together";
 import { matchRedditSeeds } from "./reddit-seed";
 import {
   buildVettedWrite,
@@ -69,10 +69,10 @@ import type {
 } from "./types";
 
 export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
-export const DEEPINFRA_API_KEY = defineSecret("DEEPINFRA_API_KEY");
+export const TOGETHER_API_KEY = defineSecret("TOGETHER_API_KEY");
 
 const AI_OPTIONS: CallableOptions = {
-  secrets: [GROQ_API_KEY, DEEPINFRA_API_KEY],
+  secrets: [GROQ_API_KEY, TOGETHER_API_KEY],
   timeoutSeconds: 120,
   memory: "512MiB",
 };
@@ -1607,8 +1607,8 @@ export const compareStrains = onCall(
       GROQ_API_KEY.value(),
     );
 
-    const content = await callWithDeepInfraFallback(
-      DEEPINFRA_API_KEY.value(),
+    const content = await callWithTogetherFallback(
+      TOGETHER_API_KEY.value(),
       GROQ_API_KEY.value(),
       [
         {
@@ -1620,7 +1620,7 @@ export const compareStrains = onCall(
           content: await comparePrompt(strains, condition, prefs),
         },
       ],
-      DEEPINRA_FALLBACK_MODEL,
+      TOGETHER_MODEL,
       GROQ_MODEL,
     );
 
@@ -2318,8 +2318,8 @@ export const describeStrainForUser = onCall(
       return cached.result;
     }
 
-    const content = await callWithDeepInfraFallback(
-      DEEPINFRA_API_KEY.value(),
+    const content = await callWithTogetherFallback(
+      TOGETHER_API_KEY.value(),
       GROQ_API_KEY.value(),
       [
         {
@@ -2337,7 +2337,7 @@ export const describeStrainForUser = onCall(
           ),
         },
       ],
-      DEEPINRA_FALLBACK_MODEL,
+      TOGETHER_MODEL,
       GROQ_DESCRIPTION_MODEL,
     );
 

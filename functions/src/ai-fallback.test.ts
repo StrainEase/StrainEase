@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
-import { callWithDeepInfraFallback } from "./ai-fallback";
+import { callWithTogetherFallback } from "./ai-fallback";
 
 // We mock fetch so we can drive both providers independently. The real
-// callGroq and callDeepInfra are exercised in their own test files; here
+// callTogether and callGroq are exercised in their own test files; here
 // we only need them to honour the fetch mock so the fallback path can
-// observe a DeepInfra failure and route to Groq.
+// observe a Together.ai failure and route to Groq.
 const ORIGINAL_FETCH = globalThis.fetch;
 let fetchMock: ReturnType<typeof mock> | undefined;
 
@@ -28,7 +28,7 @@ afterEach(() => {
   fetchMock = undefined;
 });
 
-function deepInfraFail(): Response {
+function togetherFail(): Response {
   return new Response(
     JSON.stringify({ error: { message: "Rate limit reached (TPM)" } }),
     { status: 429 },
@@ -50,44 +50,44 @@ function groqFail(): Response {
 }
 
 const isGroqUrl = (url: string) => url.includes("api.groq.com");
-const isDeepInfraUrl = (url: string) => url.includes("api.deepinfra.com");
+const isTogetherUrl = (url: string) => url.includes("api.together.xyz");
 
-describe("callWithDeepInfraFallback", () => {
-  test("returns the DeepInfra response when DeepInfra succeeds (no fallback)", async () => {
+describe("callWithTogetherFallback", () => {
+  test("returns the Together.ai response when Together.ai succeeds (no fallback)", async () => {
     fetchMock!.mockImplementation((url) =>
-      isDeepInfraUrl(String(url))
-        ? Promise.resolve(groqOk("from-deepinfra"))
+      isTogetherUrl(String(url))
+        ? Promise.resolve(groqOk("from-together"))
         : Promise.resolve(groqOk("from-groq")),
     );
-    const out = await callWithDeepInfraFallback(
-      "d",
+    const out = await callWithTogetherFallback(
+      "t",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       "openai/gpt-oss-20b",
     );
-    expect(out).toBe("from-deepinfra");
+    expect(out).toBe("from-together");
   });
 
-  test("falls through to Groq when DeepInfra returns 429 (transient)", async () => {
+  test("falls through to Groq when Together.ai returns 429 (transient)", async () => {
     fetchMock!.mockImplementation((url) =>
-      isDeepInfraUrl(String(url))
-        ? Promise.resolve(deepInfraFail())
+      isTogetherUrl(String(url))
+        ? Promise.resolve(togetherFail())
         : Promise.resolve(groqOk("from-groq")),
     );
-    const out = await callWithDeepInfraFallback(
-      "d",
+    const out = await callWithTogetherFallback(
+      "t",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       "openai/gpt-oss-20b",
     );
     expect(out).toBe("from-groq");
   });
 
-  test("falls through on DeepInfra 503 (transient)", async () => {
+  test("falls through on Together.ai 503 (transient)", async () => {
     fetchMock!.mockImplementation((url) =>
-      isDeepInfraUrl(String(url))
+      isTogetherUrl(String(url))
         ? Promise.resolve(
             new Response(
               JSON.stringify({ message: "503 Service Unavailable" }),
@@ -98,11 +98,11 @@ describe("callWithDeepInfraFallback", () => {
           )
         : Promise.resolve(groqOk("from-groq")),
     );
-    const out = await callWithDeepInfraFallback(
-      "d",
+    const out = await callWithTogetherFallback(
+      "t",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       "openai/gpt-oss-120b",
     );
     expect(out).toBe("from-groq");
@@ -110,50 +110,50 @@ describe("callWithDeepInfraFallback", () => {
 
   test("falls through on a transport-level rejection (no HttpsError)", async () => {
     fetchMock!.mockImplementation((url) =>
-      isDeepInfraUrl(String(url))
+      isTogetherUrl(String(url))
         ? Promise.reject(new Error("dns failure"))
         : Promise.resolve(groqOk("from-groq")),
     );
-    const out = await callWithDeepInfraFallback(
-      "d",
+    const out = await callWithTogetherFallback(
+      "t",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       "openai/gpt-oss-20b",
     );
     expect(out).toBe("from-groq");
   });
 
-  test("does NOT fall through on a permanent DeepInfra failure (bad key)", async () => {
+  test("does NOT fall through on a permanent Together.ai failure (bad key)", async () => {
     let groqCalled = false;
     fetchMock!.mockImplementation((url) => {
       if (isGroqUrl(String(url))) groqCalled = true;
       return Promise.resolve(groqOk("never"));
     });
     await expect(
-      callWithDeepInfraFallback(
+      callWithTogetherFallback(
         "",
         "g",
         [{ role: "user", content: "x" }],
-        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
         "openai/gpt-oss-20b",
       ),
-    ).rejects.toThrow(/DEEPINFRA_API_KEY/);
+    ).rejects.toThrow(/TOGETHER_API_KEY/);
     expect(groqCalled).toBe(false);
   });
 
   test("surfaces the Groq error if Groq also fails", async () => {
     fetchMock!.mockImplementation((url) =>
-      isDeepInfraUrl(String(url))
-        ? Promise.resolve(deepInfraFail())
+      isTogetherUrl(String(url))
+        ? Promise.resolve(togetherFail())
         : Promise.resolve(groqFail()),
     );
     await expect(
-      callWithDeepInfraFallback(
-        "d",
+      callWithTogetherFallback(
+        "t",
         "g",
         [{ role: "user", content: "x" }],
-        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
         "openai/gpt-oss-20b",
       ),
     ).rejects.toThrow(/Groq also rate-limited/);
@@ -163,15 +163,15 @@ describe("callWithDeepInfraFallback", () => {
     let groqBody: Record<string, unknown> | undefined;
     globalThis.fetch = (async (u: unknown, init: unknown) => {
       const url = String(u);
-      if (isDeepInfraUrl(url)) return deepInfraFail();
+      if (isTogetherUrl(url)) return togetherFail();
       groqBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
       return groqOk("ok");
     }) as unknown as typeof fetch;
-    await callWithDeepInfraFallback(
-      "d",
+    await callWithTogetherFallback(
+      "t",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       "openai/gpt-oss-120b",
     );
     expect(groqBody?.model).toBe("openai/gpt-oss-120b");
