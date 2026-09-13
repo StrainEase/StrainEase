@@ -145,7 +145,7 @@ export function organizationJsonLd(): Record<string, unknown> {
     "@id": `${SITE_ORIGIN}/#organization`,
     name: SITE_NAME,
     url: SITE_ORIGIN,
-    logo: absoluteUrl("/icon-512.png"),
+    logo: absoluteUrl("/logo.svg"),
     description: SITE_DESCRIPTION,
   };
 }
