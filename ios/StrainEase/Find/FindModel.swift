@@ -18,9 +18,6 @@ final class FindModel {
     var isRunning = false
     var step: ResearchStep = .leafly
     var errorMessage: String?
-    var lookupQuery = ""
-    var lookupError: String?
-    var isLookingUp = false
 
     @ObservationIgnored private let api: any StrainServicing
     @ObservationIgnored private weak var compareStore: CompareSelectionStore?
@@ -39,10 +36,6 @@ final class FindModel {
 
     var canCompare: Bool {
         compareStore?.canRunCompare == true && compareStore?.isComparing != true
-    }
-
-    var canLookup: Bool {
-        !lookupQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLookingUp
     }
 
     func toggleAilment(_ name: String) {
@@ -103,24 +96,6 @@ final class FindModel {
         }
     }
 
-    func lookup() async -> StrainProfile? {
-        let name = lookupQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return nil }
-        isLookingUp = true
-        lookupError = nil
-        defer { isLookingUp = false }
-        do {
-            if let found = try await api.search(name: name, conditions: ailments) {
-                return found
-            }
-            lookupError = "No profile for “\(name)” yet."
-            return nil
-        } catch {
-            lookupError = error.localizedDescription
-            return nil
-        }
-    }
-
     // MARK: - Compare selection (delegates to CompareSelectionStore)
 
     @discardableResult
@@ -160,8 +135,6 @@ final class FindModel {
         searched = []
         potency = .any
         prefs = ResearchPrefs()
-        lookupQuery = ""
-        lookupError = nil
         // Compare-side cleanup. We don't touch `isComparing` or
         // `compareError` mid-run — those clear themselves when
         // `runCompare` finishes.

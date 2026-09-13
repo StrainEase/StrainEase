@@ -25,7 +25,7 @@ struct FindView: View {
     /// track focus on the form fields at all and the keyboard would stay
     /// up after tapping chips or buttons.
     enum Field: Hashable {
-        case customAilment, patientNote, ownedStrains, medications, lookup
+        case customAilment, patientNote, ownedStrains, medications
     }
 
 
@@ -89,7 +89,7 @@ struct FindView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .navigationTitle("Find")
+            .navigationTitle("Browse")
             .navigationBarTitleDisplayMode(.inline)
             .appChrome()
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -103,21 +103,6 @@ struct FindView: View {
                     }
                     .fontWeight(.semibold)
                     .foregroundStyle(Palette.primary)
-                }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                searchBar
-            }
-            .overlay(alignment: .top) {
-                if let lookupError = model.lookupError {
-                    Text(lookupError)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Palette.destructive)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Palette.card, in: Capsule())
-                        .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
-                        .padding(.top, 8)
                 }
             }
             .navigationDestination(for: StrainProfile.self) { profile in
@@ -394,58 +379,6 @@ struct FindView: View {
             if !medicationsList.contains(where: { $0.lowercased() == med.name.lowercased() }) {
                 await savedMedications.remove(med)
             }
-        }
-    }
-
-    private var searchBar: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Palette.mutedForeground)
-                    .accessibilityHidden(true)
-                TextField("Look up a strain", text: $model.lookupQuery)
-                    .focused($focused, equals: .lookup)
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled()
-                    .submitLabel(.search)
-                    .onSubmit { Task { await lookup() } }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 11)
-            .background(Palette.card, in: Capsule())
-            .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
-
-            Button {
-                Task { await lookup() }
-                focused = nil
-            } label: {
-                Group {
-                    if model.isLookingUp {
-                        ProgressView()
-                            .tint(Palette.primaryForeground)
-                    } else {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 15, weight: .semibold))
-                    }
-                }
-                .foregroundStyle(Palette.primaryForeground)
-                .frame(width: 44, height: 44)
-                .background(Palette.primary, in: Circle())
-            }
-            .buttonStyle(.plain)
-            .disabled(!model.canLookup)
-            .opacity(model.canLookup || model.isLookingUp ? 1 : 0.45)
-            .accessibilityLabel("Search")
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 8)
-        .background(Palette.background.opacity(0.94))
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Palette.border)
-                .frame(height: 1)
         }
     }
 
@@ -736,14 +669,6 @@ struct FindView: View {
 
     private func errorBanner(_ text: String) -> some View {
         SWErrorBanner(message: text)
-    }
-
-    private func lookup() async {
-        guard model.canLookup else { return }
-        if let profile = await model.lookup() {
-            focused = nil
-            path.append(profile)
-        }
     }
 }
 
