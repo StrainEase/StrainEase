@@ -39,7 +39,7 @@ struct DirectoryView: View {
                 }
                 .refreshable { await model.load() }
             }
-            .navigationTitle("Browse")
+            .navigationTitle("Find")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .appChrome()
