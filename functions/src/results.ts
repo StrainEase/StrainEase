@@ -46,12 +46,11 @@ export async function persistResult(input: {
   return id;
 }
 
-export function clientIp(req: {
-  rawRequest?: { ip?: string; headers?: Record<string, unknown> };
-}): string {
-  const forwarded = req.rawRequest?.headers?.["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.length > 0) {
-    return forwarded.split(",")[0].trim();
-  }
+export function clientIp(req: { rawRequest?: { ip?: string } }): string {
+  // Cloud Functions v2 sits behind Google's load balancer, which sets
+  // `request.rawRequest.ip` from the actual client connection. We
+  // deliberately do NOT trust the X-Forwarded-For header — a malicious
+  // caller could otherwise rotate IPs in the header to bypass any
+  // per-IP rate limit applied via `guestRateLimit(clientIp(request))`.
   return req.rawRequest?.ip || "unknown";
 }

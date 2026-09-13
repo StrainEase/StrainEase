@@ -11,16 +11,9 @@ import {
   type CallableOptions,
 } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
-import { logger } from "firebase-functions";
-import { getAuth } from "firebase-admin/auth";
-import {
-  FieldValue,
-  getFirestore,
-  type Transaction,
-} from "firebase-admin/firestore";
+import { getFirestore, type Transaction } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { evaluateAge, type RegionCode } from "./age";
 import { enrichProfiles, lookupProfile } from "./enrich";
 import {
   findDoctors as findDoctorsImpl,
@@ -52,15 +45,6 @@ import {
 } from "./reddit-pool";
 import { PoolOperatorError } from "./reddit-pool";
 import { clientIp, guestRateLimit, persistResult } from "./results";
-import {
-  loadClinicianReport,
-  serializeReportForModel,
-  type ClinicianReport,
-} from "./clinician-report-data";
-import { renderClinicianReportHtml } from "./clinician-report-html";
-import { buildReportFilename, renderHtmlToPdf } from "./clinician-report-pdf";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import type {
   Citation,
   RecommendationResult,
@@ -73,9 +57,6 @@ import type {
 } from "./types";
 
 export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
-
-/** 30 days in milliseconds. Mirrors AGE_CLAIM_TTL_MS in the web app. */
-export const AGE_CLAIM_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const AI_OPTIONS: CallableOptions = {
   secrets: [GROQ_API_KEY],
@@ -137,7 +118,15 @@ async function writePopularListCache(previews: StrainPreview[]): Promise<void> {
  */
 export const popularStrains = onCall(
   { timeoutSeconds: 30 },
-  async (): Promise<StrainProfile[]> => {
+  async (request): Promise<StrainProfile[]> => {
+    try {
+      guestRateLimit(clientIp(request));
+    } catch (err) {
+      throw new HttpsError(
+        "resource-exhausted",
+        err instanceof Error ? err.message : "Too many guest searches.",
+      );
+    }
     const cache = await readPopularListCache();
     if (cache && cache.previews.length > 0) {
       // Convert previews back to StrainProfiles (lightweight — no full scrape needed)
@@ -173,6 +162,14 @@ export const browseStrains = onCall(
     offset: number;
     fetchedAt: number;
   }> => {
+    try {
+      guestRateLimit(clientIp(request));
+    } catch (err) {
+      throw new HttpsError(
+        "resource-exhausted",
+        err instanceof Error ? err.message : "Too many guest searches.",
+      );
+    }
     const raw = request.data ?? {};
     const offset =
       typeof raw.offset === "number" && raw.offset >= 0 ? raw.offset : 0;
@@ -231,6 +228,14 @@ export const warmStrainDirectory = onSchedule(
 export const searchStrain = onCall(
   { timeoutSeconds: 60 },
   async (request): Promise<StrainProfile | null> => {
+    try {
+      guestRateLimit(clientIp(request));
+    } catch (err) {
+      throw new HttpsError(
+        "resource-exhausted",
+        err instanceof Error ? err.message : "Too many guest searches.",
+      );
+    }
     const name =
       typeof request.data?.name === "string" ? request.data.name : "";
     if (name.trim() === "") return null;
@@ -249,6 +254,14 @@ export const searchStrain = onCall(
 export const redditThreadsForStrain = onCall(
   { timeoutSeconds: 15 },
   async (request): Promise<RedditSource[]> => {
+    try {
+      guestRateLimit(clientIp(request));
+    } catch (err) {
+      throw new HttpsError(
+        "resource-exhausted",
+        err instanceof Error ? err.message : "Too many guest searches.",
+      );
+    }
     const name =
       typeof request.data?.name === "string" ? request.data.name : "";
     if (name.trim() === "") return [];
@@ -437,122 +450,15 @@ export const unvetRedditThread = onCall(
   },
 );
 
-/* ── Age verification ─────────────────────────────────────────────── */
-
-/**
- * Guard a callable: throws HttpsError if the request has no auth or the
- * ageVerified custom claim is absent/expired.
- */
-async function _requireAgeVerified(
-  request: {
-    auth?: { uid: string; token?: { ageVerifiedExpiresAt?: number } };
-  },
-  HttpsErrorClass: typeof HttpsError,
-): Promise<{ uid: string }> {
-  if (!request.auth?.uid) {
-    throw new HttpsErrorClass("unauthenticated", "Sign in first.");
-  }
-  const exp = request.auth.token?.ageVerifiedExpiresAt;
-  if (!exp || exp < Date.now()) {
-    throw new HttpsErrorClass(
-      "permission-denied",
-      "Age verification expired. Please re-verify from the account page.",
-    );
-  }
-  return { uid: request.auth.uid };
-}
-
-/**
- * Records that the signed-in caller has attested to being of legal age in
- * their jurisdiction. Sets the matching custom claim so server-side gates on
- * the AI callables can enforce it, and mirrors the attestation to Firestore
- * for audit / refresh.
- *
- * Re-runs are safe: this callable is idempotent — calling it again with a
- * different region or after expiry simply refreshes the claim TTL.
- */
-export const setAgeVerified = onCall(
-  { timeoutSeconds: 30 },
-  async (
-    request,
-  ): Promise<{ ok: true; region: RegionCode; expiresAt: number }> => {
-    if (!request.auth?.uid) {
-      throw new HttpsError("unauthenticated", "Sign in first.");
-    }
-
-    const data = (request.data ?? {}) as {
-      region?: unknown;
-      birthDate?: unknown;
-      termsAccepted?: unknown;
-      privacyAccepted?: unknown;
-    };
-
-    if (data.termsAccepted !== true) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Please accept the Terms of Service first.",
-      );
-    }
-    if (data.privacyAccepted !== true) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Please accept the Privacy Policy first.",
-      );
-    }
-
-    const evaluation = evaluateAge(data.region, data.birthDate);
-    if (!evaluation.ok) {
-      throw new HttpsError(
-        "failed-precondition",
-        evaluation.reason === "underage"
-          ? "You must be of legal age in your jurisdiction to use StrainEase."
-          : `Invalid age attestation: ${evaluation.reason}.`,
-      );
-    }
-
-    const uid = request.auth.uid;
-    const now = Date.now();
-    const expiresAt = now + AGE_CLAIM_TTL_MS;
-
-    // Custom claim gates the AI / doctor callables.
-    await getAuth().setCustomUserClaims(uid, {
-      ageVerified: true,
-      ageVerifiedRegion: evaluation.region,
-      ageVerifiedAt: now,
-      ageVerifiedExpiresAt: expiresAt,
-    });
-
-    // Firestore mirror for audit. Birth year only — we don't want full DOB
-    // on the server, just enough to confirm the caller attested.
-    const db = getFirestore();
-    await db
-      .collection("users")
-      .doc(uid)
-      .collection("ageVerification")
-      .doc(evaluation.region)
-      .set(
-        {
-          region: evaluation.region,
-          birthYear: new Date(`${data.birthDate}T00:00:00Z`).getUTCFullYear(),
-          age: evaluation.age,
-          attestedAt: FieldValue.serverTimestamp(),
-          expiresAt,
-          termsAcceptedAt: FieldValue.serverTimestamp(),
-          privacyAcceptedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
-
-    return { ok: true, region: evaluation.region, expiresAt };
-  },
-);
-
 /* ── Community reviews ─────────────────────────────────────────────── */
 
 /**
  * Submit or update a star rating + optional written review for a strain.
- * Auth-gated (requires sign-in) + age-verified. Uses Firestore transaction
- * to atomically update the per-strain aggregate rating.
+ * Auth-gated (requires sign-in). The client gates the page behind the local
+ * age gate; the callable trusts the caller's auth without re-checking any
+ * custom claim (there is no server-side age claim — see AGENTS.md).
+ * Uses a Firestore transaction to atomically update the per-strain
+ * aggregate rating.
  *
  * reviewId = `${uid}_${strainSlug}` — enforces one review per user per strain
  * naturally via the Firestore document ID (the rules gate it to the owner).
@@ -703,9 +609,6 @@ import {
   type InteractionRecord,
   type TerpeneRecord,
 } from "./reference-library";
-import terpeneSeedJson from "./seed/terpeneLibrary.json";
-import cannabinoidSeedJson from "./seed/cannabinoidLibrary.json";
-import interactionSeedJson from "./seed/interactionLibrary.json";
 
 /** Seed the curated terpene and cannabinoid collections idempotently. */
 export const seedReferenceLibrary = onCall(
@@ -728,7 +631,14 @@ export const seedReferenceLibrary = onCall(
       );
     }
 
-    // Validate both files before writing either collection.
+    // Validate both files before writing either collection. Lazy-load the
+    // JSON so it does not sit on the cold-start surface of every other
+    // callable in this codebase.
+    const [{ default: terpeneSeedJson }, { default: cannabinoidSeedJson }] =
+      await Promise.all([
+        import("./seed/terpeneLibrary.json"),
+        import("./seed/cannabinoidLibrary.json"),
+      ]);
     const terpeneSeed = validateSeedFile(terpeneSeedJson);
     const cannabinoidSeed = validateSeedFile(cannabinoidSeedJson);
     if (
@@ -772,6 +682,14 @@ export const getReferenceLibrary = onCall(
     terpenes: TerpeneRecord[];
     cannabinoids: CannabinoidRecord[];
   }> => {
+    try {
+      guestRateLimit(clientIp(request));
+    } catch (err) {
+      throw new HttpsError(
+        "resource-exhausted",
+        err instanceof Error ? err.message : "Too many guest searches.",
+      );
+    }
     const data = (request.data ?? {}) as {
       kind?: unknown;
       slug?: unknown;
@@ -833,6 +751,10 @@ export const seedInteractionLibrary = onCall(
     }
 
     // Validate before any write; the schema enforces the prescriber guardrail.
+    // Lazy-load the JSON so it does not sit on the cold-start surface of
+    // every other callable in this codebase.
+    const { default: interactionSeedJson } =
+      await import("./seed/interactionLibrary.json");
     const interactionSeed = validateSeedFile(interactionSeedJson);
     if (interactionSeed.kind !== "interaction") {
       throw new HttpsError("internal", "Interaction seed file kind is wrong.");
@@ -860,6 +782,14 @@ export const seedInteractionLibrary = onCall(
 export const getDrugInteractions = onCall(
   { timeoutSeconds: 15 },
   async (request): Promise<{ interactions: InteractionRecord[] }> => {
+    try {
+      guestRateLimit(clientIp(request));
+    } catch (err) {
+      throw new HttpsError(
+        "resource-exhausted",
+        err instanceof Error ? err.message : "Too many guest searches.",
+      );
+    }
     const data = (request.data ?? {}) as { drugs?: unknown };
 
     if (!Array.isArray(data.drugs)) {
@@ -1791,6 +1721,33 @@ export function publicStrainImageUrl(bucket: string, key: string): string {
 }
 
 /**
+ * Host allowlist for `cachedStrainImage`. The callable previously
+ * accepted any `https://` URL, which made it an open fetch proxy with
+ * a 30-second budget (and could fill the Storage bucket with arbitrary
+ * bytes). We now only fetch from the upstream sources we actually
+ * scrape strain images from, plus the StrainEase Storage bucket for
+ * already-cached objects.
+ */
+const CACHED_STRAIN_IMAGE_ALLOWED_HOSTS = new Set([
+  "leafly.com",
+  "www.leafly.com",
+  "weedmaps.com",
+  "www.weedmaps.com",
+  "allbud.com",
+  "www.allbud.com",
+  "storage.googleapis.com",
+]);
+
+function isAllowedCachedImageHost(url: string): boolean {
+  try {
+    const host = new URL(url).host.toLowerCase();
+    return CACHED_STRAIN_IMAGE_ALLOWED_HOSTS.has(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Cache + serve a strain image. The function fetches the upstream
  * bytes once via cachedFetchImage (in-memory then Storage), then
  * returns a permanent public Storage URL pointing at the cached
@@ -1808,11 +1765,25 @@ export const cachedStrainImage = onCall(
     bytes: number;
     source: "memory" | "storage" | "network";
   }> => {
+    try {
+      guestRateLimit(clientIp(request));
+    } catch (err) {
+      throw new HttpsError(
+        "resource-exhausted",
+        err instanceof Error ? err.message : "Too many guest searches.",
+      );
+    }
     const url = typeof request.data?.url === "string" ? request.data.url : "";
     if (!/^https?:\/\//i.test(url)) {
       throw new HttpsError(
         "invalid-argument",
         "url must be an absolute http(s) URL.",
+      );
+    }
+    if (!isAllowedCachedImageHost(url)) {
+      throw new HttpsError(
+        "permission-denied",
+        "url host is not in the cached-strain-image allowlist.",
       );
     }
     const cached = await cachedFetchImage(url);
@@ -2382,268 +2353,20 @@ export const elaborateSection = onCall(
   },
 );
 
-/* ── Clinician report ────────────────────────────────────────────── */
-
-/**
- * One short prose paragraph + a 3-bullet "consider" list that the
- * clinician can read at a glance. Modeled after `describeStrainForUser`
- * but scoped to the *patient* (not a strain), so the tone is closer to
- * a chart-summary than a marketing writeup.
- */
-export type ClinicianReportSummary = {
-  /** 2-3 short paragraphs of prose. */
-  summary: string;
-  /** 3-5 short clinical-style considerations (one per line). */
-  considerations: string[];
-};
-
-const CLINICIAN_REPORT_SYSTEM_PROMPT = `${KAYA_CORE}
-
-Task: write a concise clinical-style summary of a StrainEase patient from the structured snapshot below. The output is for a clinician (physician, NP, dispensary pharmacist) — not the patient — and will be printed on a single page.
-- Ground every claim in the supplied snapshot. Do NOT invent facts (no diagnoses, no specific THC/CBD numbers beyond what the patient logged, no medication names that are not in the list). If a field is empty, say so plainly ("no relief logs in the last 30 days").
-- Keep the prose 2-3 short paragraphs (1-3 sentences each), separated by a single blank line. No markdown, no headings, no bullet lists in the prose body.
-- "considerations" is a 3-5 line list of short, practical items the clinician may want to weigh (e.g. "Sedating profile at night, monitor next-day drowsiness", "Patient is also on Lexapro — note any additive serotonergic load with high-THC sativa"). Frame as neutral observations, not prescriptions. Never tell the clinician what to prescribe. Never advise discontinuing a medication.
-- If the patient is on medications and the patient's relief logs reference a strain class, mention any widely-cited interaction class in one line of the considerations (e.g. "benzodiazepine + sedating strain → monitor additive sedation"). When in doubt, omit.
-- Use the language clause injected at the end of this prompt.
-
-JSON shape (all fields required):
-{
-  "summary": "2-3 short paragraphs of prose, separated by a single \\n\\n",
-  "considerations": ["short practical item 1", "short practical item 2", "short practical item 3"]
-}`;
-
-/**
- * Serialize the client-side clinician-report snapshot into a user message
- * for the model. The snapshot is a plain JSON object; the model is
- * explicitly told every field comes from the patient's account, never
- * from a live scrape.
- */
-function clinicianReportPrompt(snapshot: unknown, language: string): string {
-  return [
-    `Patient snapshot (assembled locally from the patient's StrainEase account; do not invent data outside this object):`,
-    compactJson(snapshot),
-    ``,
-    `Language clause: respond in ${language}.`,
-    ``,
-    `Write the JSON exactly as specified.`,
-  ].join("\n");
-}
-
-function normalizeClinicianReport(content: string): ClinicianReportSummary {
-  const obj = extractJsonObject(content) as {
-    summary?: unknown;
-    considerations?: unknown;
-  } | null;
-  const summary =
-    obj && typeof obj.summary === "string"
-      ? normalizeEscapedNewlines(obj.summary.trim())
-      : "";
-  const considerations =
-    obj && Array.isArray(obj.considerations)
-      ? (obj.considerations as unknown[])
-          .filter((x): x is string => typeof x === "string")
-          .map((x) => x.trim())
-          .filter((x) => x !== "")
-          .slice(0, 6)
-      : [];
-  if (summary === "") {
-    return {
-      summary:
-        "We don't have a clinical summary for this patient right now. Tap again in a moment.",
-      considerations,
-    };
-  }
-  return { summary, considerations };
-}
-
-/**
- * Generate the prose section of the clinician report. Auth-gated: the
- * patient must be signed in because the payload includes their saved
- * ailments, medications, and relief log. The page calls this from a
- * button, so we never run it on page-load (no surprise billing) and
- * guests don't hit the rate-limited path here.
- */
-export const clinicianReportSummary = onCall(
-  AI_OPTIONS,
-  async (request): Promise<ClinicianReportSummary> => {
-    if (!request.auth) {
-      throw new HttpsError(
-        "unauthenticated",
-        "Sign in to generate a clinician report.",
-      );
-    }
-    const data = (request.data ?? {}) as {
-      snapshot?: unknown;
-      language?: unknown;
-    };
-    const language = parseOutputLanguage(data.language);
-    if (!data.snapshot || typeof data.snapshot !== "object") {
-      throw new HttpsError(
-        "invalid-argument",
-        "Provide a patient snapshot built from buildClinicianReport.",
-      );
-    }
-    const content = await callGroq(GROQ_API_KEY.value(), [
-      {
-        role: "system",
-        content: withLanguageClause(CLINICIAN_REPORT_SYSTEM_PROMPT, language),
-      },
-      {
-        role: "user",
-        content: clinicianReportPrompt(data.snapshot, language),
-      },
-    ]);
-    return normalizeClinicianReport(content);
-  },
-);
-
-/**
- * Server-side PDF generator. Reads the patient snapshot via the
- * Admin SDK, calls Groq for Dr. Kaya's prose section, and renders a
- * PDF with Puppeteer + @sparticuz/chromium. Returns the PDF as
- * base64 so the callable fits inside the 10MB response limit (a
- * single patient's report is typically 100KB-2MB).
- *
- * This is the canonical "generate report" path for every client
- * (web, iOS, Android). The standalone `clinicianReportSummary`
- * callable above stays for backwards compatibility but the
- * `/report` page and the iOS/Android surfaces should call this.
- */
-export const generateClinicianReportPdf = onCall(
-  {
-    ...AI_OPTIONS,
-    memory: "1GiB",
-    timeoutSeconds: 180,
-    cpu: 1,
-  },
-  async (
-    request,
-  ): Promise<{
-    pdfBase64: string;
-    filename: string;
-    contentType: "application/pdf";
-    byteLength: number;
-    kayaIncluded: boolean;
-  }> => {
-    if (!request.auth) {
-      throw new HttpsError(
-        "unauthenticated",
-        "Sign in to generate a clinician report.",
-      );
-    }
-    const data = (request.data ?? {}) as {
-      language?: unknown;
-      includeKayaSummary?: unknown;
-    };
-    const language = parseOutputLanguage(data.language);
-    const includeKaya = data.includeKayaSummary !== false;
-    const uid = request.auth.uid;
-
-    const report = await loadClinicianReport(uid);
-
-    const kaya = includeKaya
-      ? await safeKayaSummary(report, language, GROQ_API_KEY.value())
-      : null;
-
-    const html = renderClinicianReportHtml(report, kaya, loadBrandLogoSvg());
-    const pdf = await renderHtmlToPdf(html);
-    const filename = buildReportFilename(
-      report.patient.displayName,
-      report.patient.generatedOn,
-    );
-    return {
-      pdfBase64: pdf.toString("base64"),
-      filename,
-      contentType: "application/pdf",
-      byteLength: pdf.byteLength,
-      kayaIncluded: kaya !== null,
-    };
-  },
-);
-
 /* ── Background jobs ──────────────────────────────────────────────── */
 
 export { redditCacheRefresh } from "./reddit-refresh";
 
 /* ── Test re-exports (keep last) ──────────────────────────────────── */
 
-/**
- * Generate the Kaya prose section for the PDF. Mirrors the standalone
- * `clinicianReportSummary` callable but is fault-tolerant: if the
- * model call fails or times out, we ship the PDF without the prose
- * section rather than failing the whole request.
- */
-async function safeKayaSummary(
-  report: ClinicianReport,
-  language: string,
-  apiKey: string,
-): Promise<{ summary: string; considerations: string[] } | null> {
-  try {
-    const content = await callGroq(apiKey, [
-      {
-        role: "system",
-        content: withLanguageClause(CLINICIAN_REPORT_SYSTEM_PROMPT, language),
-      },
-      {
-        role: "user",
-        content: clinicianReportPrompt(
-          serializeReportForModel(report),
-          language,
-        ),
-      },
-    ]);
-    return normalizeClinicianReport(content);
-  } catch (err) {
-    logger.warn("Kaya summary failed; rendering PDF without it", err as Error);
-    return null;
-  }
-}
-
-/**
- * Lazily read the brand SVG used in the PDF header. The build
- * script copies `src/assets/clinician-report-logo.svg` next to the
- * compiled JS so this read is fully self-contained inside the
- * function's `lib/` directory.
- */
-let cachedBrandLogo: string | null = null;
-function loadBrandLogoSvg(): string {
-  if (cachedBrandLogo !== null) return cachedBrandLogo;
-  // The compiled function lives at functions/lib/index.js; the SVG
-  // is at functions/lib/clinician-report-logo.svg (copied by
-  // scripts/copy-assets.mjs after tsc).
-  const candidates = [
-    "./clinician-report-logo.svg",
-    "./lib/clinician-report-logo.svg",
-  ];
-  for (const rel of candidates) {
-    try {
-      const resolved = resolve(__dirname, rel);
-      cachedBrandLogo = readFileSync(resolved, "utf8");
-      return cachedBrandLogo;
-    } catch {
-      // try next
-    }
-  }
-  logger.warn("Brand SVG not found in lib/; using inline fallback");
-  cachedBrandLogo =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">` +
-    `<rect width="1024" height="1024" rx="200" fill="#0c5238"/>` +
-    `<text x="512" y="640" text-anchor="middle" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="640" font-weight="700" fill="#ffffff">S</text>` +
-    `</svg>`;
-  return cachedBrandLogo;
-}
-
 export const __testing = {
   normalizeDescriptionSections,
   normalizeReasoning,
   normalizeRecommendations,
-  normalizeClinicianReport,
   COMPARE_SYSTEM_PROMPT,
   RECOMMEND_SYSTEM_PROMPT,
   DESCRIBE_SYSTEM_PROMPT,
   ELABORATE_SECTION_SYSTEM_PROMPT,
-  CLINICIAN_REPORT_SYSTEM_PROMPT,
-  clinicianReportPrompt,
   parseOutputLanguage,
   parseElaboration,
   withLanguageClause,

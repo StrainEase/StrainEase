@@ -4,7 +4,9 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  limit,
   onSnapshot,
+  orderBy,
   query,
   setDoc,
   where,
@@ -67,7 +69,7 @@ export function listenToSavedStrains(
   cb: (list: SavedStrain[]) => void,
 ): Unsubscribe {
   return onSnapshot(
-    query(savedColl(uid)),
+    query(savedColl(uid), orderBy("savedAt", "desc"), limit(100)),
     (snap) => {
       const list: SavedStrain[] = [];
       snap.forEach((d) => {
@@ -89,7 +91,7 @@ export function listenToSavedStrains(
           notes: Array.isArray(data.notes) ? data.notes : [],
         });
       });
-      cb(list.sort((a, b) => b.savedAt - a.savedAt));
+      cb(list);
     },
     () => {
       // Rules not set up yet / offline — stay silent.
@@ -255,14 +257,19 @@ export function listenToPublicNotes(
   cb: (notes: PublicNote[]) => void,
 ): Unsubscribe {
   return onSnapshot(
-    query(publicNotesColl(), where("strainKey", "==", strainKey)),
+    query(
+      publicNotesColl(),
+      where("strainKey", "==", strainKey),
+      orderBy("createdAt", "desc"),
+      limit(20),
+    ),
     (snap) => {
       const notes: PublicNote[] = [];
       snap.forEach((d) => {
         const data = d.data() as Omit<PublicNote, "id">;
         notes.push({ id: d.id, ...data });
       });
-      cb(notes.sort((a, b) => b.createdAt - a.createdAt));
+      cb(notes);
     },
     () => {
       // Rules not set up yet / offline — stay silent.

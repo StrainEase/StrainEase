@@ -28,7 +28,7 @@ when naming things, and a reference for humans during code review.
 | Test file                                           | `<unit>.test.ts(x)` next to the unit                    | `use-compare-selection.test.ts`                                 |
 | Env var / secret                                    | `SCREAMING_SNAKE_CASE`                                  | `GROQ_API_KEY`, `VITE_GOOGLE_CLIENT_ID`                         |
 | Firestore collection                                | `camelCase` (already conventioned in `firestore.rules`) | `savedStrains`                                                  |
-| Firebase callable                                   | `camelCase` (Cloud Function export)                     | `compareStrains`, `setAgeVerified`                              |
+| Firebase callable                                   | `camelCase` (Cloud Function export)                     | `compareStrains`, `recommendStrainsForConditions`               |
 | URL path / route                                    | `kebab-case`                                            | `/strain-detail`, `/account-settings`                           |
 
 ---
@@ -314,7 +314,9 @@ the same PR.
 ### Firebase callable names
 
 `camelCase`. Examples already exported from `functions/src/index.ts`: `compareStrains`,
-`recommendStrainsForConditions`, `describeStrainForUser`, `findDoctors`, `setAgeVerified`.
+`recommendStrainsForConditions`, `describeStrainForUser`, `findDoctors`.
+`clinicianReportSummary` and `generateClinicianReportPdf` live in
+`functions-report/src/index.ts` (the report codebase).
 The matching client wrapper lives in `src/lib/strain-api.ts` as a typed function with the same
 name.
 

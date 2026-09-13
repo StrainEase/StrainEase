@@ -1,4 +1,21 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "publicNotes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "strainKey", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "redditThreads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vettedAt", "order": "ASCENDING" },
+        { "fieldPath": "addedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

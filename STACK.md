@@ -12,12 +12,13 @@ This project uses the following tech stack:
 - Firebase Auth (for authentication)
 - Cloud Firestore (for saved strains, notes, user data)
 - Firebase Cloud Functions v2 (for Groq AI calls + Leafly scrape; uses Llama 3.3 70B)
+  - Two Firebase codebases: `functions/` (public scraper + AI) and `functions-report/` (PDF report generation). Split so the Puppeteer/Chromium cold start never hits the public scrapers.
 - Framer Motion (for animations)
 - Three js (for 3d models)
 
-All relevant files live in the 'src' directory. Firebase Functions live in `functions/src/`.
+All relevant files live in the 'src' directory. Firebase Functions live in `functions/src/` (public) and `functions-report/src/` (PDF only).
 
-Use bun for the app, npm for `functions/`.
+Use bun for the app, npm for `functions/` and `functions-report/`.
 
 ## Setup
 
@@ -79,15 +80,16 @@ The auth page is defined in `src/pages/Auth.tsx`. Redirect authenticated pages a
 
 Backend authorization lives in two places:
 
-- **Cloud Functions:** check `request.auth` at the top of every auth-gated callable and throw `HttpsError("unauthenticated", ...)` when missing. See `compareStrains` and `recommendStrainsForConditions` in `functions/src/index.ts` for the pattern. **Signed-in callers must also hold a non-expired `ageVerified` custom claim** — see the Age restriction section below.
+- **Cloud Functions:** check `request.auth` at the top of every auth-gated callable and throw `HttpsError("unauthenticated", ...)` when missing. See `compareStrains` and `recommendStrainsForConditions` in `functions/src/index.ts` for the pattern. The callable trusts the caller's auth; **the local age gate (see below) is the source of truth for age** — the callables do not re-check it server-side.
 - **Firestore:** security rules in `firestore.rules`. Saved strains are scoped to the requesting user's UID.
 
 # Age restriction (cannabis compliance)
 
 StrainEase is a research / information tool, not a dispensary, but cannabis is
 age-restricted in every legal jurisdiction, so the entire experience is gated
-behind a region-aware age verification step. This is enforced both client-side
-(on the web and on iOS) and server-side (Cloud Functions check a custom claim).
+behind a region-aware age verification step. **Enforcement is client-side
+only** — the local gate is the source of truth. There is no server-side
+custom claim and no callable that re-checks it.
 
 ## Minimum age by region
 
@@ -101,8 +103,10 @@ behind a region-aware age verification step. This is enforced both client-side
 | Australia (medicinal, ACT 18+ recreat.) | 18+                        |
 | Other / not listed                      | 21+ (conservative default) |
 
-See `src/lib/age-policy.ts` and `functions/src/age.ts` for the canonical
-tables. Keep the two in sync.
+See `src/lib/age-policy.ts` and `functions-report/src/age.ts` for the canonical
+tables. Keep the two in sync. (`functions/src/age.ts` is a third mirror kept only so
+`functions/src/age.test.ts` can run against the public codebase; do not edit it
+without also updating the other two.)
 
 ## Web flow
 
@@ -111,19 +115,14 @@ tables. Keep the two in sync.
 2. On submit, the gate calls `useAgeVerification.verify(...)`. On success it
    writes a record to `localStorage` under `strainease.ageVerification.v1`
    with a 30-day TTL.
-3. When the user is signed in, the gate also fires the `setAgeVerified`
-   Cloud Function, which sets the matching `ageVerified`, `ageVerifiedRegion`,
-   `ageVerifiedAt`, and `ageVerifiedExpiresAt` custom claims on the user's
-   Firebase Auth record.
-4. Verification is checked at the top of every AI callable (`compareStrains`,
-   `recommendStrainsForConditions`, `describeStrainForUser`, `findDoctors`)
-   via `requireAgeVerified(...)` in `functions/src/age.ts`. Calls without a
-   fresh claim get `HttpsError("permission-denied", ...)`.
-5. The legal pages live at `/legal`, `/legal/terms`, `/legal/privacy`,
+3. AI callables (`compareStrains`, `recommendStrainsForConditions`,
+   `describeStrainForUser`, `findDoctors`, …) require `request.auth` but
+   **do not** re-check any age claim — the local gate is authoritative.
+4. The legal pages live at `/legal`, `/legal/terms`, `/legal/privacy`,
    `/legal/medical`. The Compliance footer
    (`src/components/compliance/ComplianceFooter.tsx`) is rendered on every
    page and shows a "Reset age verification" link for shared devices.
-6. The landing footer and `<MedicalDisclaimer>` banner call out the
+5. The landing footer and `<MedicalDisclaimer>` banner call out the
    research-only nature of the app on every page that surfaces strain data.
 
 ## iOS flow
@@ -134,25 +133,22 @@ Mirrors the web flow exactly:
   with `UserDefaults` persistence.
 - `ios/StrainEase/App/AgeGateView.swift` — SwiftUI gate presented at
   `RootView` until verified.
-- `StrainAPI.setAgeVerified(...)` mirrors the local attestation to the server.
 - `ios/StrainEase/Account/AccountView.swift` exposes a "Reset age verification"
   option for shared devices.
 
 ## Re-verification cadence
 
 Records expire after 30 days. Re-running the gate (or calling `verify` again)
-just refreshes the TTL on both the local record and the server-side claim. The
-user is never forced to re-confirm unless they sign out, switch regions, or 30
-days pass.
+just refreshes the TTL on the local record. The user is never forced to
+re-confirm unless they sign out, switch regions, or 30 days pass.
 
 ## What is stored
 
 - Web: `{ region, birthDate, attestedAt, expiresAt, termsAcceptedAt, privacyAcceptedAt }` in `localStorage` under `strainease.ageVerification.v1`.
 - iOS: same shape, under `UserDefaults` key `strainease.ageVerification.v1`.
-- Firebase: a custom claim (`ageVerified: true`, `ageVerifiedRegion: "US"`,
-  `ageVerifiedAt: <ms>`, `ageVerifiedExpiresAt: <ms>`) on the signed-in user's
-  Auth record, plus a `users/{uid}/ageVerification/{region}` Firestore doc
-  containing the attested **birth year only** (no full DOB) for audit.
+- Firebase: nothing related to age. The previous `ageVerified` custom claim
+  and `setAgeVerified` Cloud Function have been removed (see
+  `audit/code-quality-findings.md` finding F1).
 
 ## Legal pages
 
@@ -312,33 +308,50 @@ Source lives in `functions/src/`. Four callables are exported:
 
 To add a new callable:
 
-1. Add the export in `functions/src/index.ts`. Use `onCall` (not
-   `onRequest`) for client-driven calls, and gate with `request.auth` if
-   it requires sign-in.
+1. Add the export in `functions/src/index.ts` (public scraper + AI) or
+   `functions-report/src/index.ts` (PDF only — see the split rationale in
+   `functions-report/README.md`). Use `onCall` (not `onRequest`) for
+   client-driven calls, and gate with `request.auth` if it requires sign-in.
 2. Add a typed wrapper in `src/lib/strain-api.ts`. Re-use the existing
    `callFn` helper — don't import `firebase/functions` in a component.
 3. Build + deploy:
 
    ```bash
-   cd functions && npm install && npm run build && cd ..
+   # Build both codebases (Cloud Functions deploys them together).
+   (cd functions && npm install && npm run build)
+   (cd functions-report && npm install && npm run build)
    firebase deploy --only functions,firestore:rules --force
    ```
 
 ### Secrets
 
-Sensitive values (e.g. `GROQ_API_KEY`) are Firebase Secrets, not env vars. Set with `firebase functions:secrets:set GROQ_API_KEY`, then redeploy.
+Sensitive values (e.g. `GROQ_API_KEY`) are Firebase Secrets, not env vars.
+The same secret can be referenced from both `functions/` and
+`functions-report/` (both share the `default` GCP project). Set with
+`firebase functions:secrets:set GROQ_API_KEY`, then redeploy.
 
 ### Functions source layout
 
 ```
-functions/
+functions/                  # public scraper + AI codebases (Firebase "default")
   src/
-    index.ts         # callable function exports (the entry point)
-    leafly.ts        # public Leafly scrape, no auth
-    groq.ts          # Groq client + JSON extraction helpers
-    types.ts         # shared response types
-  lib/               # compiled output, gitignored, DO NOT edit
-  package.json       # main: "lib/index.js", engines.node: "22"
+    index.ts                # callable function exports (the entry point)
+    leafly.ts               # public Leafly scrape, no auth
+    groq.ts                 # Groq client + JSON extraction helpers
+    types.ts                # shared response types
+  lib/                      # compiled output, gitignored, DO NOT edit
+  package.json              # main: "lib/index.js", engines.node: "22"
+  tsconfig.json
+
+functions-report/          # PDF generation codebase (Firebase "report")
+  src/
+    index.ts                # clinicianReportSummary + generateClinicianReportPdf
+    clinician-report-html.ts
+    clinician-report-pdf.ts # imports @sparticuz/chromium + puppeteer-core
+    clinician-report-data.ts
+    groq.ts                 # duplicate (each codebase is self-contained)
+  lib/                      # compiled output, gitignored, DO NOT edit
+  package.json
   tsconfig.json
 ```
 
@@ -350,8 +363,9 @@ functions/
 
 ## Common Firebase Mistakes To Avoid
 
-- **Build functions before deploying.** Skipping `npm run build` in `functions/` gives you `functions/lib/index.js does not exist, can't deploy Cloud Functions`.
+- **Build functions before deploying.** Skipping `npm run build` in `functions/` gives you `functions/lib/index.js does not exist, can't deploy Cloud Functions`. Same for `functions-report/`.
 - Don't import `firebase/functions` directly in components — use the typed wrappers in `src/lib/strain-api.ts`.
 - Don't add new env vars without updating both `README.md` and the Cloudflare Pages deploy workflow.
-- Cloud Functions code uses Node 20. If you bump the runtime, bump `engines.node` in `functions/package.json` and the `Setup Node.js` step in `.github/workflows/firebase-functions-deploy.yml`.
+- Cloud Functions code uses Node 22. If you bump the runtime, bump `engines.node` in both `functions/package.json` and `functions-report/package.json`, and the `Setup Node.js` step in `.github/workflows/firebase-functions-deploy.yml`.
 - Firestore rules are the security source of truth. Don't bypass them with admin SDKs in the client.
+- A new function that touches the PDF pipeline belongs in `functions-report/`. A new function that touches Leafly/Weedmaps/AllBud scraping, AI synthesis, or auth-gated user data belongs in `functions/`.
