@@ -25,6 +25,16 @@ conventions. This file is for machines.
   Cloudflare Pages via Cloudflare's GitHub integration (the deploy is
   triggered by pushes to `main`; no GitHub Actions workflow is needed
   for the frontend).
+- **Callable IAM is pinned.** `npm run deploy` (and the CI workflow)
+  end with `node scripts/ensure-invoker.mjs`, which re-applies the
+  `allUsers` `roles/run.invoker` binding on every callable in the
+  project. `firebase deploy` defaults to `--allow-unauthenticated`,
+  but a stray `gcloud run services update --no-allow-unauthenticated`
+  call (or a Console IAM change) can drop the binding without
+  redeploying; when that happens, OPTIONS preflight fails with 403 at
+  the Cloud Run layer and the SDK's POST never lands. The script is
+  idempotent and filters out scheduled functions, which use the
+  compute SA as their invoker.
 - Don't write innovative code, write reliable code.
 
 ## Architecture map
@@ -118,12 +128,18 @@ first:
 cd functions
 npm install        # one-time per machine / whenever deps change
 npm run build      # tsc → lib/
+npm run deploy     # firebase deploy --only functions, then ensure-invoker.mjs
 cd ..
-firebase deploy --only functions,firestore:rules --force
+firebase deploy --only firestore:rules,storage --force
 ```
 
+`npm run deploy` always ends with `node scripts/ensure-invoker.mjs`
+to re-pin the `allUsers` invoker on every callable. See the
+**Callable IAM is pinned** rule above for why.
+
 The CI workflow at `.github/workflows/firebase-functions-deploy.yml`
-does the same `npm ci && npm run build` before deploy. Mirror it locally.
+does the same `npm ci && npm run build` before deploy, then runs the
+invoker step after the firebase-action deploys. Mirror it locally.
 
 If you skip the build, you'll see:
 
