@@ -46,4 +46,28 @@ describe("toTitleCase", () => {
     expect(toTitleCase("purple haze")).toBe("Purple Haze");
     expect(toTitleCase("KILLER OF")).toBe("Killer of");
   });
+
+  test("normalises acronym + number tokens to all-caps prefix", () => {
+    expect(toTitleCase("GG4")).toBe("GG4");
+    expect(toTitleCase("gg4")).toBe("GG4");
+    expect(toTitleCase("Gg4")).toBe("GG4");
+    expect(toTitleCase("gorilla glue gg4")).toBe("Gorilla Glue GG4");
+    expect(toTitleCase("Gorilla Glue GG4")).toBe("Gorilla Glue GG4");
+  });
+
+  test("preserves known all-caps acronyms even without numbers", () => {
+    expect(toTitleCase("gdp")).toBe("GDP");
+    expect(toTitleCase("GDP")).toBe("GDP");
+    expect(toTitleCase("Gdp")).toBe("GDP");
+    expect(toTitleCase("gsc")).toBe("GSC");
+    expect(toTitleCase("gg")).toBe("GG");
+  });
+
+  test("leaves non-acronym letter+digit tokens alone", () => {
+    // "9" is a digit prefix so it passes through; "Trainwreck" title-cases.
+    expect(toTitleCase("Trainwreck 9")).toBe("Trainwreck 9");
+    // Tokens like "Mk4" where the prefix isn't a known acronym fall back
+    // to ordinary title-casing rather than silently upper-casing them.
+    expect(toTitleCase("mk4")).toBe("Mk4");
+  });
 });
