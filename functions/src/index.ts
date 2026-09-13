@@ -132,13 +132,15 @@ async function writePopularListCache(previews: StrainPreview[]): Promise<void> {
 export const popularStrains = onCall(
   { timeoutSeconds: 30 },
   async (request): Promise<StrainProfile[]> => {
-    try {
-      guestRateLimit(clientIp(request));
-    } catch (err) {
-      throw new HttpsError(
-        "resource-exhausted",
-        err instanceof Error ? err.message : "Too many guest searches.",
-      );
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
     const cache = await readPopularListCache();
     if (cache && cache.previews.length > 0) {
@@ -1811,13 +1813,15 @@ export const cachedStrainImage = onCall(
     bytes: number;
     source: "memory" | "storage" | "network";
   }> => {
-    try {
-      guestRateLimit(clientIp(request));
-    } catch (err) {
-      throw new HttpsError(
-        "resource-exhausted",
-        err instanceof Error ? err.message : "Too many guest searches.",
-      );
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
     const url = typeof request.data?.url === "string" ? request.data.url : "";
     if (!/^https?:\/\//i.test(url)) {
