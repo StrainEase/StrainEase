@@ -16,8 +16,8 @@ import ai.strainease.app.models.StrainProfile
  */
 enum class AppTab(val title: String, val systemImage: ImageVector) {
     Home("Home", Icons.Filled.Home),
-    Find("Find", Icons.Filled.Search),
-    Browse("Browse", Icons.Filled.Book),
+    Find("Browse", Icons.Filled.Book),
+    Browse("Find", Icons.Filled.Search),
     Doctors("Doctors", Icons.Filled.MedicalServices),
 }
 
