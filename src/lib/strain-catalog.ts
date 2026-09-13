@@ -6,6 +6,17 @@ import { matchesCondition } from "./strain-ui";
  *  a circular import between the two files. */
 const HOME_PREVIEW_LIMIT = 6;
 
+/** Bundled Leafly / Weedmaps directory row. Mirrors the shape shipped
+ *  with iOS (`ios/StrainEase/Resources/strain-directory.json`) and
+ *  Android (`android/app/src/main/assets/strain-directory.json`). */
+type DirectoryEntry = {
+  name: string;
+  type: StrainType;
+  thc?: string;
+  uses?: string[];
+  imageUrl?: string;
+};
+
 type CatalogEntry = {
   name: string;
   type: StrainType;
@@ -274,6 +285,57 @@ function toProfile(entry: CatalogEntry): StrainProfile {
 
 export const CATALOG: StrainProfile[] = ENTRIES.map(toProfile);
 
+/**
+ * Bundled strain directory (Leafly + Weedmaps dump). Mirrors the
+ * iOS and Android apps so the home "see more" rails show every
+ * strain of that type, not just the 24 curated entries.
+ *
+ * Loaded lazily off `/strain-directory.json` on first access and
+ * merged into `CATALOG` whenever `mergeCatalog` /
+ * `matchingAilment` / `matchAilments` runs. The fetch starts
+ * as soon as this module is imported so the directory is usually
+ * ready by the time the user clicks "see more" on a home rail.
+ */
+let directoryProfiles: StrainProfile[] = [];
+const directoryReady: Promise<void> = (async () => {
+  try {
+    const res = await fetch("/strain-directory.json");
+    if (!res.ok) return;
+    const entries = (await res.json()) as DirectoryEntry[];
+    directoryProfiles = entries.map(toDirectoryProfile);
+  } catch {
+    // No-op: directory stays empty, callers fall back to curated.
+  }
+})();
+
+/** Convert a directory row into the shared StrainProfile shape so it
+ *  composes cleanly with `mergeCatalog` / `matchingAilment`. The
+ *  fields Leafly omits (cbd, lineage, effects, etc.) are left
+ *  undefined — the strain page fills them on demand. */
+function toDirectoryProfile(entry: DirectoryEntry): StrainProfile {
+  return {
+    name: entry.name,
+    inKnowledgeBase: true,
+    type: entry.type,
+    thcRange: entry.thc,
+    imageUrl: entry.imageUrl,
+    medicalUses: entry.uses,
+  };
+}
+
+/** Snapshot of the currently loaded bundled directory. Empty until
+ *  the module-level fetch resolves. Read-only for callers. */
+export function getStrainDirectory(): readonly StrainProfile[] {
+  return directoryProfiles;
+}
+
+/** Resolves once the bundled directory has finished loading. Awaiting
+ *  this on the Browse page guarantees the rail shows every strain
+ *  of the selected type on first render. */
+export function strainDirectoryReady(): Promise<void> {
+  return directoryReady;
+}
+
 /** Six strains pinned to the homescreen rail. Pulled from `CATALOG` so the
  *  photos, types, THC ranges, and medical uses stay in sync with the curated
  *  set. Picking by name (not index) keeps the list stable even if `CATALOG`
@@ -422,8 +484,13 @@ export function applyCatalogPhotos(profiles: StrainProfile[]): StrainProfile[] {
 export function mergeCatalog(
   live: StrainProfile[],
   preferringType?: StrainType,
+  directory: readonly StrainProfile[] = directoryProfiles,
 ): StrainProfile[] {
-  const extras = CATALOG.filter((catalog) => {
+  // Curated wins on photo / uses; the bundled directory fills in the
+  // long tail so type rails reach every Leafly / Weedmaps entry, not
+  // just the 24 curated names.
+  const source = [...CATALOG, ...directory];
+  const extras = source.filter((catalog) => {
     if (preferringType && catalog.type !== preferringType) return false;
     return !live.some((item) => profileSlug(item) === profileSlug(catalog));
   });
@@ -436,8 +503,11 @@ export function mergeCatalog(
 export function matchingAilment(
   ailment: string,
   live: StrainProfile[],
+  directory: readonly StrainProfile[] = directoryProfiles,
 ): StrainProfile[] {
-  const combined = applyCatalogPhotos(uniqueProfiles([...live, ...CATALOG]));
+  const combined = applyCatalogPhotos(
+    uniqueProfiles([...live, ...CATALOG, ...directory]),
+  );
   const key = ailment.trim().toLowerCase();
   const hits = combined.filter((profile) =>
     matchesCondition(profile.medicalUses, key),
@@ -460,11 +530,14 @@ export function matchAilments(
   ailments: string[],
   live: StrainProfile[],
   limit = HOME_PREVIEW_LIMIT,
+  directory: readonly StrainProfile[] = directoryProfiles,
 ): StrainProfile[] {
   const cleaned = ailments.map((a) => a.trim()).filter((a) => a !== "");
   if (cleaned.length === 0) return [];
 
-  const combined = applyCatalogPhotos(uniqueProfiles([...live, ...CATALOG]));
+  const combined = applyCatalogPhotos(
+    uniqueProfiles([...live, ...CATALOG, ...directory]),
+  );
 
   type Scored = { profile: StrainProfile; score: number };
   const scored: Scored[] = [];

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getPhotoURL } from "./strain-catalog";
+import { CATALOG, getPhotoURL } from "./strain-catalog";
 import {
   applyCatalogPhotos,
   matchAilments,
@@ -129,6 +129,99 @@ describe("applyCatalogPhotos", () => {
     ]) {
       expect(list.every((profile) => Boolean(profile.imageUrl))).toBe(true);
     }
+  });
+
+  test("mergeCatalog merges a passed-in directory into type rails", () => {
+    const directory: StrainProfile[] = [
+      {
+        name: "Caramel Kona Coffee",
+        inKnowledgeBase: true,
+        type: "hybrid",
+        thcRange: "~22%",
+        imageUrl: "https://images.leafly.com/flower-images/caramel-kona.jpg",
+        medicalUses: ["Anxiety", "Stress"],
+      },
+      {
+        name: "Citrus Sunrise",
+        inKnowledgeBase: true,
+        type: "sativa",
+        thcRange: "~18%",
+        imageUrl: "https://images.leafly.com/flower-images/citrus-sunrise.jpg",
+        medicalUses: ["Depression"],
+      },
+      {
+        name: "Velvet Punch",
+        inKnowledgeBase: true,
+        type: "indica",
+        thcRange: "~24%",
+        imageUrl: "https://images.leafly.com/flower-images/velvet-punch.jpg",
+        medicalUses: ["Insomnia"],
+      },
+    ];
+    const curatedHybrid = CATALOG.filter((p) => p.type === "hybrid").length;
+    const hybrid = mergeCatalog([], "hybrid", directory);
+    expect(hybrid.length).toBeGreaterThanOrEqual(curatedHybrid + 1);
+    expect(hybrid.every((p) => p.type === "hybrid")).toBe(true);
+
+    const sativa = mergeCatalog([], "sativa", directory);
+    expect(sativa.some((p) => p.name === "Citrus Sunrise")).toBe(true);
+    expect(sativa.every((p) => p.type === "sativa")).toBe(true);
+
+    const indica = mergeCatalog([], "indica", directory);
+    expect(indica.some((p) => p.name === "Velvet Punch")).toBe(true);
+    expect(indica.every((p) => p.type === "indica")).toBe(true);
+  });
+
+  test("matchingAilment falls back to the directory when the curated catalog has no hits", () => {
+    const directory: StrainProfile[] = [
+      {
+        name: "Cancer Cell Crusher",
+        inKnowledgeBase: true,
+        type: "hybrid",
+        thcRange: "~18%",
+        imageUrl: "https://images.leafly.com/flower-images/cancer-cell.jpg",
+        medicalUses: ["Cancer"],
+      },
+      {
+        name: "Chemo Relief",
+        inKnowledgeBase: true,
+        type: "indica",
+        thcRange: "~22%",
+        imageUrl: "https://images.leafly.com/flower-images/chemo.jpg",
+        medicalUses: ["Cancer"],
+      },
+    ];
+    // The curated catalog does not list "Cancer" as a medicalUse. Without
+    // the directory the matcher would fall back to its 8-random slice.
+    // With the directory, both directory entries should match.
+    const hits = matchingAilment("Cancer", [], directory);
+    expect(hits.length).toBeGreaterThanOrEqual(2);
+    expect(hits.some((p) => p.name === "Cancer Cell Crusher")).toBe(true);
+    expect(hits.some((p) => p.name === "Chemo Relief")).toBe(true);
+  });
+
+  test("matchAilments scores directory entries alongside curated", () => {
+    const directory: StrainProfile[] = [
+      {
+        name: "Dual Purpose",
+        inKnowledgeBase: true,
+        type: "sativa",
+        thcRange: "~20%",
+        imageUrl: "https://images.leafly.com/flower-images/dual.jpg",
+        medicalUses: ["Anxiety", "Insomnia"],
+      },
+      {
+        name: "Anxiety Only",
+        inKnowledgeBase: true,
+        type: "hybrid",
+        thcRange: "~19%",
+        imageUrl: "https://images.leafly.com/flower-images/anxiety-only.jpg",
+        medicalUses: ["Anxiety"],
+      },
+    ];
+    const picks = matchAilments(["Anxiety", "Insomnia"], [], 10, directory);
+    expect(picks[0].name).toBe("Dual Purpose");
+    expect(picks.some((p) => p.name === "Anxiety Only")).toBe(true);
   });
 });
 
