@@ -224,7 +224,7 @@ describe("DESCRIBE_SYSTEM_PROMPT", () => {
   });
 
   test("requires short paragraphs separated by blank lines so each section reads on a phone", () => {
-    // Pin the breathing-room clause: each section's body should be 2-4
+    // Pin the breathing-room clause: each section's body should be 1-3
     // short paragraphs separated by blank lines, not a wall of text.
     // The renderers split on "\n\n" so the model must use that exact
     // delimiter.
