@@ -55,7 +55,7 @@ describe("StrainDirectory hydration", () => {
         <StrainDirectory />
       </MemoryRouter>,
     );
-    expect(screen.getByPlaceholderText("Filter by name…")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Search the catalog")).toBeTruthy();
     // The "All types" button is in the type filter row.
     expect(screen.getByRole("button", { name: "All types" })).toBeTruthy();
     // Skeleton grid is rendered while previews are loading.

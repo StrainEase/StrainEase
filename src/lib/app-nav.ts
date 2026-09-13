@@ -17,8 +17,8 @@ export const REPORT_HREF = "/report";
 
 export const APP_NAV: { id: AppNavId; to: string; label: string }[] = [
   { id: "home", to: HOME_HREF, label: "Home" },
-  { id: "find", to: FIND_HREF, label: "Find" },
-  { id: "directory", to: DIRECTORY_HREF, label: "Browse" },
+  { id: "find", to: FIND_HREF, label: "Browse" },
+  { id: "directory", to: DIRECTORY_HREF, label: "Find" },
   { id: "doctors", to: DOCTORS_HREF, label: "Doctors" },
 ];
 

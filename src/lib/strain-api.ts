@@ -337,7 +337,9 @@ export function cachedStrainImage(url: string): Promise<CachedStrainImage> {
   });
 }
 
-/** Lightweight strain preview used for directory listings and browse pagination. */
+/** Lightweight strain preview used for directory listings and browse pagination.
+ *  `effects` and `medicalUses` travel with the preview so the browse-page
+ *  filter chips can match against them without a per-row profile fetch. */
 export type StrainPreview = {
   name: string;
   slug: string;
@@ -346,6 +348,8 @@ export type StrainPreview = {
   imageUrl?: string;
   leaflyRating?: number;
   weedmapsRating?: number;
+  effects?: { name: string; count?: number; pct?: number }[];
+  medicalUses?: { name: string; count?: number; pct?: number }[];
 };
 
 /** A page of catalog previews from browseStrains. */
