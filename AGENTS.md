@@ -180,12 +180,12 @@ functions/
                      # the Groq-routed callables to keep repeat
                      # strain-page views inside the free-tier TPM
                      # limit (descriptionCache, compareCache)
-    ai-fallback.ts   # DeepInfra → Groq (Llama 3.3 70B Turbo primary)
+    ai-fallback.ts   # DeepInfra → Groq (Llama 3.1 8B Turbo primary)
                      # fallback helper for transient 429/5xx on DeepInfra
-    deepinfra.ts     # DeepInfra Chat Completions client (Llama 3.3 70B
-                     # Turbo, chat-tuned for prose; replaces an earlier
-                     # DeepSeek V4 Flash default that produced too-terse
-                     # descriptions)
+    deepinfra.ts     # DeepInfra Chat Completions client (Llama 3.1 8B
+                     # Turbo, chat-tuned at $0.02/$0.04 per 1M tokens;
+                     # replaces the earlier Llama 3.3 70B Turbo default
+                     # that was 15-25s steady-state on DeepInfra)
     groq.ts          # Groq client + JSON extraction helpers
     types.ts         # shared response types
   lib/               # compiled output, gitignored, DO NOT edit
@@ -294,7 +294,7 @@ language return the stored response without spending tokens.
 - `descriptionCache` and `compareCache` are admin-SDK-only (no client
   rule); the callable is the only writer.
 
-### Provider fallback (DeepInfra → Groq / Llama 3.3 70B Turbo)
+### Provider fallback (DeepInfra → Groq / Llama 3.1 8B Turbo)
 
 DeepInfra is the primary backend, Groq is the last-resort fallback.
 Reasoning: Groq's free tier caps each chat model at 8000 TPM and we
@@ -310,27 +310,23 @@ invalid-argument) skip the fallback because the same input would
 just burn a paid token. Every fallback emits a `logger.warn` so the
 rate is visible in Cloud Logging.
 
-Model choice: the DeepInfra primary is `meta-llama/Llama-3.3-70B-Instruct-Turbo`
-(Meta's chat-tuned 70B at $0.10 / $0.32 per 1M tokens). It writes
-the multi-paragraph prose the prompt asks for, unlike the older
-DeepSeek V4 Flash default which produced terse 1-2 sentence
-paragraphs. The Groq fallback model is the existing routing split:
+Model choice: the DeepInfra primary is `Meta-Llama-3.1-8B-Instruct-Turbo`
+(Meta's chat-tuned 8B at $0.02 / $0.04 per 1M tokens). We previously
+ran the 70B variant (Llama 3.3 70B Turbo) for richer prose, but
+steady-state latency on DeepInfra's on-demand tier was 15-25s with
+occasional 40s+ spikes; the 8B variant dropped that to ~5s
+steady-state. The prose-quality difference at the section-paragraph
+level is small in practice because the prompt already specifies the
+shape. The Groq fallback model is the existing routing split:
 descriptions fall back to `openai/gpt-oss-20b` (smaller, cheaper on
 tokens), comparisons fall back to `openai/gpt-oss-120b` (heavier
 reasoning).
 
-Cost: DeepInfra charges $0.10 input / $0.32 output per 1M tokens
-for Llama 3.3 70B Turbo. Set a hard monthly usage limit in the
-DeepInfra console so a worst case is bounded. `DEEPINFRA_API_KEY` is
-a Firebase Secret registered next to `GROQ_API_KEY`. The Firestore
-cache in `ai-cache.ts` absorbs most repeat traffic so the bill
-stays low.
-
-Latency: DeepInfra on-demand is cold-start-heavy (~15-20s on first
-call, dropping to 5-15s warm). Acceptable because the cache absorbs
-the bulk of repeat views. If latency becomes a problem we can move
-to Llama-3.1-8B (much faster, weaker prose) or a paid dedicated
-endpoint.
+Cost: DeepInfra charges $0.02 input / $0.04 output per 1M tokens for
+Llama 3.1 8B Turbo. Set a hard monthly usage limit in the DeepInfra
+console so a worst case is bounded. `DEEPINFRA_API_KEY` is a Firebase
+Secret registered next to `GROQ_API_KEY`. The Firestore cache in
+`ai-cache.ts` absorbs most repeat traffic so the bill stays low.
 
 ## Firestore conventions
 

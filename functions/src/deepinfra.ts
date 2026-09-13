@@ -26,9 +26,14 @@
 
 import { HttpsError } from "firebase-functions/v2/https";
 
-/** Model id registered on DeepInfra. */
+/** Model id registered on DeepInfra. Llama 3.1 8B Turbo at $0.02 input /
+ *  $0.04 output per 1M tokens. Chosen over the 70B variant for
+ *  latency: warm-call latency on DeepInfra's on-demand tier is ~5s
+ *  for the 8B versus ~15-25s for the 70B. The 8B is chat-tuned and
+ *  the prompt asks for the same multi-paragraph prose shape either
+ *  way, so the prose-quality difference is small in practice. */
 export const DEEPINRA_FALLBACK_MODEL =
-  "meta-llama/Llama-3.3-70B-Instruct-Turbo";
+  "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo";
 
 const DEEPINFRA_URL = "https://api.deepinfra.com/v1/openai/chat/completions";
 

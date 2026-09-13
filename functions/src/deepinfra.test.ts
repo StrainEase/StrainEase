@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 describe("deepInfraRequestBody", () => {
-  test("targets the Llama 3.3 70B Turbo model on DeepInfra", () => {
+  test("targets the Llama 3.1 8B Turbo model on DeepInfra", () => {
     const body = deepInfraRequestBody(DEEPINRA_FALLBACK_MODEL, [
       { role: "system", content: "stable instructions" },
       { role: "user", content: "dynamic strain data" },
