@@ -1,6 +1,11 @@
 import { browseStrains, type StrainPreview } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
-import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
+import {
+  CONDITIONS,
+  CONDITION_ALIASES,
+  TYPE_LABEL,
+  typeBadgeClass,
+} from "@/lib/strain-ui";
 import type { StrainType } from "@/lib/strain-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -160,6 +165,32 @@ export function StrainDirectory() {
     if (!allPreviews) return [];
     const q = query.trim().toLowerCase();
     const thc = THC_BANDS.find((b) => b.value === thcBand) ?? THC_BANDS[0];
+    const selectedEffects = EFFECT_BUCKETS.filter((b) =>
+      effectFilter.includes(b.id),
+    );
+    const effectMatch = (p: StrainPreview): boolean => {
+      if (selectedEffects.length === 0) return true;
+      const names = new Set(
+        (p.effects ?? []).map((e) => e.name.toLowerCase()),
+      );
+      return selectedEffects.every((b) =>
+        b.match.some((kw) => names.has(kw)),
+      );
+    };
+    const ailmentMatch = (p: StrainPreview): boolean => {
+      if (ailmentFilter.length === 0) return true;
+      const names = new Set(
+        (p.medicalUses ?? []).map((m) => m.name.toLowerCase()),
+      );
+      return ailmentFilter.every((label) => {
+        const needle = label.toLowerCase();
+        if (names.has(needle)) return true;
+        // Alias pass for the common cases where the catalog stores a synonym
+        // (e.g. "insomnia" appears as "sleep", "ADHD" as "ADD/ADHD").
+        const aliases = CONDITION_ALIASES[label] ?? [];
+        return aliases.some((alias) => names.has(alias.toLowerCase()));
+      });
+    };
     return allPreviews.filter((p) => {
       if (typeFilter !== "all" && p.type !== typeFilter) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
@@ -168,13 +199,11 @@ export function StrainDirectory() {
         if (mid === null) return false;
         if (!thc.test(mid)) return false;
       }
-      // Note: effect bucket and ailment filters require full StrainProfile data
-      // (effects[], medicalUses[]) which are not in the lightweight StrainPreview.
-      // They are intentionally disabled when browsing the full catalog to keep
-      // the initial load fast. Full profile data is fetched on the strain page.
+      if (!effectMatch(p)) return false;
+      if (!ailmentMatch(p)) return false;
       return true;
     });
-  }, [allPreviews, query, typeFilter, thcBand]);
+  }, [allPreviews, query, typeFilter, thcBand, effectFilter, ailmentFilter]);
 
   const filtersActive =
     typeFilter !== "all" ||
@@ -226,7 +255,7 @@ export function StrainDirectory() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by name…"
+              placeholder="Search the catalog"
               className="pl-9"
             />
           </div>

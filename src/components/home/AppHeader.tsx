@@ -31,8 +31,8 @@ import { Link, useNavigate } from "react-router";
 
 const ICONS: Record<AppNavId, typeof Home> = {
   home: Home,
-  find: Search,
-  directory: BookOpen,
+  find: BookOpen,
+  directory: Search,
   doctors: Stethoscope,
 };
 
