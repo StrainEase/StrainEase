@@ -313,15 +313,17 @@ just burn a paid token. Every fallback emits a `logger.warn` so the
 rate is visible in Cloud Logging.
 
 Model choice: the OpenRouter primary is
-`meta-llama/llama-3.3-70b-instruct` (Meta's chat-tuned 70B,
-auto-routed through whichever upstream currently has the shortest
-queue — Together.ai, Fireworks, or DeepInfra). We previously ran
-Together.ai's Llama 3.1 8B Turbo directly, but the 8B's prose was
-noticeably thinner at the section-paragraph level; OpenRouter's
-auto-routing keeps the 70B's prose quality while letting the
-inference land on whichever provider currently has the shortest
-queue, so user-visible latency stays close to the 8B tier without
-giving up the 70B's richer paragraphs. The Groq fallback model is
+`meta-llama/llama-3.3-70b-instruct:nitro` with a `provider.order`
+pin of `["together", "fireworks"]` and `allow_fallbacks: true` on
+the request body. The `:nitro` tag tells OpenRouter to use its
+fastest tier regardless of price; the provider pin keeps the call
+off DeepInfra's on-demand tier (15-25s warm, 40s+ spikes). We
+previously saw 70-110s latency when OpenRouter auto-routed the
+plain 70B model id to whichever provider happened to have
+capacity — Together.ai and Fireworks run the 70B on
+inference-optimised engines (5-15s warm), so the pin gets us back
+to that range without giving up the 70B's prose quality. The Groq
+fallback model is
 the existing routing split: descriptions fall back to
 `openai/gpt-oss-20b` (smaller, cheaper on tokens), comparisons fall
 back to `openai/gpt-oss-120b` (heavier reasoning).

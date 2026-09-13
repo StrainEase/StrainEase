@@ -3,19 +3,25 @@
 // Used as the primary backend for describeStrainForUser and
 // compareStrains. OpenRouter exposes an OpenAI-compatible
 // `/api/v1/chat/completions` endpoint at openrouter.ai, so the
-// request/response shape mirrors `groq.ts` exactly. OpenRouter routes
-// each request to whichever backend has the model available with the
-// lowest expected latency, so the same model id can sit on Together.ai,
-// Fireworks, or DeepInfra depending on current capacity.
+// request/response shape mirrors `groq.ts` exactly.
 //
-// Model: meta-llama/llama-3.3-70b-instruct (Meta's chat-tuned 70B).
-// We previously tried DeepInfra's Llama 3.3 70B Turbo directly (15-25s
-// warm latency, occasional 40s+ spikes on the on-demand tier) and
-// Together.ai's Llama 3.1 8B Turbo (faster but lower prose richness).
-// OpenRouter's automatic routing keeps the 70B's prose quality while
-// letting the inference land on whichever provider currently has the
-// shortest queue, so the user-visible latency is much closer to the 8B
-// tier without giving up the 70B's richer section paragraphs.
+// Model: meta-llama/llama-3.3-70b-instruct:nitro. The `:nitro`
+// suffix tells OpenRouter to route this request to its fastest
+// tier regardless of price. Belt-and-suspenders: we also pin the
+// `provider.order` field to prefer `together` and `fireworks`
+// (the two inference engines we already know are fast on these
+// prompts), with `allow_fallbacks: true` so we still get an
+// answer if those two are down.
+//
+// We previously tried OpenRouter's default routing on the plain
+// `meta-llama/llama-3.3-70b-instruct` model id and watched latency
+// climb into the 70-110s range as OpenRouter routed to the
+// on-demand tier of whichever provider had the model available.
+// Same model id, same prose, but the routing decision was the
+// problem. Together.ai and Fireworks run Llama 3.3 70B on
+// inference-optimised engines (5-15s warm); DeepInfra's
+// on-demand tier is 15-25s with 40s+ spikes. The `:nitro` tag +
+// provider pinning keeps us off DeepInfra.
 //
 // OpenRouter charges per token. Set a hard monthly usage limit in the
 // OpenRouter console so a worst case is bounded. `OPENROUTER_API_KEY`
@@ -34,10 +40,17 @@
 
 import { HttpsError } from "firebase-functions/v2/https";
 
-/** Model id routed through OpenRouter. Llama 3.3 70B chat-tuned.
- *  OpenRouter picks the lowest-latency backend with the model
- *  currently available. */
-export const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct";
+/** Model id routed through OpenRouter. Llama 3.3 70B chat-tuned on
+ *  OpenRouter's `:nitro` (fastest) tier. The provider order on the
+ *  request body further pins routing to Together and Fireworks. */
+export const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:nitro";
+
+/** Provider preference for the OpenRouter request body. Together and
+ *  Fireworks run the 70B on inference-optimised engines; DeepInfra
+ *  on-demand has 15-25s warm latency with 40s+ spikes, so we do not
+ *  list it. `allow_fallbacks: true` keeps the call going if both
+ *  preferred providers are temporarily unavailable. */
+export const OPENROUTER_PROVIDER_ORDER = ["together", "fireworks"];
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -56,6 +69,10 @@ export function openRouterRequestBody(
     temperature: 0.5,
     max_tokens: 1500,
     response_format: { type: "json_object" },
+    provider: {
+      order: OPENROUTER_PROVIDER_ORDER,
+      allow_fallbacks: true,
+    },
   };
 }
 

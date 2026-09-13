@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
   callOpenRouter,
   OPENROUTER_MODEL,
+  OPENROUTER_PROVIDER_ORDER,
   openRouterRequestBody,
 } from "./openrouter";
 
@@ -29,11 +30,26 @@ describe("openRouterRequestBody", () => {
     expect(body.model).toBe(OPENROUTER_MODEL);
   });
 
+  test("uses the :nitro tier for fastest routing", () => {
+    expect(OPENROUTER_MODEL.endsWith(":nitro")).toBe(true);
+  });
+
   test("requests strict JSON output", () => {
     const body = openRouterRequestBody(OPENROUTER_MODEL, [
       { role: "user", content: "x" },
     ]);
     expect(body.response_format).toEqual({ type: "json_object" });
+  });
+
+  test("pins provider order to fast upstreams (together + fireworks)", () => {
+    const body = openRouterRequestBody(OPENROUTER_MODEL, [
+      { role: "user", content: "x" },
+    ]);
+    expect(body.provider).toEqual({
+      order: OPENROUTER_PROVIDER_ORDER,
+      allow_fallbacks: true,
+    });
+    expect(OPENROUTER_PROVIDER_ORDER).toEqual(["together", "fireworks"]);
   });
 });
 
