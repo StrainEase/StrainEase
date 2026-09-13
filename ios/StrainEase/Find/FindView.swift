@@ -3,6 +3,25 @@ import SwiftUI
 struct FindView: View {
     @State private var model: FindModel
     @State private var path: [StrainProfile] = []
+<<<<<<< HEAD
+=======
+    @FocusState private var focused: Field?
+    @State private var didHydrateAilments = false
+    @State private var didHydrateMedications = false
+    @State private var didHydrateTriedStrains = false
+    @State private var triedStrainsList: [TriedStrainItem] = []
+    @State private var medicationsList: [String] = []
+    @State private var showSavePrompt = false
+
+    /// Identifies every text input on this screen so a single `@FocusState`
+    /// can dismiss any of them. Without these bindings, SwiftUI wouldn't
+    /// track focus on the form fields at all and the keyboard would stay
+    /// up after tapping chips or buttons.
+    enum Field: Hashable {
+        case customAilment, patientNote, ownedStrains, medications
+    }
+
+>>>>>>> cad93b0 (feat(ios): swap Find/Browse tab labels+icons, drop 'Look up a strain')
 
     init(model: FindModel) {
         _model = State(initialValue: model)
@@ -42,10 +61,25 @@ struct FindView: View {
                 }
                 .refreshable { await model.load() }
             }
-            .navigationTitle("Find")
+            .navigationTitle("Browse")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+<<<<<<< HEAD
             .appChrome()
+=======
+            // Adds a "Done" button above the keyboard so users have a
+            // discoverable way to dismiss focus without leaving the form.
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        focused = nil
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.primary)
+                }
+            }
+>>>>>>> cad93b0 (feat(ios): swap Find/Browse tab labels+icons, drop 'Look up a strain')
             .navigationDestination(for: StrainProfile.self) { profile in
                 StrainDetailView(profile: profile)
             }
@@ -105,11 +139,286 @@ struct FindView: View {
         }
     }
 
+<<<<<<< HEAD
     private var thcChips: some View {
         FlowLayout(spacing: 8) {
             ForEach(FindFilter.ThcBand.allCases) { band in
                 SWChip(title: band.label, isOn: model.thcBand == band) {
                     model.thcBand = band
+=======
+    private var potency: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionLabel("Potency", index: 2)
+            FlowLayout(spacing: 8) {
+                ForEach(Potency.allCases) { option in
+                    SWChip(title: option.label, isOn: model.potency == option) {
+                        model.potency = option
+                    }
+                }
+            }
+            Text(model.potency.hint)
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.mutedForeground)
+        }
+    }
+
+    private var prefs: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("When will you use it?", index: 3)
+                FlowLayout(spacing: 8) {
+                    ForEach(TimeOfDay.allCases) { option in
+                        SWChip(title: option.label, isOn: model.prefs.timeOfDay == option) {
+                            model.prefs.timeOfDay = option
+                        }
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("Form", index: 4)
+                FlowLayout(spacing: 8) {
+                    ForEach(ConsumeForm.allCases) { option in
+                        SWChip(title: option.label, isOn: model.prefs.consumeForm == option) {
+                            model.prefs.consumeForm = option
+                        }
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("THC sensitivity", index: 5)
+                FlowLayout(spacing: 8) {
+                    ForEach(ThcSensitivity.allCases) { option in
+                        SWChip(title: option.label, isOn: model.prefs.thcSensitivity == option) {
+                            model.prefs.thcSensitivity = option
+                        }
+                    }
+                }
+                if let hint = model.prefs.thcSensitivity.hint {
+                    Text(hint)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.mutedForeground)
+                }
+            }
+            SWField(
+                title: "In your words (optional)",
+                placeholder: "I need to sleep but I have to be up at 7…",
+                text: $model.prefs.patientNote
+            )
+            .focused($focused, equals: .patientNote)
+
+            // Tried strains with autocomplete
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Other strains I've tried", index: 6)
+                StrainAutocomplete(items: $triedStrainsList)
+                Text("Help Kaya understand what has and hasn't worked for you.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.mutedForeground)
+            }
+
+            // Medications with autocomplete
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Other medications", index: 7)
+                MedicationAutocomplete(items: $medicationsList, suggestions: savedMedications.names)
+                Text("We never tell you to stop a prescription — only to check with your clinician.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.mutedForeground)
+            }
+        }
+        .onAppear {
+            hydrateMedicationsIfNeeded()
+            hydrateTriedStrainsIfNeeded()
+        }
+        .onChange(of: savedMedications.names) { _, _ in
+            hydrateMedicationsIfNeeded()
+        }
+        .onChange(of: triedStrains.items) { _, _ in
+            hydrateTriedStrainsIfNeeded()
+        }
+    }
+
+    /// Prefill symptom chips from the saved account list once. Subsequent
+    /// chip taps win — only runs when Find is still empty.
+    private func hydrateAilmentsIfNeeded() {
+        guard !didHydrateAilments else { return }
+        if model.ailments.isEmpty, !savedAilments.ailments.isEmpty {
+            model.applyAilments(savedAilments.ailments)
+        }
+        if !savedAilments.ailments.isEmpty || !model.ailments.isEmpty {
+            didHydrateAilments = true
+        }
+    }
+
+    private func applyPendingNavigation() {
+        applyPendingAilments()
+        applyPendingResearch()
+    }
+
+    private func applyPendingAilments() {
+        let next = nav.consumeFindAilments()
+        guard !next.isEmpty else { return }
+        didHydrateAilments = true
+        model.applyAilments(next, replace: true)
+    }
+
+    private func applyPendingResearch() {
+        guard let restored = nav.consumeResearch() else { return }
+        switch restored {
+        case let .find(result, conditions):
+            didHydrateAilments = true
+            model.applyRestored(result: result, conditions: conditions)
+        case let .compare(comparison):
+            compareStore.applyRestored(comparison)
+        }
+    }
+
+    /// Prefill prefs.medications from the saved profile list once. Subsequent
+    /// edits win — only runs when the field is still empty.
+    private func hydrateMedicationsIfNeeded() {
+        guard !didHydrateMedications else { return }
+        if medicationsList.isEmpty, !savedMedications.names.isEmpty {
+            medicationsList = savedMedications.names
+        }
+        if !savedMedications.names.isEmpty || !medicationsList.isEmpty {
+            didHydrateMedications = true
+        }
+    }
+
+    /// Prefill triedStrainsList from the saved profile list once. Subsequent
+    /// edits win — only runs when the list is still empty.
+    private func hydrateTriedStrainsIfNeeded() {
+        guard !didHydrateTriedStrains else { return }
+        if triedStrainsList.isEmpty, !triedStrains.items.isEmpty {
+            triedStrainsList = triedStrains.items
+        }
+        if !triedStrains.items.isEmpty || !triedStrainsList.isEmpty {
+            didHydrateTriedStrains = true
+        }
+    }
+
+    /// Check if tried strains or medications differ from saved profile.
+    private var hasUnsavedChanges: Bool {
+        let savedTriedStrainsNames = Set(triedStrains.items.map { $0.name.lowercased() })
+        let currentTriedStrainsNames = Set(triedStrainsList.map { $0.name.lowercased() })
+        let triedStrainsDiffer = triedStrainsList.count != triedStrains.items.count ||
+            !currentTriedStrainsNames.isSubset(of: savedTriedStrainsNames)
+
+        let savedMedsNames = Set(savedMedications.names.map { $0.lowercased() })
+        let currentMedsNames = Set(medicationsList.map { $0.lowercased() })
+        let medsDiffer = medicationsList.count != savedMedications.names.count ||
+            !currentMedsNames.isSubset(of: savedMedsNames)
+
+        return triedStrainsDiffer || medsDiffer
+    }
+
+    /// Save tried strains and medications to profile.
+    private func saveToProfile() async {
+        // Sync tried strains
+        let savedTriedStrainsNames = Set(triedStrains.items.map { $0.name.lowercased() })
+        for strain in triedStrainsList {
+            if !savedTriedStrainsNames.contains(strain.name.lowercased()) {
+                await triedStrains.add(strain)
+            }
+        }
+        for strain in triedStrains.items {
+            if !triedStrainsList.contains(where: { $0.name.lowercased() == strain.name.lowercased() }) {
+                await triedStrains.remove(strain)
+            }
+        }
+        // Sync medications
+        let savedMedsNames = Set(savedMedications.names.map { $0.lowercased() })
+        for med in medicationsList {
+            if !savedMedsNames.contains(med.lowercased()) {
+                await savedMedications.add(med)
+            }
+        }
+        for med in savedMedications.items {
+            if !medicationsList.contains(where: { $0.lowercased() == med.name.lowercased() }) {
+                await savedMedications.remove(med)
+            }
+        }
+    }
+
+    private var compareTray: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                SectionLabel("Compare strains")
+                Spacer(minLength: 0)
+                Text("\(compareStore.count)/3 selected")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.mutedForeground)
+                    .accessibilityIdentifier("find.compare.count")
+            }
+            Text("Pick up to three strains to compare side by side. Tap a chip below to remove it.")
+                .font(.system(size: 13))
+                .foregroundStyle(Palette.mutedForeground)
+                .fixedSize(horizontal: false, vertical: true)
+            if !compareStore.names.isEmpty {
+                FlowLayout(spacing: 8) {
+                    ForEach(compareStore.names, id: \.self) { name in
+                        CompareChip(name: name) {
+                            compareStore.remove(name)
+                        }
+                    }
+                }
+                if compareStore.names.count >= 2 {
+                    Button {
+                        compareStore.clear()
+                    } label: {
+                        Text("Clear all")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Palette.mutedForeground)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            let canRun = compareStore.canRunCompare && !compareStore.isComparing
+            SWPrimaryButton(
+                title: compareStore.isComparing
+                    ? "Comparing…"
+                    : (canRun ? "Compare \(compareStore.count) strains" : "Add 2 strains to compare"),
+                systemImage: "arrow.left.arrow.right",
+                isBusy: compareStore.isComparing
+            ) {
+                Task {
+                    await compareStore.runCompare(
+                        api: api,
+                        conditions: model.ailments,
+                        prefs: model.prefs,
+                        reliefSummary: relief.summary.isEmpty ? nil : relief.summary
+                    )
+                    if let comparison = compareStore.comparison {
+                        await history.remember(
+                            compare: comparison,
+                            names: compareStore.names,
+                            conditions: model.ailments
+                        )
+                    }
+                }
+            }
+            .disabled(!canRun)
+            .opacity(canRun || compareStore.isComparing ? 1 : 0.55)
+            if let error = compareStore.compareError {
+                SWErrorBanner(message: error)
+            }
+        }
+    }
+
+    private func compareList(_ title: String, _ items: [String]) -> some View {
+        Group {
+            if !items.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(title)
+                    SWCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(items, id: \.self) { item in
+                                Text(item)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Palette.foreground)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+>>>>>>> cad93b0 (feat(ios): swap Find/Browse tab labels+icons, drop 'Look up a strain')
                 }
             }
         }
@@ -191,6 +500,13 @@ struct FindView: View {
             }
         }
     }
+<<<<<<< HEAD
+=======
+
+    private func errorBanner(_ text: String) -> some View {
+        SWErrorBanner(message: text)
+    }
+>>>>>>> cad93b0 (feat(ios): swap Find/Browse tab labels+icons, drop 'Look up a strain')
 }
 
 #Preview("Find") {

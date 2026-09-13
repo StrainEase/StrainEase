@@ -9,8 +9,13 @@ enum AppTab: String, Hashable, CaseIterable {
     var title: String {
         switch self {
         case .home: "Home"
+<<<<<<< HEAD
         case .find: "Find"
         case .discover: "Discover"
+=======
+        case .find: "Browse"
+        case .browse: "Find"
+>>>>>>> cad93b0 (feat(ios): swap Find/Browse tab labels+icons, drop 'Look up a strain')
         case .doctors: "Doctors"
         }
     }
@@ -18,8 +23,13 @@ enum AppTab: String, Hashable, CaseIterable {
     var systemImage: String {
         switch self {
         case .home: "house.fill"
+<<<<<<< HEAD
         case .find: "magnifyingglass"
         case .discover: "sparkles"
+=======
+        case .find: "book.closed.fill"
+        case .browse: "magnifyingglass"
+>>>>>>> cad93b0 (feat(ios): swap Find/Browse tab labels+icons, drop 'Look up a strain')
         case .doctors: "stethoscope"
         }
     }
