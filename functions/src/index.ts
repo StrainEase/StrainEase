@@ -1725,12 +1725,19 @@ export function publicStrainImageUrl(bucket: string, key: string): string {
  * accepted any `https://` URL, which made it an open fetch proxy with
  * a 30-second budget (and could fill the Storage bucket with arbitrary
  * bytes). We now only fetch from the upstream sources we actually
- * scrape strain images from, plus the StrainEase Storage bucket for
- * already-cached objects.
+ * scrape strain images from (Leafly's marketing-site pages, plus the
+ * Leafly imgix CDNs that serve the actual flower photos), the
+ * StrainEase Storage bucket for already-cached objects. The Leafly
+ * flower-image CDN (`images.leafly.com`) and public imgix CDN
+ * (`leafly-public.imgix.net`) are the hosts every curated strain
+ * photo in the catalog points at, and what the Leafly GraphQL scraper
+ * returns — they must be on this list or every image is rejected.
  */
 const CACHED_STRAIN_IMAGE_ALLOWED_HOSTS = new Set([
   "leafly.com",
   "www.leafly.com",
+  "images.leafly.com",
+  "leafly-public.imgix.net",
   "weedmaps.com",
   "www.weedmaps.com",
   "allbud.com",
@@ -1738,7 +1745,7 @@ const CACHED_STRAIN_IMAGE_ALLOWED_HOSTS = new Set([
   "storage.googleapis.com",
 ]);
 
-function isAllowedCachedImageHost(url: string): boolean {
+export function isAllowedCachedImageHost(url: string): boolean {
   try {
     const host = new URL(url).host.toLowerCase();
     return CACHED_STRAIN_IMAGE_ALLOWED_HOSTS.has(host);
