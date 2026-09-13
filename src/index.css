@@ -69,7 +69,7 @@
   --secondary: oklch(0.955 0.012 158);
   --secondary-foreground: oklch(0.3 0.03 160);
   --muted: oklch(0.955 0.012 158);
-  --muted-foreground: oklch(0.5 0.025 160);
+  --muted-foreground: oklch(0.42 0.025 160);
   --accent: oklch(0.945 0.03 158);
   --accent-foreground: oklch(0.3 0.04 158);
   --destructive: oklch(0.577 0.245 27.325);
@@ -103,7 +103,7 @@
   --secondary: oklch(0.27 0.018 160);
   --secondary-foreground: oklch(0.94 0.008 158);
   --muted: oklch(0.27 0.018 160);
-  --muted-foreground: oklch(0.68 0.02 158);
+  --muted-foreground: oklch(0.76 0.02 158);
   --accent: oklch(0.3 0.035 158);
   --accent-foreground: oklch(0.94 0.008 158);
   --destructive: oklch(0.704 0.191 22.216);
@@ -128,6 +128,23 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* Global keyboard-focus indicator. The Tailwind v4 utility `outline-ring/50`
+   * on the catch-all `*` rule only sets an outline color — it doesn't actually
+   * show a ring on focus because the matching `outline-none` utility that
+   * shadcn applies to interactive elements makes the outline transparent.
+   * This rule paints a visible 2px ring with offset for every focusable
+   * element when it receives keyboard focus, layered on top of whatever
+   * component-level focus style exists. Mouse clicks do not trigger it. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Main landmark is focused programmatically on route change (see
+   * main.tsx RouteSyncer). Suppress the focus ring there — the visible
+   * position jump is the only signal the user needs. */
+  [tabindex="-1"]:focus-visible {
+    outline: none;
   }
   html {
     scroll-behavior: smooth;
