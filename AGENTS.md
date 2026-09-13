@@ -180,12 +180,14 @@ functions/
                      # the Groq-routed callables to keep repeat
                      # strain-page views inside the free-tier TPM
                      # limit (descriptionCache, compareCache)
-    ai-fallback.ts   # Together.ai → Groq (Llama 3.1 8B Turbo primary)
-                     # fallback helper for transient 429/5xx on Together.ai
-    together.ts      # Together.ai Chat Completions client (Llama 3.1
-                     # 8B Turbo on the Together.ai inference engine;
-                     # replaced the DeepInfra primary because the
-                     # on-demand tier was 15-25s even on the 8B)
+    ai-fallback.ts   # OpenRouter → Groq (Llama 3.3 70B primary via
+                     # OpenRouter's auto-routing; Groq is the
+                     # last-resort fallback for transient 429/5xx)
+    openrouter.ts    # OpenRouter Chat Completions client (Llama 3.3
+                     # 70B routed through whichever upstream has the
+                     # shortest queue; replaced the Together.ai primary
+                     # so the same model id can sit on Together.ai,
+                     # Fireworks, or DeepInfra depending on capacity)
     groq.ts          # Groq client + JSON extraction helpers
     types.ts         # shared response types
   lib/               # compiled output, gitignored, DO NOT edit
@@ -294,15 +296,15 @@ language return the stored response without spending tokens.
 - `descriptionCache` and `compareCache` are admin-SDK-only (no client
   rule); the callable is the only writer.
 
-### Provider fallback (Together.ai → Groq / Llama 3.1 8B Turbo)
+### Provider fallback (OpenRouter → Groq / Llama 3.3 70B)
 
-Together.ai is the primary backend, Groq is the last-resort fallback.
+OpenRouter is the primary backend, Groq is the last-resort fallback.
 Reasoning: Groq's free tier caps each chat model at 8000 TPM and we
 observed it truncating responses mid-stream when the ceiling is hit
 mid-generation (2-of-3 sections coming back from gpt-oss-20b on a
-routine call). Together.ai charges per token but produces complete
+routine call). OpenRouter charges per token but produces complete
 responses, so the failure mode shifts from "user sees a 500" to
-"user pays a tenth of a cent". When Together.ai returns a transient
+"user pays a tenth of a cent". When OpenRouter returns a transient
 failure (429, 5xx, transport error, message text mentioning "rate
 limit" / "TPM" / "tokens per minute"), `ai-fallback.ts` retries the
 same messages against Groq. Permanent failures (bad key,
@@ -310,22 +312,23 @@ invalid-argument) skip the fallback because the same input would
 just burn a paid token. Every fallback emits a `logger.warn` so the
 rate is visible in Cloud Logging.
 
-Model choice: the Together.ai primary is
-`meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo` (Meta's chat-tuned 8B
-on the Together.ai inference engine). We previously ran DeepInfra
-as the primary for the same model, but steady-state latency on
-DeepInfra's on-demand tier was 15-25s on the 70B variant and still
-5s+ on the 8B; Together.ai's engine drops warm-call latency enough
-to ship. The prose-quality difference at the section-paragraph level
-is small in practice because the prompt already specifies the
-shape. The Groq fallback model is the existing routing split:
-descriptions fall back to `openai/gpt-oss-20b` (smaller, cheaper on
-tokens), comparisons fall back to `openai/gpt-oss-120b` (heavier
-reasoning).
+Model choice: the OpenRouter primary is
+`meta-llama/llama-3.3-70b-instruct` (Meta's chat-tuned 70B,
+auto-routed through whichever upstream currently has the shortest
+queue — Together.ai, Fireworks, or DeepInfra). We previously ran
+Together.ai's Llama 3.1 8B Turbo directly, but the 8B's prose was
+noticeably thinner at the section-paragraph level; OpenRouter's
+auto-routing keeps the 70B's prose quality while letting the
+inference land on whichever provider currently has the shortest
+queue, so user-visible latency stays close to the 8B tier without
+giving up the 70B's richer paragraphs. The Groq fallback model is
+the existing routing split: descriptions fall back to
+`openai/gpt-oss-20b` (smaller, cheaper on tokens), comparisons fall
+back to `openai/gpt-oss-120b` (heavier reasoning).
 
-Cost: Together.ai charges per token for Llama 3.1 8B Turbo. Set a
-hard monthly usage limit in the Together.ai console so a worst case
-is bounded. `TOGETHER_API_KEY` is a Firebase Secret registered next
+Cost: OpenRouter charges per token for Llama 3.3 70B. Set a
+hard monthly usage limit in the OpenRouter console so a worst case
+is bounded. `OPENROUTER_API_KEY` is a Firebase Secret registered next
 to `GROQ_API_KEY`. The Firestore cache in `ai-cache.ts` absorbs
 most repeat traffic so the bill stays low.
 

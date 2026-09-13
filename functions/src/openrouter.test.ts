@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
-import { callTogether, TOGETHER_MODEL, togetherRequestBody } from "./together";
+import {
+  callOpenRouter,
+  OPENROUTER_MODEL,
+  openRouterRequestBody,
+} from "./openrouter";
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -16,24 +20,24 @@ afterEach(() => {
   fetchMock = undefined;
 });
 
-describe("togetherRequestBody", () => {
-  test("targets the Llama 3.1 8B Turbo model on Together.ai", () => {
-    const body = togetherRequestBody(TOGETHER_MODEL, [
+describe("openRouterRequestBody", () => {
+  test("targets the Llama 3.3 70B model on OpenRouter", () => {
+    const body = openRouterRequestBody(OPENROUTER_MODEL, [
       { role: "system", content: "stable instructions" },
       { role: "user", content: "dynamic strain data" },
     ]);
-    expect(body.model).toBe(TOGETHER_MODEL);
+    expect(body.model).toBe(OPENROUTER_MODEL);
   });
 
   test("requests strict JSON output", () => {
-    const body = togetherRequestBody(TOGETHER_MODEL, [
+    const body = openRouterRequestBody(OPENROUTER_MODEL, [
       { role: "user", content: "x" },
     ]);
     expect(body.response_format).toEqual({ type: "json_object" });
   });
 });
 
-describe("callTogether", () => {
+describe("callOpenRouter", () => {
   test("returns the first-choice content on a 2xx response", async () => {
     fetchMock!.mockImplementationOnce(() =>
       Promise.resolve(
@@ -45,7 +49,7 @@ describe("callTogether", () => {
         ),
       ),
     );
-    const out = await callTogether("test-key", [
+    const out = await callOpenRouter("test-key", [
       { role: "user", content: "hi" },
     ]);
     expect(out).toBe('{"sections":[]}');
@@ -53,8 +57,8 @@ describe("callTogether", () => {
 
   test("throws failed-precondition when the key is missing", async () => {
     await expect(
-      callTogether("", [{ role: "user", content: "x" }]),
-    ).rejects.toThrow(/Together.ai API key is missing/);
+      callOpenRouter("", [{ role: "user", content: "x" }]),
+    ).rejects.toThrow(/OpenRouter API key is missing/);
   });
 
   test("throws internal with the upstream message on a 429", async () => {
@@ -67,7 +71,7 @@ describe("callTogether", () => {
       ),
     );
     await expect(
-      callTogether("k", [{ role: "user", content: "x" }]),
+      callOpenRouter("k", [{ role: "user", content: "x" }]),
     ).rejects.toThrow(/Rate limit reached/);
   });
 
@@ -80,7 +84,7 @@ describe("callTogether", () => {
       ),
     );
     await expect(
-      callTogether("k", [{ role: "user", content: "x" }]),
+      callOpenRouter("k", [{ role: "user", content: "x" }]),
     ).rejects.toThrow(/internal error/);
   });
 
@@ -93,7 +97,7 @@ describe("callTogether", () => {
       ),
     );
     await expect(
-      callTogether("k", [{ role: "user", content: "x" }]),
+      callOpenRouter("k", [{ role: "user", content: "x" }]),
     ).rejects.toThrow(/empty response/);
   });
 
@@ -102,7 +106,7 @@ describe("callTogether", () => {
       Promise.reject(new Error("dns failure")),
     );
     await expect(
-      callTogether("k", [{ role: "user", content: "x" }]),
+      callOpenRouter("k", [{ role: "user", content: "x" }]),
     ).rejects.toThrow(/Could not reach/);
   });
 
@@ -115,11 +119,27 @@ describe("callTogether", () => {
         ),
       ),
     );
-    await callTogether("secret-key", [{ role: "user", content: "x" }]);
+    await callOpenRouter("secret-key", [{ role: "user", content: "x" }]);
     const call = fetchMock!.mock.calls.at(-1) as
       | [unknown, RequestInit]
       | undefined;
     const headers = call?.[1]?.headers as Record<string, string> | undefined;
     expect(headers?.Authorization).toBe("Bearer secret-key");
+  });
+
+  test("targets the openrouter.ai host", async () => {
+    fetchMock!.mockImplementationOnce(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
+          { status: 200 },
+        ),
+      ),
+    );
+    await callOpenRouter("k", [{ role: "user", content: "x" }]);
+    const call = fetchMock!.mock.calls.at(-1) as
+      | [string, RequestInit]
+      | undefined;
+    expect(call?.[0]).toContain("openrouter.ai");
   });
 });

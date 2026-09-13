@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
-import { callWithTogetherFallback } from "./ai-fallback";
+import { callWithOpenRouterFallback } from "./ai-fallback";
 
 // We mock fetch so we can drive both providers independently. The real
-// callTogether and callGroq are exercised in their own test files; here
-// we only need them to honour the fetch mock so the fallback path can
-// observe a Together.ai failure and route to Groq.
+// callOpenRouter and callGroq are exercised in their own test files;
+// here we only need them to honour the fetch mock so the fallback path
+// can observe an OpenRouter failure and route to Groq.
 const ORIGINAL_FETCH = globalThis.fetch;
 let fetchMock: ReturnType<typeof mock> | undefined;
 
@@ -28,7 +28,7 @@ afterEach(() => {
   fetchMock = undefined;
 });
 
-function togetherFail(): Response {
+function openRouterFail(): Response {
   return new Response(
     JSON.stringify({ error: { message: "Rate limit reached (TPM)" } }),
     { status: 429 },
@@ -50,44 +50,44 @@ function groqFail(): Response {
 }
 
 const isGroqUrl = (url: string) => url.includes("api.groq.com");
-const isTogetherUrl = (url: string) => url.includes("api.together.xyz");
+const isOpenRouterUrl = (url: string) => url.includes("openrouter.ai");
 
-describe("callWithTogetherFallback", () => {
-  test("returns the Together.ai response when Together.ai succeeds (no fallback)", async () => {
+describe("callWithOpenRouterFallback", () => {
+  test("returns the OpenRouter response when OpenRouter succeeds (no fallback)", async () => {
     fetchMock!.mockImplementation((url) =>
-      isTogetherUrl(String(url))
-        ? Promise.resolve(groqOk("from-together"))
+      isOpenRouterUrl(String(url))
+        ? Promise.resolve(groqOk("from-openrouter"))
         : Promise.resolve(groqOk("from-groq")),
     );
-    const out = await callWithTogetherFallback(
-      "t",
+    const out = await callWithOpenRouterFallback(
+      "o",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "meta-llama/llama-3.3-70b-instruct",
       "openai/gpt-oss-20b",
     );
-    expect(out).toBe("from-together");
+    expect(out).toBe("from-openrouter");
   });
 
-  test("falls through to Groq when Together.ai returns 429 (transient)", async () => {
+  test("falls through to Groq when OpenRouter returns 429 (transient)", async () => {
     fetchMock!.mockImplementation((url) =>
-      isTogetherUrl(String(url))
-        ? Promise.resolve(togetherFail())
+      isOpenRouterUrl(String(url))
+        ? Promise.resolve(openRouterFail())
         : Promise.resolve(groqOk("from-groq")),
     );
-    const out = await callWithTogetherFallback(
-      "t",
+    const out = await callWithOpenRouterFallback(
+      "o",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "meta-llama/llama-3.3-70b-instruct",
       "openai/gpt-oss-20b",
     );
     expect(out).toBe("from-groq");
   });
 
-  test("falls through on Together.ai 503 (transient)", async () => {
+  test("falls through on OpenRouter 503 (transient)", async () => {
     fetchMock!.mockImplementation((url) =>
-      isTogetherUrl(String(url))
+      isOpenRouterUrl(String(url))
         ? Promise.resolve(
             new Response(
               JSON.stringify({ message: "503 Service Unavailable" }),
@@ -98,11 +98,11 @@ describe("callWithTogetherFallback", () => {
           )
         : Promise.resolve(groqOk("from-groq")),
     );
-    const out = await callWithTogetherFallback(
-      "t",
+    const out = await callWithOpenRouterFallback(
+      "o",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "meta-llama/llama-3.3-70b-instruct",
       "openai/gpt-oss-120b",
     );
     expect(out).toBe("from-groq");
@@ -110,50 +110,50 @@ describe("callWithTogetherFallback", () => {
 
   test("falls through on a transport-level rejection (no HttpsError)", async () => {
     fetchMock!.mockImplementation((url) =>
-      isTogetherUrl(String(url))
+      isOpenRouterUrl(String(url))
         ? Promise.reject(new Error("dns failure"))
         : Promise.resolve(groqOk("from-groq")),
     );
-    const out = await callWithTogetherFallback(
-      "t",
+    const out = await callWithOpenRouterFallback(
+      "o",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "meta-llama/llama-3.3-70b-instruct",
       "openai/gpt-oss-20b",
     );
     expect(out).toBe("from-groq");
   });
 
-  test("does NOT fall through on a permanent Together.ai failure (bad key)", async () => {
+  test("does NOT fall through on a permanent OpenRouter failure (bad key)", async () => {
     let groqCalled = false;
     fetchMock!.mockImplementation((url) => {
       if (isGroqUrl(String(url))) groqCalled = true;
       return Promise.resolve(groqOk("never"));
     });
     await expect(
-      callWithTogetherFallback(
+      callWithOpenRouterFallback(
         "",
         "g",
         [{ role: "user", content: "x" }],
-        "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+        "meta-llama/llama-3.3-70b-instruct",
         "openai/gpt-oss-20b",
       ),
-    ).rejects.toThrow(/TOGETHER_API_KEY/);
+    ).rejects.toThrow(/OPENROUTER_API_KEY/);
     expect(groqCalled).toBe(false);
   });
 
   test("surfaces the Groq error if Groq also fails", async () => {
     fetchMock!.mockImplementation((url) =>
-      isTogetherUrl(String(url))
-        ? Promise.resolve(togetherFail())
+      isOpenRouterUrl(String(url))
+        ? Promise.resolve(openRouterFail())
         : Promise.resolve(groqFail()),
     );
     await expect(
-      callWithTogetherFallback(
-        "t",
+      callWithOpenRouterFallback(
+        "o",
         "g",
         [{ role: "user", content: "x" }],
-        "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+        "meta-llama/llama-3.3-70b-instruct",
         "openai/gpt-oss-20b",
       ),
     ).rejects.toThrow(/Groq also rate-limited/);
@@ -163,15 +163,15 @@ describe("callWithTogetherFallback", () => {
     let groqBody: Record<string, unknown> | undefined;
     globalThis.fetch = (async (u: unknown, init: unknown) => {
       const url = String(u);
-      if (isTogetherUrl(url)) return togetherFail();
+      if (isOpenRouterUrl(url)) return openRouterFail();
       groqBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
       return groqOk("ok");
     }) as unknown as typeof fetch;
-    await callWithTogetherFallback(
-      "t",
+    await callWithOpenRouterFallback(
+      "o",
       "g",
       [{ role: "user", content: "x" }],
-      "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "meta-llama/llama-3.3-70b-instruct",
       "openai/gpt-oss-120b",
     );
     expect(groqBody?.model).toBe("openai/gpt-oss-120b");
