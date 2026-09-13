@@ -135,6 +135,63 @@ describe("normalizeDescriptionSections", () => {
     expect(out[0].body).toContain("\n\n");
     expect(out[0].body).not.toContain("\\n");
   });
+
+  test("coerces a single-paragraph body into three", () => {
+    // If the model returns one wall-of-text body, the server splits
+    // it on sentence boundaries into three paragraphs so the
+    // renderer always emits exactly 3 <p> tags.
+    const out = normalizeDescriptionSections(
+      [
+        {
+          heading: "Overview",
+          body:
+            "Blue Dream leans cerebral and uplifting on the inhale. " +
+            "It is a sativa-dominant hybrid with a sweet berry aroma. " +
+            "Most patients describe a smooth comedown with a gentle body relaxation.",
+        },
+      ],
+      "Blue Dream",
+    );
+    const paragraphs = out[0].body.split(/\n\s*\n/);
+    expect(paragraphs).toHaveLength(3);
+    paragraphs.forEach((p) => expect(p.length).toBeGreaterThan(0));
+  });
+
+  test("coerces a two-paragraph body into three", () => {
+    // Splits the second paragraph in half on a sentence boundary.
+    const out = normalizeDescriptionSections(
+      [
+        {
+          heading: "Overview",
+          body:
+            "Blue Dream is a sativa-dominant hybrid.\n\n" +
+            "It has a sweet berry aroma. The effects lean cerebral. " +
+            "Most patients feel relaxed without sedation.",
+        },
+      ],
+      "Blue Dream",
+    );
+    const paragraphs = out[0].body.split(/\n\s*\n/);
+    expect(paragraphs).toHaveLength(3);
+  });
+
+  test("truncates an over-long body to its first three paragraphs", () => {
+    const out = normalizeDescriptionSections(
+      [
+        {
+          heading: "Overview",
+          body:
+            "Para one.\n\nPara two.\n\nPara three.\n\nPara four.\n\nPara five.",
+        },
+      ],
+      "X",
+    );
+    const paragraphs = out[0].body.split(/\n\s*\n/);
+    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs[0]).toBe("Para one.");
+    expect(paragraphs[1]).toBe("Para two.");
+    expect(paragraphs[2]).toBe("Para three.");
+  });
 });
 
 describe("describePrompt", () => {
@@ -218,14 +275,15 @@ describe("DESCRIBE_SYSTEM_PROMPT", () => {
   });
 
   test("requires substantive paragraphs separated by blank lines", () => {
-    // Pin the breathing-room clause: each section's body should be 3-5
-    // paragraphs of 2-4 sentences each, separated by blank lines, so the
-    // patient gets a real read on the strain instead of a terse summary.
-    // The renderers split on "\n\n" so the model must use that exact
-    // delimiter.
+    // Pin the breathing-room clause: each section's body MUST be
+    // exactly 3 paragraphs of 2-4 sentences each, separated by blank
+    // lines, so the patient gets a real read on the strain instead of
+    // a terse summary or a wall of text. The renderers split on "\n\n"
+    // so the model must use that exact delimiter.
     expect(prompt.toLowerCase()).toContain("concrete specifics");
     expect(prompt).toContain("2-4 sentences");
     expect(prompt).toContain("\\n\\n");
+    expect(prompt.toLowerCase()).toContain("exactly 3 paragraphs");
   });
 });
 
