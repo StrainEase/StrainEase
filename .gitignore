@@ -39,6 +39,7 @@ functions/lib
 .env
 .env.*
 !.env.example
+!.env.production
 
 # Generated AI context (task briefs remain shareable)
 .ai/context.md
