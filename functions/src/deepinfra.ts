@@ -1,26 +1,34 @@
 // DeepInfra Chat Completions client.
 //
-// DeepInfra is the cheapest metered host of DeepSeek V4 Flash (and the
-// V4.x family in general): $0.09 input / $0.18 output per 1M tokens
-// at the time of writing. It exposes an OpenAI-compatible
-// `/v1/openai/chat/completions` endpoint, so the request/response shape
-// mirrors `groq.ts` exactly. The single behavioural difference: we
-// pass `stream: false` explicitly because DeepInfra's OpenAI shim
-// defaults to streaming when the field is omitted, which would
-// return a `ReadableStream` body that our `res.json()` cannot parse.
-//
 // Used as a fallback when Groq returns 429 (rate limit) or 5xx.
 // `index.ts` (describeStrainForUser / compareStrains) tries Groq first
 // because it is free, then falls through to DeepInfra with the same
-// messages and model-equivalent. The cache layer in `ai-cache.ts`
-// short-circuits repeat calls before either provider is hit.
+// messages. The cache layer in `ai-cache.ts` short-circuits repeat
+// calls before either provider is hit.
+//
+// Model: Llama-3.3-70B-Instruct-Turbo. We previously used
+// `deepseek-ai/DeepSeek-V4-Flash` because it is the cheapest metered
+// option on DeepInfra ($0.09 input / $0.18 output per 1M tokens), but
+// it is a coding/agentic-tuned model that produces terse 1-2 sentence
+// paragraphs even when the prompt asks for more. Llama 3.3 70B Turbo
+// is Meta's chat-tuned 70B at $0.10 / $0.32 per 1M tokens and writes
+// the multi-paragraph prose the prompt asks for. Cost difference is
+// roughly $0.14 per million output tokens; the cache absorbs the bulk
+// of repeat calls, so this stays under a few dollars per month at
+// typical traffic.
+//
+// DeepInfra exposes an OpenAI-compatible `/v1/openai/chat/completions`
+// endpoint, so the request/response shape mirrors `groq.ts` exactly.
+// The single behavioural difference: we pass `stream: false` explicitly
+// because DeepInfra's OpenAI shim defaults to streaming when the field
+// is omitted, which would return a `ReadableStream` body that our
+// `res.json()` cannot parse.
 
 import { HttpsError } from "firebase-functions/v2/https";
 
-/** Model id registered on DeepInfra. DeepSeek V4 Flash is open-weights
- *  (MIT), so the same id resolves to the same underlying model
- *  everywhere it is hosted. */
-export const DEEPINFRA_FLASH_MODEL = "deepseek-ai/DeepSeek-V4-Flash";
+/** Model id registered on DeepInfra. */
+export const DEEPINRA_FALLBACK_MODEL =
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo";
 
 const DEEPINFRA_URL = "https://api.deepinfra.com/v1/openai/chat/completions";
 
@@ -36,7 +44,7 @@ export function deepInfraRequestBody(
   return {
     model,
     messages,
-    temperature: 0.4,
+    temperature: 0.5,
     max_tokens: 2200,
     stream: false,
     response_format: { type: "json_object" },
@@ -53,7 +61,7 @@ export function deepInfraRequestBody(
 export async function callDeepInfra(
   apiKey: string,
   messages: ChatMessage[],
-  model: string = DEEPINFRA_FLASH_MODEL,
+  model: string = DEEPINRA_FALLBACK_MODEL,
 ): Promise<string> {
   if (!apiKey) {
     throw new HttpsError(

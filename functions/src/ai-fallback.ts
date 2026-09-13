@@ -18,7 +18,11 @@
 import { logger } from "firebase-functions";
 import { HttpsError } from "firebase-functions/v2/https";
 
-import { callDeepInfra, type ChatMessage } from "./deepinfra";
+import {
+  callDeepInfra,
+  DEEPINRA_FALLBACK_MODEL,
+  type ChatMessage,
+} from "./deepinfra";
 import { callGroq } from "./groq";
 
 function isTransient(err: unknown): boolean {
@@ -65,7 +69,7 @@ export async function callWithGroqFallback(
   deepInfraApiKey: string,
   messages: ChatMessage[],
   groqModel: string,
-  deepInfraModel: string = "deepseek-ai/DeepSeek-V4-Flash",
+  deepInfraModel: string = DEEPINRA_FALLBACK_MODEL,
 ): Promise<string> {
   try {
     return await callGroq(groqApiKey, messages, groqModel);

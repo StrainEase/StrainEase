@@ -164,13 +164,7 @@ describe("describePrompt", () => {
   });
 
   test("includes THC sensitivity when the patient is anxious around high-THC", () => {
-    const prompt = describePrompt(
-      strain,
-      [],
-      [],
-      "",
-      "anxious-high-thc",
-    );
+    const prompt = describePrompt(strain, [], [], "", "anxious-high-thc");
     expect(prompt).toContain("anxious around high-THC flower");
     expect(prompt).toContain("softer potency call-out");
   });
@@ -223,13 +217,14 @@ describe("DESCRIBE_SYSTEM_PROMPT", () => {
     expect(prompt.toLowerCase()).toContain("do not skew positive");
   });
 
-  test("requires short paragraphs separated by blank lines so each section reads on a phone", () => {
-    // Pin the breathing-room clause: each section's body should be 2-4
-    // short paragraphs separated by blank lines, not a wall of text.
+  test("requires substantive paragraphs separated by blank lines", () => {
+    // Pin the breathing-room clause: each section's body should be 3-5
+    // paragraphs of 2-4 sentences each, separated by blank lines, so the
+    // patient gets a real read on the strain instead of a terse summary.
     // The renderers split on "\n\n" so the model must use that exact
     // delimiter.
-    expect(prompt.toLowerCase()).toContain("easy to skim");
-    expect(prompt).toContain("1-2 sentences");
+    expect(prompt.toLowerCase()).toContain("concrete specifics");
+    expect(prompt).toContain("2-4 sentences");
     expect(prompt).toContain("\\n\\n");
   });
 });

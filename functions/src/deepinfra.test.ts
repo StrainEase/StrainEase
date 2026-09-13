@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 import {
   callDeepInfra,
-  DEEPINFRA_FLASH_MODEL,
+  DEEPINRA_FALLBACK_MODEL,
   deepInfraRequestBody,
 } from "./deepinfra";
 
@@ -21,23 +21,23 @@ afterEach(() => {
 });
 
 describe("deepInfraRequestBody", () => {
-  test("targets the DeepSeek V4 Flash model on DeepInfra", () => {
-    const body = deepInfraRequestBody(DEEPINFRA_FLASH_MODEL, [
+  test("targets the Llama 3.3 70B Turbo model on DeepInfra", () => {
+    const body = deepInfraRequestBody(DEEPINRA_FALLBACK_MODEL, [
       { role: "system", content: "stable instructions" },
       { role: "user", content: "dynamic strain data" },
     ]);
-    expect(body.model).toBe(DEEPINFRA_FLASH_MODEL);
+    expect(body.model).toBe(DEEPINRA_FALLBACK_MODEL);
   });
 
   test("forces non-streaming (DeepInfra OpenAI shim defaults to streaming)", () => {
-    const body = deepInfraRequestBody(DEEPINFRA_FLASH_MODEL, [
+    const body = deepInfraRequestBody(DEEPINRA_FALLBACK_MODEL, [
       { role: "user", content: "x" },
     ]);
     expect(body.stream).toBe(false);
   });
 
   test("requests strict JSON output", () => {
-    const body = deepInfraRequestBody(DEEPINFRA_FLASH_MODEL, [
+    const body = deepInfraRequestBody(DEEPINRA_FALLBACK_MODEL, [
       { role: "user", content: "x" },
     ]);
     expect(body.response_format).toEqual({ type: "json_object" });
