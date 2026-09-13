@@ -3,6 +3,17 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
+/* Sonner toast description color — sonner hardcodes the description color
+ * (#3f3f3f in light, hsl(0, 0%, 91%) in dark) based on its own
+ * `data-sonner-theme` attribute, which can desync from the project's `.dark`
+ * class on `<html>`. Force it to follow the project's theme variables so the
+ * description stays readable in both modes. Selector intentionally matches
+ * sonner's `[data-sonner-toast][data-styled='true'] [data-description]`
+ * specificity so the override wins without !important. */
+[data-sonner-toast][data-styled="true"] [data-description] {
+  color: var(--muted-foreground);
+}
+
 /* DO NOT CHANGE */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
