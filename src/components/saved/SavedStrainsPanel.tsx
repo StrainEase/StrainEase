@@ -8,7 +8,7 @@ import { listenToReliefLogs, type ReliefLog } from "@/lib/relief-log";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { ComparableStrainPoster } from "@/components/strain/ComparableStrainPoster";
 import { ReliefInsightsPanel } from "@/components/saved/ReliefInsightsPanel";
-import { Bookmark, Loader2, X } from "lucide-react";
+import { Bookmark, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
@@ -141,9 +141,9 @@ function SavedStrainCell({
           event.stopPropagation();
           onRemove(item.slug);
         }}
-        className="absolute right-1.5 top-1.5 z-20 flex size-6 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background/95 text-muted-foreground opacity-70 transition-opacity hover:opacity-100 hover:text-destructive"
+        className="absolute right-1.5 top-1.5 z-20 flex size-6 cursor-pointer items-center justify-center rounded-full border border-destructive/40 bg-background/95 text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive"
       >
-        <X className="size-3.5" strokeWidth={2.5} />
+        <Trash2 className="size-3.5" />
       </button>
     </div>
   );
