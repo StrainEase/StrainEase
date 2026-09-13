@@ -34,6 +34,8 @@ import {
   GROQ_DESCRIPTION_MODEL,
   GROQ_MODEL,
 } from "./groq";
+import { callDeepInfra } from "./deepinfra";
+import { callWithGroqFallback } from "./ai-fallback";
 import { matchRedditSeeds } from "./reddit-seed";
 import {
   buildVettedWrite,
@@ -67,9 +69,10 @@ import type {
 } from "./types";
 
 export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
+export const DEEPINFRA_API_KEY = defineSecret("DEEPINFRA_API_KEY");
 
 const AI_OPTIONS: CallableOptions = {
-  secrets: [GROQ_API_KEY],
+  secrets: [GROQ_API_KEY, DEEPINFRA_API_KEY],
   timeoutSeconds: 120,
   memory: "512MiB",
 };
@@ -1603,13 +1606,21 @@ export const compareStrains = onCall(
       GROQ_API_KEY.value(),
     );
 
-    const content = await callGroq(GROQ_API_KEY.value(), [
-      {
-        role: "system",
-        content: withLanguageClause(COMPARE_SYSTEM_PROMPT, language),
-      },
-      { role: "user", content: await comparePrompt(strains, condition, prefs) },
-    ]);
+    const content = await callWithGroqFallback(
+      GROQ_API_KEY.value(),
+      DEEPINFRA_API_KEY.value(),
+      [
+        {
+          role: "system",
+          content: withLanguageClause(COMPARE_SYSTEM_PROMPT, language),
+        },
+        {
+          role: "user",
+          content: await comparePrompt(strains, condition, prefs),
+        },
+      ],
+      GROQ_MODEL,
+    );
 
     const analysis = parseAnalysis(content);
     const payload = { strains, analysis };
@@ -2207,8 +2218,9 @@ export const describeStrainForUser = onCall(
       return cached.result;
     }
 
-    const content = await callGroq(
+    const content = await callWithGroqFallback(
       GROQ_API_KEY.value(),
+      DEEPINFRA_API_KEY.value(),
       [
         {
           role: "system",
