@@ -2066,13 +2066,13 @@ function normalizeDescriptionSections(
     list[1] ??
     filler(
       "What it might do for you",
-      "We didn't get a tailored writeup for your saved symptoms.\n\nCompare it against other strains in your list for a closer fit.\n\nTry it once at a low dose before judging.`,
+      "We didn't get a tailored writeup for your saved symptoms.\n\nCompare it against other strains in your list for a closer fit.\n\nTry it once at a low dose before judging.",
     );
   const expect =
     list[2] ??
     filler(
       "What to expect",
-      "Start low.\n\nGive the dose time to settle before adding more.\n\nCheck in with how you feel throughout the session.`,
+      "Start low.\n\nGive the dose time to settle before adding more.\n\nCheck in with how you feel throughout the session.",
     );
   return [overview, tailored, expect];
 }
