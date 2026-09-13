@@ -25,6 +25,16 @@ conventions. This file is for machines.
   Cloudflare Pages via Cloudflare's GitHub integration (the deploy is
   triggered by pushes to `main`; no GitHub Actions workflow is needed
   for the frontend).
+- **Callable IAM is pinned.** `npm run deploy` (and the CI workflow)
+  end with `node scripts/ensure-invoker.mjs`, which re-applies the
+  `allUsers` `roles/run.invoker` binding on every callable in the
+  project. `firebase deploy` defaults to `--allow-unauthenticated`,
+  but a stray `gcloud run services update --no-allow-unauthenticated`
+  call (or a Console IAM change) can drop the binding without
+  redeploying; when that happens, OPTIONS preflight fails with 403 at
+  the Cloud Run layer and the SDK's POST never lands. The script is
+  idempotent and filters out scheduled functions, which use the
+  compute SA as their invoker.
 - Don't write innovative code, write reliable code.
 
 ## Architecture map
@@ -118,12 +128,18 @@ first:
 cd functions
 npm install        # one-time per machine / whenever deps change
 npm run build      # tsc → lib/
+npm run deploy     # firebase deploy --only functions, then ensure-invoker.mjs
 cd ..
-firebase deploy --only functions,firestore:rules --force
+firebase deploy --only firestore:rules,storage --force
 ```
 
+`npm run deploy` always ends with `node scripts/ensure-invoker.mjs`
+to re-pin the `allUsers` invoker on every callable. See the
+**Callable IAM is pinned** rule above for why.
+
 The CI workflow at `.github/workflows/firebase-functions-deploy.yml`
-does the same `npm ci && npm run build` before deploy. Mirror it locally.
+does the same `npm ci && npm run build` before deploy, then runs the
+invoker step after the firebase-action deploys. Mirror it locally.
 
 If you skip the build, you'll see:
 
@@ -160,6 +176,18 @@ functions/
                      # sourceAttribution for Dr. Kaya's prompts
     thc-percent.ts   # THC/CBD percent parser + averager
     strain-info-cache.ts # legacy merged cache (strainCache/{slug})
+    ai-cache.ts      # generic SHA-256-keyed Firestore cache used by
+                     # the Groq-routed callables to keep repeat
+                     # strain-page views inside the free-tier TPM
+                     # limit (descriptionCache, compareCache)
+    ai-fallback.ts   # OpenRouter → Groq (Llama 3.3 70B primary via
+                     # OpenRouter's auto-routing; Groq is the
+                     # last-resort fallback for transient 429/5xx)
+    openrouter.ts    # OpenRouter Chat Completions client (Llama 3.3
+                     # 70B routed through whichever upstream has the
+                     # shortest queue; replaced the Together.ai primary
+                     # so the same model id can sit on Together.ai,
+                     # Fireworks, or DeepInfra depending on capacity)
     groq.ts          # Groq client + JSON extraction helpers
     types.ts         # shared response types
   lib/               # compiled output, gitignored, DO NOT edit
@@ -245,6 +273,66 @@ files plus the `Setup Node.js` step in `firebase-functions-deploy.yml`.
    `callFn` helper for consistency).
 3. Re-export from the same file. Don't import `firebase/functions` from
    a component.
+
+### Caching AI results (Groq free-tier TPM safety)
+
+Groq's free tier caps each chat model at 8000 TPM (tokens per minute).
+A single full-strain profile + ailments prompt is 1.5–3K tokens, so 3–4
+strain page loads in a minute trips the limit and the call returns 500.
+The Groq-routed callables (`describeStrainForUser`, `compareStrains`)
+read through a SHA-256-keyed Firestore cache (`functions/src/ai-cache.ts`)
+so repeat strain-page views with the same ailments / meds / prefs /
+language return the stored response without spending tokens.
+
+- Key inputs are sorted before hashing so `{ailments:["a","b"]}` and
+  `{ailments:["b","a"]}` collide; order-sensitive lists (strain names)
+  keep their original order, callers must pre-sort.
+- Cache TTL: 14 days. Strain data changes on the order of weeks, so
+  a user re-opening a page after a day still gets a fresh-enough
+  answer; a 14-day-old cache miss just re-fetches from Groq.
+- Reads are memory-first, then Firestore. Writes are best-effort — a
+  Firestore outage does not fail the request, it just means the next
+  cold start re-fetches.
+- `descriptionCache` and `compareCache` are admin-SDK-only (no client
+  rule); the callable is the only writer.
+
+### Provider fallback (OpenRouter → Groq / Llama 3.3 70B)
+
+OpenRouter is the primary backend, Groq is the last-resort fallback.
+Reasoning: Groq's free tier caps each chat model at 8000 TPM and we
+observed it truncating responses mid-stream when the ceiling is hit
+mid-generation (2-of-3 sections coming back from gpt-oss-20b on a
+routine call). OpenRouter charges per token but produces complete
+responses, so the failure mode shifts from "user sees a 500" to
+"user pays a tenth of a cent". When OpenRouter returns a transient
+failure (429, 5xx, transport error, message text mentioning "rate
+limit" / "TPM" / "tokens per minute"), `ai-fallback.ts` retries the
+same messages against Groq. Permanent failures (bad key,
+invalid-argument) skip the fallback because the same input would
+just burn a paid token. Every fallback emits a `logger.warn` so the
+rate is visible in Cloud Logging.
+
+Model choice: the OpenRouter primary is
+`meta-llama/llama-3.3-70b-instruct:nitro` with a `provider.order`
+pin of `["together", "fireworks"]` and `allow_fallbacks: true` on
+the request body. The `:nitro` tag tells OpenRouter to use its
+fastest tier regardless of price; the provider pin keeps the call
+off DeepInfra's on-demand tier (15-25s warm, 40s+ spikes). We
+previously saw 70-110s latency when OpenRouter auto-routed the
+plain 70B model id to whichever provider happened to have
+capacity — Together.ai and Fireworks run the 70B on
+inference-optimised engines (5-15s warm), so the pin gets us back
+to that range without giving up the 70B's prose quality. The Groq
+fallback model is
+the existing routing split: descriptions fall back to
+`openai/gpt-oss-20b` (smaller, cheaper on tokens), comparisons fall
+back to `openai/gpt-oss-120b` (heavier reasoning).
+
+Cost: OpenRouter charges per token for Llama 3.3 70B. Set a
+hard monthly usage limit in the OpenRouter console so a worst case
+is bounded. `OPENROUTER_API_KEY` is a Firebase Secret registered next
+to `GROQ_API_KEY`. The Firestore cache in `ai-cache.ts` absorbs
+most repeat traffic so the bill stays low.
 
 ## Firestore conventions
 

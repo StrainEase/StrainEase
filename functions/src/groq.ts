@@ -34,8 +34,8 @@ export function groqRequestBody(
   return {
     model,
     messages,
-    temperature: 0.4,
-    max_tokens: 2200,
+    temperature: 0.5,
+    max_tokens: 1500,
     response_format: { type: "json_object" },
   };
 }

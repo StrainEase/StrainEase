@@ -122,3 +122,18 @@ jobs:
           args: deploy --only functions,firestore,storage --project "${{ secrets.FIREBASE_PROJECT_ID }}" --force
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
+      # firebase deploy --only functions defaults to --allow-unauthenticated
+      # for callables, but a stray `gcloud run services update --no-allow-
+      # unauthenticated` call (or a Console IAM change) can drop the
+      # `allUsers` invoker binding without redeploying. When that happens,
+      # OPTIONS preflight fails with 403 at the Cloud Run layer before
+      # Firebase can attach CORS headers, and the SDK's POST never lands.
+      # This step re-applies the binding idempotently to every callable
+      # in the project. Scheduled functions are filtered out (they use
+      # the compute SA, not allUsers).
+      - name: Ensure allUsers invoker on every callable
+        working-directory: functions
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: node scripts/ensure-invoker.mjs
