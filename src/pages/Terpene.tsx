@@ -10,6 +10,7 @@ import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { applyCatalogPhotos } from "@/lib/strain-catalog";
 import { terpeneDescription, terpeneJsonLd } from "@/lib/seo";
 import { documentTitle } from "@/lib/site";
+import { toTitleCase } from "@/lib/title-case";
 import {
   TERPENE_PROFILES,
   terpeneFromSlug,
@@ -221,7 +222,7 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 truncate text-sm font-semibold tracking-tight">
-          {strain.name}
+          {toTitleCase(strain.name)}
           <StrainNoteIndicator strainName={strain.name} />
         </p>
         {strain.thcRange && (

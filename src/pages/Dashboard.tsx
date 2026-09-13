@@ -53,6 +53,7 @@ import {
 import { documentTitle } from "@/lib/site";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import { thcSensitivityLabel } from "@/lib/thc-sensitivity";
+import { toTitleCase } from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
 import {
@@ -506,10 +507,10 @@ export default function Dashboard() {
                           key={name}
                           className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 py-1 pl-3 pr-1.5 text-xs font-medium text-primary"
                         >
-                          {name}
+                          {toTitleCase(name)}
                           <button
                             type="button"
-                            aria-label={`Remove ${name}`}
+                            aria-label={`Remove ${toTitleCase(name)}`}
                             className="cursor-pointer rounded-full p-0.5 transition-colors hover:bg-primary/15"
                             onClick={() => toggleStrainName(name)}
                           >
@@ -561,7 +562,7 @@ export default function Dashboard() {
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">
-                            Use “{searchOutcome.name}”
+                            Use “{toTitleCase(searchOutcome.name)}”
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
                             Not found on Leafly — the AI will research it during
@@ -955,7 +956,7 @@ function StrainRow({
         iconClassName="size-4"
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{name}</p>
+        <p className="truncate text-sm font-medium">{toTitleCase(name)}</p>
         {subtitle && (
           <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
         )}

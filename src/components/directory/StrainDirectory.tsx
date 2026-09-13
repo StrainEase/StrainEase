@@ -2,6 +2,7 @@ import { browseStrains, type StrainPreview } from "@/lib/strain-api";
 import { slugify } from "@/lib/saved-strains";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import type { StrainType } from "@/lib/strain-profile";
+import { toTitleCase } from "@/lib/title-case";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StrainImage } from "@/components/strain/StrainImage";
@@ -367,34 +368,36 @@ export function StrainDirectory() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => (
-            <div
-              key={p.name}
-              className="flex flex-col rounded-2xl border border-border/70 bg-card p-5"
-            >
-              <StrainImage
-                src={p.imageUrl}
-                fallbackSrc={getPhotoURL(p.name)}
-                alt={`${p.name} flower`}
-                type={p.type}
-                className="mb-4 h-32 w-full rounded-xl border border-border/70"
-                iconClassName="size-7"
-              />
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-base font-semibold tracking-tight">
-                  <Link
-                    to={`/strain/${slugify(p.name)}`}
-                    className="hover:text-primary"
-                  >
-                    {p.name}
-                  </Link>
-                </h3>
-                {p.type && (
-                  <Badge className={cn(typeBadgeClass(p.type), "capitalize")}>
-                    {TYPE_LABEL[p.type] ?? p.type}
-                  </Badge>
-                )}
-              </div>
+          {filtered.map((p) => {
+            const displayName = toTitleCase(p.name);
+            return (
+              <div
+                key={p.name}
+                className="flex flex-col rounded-2xl border border-border/70 bg-card p-5"
+              >
+                <StrainImage
+                  src={p.imageUrl}
+                  fallbackSrc={getPhotoURL(p.name)}
+                  alt={`${displayName} flower`}
+                  type={p.type}
+                  className="mb-4 h-32 w-full rounded-xl border border-border/70"
+                  iconClassName="size-7"
+                />
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-base font-semibold tracking-tight">
+                    <Link
+                      to={`/strain/${slugify(p.name)}`}
+                      className="hover:text-primary"
+                    >
+                      {displayName}
+                    </Link>
+                  </h3>
+                  {p.type && (
+                    <Badge className={cn(typeBadgeClass(p.type), "capitalize")}>
+                      {TYPE_LABEL[p.type] ?? p.type}
+                    </Badge>
+                  )}
+                </div>
               {p.thcRange && (
                 <p className="mt-1 font-mono text-[11px] tracking-wide text-muted-foreground">
                   THC {p.thcRange}
@@ -416,7 +419,8 @@ export function StrainDirectory() {
                 </Button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
