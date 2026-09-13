@@ -176,6 +176,10 @@ functions/
                      # sourceAttribution for Dr. Kaya's prompts
     thc-percent.ts   # THC/CBD percent parser + averager
     strain-info-cache.ts # legacy merged cache (strainCache/{slug})
+    ai-cache.ts      # generic SHA-256-keyed Firestore cache used by
+                     # the Groq-routed callables to keep repeat
+                     # strain-page views inside the free-tier TPM
+                     # limit (descriptionCache, compareCache)
     groq.ts          # Groq client + JSON extraction helpers
     types.ts         # shared response types
   lib/               # compiled output, gitignored, DO NOT edit
@@ -261,6 +265,28 @@ files plus the `Setup Node.js` step in `firebase-functions-deploy.yml`.
    `callFn` helper for consistency).
 3. Re-export from the same file. Don't import `firebase/functions` from
    a component.
+
+### Caching AI results (Groq free-tier TPM safety)
+
+Groq's free tier caps each chat model at 8000 TPM (tokens per minute).
+A single full-strain profile + ailments prompt is 1.5–3K tokens, so 3–4
+strain page loads in a minute trips the limit and the call returns 500.
+The Groq-routed callables (`describeStrainForUser`, `compareStrains`)
+read through a SHA-256-keyed Firestore cache (`functions/src/ai-cache.ts`)
+so repeat strain-page views with the same ailments / meds / prefs /
+language return the stored response without spending tokens.
+
+- Key inputs are sorted before hashing so `{ailments:["a","b"]}` and
+  `{ailments:["b","a"]}` collide; order-sensitive lists (strain names)
+  keep their original order, callers must pre-sort.
+- Cache TTL: 14 days. Strain data changes on the order of weeks, so
+  a user re-opening a page after a day still gets a fresh-enough
+  answer; a 14-day-old cache miss just re-fetches from Groq.
+- Reads are memory-first, then Firestore. Writes are best-effort — a
+  Firestore outage does not fail the request, it just means the next
+  cold start re-fetches.
+- `descriptionCache` and `compareCache` are admin-SDK-only (no client
+  rule); the callable is the only writer.
 
 ## Firestore conventions
 

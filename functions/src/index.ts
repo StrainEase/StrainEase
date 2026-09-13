@@ -28,7 +28,12 @@ import {
   type StrainPreview,
 } from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
-import { callGroq, extractJsonObject, GROQ_DESCRIPTION_MODEL } from "./groq";
+import {
+  callGroq,
+  extractJsonObject,
+  GROQ_DESCRIPTION_MODEL,
+  GROQ_MODEL,
+} from "./groq";
 import { matchRedditSeeds } from "./reddit-seed";
 import {
   buildVettedWrite,
@@ -45,6 +50,11 @@ import {
 } from "./reddit-pool";
 import { PoolOperatorError } from "./reddit-pool";
 import { clientIp, guestRateLimit, persistResult } from "./results";
+import {
+  computeAiCacheKey,
+  getCachedAiResult,
+  putCachedAiResult,
+} from "./ai-cache";
 import type {
   Citation,
   RecommendationResult,
@@ -1563,6 +1573,28 @@ export const compareStrains = onCall(
     const prefs = parsePrefs(data.prefs);
     const language = parseOutputLanguage(data.language);
 
+    // Cache key: sorted strain names (order shouldn't affect the
+    // comparison), sorted condition/ailment list, the full prefs
+    // object, and the pinned output language. Same inputs always
+    // produce the same analysis, so this is global. Note that the
+    // strain data fetched by enrichProfiles below is *not* part of
+    // the key — the cached response carries the strains it was
+    // produced against, and a 14-day TTL means a stale strain
+    // profile gets refreshed before the user is likely to notice.
+    const cacheHash = computeAiCacheKey({
+      strainNames: [...names].sort(),
+      condition: [...condition].sort(),
+      prefs,
+      language,
+    });
+    const cached = await getCachedAiResult<{
+      strains: Awaited<ReturnType<typeof enrichProfiles>>;
+      analysis: ReturnType<typeof parseAnalysis>;
+    }>("compareCache", cacheHash);
+    if (cached) {
+      return { ...cached.result, resultId: undefined };
+    }
+
     // Full profiles: Leafly + Weedmaps, Reddit quotes for the ailments,
     // and Groq fill-in when a name is missing from both catalogs.
     const strains = await enrichProfiles(
@@ -1581,6 +1613,7 @@ export const compareStrains = onCall(
 
     const analysis = parseAnalysis(content);
     const payload = { strains, analysis };
+    await putCachedAiResult("compareCache", cacheHash, payload, GROQ_MODEL);
     let resultId: string | undefined;
     try {
       resultId = await persistResult({
@@ -2152,6 +2185,28 @@ export const describeStrainForUser = onCall(
     const language = parseOutputLanguage(data.language);
     const safeStrain: StrainProfile = { ...strain, name };
 
+    // Cache key: the strain name (slug is preferred but the name is
+    // what the prompt sees and what callers normalize on), the sorted
+    // ailment/medication lists, the relief-history prose, the THC
+    // sensitivity tier, and the pinned output language. Same inputs
+    // → same prompt → same LLM output, so this is the right
+    // granularity for a global cache.
+    const cacheHash = computeAiCacheKey({
+      strainName: name.toLowerCase(),
+      ailments: [...ailments].sort(),
+      medications: [...medications].sort(),
+      reliefHistory,
+      thcSensitivity: thcSensitivity ?? null,
+      language,
+    });
+    const cached = await getCachedAiResult<StrainDescriptionResult>(
+      "descriptionCache",
+      cacheHash,
+    );
+    if (cached) {
+      return cached.result;
+    }
+
     const content = await callGroq(
       GROQ_API_KEY.value(),
       [
@@ -2173,7 +2228,14 @@ export const describeStrainForUser = onCall(
       GROQ_DESCRIPTION_MODEL,
     );
 
-    return parseDescription(content, name);
+    const result = parseDescription(content, name);
+    await putCachedAiResult(
+      "descriptionCache",
+      cacheHash,
+      result,
+      GROQ_DESCRIPTION_MODEL,
+    );
+    return result;
   },
 );
 
