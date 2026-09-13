@@ -405,7 +405,7 @@ export default function Strain() {
               HydratingSection affordance — but only after profile lands,
               so the page is not full of skeletons during the initial load. */}
           {communityPending ? (
-            <HydratingSection section="community" />
+            <HydratingSection />
           ) : profile &&
             (profile.communityNotes?.length ||
               profile.leaflyRating ||
