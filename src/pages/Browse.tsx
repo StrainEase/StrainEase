@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAilments } from "@/hooks/use-ailments";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
-import { CATALOG } from "@/lib/strain-catalog";
+import { CATALOG, strainDirectoryReady } from "@/lib/strain-catalog";
 import {
   parseBrowseParams,
   sectionTitle,
@@ -14,7 +14,8 @@ import {
 } from "@/lib/home-sections";
 import { documentTitle } from "@/lib/site";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router";
 
 export default function Browse() {
@@ -28,10 +29,26 @@ export default function Browse() {
   const recents = useRecentlyViewed();
   const { names: ailments } = useAilments();
 
+  // Wait for the bundled directory before computing the section so the
+  // "see more" grid shows every strain of that type (e.g. ~115 hybrid)
+  // on first paint instead of only the 8 curated entries.
+  const [directoryReady, setDirectoryReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void strainDirectoryReady().then(() => {
+      if (!cancelled) setDirectoryReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!parsed) return <Navigate to="/" replace />;
 
-  const strains = strainsFor(parsed, popular, recents, ailments);
   const title = sectionTitle(parsed);
+  const strains = directoryReady
+    ? strainsFor(parsed, popular, recents, ailments)
+    : [];
 
   return (
     <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
@@ -79,7 +96,19 @@ export default function Browse() {
             }
             className="mt-8"
           >
-            <StrainGrid strains={strains} />
+            {!directoryReady ? (
+              <div
+                className="flex items-center justify-center py-16 text-muted-foreground"
+                aria-live="polite"
+              >
+                <Loader2
+                  className="size-5 animate-spin"
+                  aria-label="Loading the strain directory"
+                />
+              </div>
+            ) : (
+              <StrainGrid strains={strains} />
+            )}
           </motion.div>
         )}
       </div>
