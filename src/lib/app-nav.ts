@@ -8,8 +8,10 @@ export type DashboardMode =
   | "checkins";
 
 export const HOME_HREF = "/";
-export const FIND_HREF = "/dashboard";
-export const DIRECTORY_HREF = "/dashboard?mode=directory";
+/** The "Browse" tab. Hosted by `StrainBrowse` (the recommendation form). */
+export const BROWSE_HREF = "/dashboard";
+/** The "Find" tab. Hosted by `StrainFind` (the catalog browser). */
+export const FIND_HREF = "/dashboard?mode=directory";
 export const DOCTORS_HREF = "/doctors";
 export const HISTORY_HREF = "/dashboard?mode=history";
 export const CHECKINS_HREF = "/dashboard?mode=checkins";
@@ -17,8 +19,8 @@ export const REPORT_HREF = "/report";
 
 export const APP_NAV: { id: AppNavId; to: string; label: string }[] = [
   { id: "home", to: HOME_HREF, label: "Home" },
-  { id: "find", to: FIND_HREF, label: "Browse" },
-  { id: "directory", to: DIRECTORY_HREF, label: "Find" },
+  { id: "find", to: BROWSE_HREF, label: "Browse" },
+  { id: "directory", to: FIND_HREF, label: "Find" },
   { id: "doctors", to: DOCTORS_HREF, label: "Doctors" },
 ];
 

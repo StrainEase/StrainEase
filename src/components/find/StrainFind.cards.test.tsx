@@ -62,17 +62,17 @@ mock.module("@/lib/strain-api", () => ({
 
 // Side-effect import: must come after mock.module so the mock is wired
 // before the component tree resolves the module.
-const { StrainDirectory } = await import("./StrainDirectory");
+const { StrainFind } = await import("./StrainFind");
 
 afterEach(() => {
   cleanup();
 });
 
-describe("StrainDirectory populated state", () => {
+describe("StrainFind populated state", () => {
   test("renders the catalog in a 2-column grid that mirrors the browse rails", async () => {
     render(
       <MemoryRouter>
-        <StrainDirectory />
+        <StrainFind />
       </MemoryRouter>,
     );
 
@@ -96,7 +96,7 @@ describe("StrainDirectory populated state", () => {
   test("the entire card is a single Link — no separate View button", async () => {
     render(
       <MemoryRouter>
-        <StrainDirectory />
+        <StrainFind />
       </MemoryRouter>,
     );
 
@@ -115,7 +115,7 @@ describe("StrainDirectory populated state", () => {
     // doesn't work" complaint.
     render(
       <MemoryRouter>
-        <StrainDirectory />
+        <StrainFind />
       </MemoryRouter>,
     );
 
@@ -147,7 +147,7 @@ describe("StrainDirectory populated state", () => {
   test("Load more hides when filters yield no matches", async () => {
     render(
       <MemoryRouter>
-        <StrainDirectory />
+        <StrainFind />
       </MemoryRouter>,
     );
 
@@ -173,7 +173,7 @@ describe("StrainDirectory populated state", () => {
   test("UI Load more shows when the filtered set exceeds one page", async () => {
     render(
       <MemoryRouter>
-        <StrainDirectory />
+        <StrainFind />
       </MemoryRouter>,
     );
 

@@ -29,11 +29,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
-import { StrainDirectory } from "@/components/directory/StrainDirectory";
+import { StrainFind } from "@/components/find/StrainFind";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { getPhotoURL } from "@/lib/strain-catalog";
-import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
-import { StrainFinder } from "@/components/finder/StrainFinder";
+import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
+import { StrainBrowse } from "@/components/browse/StrainBrowse";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
 import { CheckInPanel } from "@/components/check-ins/CheckInPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
@@ -426,7 +426,7 @@ export default function Dashboard() {
 
         {/* ── Strain finder (main focus) ────────────────────── */}
         <div className={cn(mode !== "find" && "hidden")}>
-          <StrainFinder
+          <StrainBrowse
             onCompare={startCompareFromFinder}
             onAddToCompare={selection.toggle}
             inCompareSelection={selection.isIn}
@@ -439,7 +439,7 @@ export default function Dashboard() {
 
         {/* ── Strain directory ───────────────────────────── */}
         <div className={cn(mode !== "directory" && "hidden")}>
-          <StrainDirectory />
+          <StrainFind />
         </div>
 
         {/* ── History (reopen shareable results) ────────────── */}

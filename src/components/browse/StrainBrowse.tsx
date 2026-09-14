@@ -28,7 +28,7 @@ import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
 import { slugify } from "@/lib/saved-strains";
-import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
+import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
 import { compactPrefs, type ResearchPrefs, type ThcSensitivity } from "@/lib/research-prefs";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { thcSensitivityLabel } from "@/lib/thc-sensitivity";
@@ -70,7 +70,7 @@ const RESEARCH_STEPS = [
   "Ranking the best strains with Dr. Kaya…",
 ];
 
-export function StrainFinder({
+export function StrainBrowse({
   onCompare,
   onAddToCompare,
   inCompareSelection,

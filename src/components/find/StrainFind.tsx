@@ -77,7 +77,7 @@ const EFFECT_BUCKETS: { id: string; label: string; match: string[] }[] = [
  * a UI concern — it slices the already-filtered set into
  * `UI_PAGE_SIZE`-sized windows.
  */
-export function StrainDirectory() {
+export function StrainFind() {
   // All previews the backend has ever returned, accumulated across
   // background pages. `null` while the first page is still in flight.
   const [allPreviews, setAllPreviews] = useState<StrainPreview[] | null>(null);
@@ -364,7 +364,7 @@ export function StrainDirectory() {
         // First page is still in flight — paint a skeleton that
         // matches the eventual card shape so the layout doesn't jump
         // when previews land.
-        <DirectoryGridSkeleton count={UI_PAGE_SIZE} />
+        <FindGridSkeleton count={UI_PAGE_SIZE} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card px-6 py-12 text-center">
           <Sparkles className="size-6 text-muted-foreground" />
@@ -395,7 +395,7 @@ export function StrainDirectory() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((p) => (
-            <DirectoryPreviewCard key={p.name} preview={p} />
+            <FindPreviewCard key={p.name} preview={p} />
           ))}
         </div>
       )}
@@ -448,7 +448,7 @@ export function StrainDirectory() {
  * `StrainPreview` data (no medicalUses / effects / lineage) and
  * doesn't go through the long-press compare gesture.
  */
-function DirectoryPreviewCard({ preview }: { preview: StrainPreview }) {
+function FindPreviewCard({ preview }: { preview: StrainPreview }) {
   const href = `/strain/${slugify(preview.name)}`;
   const type = preview.type;
   const displayName = toTitleCase(preview.name);
@@ -510,13 +510,13 @@ function DirectoryPreviewCard({ preview }: { preview: StrainPreview }) {
  * same 2-column grid the populated state uses, so the page doesn't
  * jump when the first batch of previews lands.
  */
-export function DirectoryGridSkeleton({ count = 6 }: { count?: number }) {
+export function FindGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div
       className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
       aria-busy="true"
       aria-live="polite"
-      data-testid="directory-grid-skeleton"
+      data-testid="find-grid-skeleton"
     >
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex min-w-0 flex-col gap-2">

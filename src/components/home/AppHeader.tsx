@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import {
   APP_NAV,
-  DIRECTORY_HREF,
+  BROWSE_HREF,
   FIND_HREF,
   type AppNavId,
 } from "@/lib/app-nav";
@@ -50,7 +50,7 @@ export function AppCompareTray({
   return (
     <CompareTray
       selection={selection}
-      onCompare={onCompare ?? (() => navigate(`${FIND_HREF}?mode=compare`))}
+      onCompare={onCompare ?? (() => navigate(`${BROWSE_HREF}?mode=compare`))}
       isRunning={isRunning}
       className="bottom-[4.75rem] pb-3 sm:bottom-0 sm:pb-[env(safe-area-inset-bottom)]"
     />
@@ -100,7 +100,7 @@ export function AppHeader({
             <Heart className="size-4" strokeWidth={favoritesOpen ? 2.4 : 2} />
           </button>
           <Link
-            to={DIRECTORY_HREF}
+            to={FIND_HREF}
             aria-label="Open strain library"
             className="hidden shrink-0 cursor-pointer items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary sm:inline-flex"
           >
