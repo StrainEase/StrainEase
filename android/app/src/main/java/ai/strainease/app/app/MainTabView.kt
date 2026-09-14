@@ -71,8 +71,8 @@ fun MainTabView() {
         as ai.strainease.app.StrainEaseApplication
     val homeModel = remember { ai.strainease.app.ui.home.HomeModel() }
     val recents = remember { ai.strainease.app.data.RecentlyViewedStore(app) }
+    val browseModel = remember { ai.strainease.app.ui.browse.BrowseModel() }
     val findModel = remember { ai.strainease.app.ui.find.FindModel() }
-    val directoryModel = remember { ai.strainease.app.ui.browse.DirectoryModel() }
     val compareStore = remember { ai.strainease.app.ui.compare.CompareSelectionStore() }
     val doctorsModel = remember { ai.strainease.app.ui.doctors.DoctorsModel() }
     val savedAilments = remember { ai.strainease.app.data.SavedAilmentsStore(app) }
@@ -174,8 +174,8 @@ fun MainTabView() {
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
-                    AppTab.Find -> ai.strainease.app.ui.find.FindView(
-                        model = findModel,
+                    AppTab.Find -> ai.strainease.app.ui.browse.BrowseView(
+                        model = browseModel,
                         savedAilments = savedAilments,
                         savedMedications = savedMedications,
                         triedStrainsStore = triedStrains,
@@ -185,8 +185,8 @@ fun MainTabView() {
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
-                    AppTab.Browse -> ai.strainease.app.ui.browse.DirectoryView(
-                        model = directoryModel,
+                    AppTab.Browse -> ai.strainease.app.ui.find.FindView(
+                        model = findModel,
                         compareStore = compareStore,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),

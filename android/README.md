@@ -93,7 +93,7 @@ android/
 │   │   │       ├── theme/                 # Palette + TypeStyle + Theme
 │   │   │       ├── home/                  # HomeView + HomeModel + AilmentCarousel
 │   │   │       ├── find/                  # FindView + FindModel
-│   │   │       ├── browse/                # DirectoryView + DirectoryFilter
+│   │   │       ├── browse/                # FindView + FindFilter
 │   │   │       ├── strain/                # StrainDetailView + terpenes
 │   │   │       ├── compare/               # CompareSelectionStore + tray + results
 │   │   │       ├── account/               # AccountView

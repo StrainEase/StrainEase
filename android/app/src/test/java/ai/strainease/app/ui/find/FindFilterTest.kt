@@ -9,39 +9,39 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * JVM unit tests for [DirectoryFilter]. No Android
+ * JVM unit tests for [FindFilter]. No Android
  * dependency.
  */
-class DirectoryFilterTest {
+class FindFilterTest {
 
     @Test
     fun thcMidpointParsesRangeWithEnDash() {
-        assertEquals(20.5, DirectoryFilter.thcMidpoint("17–24%")!!, 0.0001)
+        assertEquals(20.5, FindFilter.thcMidpoint("17–24%")!!, 0.0001)
     }
 
     @Test
     fun thcMidpointParsesSingleValue() {
-        assertEquals(20.0, DirectoryFilter.thcMidpoint("~20%")!!, 0.0001)
+        assertEquals(20.0, FindFilter.thcMidpoint("~20%")!!, 0.0001)
     }
 
     @Test
     fun thcMidpointParsesLessThanOne() {
-        assertEquals(0.5, DirectoryFilter.thcMidpoint("<1%")!!, 0.0001)
+        assertEquals(0.5, FindFilter.thcMidpoint("<1%")!!, 0.0001)
     }
 
     @Test
     fun thcMidpointNullForEmpty() {
         val a: String? = null
-        assertEquals(null, DirectoryFilter.thcMidpoint(a))
-        assertEquals(null, DirectoryFilter.thcMidpoint(""))
+        assertEquals(null, FindFilter.thcMidpoint(a))
+        assertEquals(null, FindFilter.thcMidpoint(""))
     }
 
     @Test
     fun thcBandContainsMatchesBrackets() {
-        val mild = DirectoryFilter.ThcBand.Mild
+        val mild = FindFilter.ThcBand.Mild
         assertTrue(mild.contains(10.0))
         assertFalse(mild.contains(20.0))
-        val strong = DirectoryFilter.ThcBand.Strong
+        val strong = FindFilter.ThcBand.Strong
         assertTrue(strong.contains(25.0))
         assertFalse(strong.contains(15.0))
     }
@@ -51,20 +51,20 @@ class DirectoryFilterTest {
         val p = stub(
             effects = listOf(StrainEffect("Relaxed", 4)),
         )
-        assertTrue(DirectoryFilter.matches(p, DirectoryFilter.EffectBucket.Relaxing))
+        assertTrue(FindFilter.matches(p, FindFilter.EffectBucket.Relaxing))
     }
 
     @Test
     fun typeFilterExcludesWrongType() {
         val p = stub(type = StrainType.Sativa)
-        assertFalse(DirectoryFilter.matches(p, type = DirectoryFilter.TypeFilter.Indica))
+        assertFalse(FindFilter.matches(p, type = FindFilter.TypeFilter.Indica))
     }
 
     @Test
     fun ailmentConditionMatchesCaseInsensitive() {
-        assertTrue(DirectoryFilter.matchesCondition("insomnia", listOf("Insomnia")))
-        assertTrue(DirectoryFilter.matchesCondition("OCD", listOf("Anxiety")))
-        assertFalse(DirectoryFilter.matchesCondition("Insomnia", listOf("Pain")))
+        assertTrue(FindFilter.matchesCondition("insomnia", listOf("Insomnia")))
+        assertTrue(FindFilter.matchesCondition("OCD", listOf("Anxiety")))
+        assertFalse(FindFilter.matchesCondition("Insomnia", listOf("Pain")))
     }
 
     private fun stub(
