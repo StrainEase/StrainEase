@@ -670,7 +670,12 @@ final class StrainEaseTests: XCTestCase {
     }
 
     func testPrimaryTabsAreHomeFindBrowse() {
-        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse", "Doctors"])
+        // PR #284 swapped the Find/Browse labels and icons so .find now
+        // reads as "Browse" / book.closed.fill and .browse reads as
+        // "Find" / magnifyingglass. The tab labels in MainTabView stay
+        // "Find"/"Browse" (hardcoded) on purpose so the user-facing tabs
+        // match the catalog-vs-recommendations split the rename imposes.
+        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Browse", "Find", "Doctors"])
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("saved"))
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
     }
