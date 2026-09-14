@@ -71,6 +71,13 @@ jobs:
           android-version: '34'
           build-tools-version: '34.0.0'
           cache: gradle
+          # Google removed the deprecated 'tools' package from the
+          # SDK repository on 2026-09-14, so the action's default
+          # `packages: tools platform-tools` now fails with
+          # `Failed to find package 'tools'`. Explicitly request only
+          # `platform-tools` (which is what AGP actually needs at
+          # build time) so the setup step succeeds.
+          packages: platform-tools
 
       - name: Make gradlew executable
         working-directory: android
@@ -186,6 +193,13 @@ jobs:
           android-version: '34'
           build-tools-version: '34.0.0'
           cache: gradle
+          # Google removed the deprecated 'tools' package from the
+          # SDK repository on 2026-09-14, so the action's default
+          # `packages: tools platform-tools` now fails with
+          # `Failed to find package 'tools'`. Explicitly request only
+          # `platform-tools` (which is what AGP actually needs at
+          # build time) so the setup step succeeds.
+          packages: platform-tools
 
       - name: Make gradlew executable
         working-directory: android
