@@ -659,7 +659,7 @@ export default function Dashboard() {
                 {/* Condition focus */}
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    2 · Condition focus (optional — pick several)
+                    2 · Commonly used for (optional — pick several)
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {/* My Ailments chip with gold gradient - always first */}

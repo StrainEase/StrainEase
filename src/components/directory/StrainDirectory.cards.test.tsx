@@ -7,43 +7,57 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { MemoryRouter } from "react-router";
-import type { StrainPreview } from "@/lib/strain-api";
+import type { BrowseCatalogPage, StrainPreview } from "@/lib/strain-api";
 import * as strainApi from "@/lib/strain-api";
 
-const PREVIEW: StrainPreview = {
-  name: "Blue Dream",
-  slug: "blue-dream",
-  type: "hybrid",
-  thcRange: "17-24%",
-  imageUrl: "https://example.com/blue-dream.jpg",
-  leaflyRating: 4.3,
-  effects: [{ name: "Relaxed" }, { name: "Happy" }],
-  medicalUses: [{ name: "Chronic pain" }],
-};
+/**
+ * 30 previews → after the directory streams the catalog in (it
+ * keeps paging until `previews.length === totalCount`) we end up
+ * with 30 cards in state. UI pagination caps the visible window at
+ * 24, so the "Load more" affordance appears only when there's
+ * something left to slice into.
+ */
+const PREVIEWS: StrainPreview[] = Array.from({ length: 30 }, (_, i) => ({
+  name: i === 0 ? "Blue Dream" : i === 1 ? "Northern Lights" : `Strain ${i}`,
+  slug: i === 0
+    ? "blue-dream"
+    : i === 1
+      ? "northern-lights"
+      : `strain-${i}`,
+  type: i % 3 === 0 ? "indica" : i % 3 === 1 ? "sativa" : "hybrid",
+  thcRange: i % 4 === 0 ? "12-15%" : i % 4 === 1 ? "18-22%" : i % 4 === 2 ? "24-28%" : "<1%",
+  imageUrl: `https://example.com/${i}.jpg`,
+  leaflyRating: 4 + (i % 5) / 10,
+  effects: [{ name: i % 2 === 0 ? "Relaxed" : "Happy" }],
+  medicalUses: [{ name: i % 2 === 0 ? "Chronic pain" : "Insomnia" }],
+}));
 
-const PREVIEW_2: StrainPreview = {
-  name: "Northern Lights",
-  slug: "northern-lights",
-  type: "indica",
-  thcRange: "16-21%",
-  imageUrl: "https://example.com/northern-lights.jpg",
-  leaflyRating: 4.6,
-  effects: [{ name: "Sleepy" }],
-  medicalUses: [{ name: "Insomnia" }],
-};
+const TOTAL_COUNT = PREVIEWS.length;
+
+/** Mock that returns the same page on every call, then signals "drained"
+ *  via totalCount === previews.length so the directory's auto-pagination
+ *  loop terminates cleanly. Mirrors the production contract. */
+function fakeBrowseStrains(args: {
+  offset?: number;
+  limit?: number;
+}): Promise<BrowseCatalogPage> {
+  const offset = args.offset ?? 0;
+  const limit = args.limit ?? PREVIEWS.length;
+  const slice = PREVIEWS.slice(offset, offset + limit);
+  return Promise.resolve({
+    previews: slice,
+    totalCount: TOTAL_COUNT,
+    offset,
+    fetchedAt: Date.now(),
+  });
+}
 
 // Re-export every name from the real module so transitive consumers
 // (the strain-image hook, etc.) keep resolving their imports. Only
 // `browseStrains` is overridden for the catalog fixture.
 mock.module("@/lib/strain-api", () => ({
   ...strainApi,
-  browseStrains: () =>
-    Promise.resolve({
-      previews: [PREVIEW, PREVIEW_2],
-      totalCount: 500,
-      offset: 0,
-      fetchedAt: Date.now(),
-    }),
+  browseStrains: fakeBrowseStrains,
 }));
 
 // Side-effect import: must come after mock.module so the mock is wired
@@ -62,9 +76,8 @@ describe("StrainDirectory populated state", () => {
       </MemoryRouter>,
     );
 
-    // Each preview card links to its strain page. The grid wrapper
-    // must use the same 2-column layout as the home / browse rails
-    // (`StrainGrid`) so cards line up across surfaces.
+    // Blue Dream and Northern Lights are the first two previews, so
+    // they should always be visible after the catalog streams in.
     const links = await screen.findAllByRole("link", {
       name: /blue dream|northern lights/i,
     });
@@ -90,6 +103,43 @@ describe("StrainDirectory populated state", () => {
     expect(screen.queryByRole("link", { name: /^view$/i })).toBeNull();
   });
 
+  test("filters against the fully-loaded catalog, not just the first page", async () => {
+    // The directory now drains the entire catalog before applying
+    // filters, so picking "Insomnia" should surface every strain whose
+    // `medicalUses` includes it — not just whichever ones happened to
+    // land on page one. That's the fix for the "Commonly used for
+    // doesn't work" complaint.
+    render(
+      <MemoryRouter>
+        <StrainDirectory />
+      </MemoryRouter>,
+    );
+
+    // Wait for the catalog to finish streaming in.
+    await waitFor(() =>
+      expect(screen.getAllByRole("link").length).toBe(24),
+    );
+
+    // Filter to "Insomnia". With our fixture, every odd-indexed preview
+    // advertises "Insomnia" in `medicalUses`. After applying the filter
+    // the directory must show those, not the page-one-only set.
+    const insomniaChip = screen.getByRole("button", { name: "Insomnia" });
+    fireEvent.click(insomniaChip);
+
+    await waitFor(() => {
+      const links = screen.queryAllByRole("link");
+      // Every visible card links to a strain page, so the visible
+      // strain count equals the link count. None of the visible
+      // links should be the page-one-only "Blue Dream" (which
+      // advertises "Chronic pain", not "Insomnia").
+      const names = links.map(
+        (l) => l.getAttribute("href") ?? "",
+      );
+      expect(names).not.toContain("/strain/blue-dream");
+      expect(links.length).toBeGreaterThan(0);
+    });
+  });
+
   test("Load more hides when filters yield no matches", async () => {
     render(
       <MemoryRouter>
@@ -97,7 +147,9 @@ describe("StrainDirectory populated state", () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole("link", { name: /blue Dream/i });
+    await waitFor(() =>
+      expect(screen.getAllByRole("link").length).toBe(24),
+    );
 
     // Narrow the filter to a strain that doesn't exist in the loaded
     // previews so filtered.length drops to zero.
@@ -109,23 +161,34 @@ describe("StrainDirectory populated state", () => {
       expect(screen.getByText(/no strains match/i)).toBeTruthy(),
     );
 
-    // "X remaining" would be misleading here — every page beyond the
-    // first 2 was unfiltered catalog, so showing Load more under an
-    // empty filtered grid would invite the user to keep paging.
+    // UI Load more would invite the user to page through rows that
+    // can't match their filter, so we hide it under an empty grid.
     expect(screen.queryByRole("button", { name: /load more/i })).toBeNull();
   });
 
-  test("Load more stays visible when filters still match", async () => {
+  test("UI Load more shows when the filtered set exceeds one page", async () => {
     render(
       <MemoryRouter>
         <StrainDirectory />
       </MemoryRouter>,
     );
 
-    await screen.findByRole("link", { name: /blue Dream/i });
+    // Catalog fully drained, first 24 cards visible.
+    await waitFor(() =>
+      expect(screen.getAllByRole("link").length).toBe(24),
+    );
 
-    // Both previews are loaded and totalCount=500, so the catalog is
-    // not exhausted and the button should be present.
-    expect(screen.getByRole("button", { name: /load more/i })).toBeTruthy();
+    // The fixture has 30 strains total and no filter is active, so
+    // 30 match the filter and the UI slice is 24 — Load more must
+    // appear to reveal the remaining 6.
+    const loadMore = screen.getByRole("button", { name: /load more/i });
+    expect(loadMore).toBeTruthy();
+
+    // Clicking it reveals the rest of the catalog.
+    fireEvent.click(loadMore);
+    await waitFor(() => expect(screen.getAllByRole("link").length).toBe(30));
+
+    // No more left → the button hides.
+    expect(screen.queryByRole("button", { name: /load more/i })).toBeNull();
   });
 });

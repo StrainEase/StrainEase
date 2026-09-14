@@ -7,6 +7,7 @@ import {
   typeBadgeClass,
 } from "@/lib/strain-ui";
 import type { StrainType } from "@/lib/strain-profile";
+import { THC_BANDS, matchesThcBand, type ThcBand } from "@/lib/thc-bands";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StrainImage } from "@/components/strain/StrainImage";
@@ -18,60 +19,18 @@ import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const PAGE_SIZE = 24;
-const BATCH_SIZE = 24;
+/**
+ * How many strains to request from the backend per page while
+ * streaming the catalog into memory. The catalog is fully drained
+ * up-front so filters apply to the whole set, not the loaded
+ * subset — that was the root cause of "Mild THC returns nothing" and
+ * the "hit Load more multiple times for a single extra strain" UX.
+ */
+const BACKEND_PAGE_SIZE = 100;
+/** How many filtered strains to show per page in the UI. */
+const UI_PAGE_SIZE = 24;
 
 type TypeFilter = "all" | StrainType;
-type ThcBand = "any" | "mild" | "balanced" | "strong";
-
-/**
- * Parse the THC range strings Leafly emits (e.g. "17-24%", "~20%",
- * "<1%") and return the numeric midpoint, or null if we can't make
- * sense of it. Used to bucket strains into the same Mild / Balanced
- * / Strong ranges as the Finder's potency preference.
- */
-function thcMidpoint(range: string | undefined): number | null {
-  if (!range) return null;
-  const cleaned = range.replace(/[%~\s<>]/g, "").trim();
-  if (!cleaned) return null;
-  // "<1" → 0.5
-  if (range.includes("<")) {
-    const n = Number(cleaned.replace(/[^0-9.]/g, ""));
-    return Number.isFinite(n) ? Math.max(0, n - 0.5) : null;
-  }
-  // "17-24" → 20.5
-  const dash = cleaned.split("-");
-  if (dash.length === 2) {
-    const a = Number(dash[0]);
-    const b = Number(dash[1]);
-    if (Number.isFinite(a) && Number.isFinite(b)) return (a + b) / 2;
-  }
-  const single = Number(cleaned);
-  if (Number.isFinite(single)) return single;
-  return null;
-}
-
-const THC_BANDS: {
-  value: ThcBand;
-  label: string;
-  range: string;
-  test: (m: number) => boolean;
-}[] = [
-  { value: "any", label: "Any THC", range: "no preference", test: () => true },
-  { value: "mild", label: "Mild", range: "under ~15%", test: (m) => m < 15 },
-  {
-    value: "balanced",
-    label: "Balanced",
-    range: "~15–22%",
-    test: (m) => m >= 15 && m < 22,
-  },
-  {
-    value: "strong",
-    label: "Strong",
-    range: "above ~22%",
-    test: (m) => m >= 22,
-  },
-];
 
 /**
  * Curated effect buckets. Each one maps to a set of Leafly effect
@@ -104,68 +63,96 @@ const EFFECT_BUCKETS: { id: string; label: string; match: string[] }[] = [
   { id: "hungry", label: "Hungry", match: ["hungry", "appetite"] },
 ];
 
-/** Curated ailment chips. Curated list lives in src/lib/strain-ui.ts so
- *  the same options surface across the homepage carousel, the directory,
- *  and the strain page. Filter matches against `medicalUses` aliases. */
-
 /**
  * Browse the popular strains directory. Filters: type, THC band, and
  * effect buckets. The richer data (medicalUses, lineage, sideEffects)
  * lives on full profiles and is intentionally not filterable here —
  * the popular list is a discovery surface, not a clinical search.
+ *
+ * The catalog is streamed in from `browseStrains` once on mount. We
+ * keep loading pages until the backend reports we've drained the
+ * whole catalog (`previews.length === totalCount`), then filters
+ * operate on the complete set. The user-facing pagination is purely
+ * a UI concern — it slices the already-filtered set into
+ * `UI_PAGE_SIZE`-sized windows.
  */
 export function StrainDirectory() {
-  // All loaded previews (accumulated across Load more batches)
+  // All previews the backend has ever returned, accumulated across
+  // background pages. `null` while the first page is still in flight.
   const [allPreviews, setAllPreviews] = useState<StrainPreview[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  // How many pages we've already pulled. Drives the "Loading N of M"
+  // copy under the filter strip and lets the spinner disappear once
+  // the catalog is fully drained.
+  const [loadedCount, setLoadedCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [thcBand, setThcBand] = useState<ThcBand>("any");
   const [effectFilter, setEffectFilter] = useState<string[]>([]);
   const [ailmentFilter, setAilmentFilter] = useState<string[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  /** UI-only page size for the already-filtered list. */
+  const [visibleCount, setVisibleCount] = useState(UI_PAGE_SIZE);
 
-  // Initial load (first PAGE_SIZE strains)
+  // Stream the whole catalog in the background. We never block the
+  // UI on this — the filter strip paints immediately, the skeleton
+  // hydrates the grid with the first batch, and subsequent pages
+  // refill the cache as they arrive.
   useEffect(() => {
     let cancelled = false;
-    void browseStrains({ offset: 0, limit: PAGE_SIZE })
-      .then((page) => {
+    const accumulated: StrainPreview[] = [];
+    async function drain() {
+      let offset = 0;
+      // Pull until the backend reports we've hit the end. Guarded by
+      // a hard upper bound so a misbehaving server can't loop us
+      // forever.
+      for (let safety = 0; safety < 200; safety++) {
         if (cancelled) return;
-        setAllPreviews(page.previews);
-        setTotalCount(page.totalCount);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setLoadError(true);
-      });
+        try {
+          const page = await browseStrains({
+            offset,
+            limit: BACKEND_PAGE_SIZE,
+          });
+          if (cancelled) return;
+          accumulated.push(...page.previews);
+          offset += page.previews.length;
+          if (cancelled) return;
+          setAllPreviews([...accumulated]);
+          setLoadedCount(accumulated.length);
+          setTotalCount(page.totalCount);
+          if (
+            page.previews.length === 0 ||
+            accumulated.length >= page.totalCount
+          ) {
+            setLoadingMore(false);
+            return;
+          }
+        } catch {
+          if (cancelled) return;
+          setLoadError(true);
+          setLoadingMore(false);
+          return;
+        }
+      }
+      setLoadingMore(false);
+    }
+    void drain();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  async function loadMore() {
-    if (!allPreviews || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const page = await browseStrains({
-        offset: allPreviews.length,
-        limit: BATCH_SIZE,
-      });
-      setAllPreviews((prev) => [...(prev ?? []), ...page.previews]);
-    } catch {
-      // Best-effort — leave what's already loaded
-    } finally {
-      setLoadingMore(false);
-    }
-  }
-
-  const hasMore = allPreviews ? allPreviews.length < totalCount : false;
+  // Whenever the filter set changes, reset the UI window so the user
+  // sees the top of the freshly filtered list instead of page 4 of
+  // something they no longer recognize.
+  useEffect(() => {
+    setVisibleCount(UI_PAGE_SIZE);
+  }, [query, typeFilter, thcBand, effectFilter, ailmentFilter]);
 
   const filtered = useMemo(() => {
     if (!allPreviews) return [];
     const q = query.trim().toLowerCase();
-    const thc = THC_BANDS.find((b) => b.value === thcBand) ?? THC_BANDS[0];
     const selectedEffects = EFFECT_BUCKETS.filter((b) =>
       effectFilter.includes(b.id),
     );
@@ -182,8 +169,9 @@ export function StrainDirectory() {
       return ailmentFilter.every((label) => {
         const needle = label.toLowerCase();
         if (names.has(needle)) return true;
-        // Alias pass for the common cases where the catalog stores a synonym
-        // (e.g. "insomnia" appears as "sleep", "ADHD" as "ADD/ADHD").
+        // Alias pass for the common cases where the catalog stores a
+        // synonym (e.g. "Insomnia" appears as "Sleep", "ADHD" as
+        // "ADD/ADHD"). The shared alias table lives in strain-ui.
         const aliases = CONDITION_ALIASES[label] ?? [];
         return aliases.some((alias) => names.has(alias.toLowerCase()));
       });
@@ -191,16 +179,15 @@ export function StrainDirectory() {
     return allPreviews.filter((p) => {
       if (typeFilter !== "all" && p.type !== typeFilter) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
-      const mid = thcMidpoint(p.thcRange);
-      if (thcBand !== "any") {
-        if (mid === null) return false;
-        if (!thc.test(mid)) return false;
-      }
+      if (!matchesThcBand(p.thcRange, thcBand)) return false;
       if (!effectMatch(p)) return false;
       if (!ailmentMatch(p)) return false;
       return true;
     });
   }, [allPreviews, query, typeFilter, thcBand, effectFilter, ailmentFilter]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const filteredHasMore = filtered.length > visibleCount;
 
   const filtersActive =
     typeFilter !== "all" ||
@@ -228,6 +215,12 @@ export function StrainDirectory() {
       prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name],
     );
   };
+
+  const catalogDoneLoading = !loadingMore && allPreviews !== null;
+  const loadingProgress =
+    totalCount > 0
+      ? `Loading ${loadedCount.toLocaleString()} of ${totalCount.toLocaleString()}…`
+      : `Loading the catalog…`;
 
   return (
     <div className="space-y-6">
@@ -287,7 +280,8 @@ export function StrainDirectory() {
           )}
         </div>
 
-        {/* Row 2: Ailment chips */}
+        {/* Row 2: Commonly used for — uses the same chip list as the
+             Find tab so the ailment vocabulary matches across the app. */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Commonly used for
@@ -313,7 +307,9 @@ export function StrainDirectory() {
           })}
         </div>
 
-        {/* Row 3: THC band */}
+        {/* Row 3: THC — same labels and ranges as the Find tab's
+             Potency preference. Bands live in lib/thc-bands so a
+             tweak in one place propagates everywhere. */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             THC
@@ -329,14 +325,14 @@ export function StrainDirectory() {
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
-              title={band.range}
+              title={band.hint}
             >
               {band.label}
             </button>
           ))}
         </div>
 
-        {/* Row 4: effect buckets */}
+        {/* Row 4: Feels like — curated effect buckets. */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Feels like
@@ -363,11 +359,11 @@ export function StrainDirectory() {
         </div>
       </div>
 
-      {allPreviews === null ? (
-        // Filters paint immediately; the grid hydrates with a skeleton
-        // that matches the eventual card shape so the layout doesn't
-        // jump when the first batch of previews lands.
-        <DirectoryGridSkeleton count={PAGE_SIZE} />
+      {!catalogDoneLoading && allPreviews === null ? (
+        // First page is still in flight — paint a skeleton that
+        // matches the eventual card shape so the layout doesn't jump
+        // when previews land.
+        <DirectoryGridSkeleton count={UI_PAGE_SIZE} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card px-6 py-12 text-center">
           <Sparkles className="size-6 text-muted-foreground" />
@@ -377,7 +373,11 @@ export function StrainDirectory() {
           <p className="mt-1 max-w-sm text-xs text-muted-foreground">
             {loadError
               ? "Couldn't load the catalog right now. Try again in a minute."
-              : "Try widening the type or THC filter."}
+              : filtersActive
+                ? "Try removing a filter or two to widen the search."
+                : loadingMore
+                  ? "Still loading the catalog — give it a second."
+                  : "The catalog is empty."}
           </p>
           {filtersActive && (
             <Button
@@ -393,44 +393,42 @@ export function StrainDirectory() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
-          {filtered.map((p) => (
+          {visible.map((p) => (
             <DirectoryPreviewCard key={p.name} preview={p} />
           ))}
         </div>
       )}
 
-      {allPreviews !== null &&
-        allPreviews.length > 0 &&
-        filtered.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            Showing {filtered.length}
-            {filtersActive ? " filtered" : ""} of {totalCount.toLocaleString()}{" "}
-            strains.
-          </p>
-        )}
+      {allPreviews !== null && allPreviews.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Showing {Math.min(visible.length, filtered.length).toLocaleString()}
+          {filtersActive ? " filtered" : ""} of{" "}
+          {filtered.length.toLocaleString()}
+          {filtersActive
+            ? ` matching · ${totalCount.toLocaleString()} in catalog`
+            : ""}
+          {!catalogDoneLoading && (
+            <span className="ml-1">· {loadingProgress}</span>
+          )}
+        </p>
+      )}
 
-      {/* Load more — hidden once the catalog is exhausted, and also hidden
-          when the current filters yield no matches (the empty state
-          already prompts the user to reset). The "X remaining" message
-          reflects the unfiltered catalog, so showing it under an empty
-          filtered grid would be misleading. */}
-      {hasMore && allPreviews !== null && filtered.length > 0 && (
+      {/* UI-only Load more — slices the already-filtered set, so
+          filters never silently drop rows that haven't streamed in
+          yet (the old bug). Also hidden under an empty filtered
+          grid so the user isn't invited to "load" rows that don't
+          match their filters. */}
+      {filteredHasMore && filtered.length > 0 && (
         <div className="flex justify-center pt-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={loadMore}
-            disabled={loadingMore}
+            onClick={() =>
+              setVisibleCount((c) => c + UI_PAGE_SIZE)
+            }
             className="cursor-pointer gap-2 rounded-full px-6"
           >
-            {loadingMore ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" />
-                Loading…
-              </>
-            ) : (
-              `Load more (${totalCount - allPreviews.length} remaining)`
-            )}
+            {`Load more (${(filtered.length - visible.length).toLocaleString()} remaining)`}
           </Button>
         </div>
       )}
