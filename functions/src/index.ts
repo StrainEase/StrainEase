@@ -143,7 +143,9 @@ async function writePopularListCache(previews: StrainPreview[]): Promise<void> {
 /**
  * Popular strains: cache-first from Firestore, scrape-only on cold miss.
  * The scheduled warmStrainDirectory function keeps the Firestore cache fresh.
- * Caller gets the first 12 previews from the catalog.
+ * Caller gets the first 12 previews from the catalog. Public callable:
+ * signed-in callers skip the IP rate limit (matches the AI callable
+ * convention); only guest traffic goes through `guestRateLimit`.
  */
 export const popularStrains = onCall(
   { timeoutSeconds: 30 },
@@ -185,7 +187,9 @@ export const popularStrains = onCall(
 /**
  * Browse the full Leafly catalog with offset pagination.
  * Cache-first from Firestore; falls back to scraping on cold miss.
- * Returns previews (lightweight) for the grid, not full profiles.
+ * Returns previews (lightweight) for the grid, not full profiles. Public
+ * callable: signed-in callers skip the IP rate limit; only guest traffic
+ * goes through `guestRateLimit`.
  */
 export const browseStrains = onCall(
   { timeoutSeconds: 30 },
@@ -197,13 +201,15 @@ export const browseStrains = onCall(
     offset: number;
     fetchedAt: number;
   }> => {
-    try {
-      guestRateLimit(clientIp(request));
-    } catch (err) {
-      throw new HttpsError(
-        "resource-exhausted",
-        err instanceof Error ? err.message : "Too many guest searches.",
-      );
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
     const raw = request.data ?? {};
     const offset =
@@ -259,17 +265,23 @@ export const warmStrainDirectory = onSchedule(
   },
 );
 
-/** Look up one strain by name on Leafly + Weedmaps + Allbud, with reviews and Reddit. */
+/**
+ * Look up one strain by name on Leafly + Weedmaps + Allbud, with reviews
+ * and Reddit. Public callable: signed-in callers skip the IP rate limit;
+ * only guest traffic goes through `guestRateLimit`.
+ */
 export const searchStrain = onCall(
   { timeoutSeconds: 60 },
   async (request): Promise<StrainProfile | null> => {
-    try {
-      guestRateLimit(clientIp(request));
-    } catch (err) {
-      throw new HttpsError(
-        "resource-exhausted",
-        err instanceof Error ? err.message : "Too many guest searches.",
-      );
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
     const name =
       typeof request.data?.name === "string" ? request.data.name : "";
@@ -284,18 +296,21 @@ export const searchStrain = onCall(
  * prefers the Firestore-backed vetted pool and falls back to the
  * static `reddit-seed.ts` pool only when no vetted match exists.
  * Public callable (no auth, no age gate) so web and iOS can prefetch
- * it before the user signs in.
+ * it before the user signs in. Signed-in callers skip the IP rate
+ * limit; only guest traffic goes through `guestRateLimit`.
  */
 export const redditThreadsForStrain = onCall(
   { timeoutSeconds: 15 },
   async (request): Promise<RedditSource[]> => {
-    try {
-      guestRateLimit(clientIp(request));
-    } catch (err) {
-      throw new HttpsError(
-        "resource-exhausted",
-        err instanceof Error ? err.message : "Too many guest searches.",
-      );
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
     const name =
       typeof request.data?.name === "string" ? request.data.name : "";
@@ -708,7 +723,10 @@ export const seedReferenceLibrary = onCall(
   },
 );
 
-/** Public, no-auth lookup for the reference library. */
+/**
+ * Public, no-auth lookup for the reference library. Signed-in callers
+ * skip the IP rate limit; only guest traffic goes through `guestRateLimit`.
+ */
 export const getReferenceLibrary = onCall(
   { timeoutSeconds: 15 },
   async (
@@ -717,13 +735,15 @@ export const getReferenceLibrary = onCall(
     terpenes: TerpeneRecord[];
     cannabinoids: CannabinoidRecord[];
   }> => {
-    try {
-      guestRateLimit(clientIp(request));
-    } catch (err) {
-      throw new HttpsError(
-        "resource-exhausted",
-        err instanceof Error ? err.message : "Too many guest searches.",
-      );
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
     const data = (request.data ?? {}) as {
       kind?: unknown;
@@ -813,17 +833,23 @@ export const seedInteractionLibrary = onCall(
   },
 );
 
-/** Public lookup for interaction records; unknown drugs return []. */
+/**
+ * Public lookup for interaction records; unknown drugs return [].
+ * Signed-in callers skip the IP rate limit; only guest traffic goes
+ * through `guestRateLimit`.
+ */
 export const getDrugInteractions = onCall(
   { timeoutSeconds: 15 },
   async (request): Promise<{ interactions: InteractionRecord[] }> => {
-    try {
-      guestRateLimit(clientIp(request));
-    } catch (err) {
-      throw new HttpsError(
-        "resource-exhausted",
-        err instanceof Error ? err.message : "Too many guest searches.",
-      );
+    if (!request.auth) {
+      try {
+        guestRateLimit(clientIp(request));
+      } catch (err) {
+        throw new HttpsError(
+          "resource-exhausted",
+          err instanceof Error ? err.message : "Too many guest searches.",
+        );
+      }
     }
     const data = (request.data ?? {}) as { drugs?: unknown };
 
@@ -1831,7 +1857,9 @@ export function isAllowedCachedImageHost(url: string): boolean {
  * returns a permanent public Storage URL pointing at the cached
  * object so the browser can fetch it directly with normal HTTP
  * caching. Repeat calls within the 7-day TTL hit the Storage copy
- * without re-touching Leafly.
+ * without re-touching Leafly. Public callable: signed-in callers
+ * skip the IP rate limit; only guest traffic goes through
+ * `guestRateLimit`.
  */
 export const cachedStrainImage = onCall(
   { timeoutSeconds: 30, memory: "256MiB" },
