@@ -79,7 +79,7 @@ export function thcMidpoint(range: string | undefined): number | null {
 
 /**
  * Filter an array of previews by a `ThcBand`. Exposed as a helper so
- * Find (StrainBrowse), Browse (StrainFind), and any future
+ * Find (StrainFind), Browse (StrainBrowse), and any future
  * surface that filters previews by THC reach for the exact same
  * matcher — that way "Mild" returns the same set on every page.
  *
