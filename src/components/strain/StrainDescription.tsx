@@ -67,11 +67,14 @@ function DescriptionSection({
   reliefHistory?: string;
   isAuthenticated?: boolean;
 }) {
-  // Each section body is 2-4 short paragraphs separated by blank lines
-  // ("\n\n"). Render them as their own <p> so the description breathes
-  // on a phone instead of running together as one wall of text. If the
-  // model skipped the breaks, fall back to a single paragraph so we
-  // never silently drop content.
+  // Each section body is exactly 3 paragraphs separated by blank lines
+  // ("\n\n") — enforced server-side in `normalizeDescriptionSections` /
+  // `coerceBodyToThreeParagraphs` (functions/src/index.ts). Render
+  // them as their own <p> so the description breathes on a phone
+  // instead of running together as one wall of text. If the model
+  // somehow skipped the breaks, the fallback renders the whole body
+  // as one whitespace-pre-line paragraph so we never silently drop
+  // content.
   const paragraphs = section.body
     .split(/\n\s*\n/)
     .map((p) => p.trim())
@@ -114,7 +117,8 @@ function DescriptionSection({
           {/* whitespace-pre-line: single newlines the model left inside a
               paragraph render as line breaks instead of collapsing to a
               space, while blank-line paragraph separators stay separate
-              <p> elements. */}
+              <p> elements. Each section body is enforced to be exactly 3
+              paragraphs server-side, so we always render 3 <p> tags. */}
           {paragraphs.length === 0 ? (
             <p className="whitespace-pre-line">{section.body}</p>
           ) : (

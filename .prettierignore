@@ -20,3 +20,6 @@ android
 bun.lock
 package-lock.json
 functions/package-lock.json
+
+# Shell scripts are not handled by Prettier's default parser
+scripts/*.sh

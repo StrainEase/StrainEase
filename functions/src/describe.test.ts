@@ -59,14 +59,17 @@ describe("normalizeDescriptionSections", () => {
   test("passes through three well-formed sections", () => {
     const out = normalizeDescriptionSections(
       [
-        { heading: "Overview", body: "A calm daytime strain." },
+        {
+          heading: "Overview",
+          body: "A calm daytime strain.\n\nOften described as balanced.\n\nCommon in dispensaries on the West Coast.",
+        },
         {
           heading: "What it might do for you",
-          body: "Reported for anxiety and focus.",
+          body: "Reported for anxiety.\n\nReported for focus.\n\nCompare to other strains you already keep.",
         },
         {
           heading: "What to expect",
-          body: "Mild onset, lasts a couple hours. Start low.",
+          body: "Mild onset.\n\nLasts a couple hours.\n\nStart low before adding more.",
         },
       ],
       "Blue Dream",
@@ -76,17 +79,22 @@ describe("normalizeDescriptionSections", () => {
       "What it might do for you",
       "What to expect",
     ]);
-    expect(out[0].body).toBe("A calm daytime strain.");
+    expect(out[0].body.startsWith("A calm daytime strain.")).toBe(true);
   });
 
   test("fills in missing sections with safe fallbacks", () => {
     const out = normalizeDescriptionSections(
-      [{ heading: "Overview", body: "Just one." }],
+      [
+        {
+          heading: "Overview",
+          body: "Just one section came back.\n\nThe other two will be filled.\n\nThe model truncated its response.",
+        },
+      ],
       "X",
     );
     expect(out).toHaveLength(3);
     expect(out[0].heading).toBe("Overview");
-    expect(out[0].body).toBe("Just one.");
+    expect(out[0].body.startsWith("Just one section came back.")).toBe(true);
     expect(out[1].heading).toBe("What it might do for you");
     expect(out[1].body.length).toBeGreaterThan(0);
     expect(out[2].heading).toBe("What to expect");
@@ -104,12 +112,15 @@ describe("normalizeDescriptionSections", () => {
       [
         { heading: "", body: "no heading" },
         { heading: "Overview", body: "" },
-        { heading: "Overview", body: "real" },
+        {
+          heading: "Overview",
+          body: "real first paragraph.\n\nreal second paragraph.\n\nreal third paragraph.",
+        },
       ],
       "Y",
     );
     // Only the third item is usable; the rest are fallbacks.
-    expect(out[0].body).toBe("real");
+    expect(out[0].body.startsWith("real first paragraph.")).toBe(true);
     expect(out[1].heading).toBe("What it might do for you");
     expect(out[2].heading).toBe("What to expect");
   });
@@ -134,6 +145,63 @@ describe("normalizeDescriptionSections", () => {
     );
     expect(out[0].body).toContain("\n\n");
     expect(out[0].body).not.toContain("\\n");
+  });
+
+  test("coerces a single-paragraph body into three", () => {
+    // If the model returns one wall-of-text body, the server splits
+    // it on sentence boundaries into three paragraphs so the
+    // renderer always emits exactly 3 <p> tags.
+    const out = normalizeDescriptionSections(
+      [
+        {
+          heading: "Overview",
+          body:
+            "Blue Dream leans cerebral and uplifting on the inhale. " +
+            "It is a sativa-dominant hybrid with a sweet berry aroma. " +
+            "Most patients describe a smooth comedown with a gentle body relaxation.",
+        },
+      ],
+      "Blue Dream",
+    );
+    const paragraphs = out[0].body.split(/\n\s*\n/);
+    expect(paragraphs).toHaveLength(3);
+    paragraphs.forEach((p) => expect(p.length).toBeGreaterThan(0));
+  });
+
+  test("coerces a two-paragraph body into three", () => {
+    // Splits the second paragraph in half on a sentence boundary.
+    const out = normalizeDescriptionSections(
+      [
+        {
+          heading: "Overview",
+          body:
+            "Blue Dream is a sativa-dominant hybrid.\n\n" +
+            "It has a sweet berry aroma. The effects lean cerebral. " +
+            "Most patients feel relaxed without sedation.",
+        },
+      ],
+      "Blue Dream",
+    );
+    const paragraphs = out[0].body.split(/\n\s*\n/);
+    expect(paragraphs).toHaveLength(3);
+  });
+
+  test("truncates an over-long body to its first three paragraphs", () => {
+    const out = normalizeDescriptionSections(
+      [
+        {
+          heading: "Overview",
+          body:
+            "Para one.\n\nPara two.\n\nPara three.\n\nPara four.\n\nPara five.",
+        },
+      ],
+      "X",
+    );
+    const paragraphs = out[0].body.split(/\n\s*\n/);
+    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs[0]).toBe("Para one.");
+    expect(paragraphs[1]).toBe("Para two.");
+    expect(paragraphs[2]).toBe("Para three.");
   });
 });
 
@@ -164,13 +232,7 @@ describe("describePrompt", () => {
   });
 
   test("includes THC sensitivity when the patient is anxious around high-THC", () => {
-    const prompt = describePrompt(
-      strain,
-      [],
-      [],
-      "",
-      "anxious-high-thc",
-    );
+    const prompt = describePrompt(strain, [], [], "", "anxious-high-thc");
     expect(prompt).toContain("anxious around high-THC flower");
     expect(prompt).toContain("softer potency call-out");
   });
@@ -224,7 +286,7 @@ describe("DESCRIBE_SYSTEM_PROMPT", () => {
   });
 
   test("requires short paragraphs separated by blank lines so each section reads on a phone", () => {
-    // Pin the breathing-room clause: each section's body should be 2-4
+    // Pin the breathing-room clause: each section's body should be 1-3
     // short paragraphs separated by blank lines, not a wall of text.
     // The renderers split on "\n\n" so the model must use that exact
     // delimiter.

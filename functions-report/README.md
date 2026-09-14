@@ -16,7 +16,8 @@ which touch the PDF pipeline.
 
 We split the code so the public scraper entry never loads Chromium. The
 two codebases deploy independently but share the same GCP project and the
-same secrets (`GROQ_API_KEY`).
+same secrets (`GROQ_API_KEY` for the report Kaya summary; `OPENROUTER_API_KEY`
+for the public scraper + AI codebase).
 
 ## What's in here
 
@@ -67,7 +68,10 @@ PDF generator" — extend it consciously if you add something new.
 `groq.ts` and `age.ts` are duplicated in both codebases. If you change
 either, update the matching file in `functions/src/` too. Both codebases
 are bundled separately by Firebase at deploy time — there is no shared
-module, no monorepo build orchestration.
+module, no monorepo build orchestration. Note: `functions/` now uses
+OpenRouter exclusively for AI; the duplicated `groq.ts` here is the only
+Groq caller left in the repo, used for the PDF `Kaya` summary. Migrating
+it to OpenRouter is a separate concern.
 
 ## What does NOT go here
 

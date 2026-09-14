@@ -13,6 +13,7 @@ struct StrainEaseApp: App {
     @State private var history = ResearchHistoryStore()
     @State private var checkIns = CheckInStore()
     @State private var thcSensitivity = ThcSensitivityStore()
+    @State private var triedStrains = TriedStrainsStore()
 
     init() {
         FirebaseBootstrap.configure()
@@ -32,6 +33,7 @@ struct StrainEaseApp: App {
                 .environment(history)
                 .environment(checkIns)
                 .environment(thcSensitivity)
+                .environment(triedStrains)
                 .tint(Palette.primary)
                 .preferredColorScheme(nil)
                 .onAppear { session.start() }
@@ -44,6 +46,7 @@ struct StrainEaseApp: App {
                         history.listen(uid: uid)
                         checkIns.listen(uid: uid)
                         thcSensitivity.listen(uid: uid)
+                        triedStrains.listen(uid: uid)
                     } else {
                         saved.reset()
                         ailments.reset()
@@ -52,6 +55,7 @@ struct StrainEaseApp: App {
                         history.reset()
                         checkIns.reset()
                         thcSensitivity.reset()
+                        triedStrains.reset()
                     }
                 }
                 .onOpenURL { url in
