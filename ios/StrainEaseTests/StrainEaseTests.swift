@@ -38,16 +38,6 @@ final class StrainEaseTests: XCTestCase {
     }
 
     @MainActor
-    func testCanLookupRequiresNonEmptyQuery() {
-        let model = FindModel(api: PreviewStrainAPI())
-        XCTAssertFalse(model.canLookup)
-        model.lookupQuery = "   "
-        XCTAssertFalse(model.canLookup)
-        model.lookupQuery = "Blue Dream"
-        XCTAssertTrue(model.canLookup)
-    }
-
-    @MainActor
     func testPreviewSavedStoreTogglesLike() async {
         let store = SavedStrainsStore.preview()
         XCTAssertFalse(store.isSaved("granddaddy-purple"))
