@@ -290,5 +290,20 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // AI callable result caches. Keyed by SHA-256 of the canonicalized
+    // request inputs (strain name + ailments + meds + prefs + language
+    // for descriptions; strain names + condition + prefs + language
+    // for comparisons). Admin-SDK-only writes via the Groq-routed
+    // callables; clients never read these directly — the cache exists
+    // only so repeat strain-page views don't blow past the Groq free
+    // tier's 8000 TPM limit. Document body shape is opaque; admin SDK
+    // has no client-visible schema to enforce.
+    match /descriptionCache/{hash} {
+      allow read, write: if false;
+    }
+    match /compareCache/{hash} {
+      allow read, write: if false;
+    }
   }
 }

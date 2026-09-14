@@ -22,7 +22,19 @@ conventions. This file is for machines.
   ```
   (`--force` is required once to set the Artifact Registry cleanup
   policy; subsequent deploys don't need it). Frontend deploys through
-  Cloudflare Pages (`.github/workflows/cloudflare-pages.yml`).
+  Cloudflare Pages via Cloudflare's GitHub integration (the deploy is
+  triggered by pushes to `main`; no GitHub Actions workflow is needed
+  for the frontend).
+- **Callable IAM is pinned.** `npm run deploy` (and the CI workflow)
+  end with `node scripts/ensure-invoker.mjs`, which re-applies the
+  `allUsers` `roles/run.invoker` binding on every callable in the
+  project. `firebase deploy` defaults to `--allow-unauthenticated`,
+  but a stray `gcloud run services update --no-allow-unauthenticated`
+  call (or a Console IAM change) can drop the binding without
+  redeploying; when that happens, OPTIONS preflight fails with 403 at
+  the Cloud Run layer and the SDK's POST never lands. The script is
+  idempotent and filters out scheduled functions, which use the
+  compute SA as their invoker.
 - Don't write innovative code, write reliable code.
 
 ## Architecture map
@@ -116,12 +128,18 @@ first:
 cd functions
 npm install        # one-time per machine / whenever deps change
 npm run build      # tsc → lib/
+npm run deploy     # firebase deploy --only functions, then ensure-invoker.mjs
 cd ..
-firebase deploy --only functions,firestore:rules --force
+firebase deploy --only firestore:rules,storage --force
 ```
 
+`npm run deploy` always ends with `node scripts/ensure-invoker.mjs`
+to re-pin the `allUsers` invoker on every callable. See the
+**Callable IAM is pinned** rule above for why.
+
 The CI workflow at `.github/workflows/firebase-functions-deploy.yml`
-does the same `npm ci && npm run build` before deploy. Mirror it locally.
+does the same `npm ci && npm run build` before deploy, then runs the
+invoker step after the firebase-action deploys. Mirror it locally.
 
 If you skip the build, you'll see:
 
@@ -134,10 +152,11 @@ That's the error this section exists to prevent. **Build first, deploy second.**
 
 ### Secrets
 
-`GROQ_API_KEY` is a Firebase Secret (not an env var). It is set with:
+`OPENROUTER_API_KEY` is the only AI-provider Firebase Secret (not an env var).
+It is set with:
 
 ```bash
-firebase functions:secrets:set GROQ_API_KEY
+firebase functions:secrets:set OPENROUTER_API_KEY
 ```
 
 Then redeploy. `functions/src/index.ts` declares it via `defineSecret`
@@ -158,7 +177,18 @@ functions/
                      # sourceAttribution for Dr. Kaya's prompts
     thc-percent.ts   # THC/CBD percent parser + averager
     strain-info-cache.ts # legacy merged cache (strainCache/{slug})
-    groq.ts          # Groq client + JSON extraction helpers
+    ai-cache.ts      # generic SHA-256-keyed Firestore cache used by
+                     # every AI callable so repeat strain-page views
+                     # stay cheap (descriptionCache, compareCache)
+    ai-json.ts       # JSON extraction + em-dash sanitization for
+                     # provider-neutral AI responses
+    openrouter.ts    # OpenRouter Chat Completions client (Llama 3.3
+                     # 70B routed through whichever upstream has the
+                     # shortest queue; replaced the Together.ai primary
+                     # so the same model id can sit on Together.ai,
+                     # Fireworks, or DeepInfra depending on capacity)
+    enrich.ts        # consolidator + Reddit quote merge + AI fill-in
+                     # for strains missing fields across all sources
     types.ts         # shared response types
   lib/               # compiled output, gitignored, DO NOT edit
   package.json       # main: "lib/index.js", engines.node: "22"
@@ -177,7 +207,10 @@ functions-report/     # PDF generation (Firebase "report")
   src/clinician-report-html.ts
   src/clinician-report-pdf.ts # @sparticuz/chromium + puppeteer-core
   src/clinician-report-data.ts
-  src/groq.ts          # duplicate (each codebase is self-contained for Firebase deploy)
+  src/groq.ts          # duplicate Groq client — functions-report/ is
+                       # self-contained for Firebase deploy and still
+                       # uses Groq for the Kaya summary. Move it to
+                       # OpenRouter in a separate PR if you need it.
   lib/                 # compiled output, gitignored
   package.json
   tsconfig.json
@@ -244,6 +277,49 @@ files plus the `Setup Node.js` step in `firebase-functions-deploy.yml`.
 3. Re-export from the same file. Don't import `firebase/functions` from
    a component.
 
+### Caching AI results (OpenRouter per-token savings)
+
+OpenRouter charges per token, so the AI callables
+(`describeStrainForUser`, `compareStrains`) read through a SHA-256-keyed
+Firestore cache (`functions/src/ai-cache.ts`) so repeat strain-page views
+with the same ailments / meds / prefs / language return the stored
+response without spending more tokens on the same answer.
+
+- Key inputs are sorted before hashing so `{ailments:["a","b"]}` and
+  `{ailments:["b","a"]}` collide; order-sensitive lists (strain names)
+  keep their original order, callers must pre-sort.
+- Cache TTL: 14 days. Strain data changes on the order of weeks, so
+  a user re-opening a page after a day still gets a fresh-enough
+  answer; a 14-day-old cache miss just re-fetches from OpenRouter.
+- Reads are memory-first, then Firestore. Writes are best-effort — a
+  Firestore outage does not fail the request, it just means the next
+  cold start re-fetches.
+- `descriptionCache` and `compareCache` are admin-SDK-only (no client
+  rule); the callable is the only writer.
+
+### AI provider (OpenRouter only)
+
+Every AI callable in `functions/` talks to a single provider: OpenRouter.
+There is no fallback. The model is
+`meta-llama/llama-3.3-70b-instruct:nitro` with a `provider.order` pin of
+`["together", "fireworks"]` and `allow_fallbacks: true` on the request
+body. The `:nitro` tag tells OpenRouter to use its fastest tier
+regardless of price; the provider pin keeps the call off DeepInfra's
+on-demand tier (15-25s warm, 40s+ spikes). We previously saw 70-110s
+latency when OpenRouter auto-routed the plain 70B model id to whichever
+provider happened to have capacity — Together.ai and Fireworks run the
+70B on inference-optimised engines (5-15s warm), so the pin gets us back
+to that range without giving up the 70B's prose quality.
+
+Cost: OpenRouter charges per token for Llama 3.3 70B. Set a hard
+monthly usage limit in the OpenRouter console so a worst case is
+bounded. `OPENROUTER_API_KEY` is a Firebase Secret declared in
+`functions/src/index.ts`. The Firestore cache in `ai-cache.ts` absorbs
+most repeat traffic so the bill stays low. If a transient OpenRouter
+failure (429, 5xx, network) lands, the callable returns 500 — there is
+no second provider to fall through to. Set the OpenRouter usage limit
+high enough that an outage doesn't also mean a billing surprise.
+
 ## Firestore conventions
 
 - Rules live in `firestore.rules`. Deploy them together with functions:
@@ -298,8 +374,9 @@ is no server-side custom claim or callable gate anymore (see PR #134).
 - Do not run `npm run build` from the repo root expecting it to build
   functions — the root `package.json` only builds the frontend.
 - Do not add new env vars without documenting them in `README.md` and
-  adding them to the Cloudflare Pages deploy workflow
-  (`.github/workflows/cloudflare-pages.yml`).
+  adding them to the Cloudflare Pages project (env vars are configured
+  in the Cloudflare dashboard for the `strainease` Pages project, not
+  in a GitHub Actions workflow).
 
 ## Working style for this codebase
 

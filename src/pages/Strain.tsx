@@ -1,9 +1,5 @@
 import { AppTabBar } from "@/components/home/AppHeader";
-import {
-  HydratingLine,
-  HydratingSection,
-  type StrainHydrationSection,
-} from "@/components/compare/HydratingSection";
+import { HydratingSection } from "@/components/compare/HydratingSection";
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
 import { RedditThreads } from "@/components/compare/RedditThreads";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
@@ -225,66 +221,19 @@ export default function Strain() {
     [profile, slug],
   );
 
-  // Sections that still need the live lookup before they have content.
-  // Mirrors iOS `StrainProfile.pendingHydrationSections` so both surfaces
-  // hydrate in the same order and the user always sees the full layout
-  // with the right placeholder message.
-  //
-  // Once the profile is `ready`, sections whose data is missing are no
-  // longer "pending" — they render nothing instead of a stuck spinner.
-  // (The Cloud Function returns the full profile in one shot, so there's
-  // no separate fetch for terpenes or side effects to wait for.)
-  const pending: Set<StrainHydrationSection> = useMemo(() => {
-    if (!profile) {
-      // Cold start with no profile yet — every section is still hydrating.
-      return new Set<StrainHydrationSection>([
-        "lineage",
-        "description",
-        "dayNight",
-        "uses",
-        "effects",
-        "terpenes",
-        "sideEffects",
-        "community",
-      ]);
-    }
-    // Cold profile (still hydrating) shows every section as pending so
-    // the user sees the full layout with placeholders.
-    if (status !== "ready") {
-      return new Set<StrainHydrationSection>([
-        "description",
-        "lineage",
-        "uses",
-        "effects",
-        "dayNight",
-        "terpenes",
-        "sideEffects",
-        "community",
-      ]);
-    }
-    // Profile is ready. Only flag a section as pending if its data is
-    // expected to arrive separately (e.g. tailored description while the
-    // AI call is still in flight). For terpenes / side effects, the
-    // Cloud Function returns them in the same payload as the rest of
-    // the profile, so a missing value means "we don't have it" — drop
-    // the section from pending so the page doesn't sit on a spinner.
-    const p = new Set<StrainHydrationSection>();
-    if (tailoredLoading && isAuthenticated) {
-      // TailoredDescription is fetched by useTailoredDescription on its
-      // own schedule; keep the description slot pending while that's
-      // still in flight.
-      p.add("description");
-    }
-    if (
-      (!profile.communityNotes || profile.communityNotes.length === 0) &&
-      !profile.leaflyRating
-    ) {
-      // Community has its own Firestore subscription; mark it pending
-      // only until the listener delivers the first snapshot.
-      p.add("community");
-    }
-    return p;
-  }, [profile, status, tailoredLoading, isAuthenticated]);
+  // Community has its own Firestore subscription (App Reviews + reddit
+  // threads). Hydration is brief, but we keep a single HydratingSection
+  // affordance so the slot does not blank out and then pop into the
+  // full block. Profile-driven sections below the description do not
+  // need their own loading state — the whole profile comes back in
+  // one Cloud Function call, so a per-section "Researching this
+  // strain…" placeholder flashed for a fraction of a second and then
+  // disappeared, which read as flicker. The single TailoredDescriptionLoading
+  // card above covers the whole wait now.
+  const communityPending =
+    !!profile &&
+    (!profile.communityNotes || profile.communityNotes.length === 0) &&
+    !profile.leaflyRating;
 
   return (
     <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
@@ -402,52 +351,41 @@ export default function Strain() {
                   .join(" · ")}
               </p>
             ) : null}
-            {pending.has("lineage") ? (
-              <HydratingLine section="lineage" />
-            ) : profile?.lineage ? (
+            {profile?.lineage ? (
               <p className="text-sm text-muted-foreground">{profile.lineage}</p>
             ) : null}
           </header>
 
-          {/* Description — generic placeholder while the profile is still
-              hydrating, dedicated tailored-loading card for signed-in users
-              waiting on the AI rewrite, then the real cards once content
-              lands. */}
-          {pending.has("description") ? (
-            tailoredLoading && isAuthenticated ? (
-              <TailoredDescriptionLoading />
-            ) : (
-              <HydratingSection section="description" />
-            )
+          {/* Description — single loading card while the profile hydrates
+              and while the AI rewrite is in flight, then the broken-down
+              cards once content lands. Skipping the per-section skeletons
+              here because the Cloud Function returns the whole profile in
+              one shot: there is no separate fetch for terpenes or side
+              effects to wait for, so the per-section "Researching this
+              strain…" placeholders flashed for a fraction of a second and
+              then disappeared, which read as flicker. The single card
+              keeps the loading affordance stable through the whole wait. */}
+          {!profile || (tailoredLoading && isAuthenticated) ? (
+            <TailoredDescriptionLoading />
           ) : profile ? (
             <DescriptionCards profile={profile} />
           ) : null}
 
           {/* Day to night */}
-          {pending.has("dayNight") ? (
-            <HydratingSection section="dayNight" />
-          ) : profile ? (
-            <DayNightCard score={score} />
-          ) : null}
+          {profile ? <DayNightCard score={score} /> : null}
 
           {/* Reported uses */}
-          {pending.has("uses") ? (
-            <HydratingSection section="uses" />
-          ) : profile?.medicalUses && profile.medicalUses.length > 0 ? (
+          {profile?.medicalUses && profile.medicalUses.length > 0 ? (
             <CommonlyUsedForSection items={profile.medicalUses} />
           ) : null}
 
           {/* Effects */}
-          {pending.has("effects") ? (
-            <HydratingSection section="effects" />
-          ) : profile?.effects && profile.effects.length > 0 ? (
+          {profile?.effects && profile.effects.length > 0 ? (
             <EffectsSection effects={profile.effects} />
           ) : null}
 
           {/* Terpenes */}
-          {pending.has("terpenes") ? (
-            <HydratingSection section="terpenes" />
-          ) : profile?.terpenes && profile.terpenes.length > 0 ? (
+          {profile?.terpenes && profile.terpenes.length > 0 ? (
             <TerpenesSection
               terpenes={profile.terpenes}
               onSelect={(name) => setActiveTerpene(name)}
@@ -455,18 +393,19 @@ export default function Strain() {
           ) : null}
 
           {/* Watch for */}
-          {pending.has("sideEffects") ? (
-            <HydratingSection section="sideEffects" />
-          ) : profile?.sideEffects && profile.sideEffects.length > 0 ? (
+          {profile?.sideEffects && profile.sideEffects.length > 0 ? (
             <WatchForSection items={profile.sideEffects} />
           ) : null}
 
           {/* Shop links — only meaningful once we have a real profile. */}
           {profile ? <ShopLinks strain={profile} /> : null}
 
-          {/* Community voices */}
-          {pending.has("community") ? (
-            <HydratingSection section="community" />
+          {/* Community voices. Hydration here is brief (Firestore subscription
+              delivers the first snapshot fast), so we keep the existing
+              HydratingSection affordance — but only after profile lands,
+              so the page is not full of skeletons during the initial load. */}
+          {communityPending ? (
+            <HydratingSection />
           ) : profile &&
             (profile.communityNotes?.length ||
               profile.leaflyRating ||
