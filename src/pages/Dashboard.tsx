@@ -58,13 +58,11 @@ import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
 import {
   ArrowRight,
-  BookOpen,
   Calendar,
   Check,
   Clock,
   FlaskConical,
   GitCompareArrows,
-  HeartPulse,
   Loader2,
   Pill,
   Plus,
@@ -363,9 +361,9 @@ export default function Dashboard() {
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <HeartPulse className="size-4" />
-              <span className="sm:hidden">Find</span>
-              <span className="hidden sm:inline">Find for ailments</span>
+              <Sparkles className="size-4" />
+              <span className="sm:hidden">Discover</span>
+              <span className="hidden sm:inline">Discover for ailments</span>
             </button>
             <button
               type="button"
@@ -377,8 +375,8 @@ export default function Dashboard() {
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <BookOpen className="size-4" />
-              <span className="sm:hidden">Browse</span>
+              <Search className="size-4" />
+              <span className="sm:hidden">Find</span>
               <span className="hidden sm:inline">Strain directory</span>
             </button>
             <button

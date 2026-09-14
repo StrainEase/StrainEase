@@ -13,17 +13,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import {
   APP_NAV,
-  BROWSE_HREF,
+  DISCOVER_HREF,
   FIND_HREF,
   type AppNavId,
 } from "@/lib/app-nav";
 import { cn } from "@/lib/utils";
 import {
-  BookOpen,
   Heart,
   Home,
   Library,
   Search,
+  Sparkles,
   Stethoscope,
 } from "lucide-react";
 import { useState } from "react";
@@ -31,8 +31,8 @@ import { Link, useNavigate } from "react-router";
 
 const ICONS: Record<AppNavId, typeof Home> = {
   home: Home,
-  find: BookOpen,
-  directory: Search,
+  find: Search,
+  discover: Sparkles,
   doctors: Stethoscope,
 };
 
@@ -50,7 +50,7 @@ export function AppCompareTray({
   return (
     <CompareTray
       selection={selection}
-      onCompare={onCompare ?? (() => navigate(`${BROWSE_HREF}?mode=compare`))}
+      onCompare={onCompare ?? (() => navigate(`${DISCOVER_HREF}?mode=compare`))}
       isRunning={isRunning}
       className="bottom-[4.75rem] pb-3 sm:bottom-0 sm:pb-[env(safe-area-inset-bottom)]"
     />

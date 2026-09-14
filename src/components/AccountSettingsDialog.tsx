@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { MedicationAutocomplete } from "@/components/ui/MedicationAutocomplete";
 import { StrainAutocomplete } from "@/components/ui/StrainAutocomplete";
-import { FIND_HREF, HISTORY_HREF } from "@/lib/app-nav";
+import { DISCOVER_HREF, HISTORY_HREF } from "@/lib/app-nav";
 import { ailmentsEqual } from "@/lib/ailments";
 import {
   THC_SENSITIVITY_OPTIONS,
@@ -273,7 +273,7 @@ export function AccountSettingsDialog({
               </p>
               {draftAilments.length > 0 && (
                 <Link
-                  to={FIND_HREF}
+                  to={DISCOVER_HREF}
                   onClick={() => onOpenChange(false)}
                   className="text-xs font-semibold text-primary"
                 >
@@ -319,7 +319,7 @@ export function AccountSettingsDialog({
               </div>
               {draftMedications.length > 0 && (
                 <Link
-                  to={FIND_HREF}
+                  to={DISCOVER_HREF}
                   onClick={() => onOpenChange(false)}
                   className="text-xs font-semibold text-primary"
                 >

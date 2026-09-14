@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router";
 import { AppTabBar } from "./AppHeader";
 
 describe("AppTabBar", () => {
-  test("renders the four iOS tabs and marks the active one", () => {
+  test("renders the four tabs and marks the active one", () => {
     render(
       <MemoryRouter>
         <AppTabBar active="find" />
@@ -14,16 +14,16 @@ describe("AppTabBar", () => {
       screen.getByRole("link", { name: "Home" }).getAttribute("href"),
     ).toBe("/");
     expect(
-      screen.getByRole("link", { name: "Browse" }).getAttribute("href"),
-    ).toBe("/dashboard");
-    expect(
       screen.getByRole("link", { name: "Find" }).getAttribute("href"),
     ).toBe("/dashboard?mode=directory");
+    expect(
+      screen.getByRole("link", { name: "Discover" }).getAttribute("href"),
+    ).toBe("/dashboard");
     expect(
       screen.getByRole("link", { name: "Doctors" }).getAttribute("href"),
     ).toBe("/doctors");
     expect(
-      screen.getByRole("link", { name: "Browse" }).getAttribute("aria-current"),
+      screen.getByRole("link", { name: "Find" }).getAttribute("aria-current"),
     ).toBe("page");
     expect(
       screen.getByRole("link", { name: "Home" }).getAttribute("aria-current"),
