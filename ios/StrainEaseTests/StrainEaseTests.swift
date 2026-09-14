@@ -670,7 +670,10 @@ final class StrainEaseTests: XCTestCase {
     }
 
     func testPrimaryTabsAreHomeFindBrowse() {
-        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse", "Doctors"])
+        // PR #284 swapped the Find/Browse labels so .find now reads as
+        // "Browse" and .browse as "Find". Enum case order is unchanged;
+        // only the title strings flipped.
+        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Browse", "Find", "Doctors"])
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("saved"))
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
     }
