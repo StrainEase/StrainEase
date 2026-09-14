@@ -375,7 +375,7 @@ enum Potency: String, CaseIterable, Identifiable, Hashable, Sendable {
     case strong
     var id: String { rawValue.isEmpty ? "any" : rawValue }
     /// Display label. Kept in lockstep with the Browse tab's
-    /// `DirectoryFilter.ThcBand` so a chip labelled "Any THC" here
+    /// `FindFilter.ThcBand` so a chip labelled "Any THC" here
     /// reads the same way on Browse — no surprises when the user
     /// switches tabs mid-research.
     var label: String {

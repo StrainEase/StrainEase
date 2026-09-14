@@ -2,8 +2,8 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var homeModel = HomeModel()
-    @State private var findModel: FindModel
-    @State private var directoryModel = DirectoryModel()
+    @State private var browseModel: BrowseModel
+    @State private var findModel = FindModel()
     @State private var doctorsModel = DoctorsModel()
     @State private var nav = AppNavigation()
     @State private var compareStore = CompareSelectionStore()
@@ -11,7 +11,7 @@ struct MainTabView: View {
     init() {
         let store = CompareSelectionStore()
         _compareStore = State(wrappedValue: store)
-        _findModel = State(wrappedValue: FindModel(compareStore: store))
+        _browseModel = State(wrappedValue: BrowseModel(compareStore: store))
     }
 
     var body: some View {
@@ -49,7 +49,7 @@ struct MainTabView: View {
                     FindView(model: findModel)
                 }
                 Tab("Browse", systemImage: AppTab.browse.systemImage, value: AppTab.browse) {
-                    DirectoryView(model: directoryModel)
+                    BrowseView(model: browseModel)
                 }
                 Tab("Doctors", systemImage: AppTab.doctors.systemImage, value: AppTab.doctors) {
                     DoctorsView(model: doctorsModel)
@@ -63,7 +63,7 @@ struct MainTabView: View {
                 FindView(model: findModel)
                     .tabItem { Label("Find", systemImage: AppTab.find.systemImage) }
                     .tag(AppTab.find)
-                DirectoryView(model: directoryModel)
+                BrowseView(model: browseModel)
                     .tabItem { Label("Browse", systemImage: AppTab.browse.systemImage) }
                     .tag(AppTab.browse)
                 DoctorsView(model: doctorsModel)

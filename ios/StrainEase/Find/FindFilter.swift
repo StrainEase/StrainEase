@@ -2,7 +2,7 @@ import Foundation
 
 /// Search + type / THC / effect filters for the popular catalog.
 /// Mirrors `src/components/directory/StrainDirectory.tsx`.
-enum DirectoryFilter {
+enum FindFilter {
     enum TypeFilter: String, CaseIterable, Identifiable, Sendable {
         case all
         case sativa

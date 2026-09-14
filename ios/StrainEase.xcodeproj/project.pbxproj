@@ -11,11 +11,11 @@
 		02629B2D89231EE691F803A2 /* PublicNotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2940F6680CF248045D5473 /* PublicNotesStore.swift */; };
 		0809C1FC088C27503106BEB5 /* ReliefLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F950618134AAA21910D868E7 /* ReliefLogStore.swift */; };
 		08AE324C12CBE6A35C99F596 /* ClinicianReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571A0DFDD74705698C15D1AF /* ClinicianReportView.swift */; };
-		0C49B25F493F46EEBEEAB06D /* DirectoryFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B424C65832568E4829FD926F /* DirectoryFilter.swift */; };
+		0C49B25F493F46EEBEEAB06D /* FindFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B424C65832568E4829FD926F /* FindFilter.swift */; };
 		0FE27932A5D70470DFE65856 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 06D21BCCB301293CF92F6A06 /* FirebaseFirestore */; };
 		16AE53A8633616269E9FB970 /* CheckInHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 433EC8420B6AD325F046C447 /* CheckInHistoryView.swift */; };
 		1BBD44262ED380C7D12ADA5A /* CompareResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF98E803F69C77F3170B2697 /* CompareResultsView.swift */; };
-		2C28C617F995935E04D83BC3 /* FindModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E75551C008AEA069E59362 /* FindModel.swift */; };
+		2C28C617F995935E04D83BC3 /* BrowseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E75551C008AEA069E59362 /* BrowseModel.swift */; };
 		2D40562447C869416F434CE3 /* SavedAilmentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60200884971058678D018248 /* SavedAilmentsStore.swift */; };
 		33A734AB97EAAF307F80626D /* MeshBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED345F3CFEEB4580F6C89E3 /* MeshBackground.swift */; };
 		3B1B0455CF4A02409D06013E /* StrainCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B674437957FDA4DED6E541FD /* StrainCatalog.swift */; };
@@ -29,7 +29,7 @@
 		4D866D88C1EF8C772EC1BA25 /* ThcSensitivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F755BD7ED4FB46A6A725EB3 /* ThcSensitivityStore.swift */; };
 		4DA010E98DCB40DB10413B6A /* ResearchHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40CA2FBB0AC1AA8BB87FD3B9 /* ResearchHistoryStore.swift */; };
 		4DCAF1ABD8695FB588743763 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C19AE37513363125582CB69B /* Palette.swift */; };
-		4FEF8A9D41415449EBE5E795 /* DirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F710CFE2D5AF753EC289EA2 /* DirectoryView.swift */; };
+		4FEF8A9D41415449EBE5E795 /* FindView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F710CFE2D5AF753EC289EA2 /* FindView.swift */; };
 		518E52AF5D6C47DDE5C38D4F /* SavedMedicationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B595382A36875E3B58A93BF7 /* SavedMedicationsStore.swift */; };
 		53245EDF4EFA59E577A6A2C5 /* StrainDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D098106AAA5573A2FF065B5 /* StrainDetailView.swift */; };
 		57CE374D4C206D84FBD2683A /* SavedMedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */; };
@@ -39,7 +39,7 @@
 		6C85A52C4A7389EFD1BC9EB9 /* CheckInStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38CE660C5970B04FE090C9B8 /* CheckInStore.swift */; };
 		6FCB1E737742C825F6DB97A9 /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB555711154F6F8A10B4D57 /* AgeGateView.swift */; };
 		72A7E2127ADD11DF7EFD64F6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 99DCE5C0880FE59E5D994798 /* Assets.xcassets */; };
-		72D37CAAC930C993C289935D /* FindView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E47E2787F643CB812402CC1B /* FindView.swift */; };
+		72D37CAAC930C993C289935D /* BrowseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E47E2787F643CB812402CC1B /* BrowseView.swift */; };
 		731887FD36CB1357B7F6F3CB /* CompareSelectionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43D446749B1FCC07DD3B881 /* CompareSelectionStoreTests.swift */; };
 		7680F372343D06DCA0AE6014 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E61024D2F69C6FE20A2B5C1 /* Components.swift */; };
 		77B51DD8666BAD58599631C1 /* SavedStrainsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990CED9E0E8C4ED69DC133F5 /* SavedStrainsStore.swift */; };
@@ -64,7 +64,7 @@
 		A60FEA6225E9EDB1897DA82E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4773FC168C285137690A19EC /* FirebaseAuth */; };
 		A7A84C0DD94085FDE3CDEAB8 /* ResearchHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053157392C5DFFE9E6D0B84D /* ResearchHistoryView.swift */; };
 		A9CFD2BD2605FDB8FBFDCC7B /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 5F34F1004D1F4B48A4AA1E2B /* GoogleSignIn */; };
-		AD0EBD7FEF01923D1BB4FBAE /* DirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3529D6377C857E301486363D /* DirectoryModel.swift */; };
+		AD0EBD7FEF01923D1BB4FBAE /* FindModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3529D6377C857E301486363D /* FindModel.swift */; };
 		AE0F27115EC032E0238515AA /* ThcSensitivityCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3888A0B1FE18AB530D40A8 /* ThcSensitivityCard.swift */; };
 		AF4DA0F5D436F2B435F7A630 /* SavedStrainsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B1BA91D2E7438F55F48388D /* SavedStrainsView.swift */; };
 		B33628F312A7D91C09D6EB09 /* AilmentCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0417DA2001497AE57D0920 /* AilmentCarousel.swift */; };
@@ -122,7 +122,7 @@
 		2FBA9F2DA24E3238FC0120D8 /* SavedAilmentsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAilmentsCard.swift; sourceTree = "<group>"; };
 		3242DCEB248AF1EB03D7D260 /* AgeVerificationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeVerificationStore.swift; sourceTree = "<group>"; };
 		32C2507C3625C8F13CD229C5 /* DoctorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorModels.swift; sourceTree = "<group>"; };
-		3529D6377C857E301486363D /* DirectoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryModel.swift; sourceTree = "<group>"; };
+		3529D6377C857E301486363D /* FindModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindModel.swift; sourceTree = "<group>"; };
 		38CE660C5970B04FE090C9B8 /* CheckInStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInStore.swift; sourceTree = "<group>"; };
 		3EFA17F0F1A175C4E58C3A58 /* SharedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedNotesView.swift; sourceTree = "<group>"; };
 		40CA2FBB0AC1AA8BB87FD3B9 /* ResearchHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchHistoryStore.swift; sourceTree = "<group>"; };
@@ -142,7 +142,7 @@
 		61875CB7A206EE1BB3B5C792 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
 		65979D7D0365186077E51DD4 /* RedditThreadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedditThreadsView.swift; sourceTree = "<group>"; };
 		6B1BA91D2E7438F55F48388D /* SavedStrainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsView.swift; sourceTree = "<group>"; };
-		6F710CFE2D5AF753EC289EA2 /* DirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryView.swift; sourceTree = "<group>"; };
+		6F710CFE2D5AF753EC289EA2 /* FindView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindView.swift; sourceTree = "<group>"; };
 		719373E37B4F3B019CF5EE80 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		741F33CF63DBBAD6CFBB9D15 /* DoctorsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorsModel.swift; sourceTree = "<group>"; };
 		75A40096AFEA3E0711AF57C1 /* StrainAutocomplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainAutocomplete.swift; sourceTree = "<group>"; };
@@ -154,7 +154,7 @@
 		7D0417DA2001497AE57D0920 /* AilmentCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AilmentCarousel.swift; sourceTree = "<group>"; };
 		800987791E1F518D554E62E9 /* TriedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedNotesView.swift; sourceTree = "<group>"; };
 		80F8A2DE1E736B6FB187B8ED /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		81E75551C008AEA069E59362 /* FindModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindModel.swift; sourceTree = "<group>"; };
+		81E75551C008AEA069E59362 /* BrowseModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseModel.swift; sourceTree = "<group>"; };
 		8BF071D01B0F4841408D9AEE /* TerpeneProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerpeneProfile.swift; sourceTree = "<group>"; };
 		8C6D390C809E908B60291D9F /* DoctorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorsView.swift; sourceTree = "<group>"; };
 		8CA874DA7CD5C58BD9E53558 /* RecentlyViewedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyViewedStore.swift; sourceTree = "<group>"; };
@@ -168,7 +168,7 @@
 		AF07512E648F1012EF33C227 /* CompareTrayBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareTrayBar.swift; sourceTree = "<group>"; };
 		B0D707FED754B3084F471E94 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		B2E8C71C6D08BA5C1AE863F4 /* StrainAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainAPI.swift; sourceTree = "<group>"; };
-		B424C65832568E4829FD926F /* DirectoryFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryFilter.swift; sourceTree = "<group>"; };
+		B424C65832568E4829FD926F /* FindFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindFilter.swift; sourceTree = "<group>"; };
 		B43D446749B1FCC07DD3B881 /* CompareSelectionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareSelectionStoreTests.swift; sourceTree = "<group>"; };
 		B595382A36875E3B58A93BF7 /* SavedMedicationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMedicationsStore.swift; sourceTree = "<group>"; };
 		B674437957FDA4DED6E541FD /* StrainCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainCatalog.swift; sourceTree = "<group>"; };
@@ -183,7 +183,7 @@
 		DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMedicationsCard.swift; sourceTree = "<group>"; };
 		DF98E803F69C77F3170B2697 /* CompareResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareResultsView.swift; sourceTree = "<group>"; };
 		E1B0426629D56FCDD5AB455F /* StrainPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainPoster.swift; sourceTree = "<group>"; };
-		E47E2787F643CB812402CC1B /* FindView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindView.swift; sourceTree = "<group>"; };
+		E47E2787F643CB812402CC1B /* BrowseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
 		E5556663A1E35ABD32618DF7 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
 		EDAFAF4D17507D307C70F65C /* StrainEase.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StrainEase.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE19BA04421C76E0AB3BE881 /* HomeHeadline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHeadline.swift; sourceTree = "<group>"; };
@@ -209,14 +209,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0A6E1CB8C33351A60CAD7ABF /* Directory */ = {
+		0A6E1CB8C33351A60CAD7ABF /* Find */ = {
 			isa = PBXGroup;
 			children = (
-				B424C65832568E4829FD926F /* DirectoryFilter.swift */,
-				3529D6377C857E301486363D /* DirectoryModel.swift */,
-				6F710CFE2D5AF753EC289EA2 /* DirectoryView.swift */,
+				B424C65832568E4829FD926F /* FindFilter.swift */,
+				3529D6377C857E301486363D /* FindModel.swift */,
+				6F710CFE2D5AF753EC289EA2 /* FindView.swift */,
 			);
-			path = Directory;
+			path = Find;
 			sourceTree = "<group>";
 		};
 		2E5195DAE352F21D50C226A7 /* Products */ = {
@@ -272,9 +272,9 @@
 				C23F8E15F1C68A76344C2C9E /* App */,
 				4C07F351A0DFA4F3BA396927 /* Auth */,
 				E3DE8049F1E68FA01C1FFC08 /* Compare */,
-				0A6E1CB8C33351A60CAD7ABF /* Directory */,
+				0A6E1CB8C33351A60CAD7ABF /* Find */,
 				371346F5CFB782E2E063DF1E /* Doctors */,
-				62FE981741A9D9C7F4B0B5EB /* Find */,
+				62FE981741A9D9C7F4B0B5EB /* Browse */,
 				E698A0E848483B8E479CC877 /* Home */,
 				9DD64AFE86ADB3FF389DFA37 /* Models */,
 				658323478EF39E912E2C4CC1 /* Resources */,
@@ -313,15 +313,15 @@
 			path = Account;
 			sourceTree = "<group>";
 		};
-		62FE981741A9D9C7F4B0B5EB /* Find */ = {
+		62FE981741A9D9C7F4B0B5EB /* Browse */ = {
 			isa = PBXGroup;
 			children = (
-				81E75551C008AEA069E59362 /* FindModel.swift */,
-				E47E2787F643CB812402CC1B /* FindView.swift */,
+				81E75551C008AEA069E59362 /* BrowseModel.swift */,
+				E47E2787F643CB812402CC1B /* BrowseView.swift */,
 				1BCF4A1E87785264925E5E30 /* MedicationAutocomplete.swift */,
 				75A40096AFEA3E0711AF57C1 /* StrainAutocomplete.swift */,
 			);
-			path = Find;
+			path = Browse;
 			sourceTree = "<group>";
 		};
 		658323478EF39E912E2C4CC1 /* Resources */ = {
@@ -551,14 +551,14 @@
 				E5BAB8E32F6225C018A80E87 /* CompareToggleButton.swift in Sources */,
 				8748D45E269034A732A000C7 /* CompareTrayBar.swift in Sources */,
 				7680F372343D06DCA0AE6014 /* Components.swift in Sources */,
-				0C49B25F493F46EEBEEAB06D /* DirectoryFilter.swift in Sources */,
-				AD0EBD7FEF01923D1BB4FBAE /* DirectoryModel.swift in Sources */,
-				4FEF8A9D41415449EBE5E795 /* DirectoryView.swift in Sources */,
+				0C49B25F493F46EEBEEAB06D /* FindFilter.swift in Sources */,
+				AD0EBD7FEF01923D1BB4FBAE /* FindModel.swift in Sources */,
+				4FEF8A9D41415449EBE5E795 /* FindView.swift in Sources */,
 				407BD5F6A05F5793D8267D31 /* DoctorModels.swift in Sources */,
 				8AE3C073ED9B8F7BA0D76E9A /* DoctorsModel.swift in Sources */,
 				40F78819BDD6644E28554D04 /* DoctorsView.swift in Sources */,
-				2C28C617F995935E04D83BC3 /* FindModel.swift in Sources */,
-				72D37CAAC930C993C289935D /* FindView.swift in Sources */,
+				2C28C617F995935E04D83BC3 /* BrowseModel.swift in Sources */,
+				72D37CAAC930C993C289935D /* BrowseView.swift in Sources */,
 				CD71D52017BF06CD200BFA9B /* FirebaseBootstrap.swift in Sources */,
 				C57B04AC793C259F99E52E30 /* HomeHeadline.swift in Sources */,
 				E44B53DC77F5FC62D2A195D4 /* HomeModel.swift in Sources */,

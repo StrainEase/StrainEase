@@ -225,9 +225,9 @@ struct TypeBadge: View {
 }
 
 /// Inline error banner. Same surface style as the original
-/// `errorBanner` helper that used to live inside `FindView`, promoted
+/// `errorBanner` helper that used to live inside `BrowseView`, promoted
 /// to a shared component so the floating `CompareTrayBar` and the
-/// inline Find compare tray can both surface their `compareError`
+/// inline Browse compare tray can both surface their `compareError`
 /// instead of firing only an invisible error haptic.
 struct SWErrorBanner: View {
     let message: String
