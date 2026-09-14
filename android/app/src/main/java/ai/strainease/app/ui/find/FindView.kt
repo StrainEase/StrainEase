@@ -1,4 +1,4 @@
-package ai.strainease.app.ui.browse
+package ai.strainease.app.ui.find
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

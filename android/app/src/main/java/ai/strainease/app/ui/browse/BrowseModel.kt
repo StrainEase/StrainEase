@@ -1,4 +1,4 @@
-package ai.strainease.app.ui.find
+package ai.strainease.app.ui.browse
 
 import ai.strainease.app.StrainEaseApplication
 import ai.strainease.app.data.SavedAilmentsStore

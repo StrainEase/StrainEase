@@ -1,4 +1,4 @@
-package ai.strainease.app.ui.browse
+package ai.strainease.app.ui.find
 
 import ai.strainease.app.models.Conditions
 import ai.strainease.app.models.StrainProfile
