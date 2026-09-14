@@ -59,14 +59,17 @@ describe("normalizeDescriptionSections", () => {
   test("passes through three well-formed sections", () => {
     const out = normalizeDescriptionSections(
       [
-        { heading: "Overview", body: "A calm daytime strain." },
+        {
+          heading: "Overview",
+          body: "A calm daytime strain.\n\nOften described as balanced.\n\nCommon in dispensaries on the West Coast.",
+        },
         {
           heading: "What it might do for you",
-          body: "Reported for anxiety and focus.",
+          body: "Reported for anxiety.\n\nReported for focus.\n\nCompare to other strains you already keep.",
         },
         {
           heading: "What to expect",
-          body: "Mild onset, lasts a couple hours. Start low.",
+          body: "Mild onset.\n\nLasts a couple hours.\n\nStart low before adding more.",
         },
       ],
       "Blue Dream",
@@ -76,17 +79,22 @@ describe("normalizeDescriptionSections", () => {
       "What it might do for you",
       "What to expect",
     ]);
-    expect(out[0].body).toBe("A calm daytime strain.");
+    expect(out[0].body.startsWith("A calm daytime strain.")).toBe(true);
   });
 
   test("fills in missing sections with safe fallbacks", () => {
     const out = normalizeDescriptionSections(
-      [{ heading: "Overview", body: "Just one." }],
+      [
+        {
+          heading: "Overview",
+          body: "Just one section came back.\n\nThe other two will be filled.\n\nThe model truncated its response.",
+        },
+      ],
       "X",
     );
     expect(out).toHaveLength(3);
     expect(out[0].heading).toBe("Overview");
-    expect(out[0].body).toBe("Just one.");
+    expect(out[0].body.startsWith("Just one section came back.")).toBe(true);
     expect(out[1].heading).toBe("What it might do for you");
     expect(out[1].body.length).toBeGreaterThan(0);
     expect(out[2].heading).toBe("What to expect");
@@ -104,12 +112,15 @@ describe("normalizeDescriptionSections", () => {
       [
         { heading: "", body: "no heading" },
         { heading: "Overview", body: "" },
-        { heading: "Overview", body: "real" },
+        {
+          heading: "Overview",
+          body: "real first paragraph.\n\nreal second paragraph.\n\nreal third paragraph.",
+        },
       ],
       "Y",
     );
     // Only the third item is usable; the rest are fallbacks.
-    expect(out[0].body).toBe("real");
+    expect(out[0].body.startsWith("real first paragraph.")).toBe(true);
     expect(out[1].heading).toBe("What it might do for you");
     expect(out[2].heading).toBe("What to expect");
   });

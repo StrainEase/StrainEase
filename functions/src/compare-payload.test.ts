@@ -32,7 +32,7 @@ describe("compareStrainPayload", () => {
     });
   });
 
-  test("caps long descriptions, terpenes, effects, medicalUses, and communityNotes so the LLM payload stays under Groq's free-tier 8K TPM", () => {
+  test("caps long descriptions, terpenes, effects, medicalUses, and communityNotes so the LLM payload stays small for OpenRouter's per-token meter", () => {
     const longText = "x".repeat(5000);
     const payload = compareStrainPayload({
       name: "Verbose",

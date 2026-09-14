@@ -35,6 +35,11 @@
 // console surfaces rate-limit or priority differences for attributed
 // traffic.
 //
+// `OPENROUTER_API_KEY` is a Firebase Secret registered via
+// `firebase functions:secrets:set OPENROUTER_API_KEY`. The Firestore
+// cache in ai-cache.ts absorbs most repeat traffic so the bill stays
+// low.
+//
 // `max_tokens: 1500` mirrors the prior default and is enough for the
 // 3-section description and the comparison summary.
 
@@ -80,8 +85,7 @@ export function openRouterRequestBody(
  * Call OpenRouter's chat completions endpoint. Returns the model's
  * raw string content (already JSON-shaped because we set
  * `response_format: json_object`). Throws `HttpsError` on transport
- * failure, non-2xx, or empty content, same shape as `callGroq` so
- * the fallback path can treat any provider identically.
+ * failure, non-2xx, or empty content.
  */
 export async function callOpenRouter(
   apiKey: string,
