@@ -8,6 +8,7 @@ import { listenToReliefLogs, type ReliefLog } from "@/lib/relief-log";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { ComparableStrainPoster } from "@/components/strain/ComparableStrainPoster";
 import { ReliefInsightsPanel } from "@/components/saved/ReliefInsightsPanel";
+import { toTitleCase } from "@/lib/title-case";
 import { Bookmark, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -133,7 +134,7 @@ function SavedStrainCell({
       />
       <button
         type="button"
-        aria-label={`Remove ${item.name}`}
+        aria-label={`Remove ${toTitleCase(item.name)}`}
         onClick={(event) => {
           // Don't let the click fall through to the poster
           // link underneath.
