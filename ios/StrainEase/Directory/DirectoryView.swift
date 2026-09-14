@@ -25,7 +25,10 @@ struct DirectoryView: View {
                         filterRow("Type") { typeChips }
                         filterRow("Commonly used for") { ailmentChips }
                         filterRow("THC") { thcChips }
-                        filterRow("Effects") { effectChips }
+                        // "Feels like" is the matching label used on the
+                        // web directory so the effect vocabulary is the
+                        // same across platforms.
+                        filterRow("Feels like") { effectChips }
                         if model.filtersActive {
                             Button("Reset filters", action: model.resetFilters)
                                 .font(.system(size: 13, weight: .semibold))

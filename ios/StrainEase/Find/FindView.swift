@@ -142,7 +142,10 @@ struct FindView: View {
 
     private var conditions: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionLabel("Symptoms", index: 1)
+            // Same chip list, same label as DirectoryView's ailment
+            // row — so the user's vocabulary matches when they hop
+            // between the Find and Browse tabs.
+            SectionLabel("Commonly used for", index: 1)
             FlowLayout(spacing: 8) {
                 ForEach(Conditions.catalog, id: \.self) { name in
                     SWChip(title: name, isOn: model.isSelected(name)) {
@@ -192,7 +195,9 @@ struct FindView: View {
 
     private var potency: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionLabel("Potency", index: 2)
+            // Matches the Browse tab's "THC" section header so the
+            // same chip strip reads the same on both surfaces.
+            SectionLabel("THC", index: 2)
             FlowLayout(spacing: 8) {
                 ForEach(Potency.allCases) { option in
                     SWChip(title: option.label, isOn: model.potency == option) {

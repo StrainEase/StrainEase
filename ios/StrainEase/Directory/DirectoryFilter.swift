@@ -38,6 +38,9 @@ enum DirectoryFilter {
 
         var id: String { rawValue }
 
+        /// Display label. Kept in lockstep with the Find tab's
+        /// `Potency` enum so a "Mild" chip here and a "Mild" chip
+        /// there pick the exact same strains.
         var label: String {
             switch self {
             case .any: "Any THC"
