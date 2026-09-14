@@ -128,7 +128,11 @@ fun DirectoryView(
                 }
             }
             item(span = { GridItemSpan(currentLineSpan = 2) }) {
-                filterRow(title = "Effects", index = 4) {
+                // 'Feels like' (not bare 'Effects') so the
+                // vocabulary matches the web directory and the iOS
+                // directory, and the user's mental model doesn't
+                // fork across platforms.
+                filterRow(title = "Feels like", index = 4) {
                     DirectoryFilter.EffectBucket.all.forEach { bucket ->
                         SWChip(
                             title = bucket.label,

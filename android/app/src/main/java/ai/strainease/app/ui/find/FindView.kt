@@ -344,7 +344,10 @@ private fun conditionsBlock(
     customAilment: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionLabel(title = "Symptoms", index = 1)
+        // Same chip list, same label as DirectoryView's ailment
+        // row — so the user's vocabulary matches when they hop
+        // between the Find and Browse tabs.
+        SectionLabel(title = "Commonly used for", index = 1)
         SWFlowRow {
             ai.strainease.app.models.Conditions.catalog.forEach { name ->
                 SWChip(
@@ -412,7 +415,9 @@ private fun conditionsBlock(
 @Composable
 private fun potencyBlock(model: FindModel, potency: Potency) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionLabel(title = "Potency", index = 2)
+        // Matches the Browse tab's "THC" section header so the
+        // same chip strip reads the same on both surfaces.
+        SectionLabel(title = "THC", index = 2)
         SWFlowRow {
             Potency.entries.forEach { p ->
                 SWChip(
