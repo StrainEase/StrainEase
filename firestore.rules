@@ -142,6 +142,25 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Persistent "tried strains" list per user — private, list/add/remove only.
+    // Mirrors the medications shape plus a `type` and `thc` chip metadata field
+    // so the Find autocomplete can render suggestion chips without re-fetching.
+    match /users/{uid}/triedStrains/{id} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'type', 'thc', 'addedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() < 80
+        && request.resource.data.type is string
+        && request.resource.data.type.size() <= 16
+        && request.resource.data.thc is string
+        && request.resource.data.thc.size() <= 16
+        && request.resource.data.addedAt is number
+        && request.resource.data.addedAt > 0;
+      allow update: if false;
+    }
+
     // Daily symptom check-ins: one document per day, keyed by `YYYY-MM-DD`
     // (the lib uses `todayKey()` to build the id). The four tracked metrics
     // (mood, sleep, pain, anxiety) are all 1–5 integer scales. A free-form
@@ -270,6 +289,21 @@ service cloud.firestore {
     match /interactionLibrary/{slug} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // AI callable result caches. Keyed by SHA-256 of the canonicalized
+    // request inputs (strain name + ailments + meds + prefs + language
+    // for descriptions; strain names + condition + prefs + language
+    // for comparisons). Admin-SDK-only writes via the Groq-routed
+    // callables; clients never read these directly — the cache exists
+    // only so repeat strain-page views don't blow past the Groq free
+    // tier's 8000 TPM limit. Document body shape is opaque; admin SDK
+    // has no client-visible schema to enforce.
+    match /descriptionCache/{hash} {
+      allow read, write: if false;
+    }
+    match /compareCache/{hash} {
+      allow read, write: if false;
     }
   }
 }

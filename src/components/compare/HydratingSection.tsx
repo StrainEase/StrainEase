@@ -3,140 +3,27 @@ import { SWCard } from "@/components/ui/sw-card";
 import { cn } from "@/lib/utils";
 
 /**
- * Strain-detail blocks that come from the Leafly / Weedmaps / research
- * lookup. Mirrors the iOS `StrainHydrationSection` enum so the two
- * surfaces stay in step. User notes and relief logs are not included —
- * those don't need a network round trip.
+ * iOS-style loading card for the community voices slot at the bottom
+ * of the strain detail page. Kept after the broader per-section
+ * hydration cleanup because community's Firestore subscription can
+ * deliver its first snapshot after the profile lands, and a brief
+ * placeholder keeps the slot from blanking out and then popping into
+ * the full block.
+ *
+ * If we ever need to extend this to other sections again, add the
+ * section key + config back rather than re-introducing the per-section
+ * placeholder pattern that flickered in practice.
  */
-export type StrainHydrationSection =
-  | "lineage"
-  | "description"
-  | "dayNight"
-  | "uses"
-  | "effects"
-  | "terpenes"
-  | "sideEffects"
-  | "community";
-
-type HydratingSectionConfig = {
-  /** Uppercase section label shown above the card (matches iOS `SectionLabel`). */
-  label: string;
-  /** Status line rendered next to the spinner inside the card. */
-  caption: string;
-  /** Number of placeholder bars to render after the caption. */
-  lines: number;
-  /**
-   * When true, the section is rendered as a small inline row (no card,
-   * no placeholder bars) — used for lineage where iOS only shows a
-   * one-liner under the subtitle. Defaults to false (full card).
-   */
-  inline?: boolean;
-};
-
-const SECTION_CONFIG: Record<StrainHydrationSection, HydratingSectionConfig> = {
-  lineage: {
-    label: "Lineage",
-    caption: "Looking up parent strains…",
-    lines: 1,
-    inline: true,
-  },
-  description: {
-    label: "Overview",
-    caption: "Researching this strain…",
-    lines: 3,
-  },
-  dayNight: {
-    label: "Day to night",
-    caption: "Scoring day vs night from reported effects…",
-    lines: 2,
-  },
-  uses: {
-    label: "Reported uses",
-    caption: "Collecting commonly reported uses…",
-    lines: 2,
-  },
-  effects: {
-    label: "Effects",
-    caption: "Pulling reported effects…",
-    lines: 4,
-  },
-  terpenes: {
-    label: "Terpenes",
-    caption: "Reading the terpene profile…",
-    lines: 2,
-  },
-  sideEffects: {
-    label: "Watch for",
-    caption: "Checking commonly reported side effects…",
-    lines: 2,
-  },
-  community: {
-    label: "Community voices",
-    caption: "Pulling Leafly reviews and Reddit comments…",
-    lines: 3,
-  },
-};
-
-/**
- * Inline status line — used for sections where iOS shows a one-liner
- * under the subtitle instead of a full loading card (currently just
- * `lineage`).
- */
-export function HydratingLine({
-  section,
-  className,
-}: {
-  section: StrainHydrationSection;
-  className?: string;
-}) {
-  const config = SECTION_CONFIG[section];
+export function HydratingSection({ className }: { className?: string }) {
   return (
     <div
       role="status"
       aria-live="polite"
-      data-hydrating={section}
-      className={cn(
-        "flex items-center gap-2 text-xs text-muted-foreground",
-        className,
-      )}
-    >
-      <Loader2
-        className="size-3.5 shrink-0 animate-spin text-primary"
-        aria-hidden
-      />
-      <span>{config.caption}</span>
-    </div>
-  );
-}
-
-/**
- * iOS-style loading card: spinner + status message, then a stack of
- * shimmer placeholder bars. Used as a stand-in for a content section
- * that hasn't finished hydrating yet so the user sees the full page
- * layout right away.
- */
-export function HydratingSection({
-  section,
-  className,
-}: {
-  section: StrainHydrationSection;
-  className?: string;
-}) {
-  const config = SECTION_CONFIG[section];
-
-  if (config.inline) {
-    return <HydratingLine section={section} className={className} />;
-  }
-
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      data-hydrating={section}
+      data-hydrating="community"
       className={cn("flex flex-col gap-2.5", className)}
     >
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {config.label}
+        Community voices
       </p>
       <SWCard innerClassName="p-5">
         <div className="flex flex-col gap-3">
@@ -146,32 +33,26 @@ export function HydratingSection({
               aria-hidden
             />
             <span className="text-sm text-muted-foreground">
-              {config.caption}
+              Pulling Leafly reviews and Reddit comments…
             </span>
           </div>
-          {Array.from({ length: config.lines }).map((_, index) => (
-            <span
-              key={index}
-              aria-hidden
-              className="skeleton-line h-3 rounded-full"
-              style={{
-                // Last bar in each section is narrower on iOS — match that
-                // so the placeholder reads as "content being written" rather
-                // than a uniform striped block.
-                maxWidth: index === config.lines - 1 ? "55%" : "100%",
-              }}
-            />
-          ))}
+          <span
+            aria-hidden
+            className="skeleton-line h-3 rounded-full"
+            style={{ maxWidth: "100%" }}
+          />
+          <span
+            aria-hidden
+            className="skeleton-line h-3 rounded-full"
+            style={{ maxWidth: "100%" }}
+          />
+          <span
+            aria-hidden
+            className="skeleton-line h-3 rounded-full"
+            style={{ maxWidth: "55%" }}
+          />
         </div>
       </SWCard>
     </div>
   );
 }
-
-/** Section labels, exposed for callers that want to show the heading
- *  without the loading card (e.g. when a section has its own custom
- *  skeleton). */
-export const HYDRATING_SECTION_LABEL: Record<StrainHydrationSection, string> =
-  Object.fromEntries(
-    Object.entries(SECTION_CONFIG).map(([key, value]) => [key, value.label]),
-  ) as Record<StrainHydrationSection, string>;

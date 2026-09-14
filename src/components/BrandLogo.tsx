@@ -19,12 +19,12 @@ export function BrandLogo({
       )}
     >
       <img
-        src="/icon-512.png"
+        src="/logo.svg"
         alt={alt}
         className="size-full object-contain dark:hidden"
       />
       <img
-        src="/icon-dark-1024.png"
+        src="/logo.svg"
         alt=""
         aria-hidden="true"
         className="hidden size-full object-contain dark:block dark:brightness-0 dark:invert"

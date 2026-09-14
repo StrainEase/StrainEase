@@ -10,6 +10,8 @@
  *   "og kush"           → "OG Kush"
  *   "9 pound hammer"    → "9 Pound Hammer"
  *   "northern lights"   → "Northern Lights"
+ *   "gg4"               → "GG4"
+ *   "gorilla glue gg4"  → "Gorilla Glue GG4"
  *
  * Inputs are typically already correct from the catalog or Leafly; this
  * is a defensive normalisation for AI-researched and user-saved names.
@@ -38,7 +40,9 @@ const LOWERCASE_WORDS = new Set([
  * Strain-name acronyms that patients and dispensaries write in all caps.
  * Kept tight on purpose — we only want to preserve casing for words that
  * are conventionally rendered as acronyms, not for ordinary short words
- * like "haze" or "kush". Add new entries here when we see them in the wild.
+ * like "haze" or "kush". The acronym-with-number pattern below (e.g.
+ * "GG4") uses this same set for its letter prefix. Add new entries here
+ * when we see them in the wild.
  */
 const STRAIN_ACRONYMS = new Set([
   "og",
@@ -50,6 +54,9 @@ const STRAIN_ACRONYMS = new Set([
   "hhc",
   "hso",
   "sfv",
+  "gg",
+  "gdp",
+  "gsc",
 ]);
 
 export function toTitleCase(input: string | null | undefined): string {
@@ -76,6 +83,19 @@ export function toTitleCase(input: string | null | undefined): string {
 
       const lower = token.toLowerCase();
       const isFirstOrLast = wordIndex === 0;
+
+      // Acronym + number pattern (e.g. "GG4", "OG1", "HHC8"). When the
+      // letter prefix is a known strain acronym we uppercase the letters
+      // and keep the digits verbatim, so "gg4", "GG4", and "Gg4" all
+      // normalise to "GG4".
+      const acronymNumber = token.match(/^([a-zA-Z]+)(\d+.*)$/);
+      if (acronymNumber) {
+        const [, letters, tail] = acronymNumber;
+        if (STRAIN_ACRONYMS.has(letters.toLowerCase())) {
+          wordIndex += 1;
+          return letters.toUpperCase() + tail;
+        }
+      }
 
       // Known strain acronyms preserve their original casing ("OG" not
       // "Og"). We always emit the uppercased form so the result is stable

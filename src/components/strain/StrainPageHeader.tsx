@@ -6,6 +6,7 @@ import {
   slugify,
 } from "@/lib/saved-strains";
 import { db } from "@/lib/firebase";
+import { toTitleCase } from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { ArrowLeft, Heart } from "lucide-react";
@@ -57,7 +58,7 @@ export function StrainPageHeader({
       <div className="min-w-0 text-center">
         {profile ? (
           <h1 className="truncate text-sm font-semibold text-foreground">
-            {profile.name}
+            {toTitleCase(profile.name)}
           </h1>
         ) : null}
       </div>

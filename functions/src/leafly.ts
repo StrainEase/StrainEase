@@ -643,6 +643,8 @@ export async function fetchAllStrains(): Promise<StrainProfile[]> {
 /**
  * Lightweight strain preview stored in Firestore for the directory listing.
  * Omits large fields (description, communityNotes) to keep doc size small.
+ * `effects` and `medicalUses` are kept so the browse-page filters can
+ * match against them without a per-row profile fetch.
  */
 export type StrainPreview = {
   name: string;
@@ -652,6 +654,8 @@ export type StrainPreview = {
   imageUrl?: string;
   leaflyRating?: number;
   weedmapsRating?: number;
+  effects?: StrainProfile["effects"];
+  medicalUses?: StrainProfile["medicalUses"];
 };
 
 export function toPreview(p: StrainProfile): StrainPreview {
@@ -663,6 +667,8 @@ export function toPreview(p: StrainProfile): StrainPreview {
     imageUrl: p.imageUrl,
     leaflyRating: p.leaflyRating,
     weedmapsRating: p.weedmapsRating,
+    effects: p.effects,
+    medicalUses: p.medicalUses,
   };
 }
 

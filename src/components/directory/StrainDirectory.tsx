@@ -8,6 +8,7 @@ import {
 } from "@/lib/strain-ui";
 import type { StrainType } from "@/lib/strain-profile";
 import { THC_BANDS, matchesThcBand, type ThcBand } from "@/lib/thc-bands";
+import { toTitleCase } from "@/lib/title-case";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StrainImage } from "@/components/strain/StrainImage";
@@ -392,7 +393,7 @@ export function StrainDirectory() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((p) => (
             <DirectoryPreviewCard key={p.name} preview={p} />
           ))}
@@ -450,6 +451,7 @@ export function StrainDirectory() {
 function DirectoryPreviewCard({ preview }: { preview: StrainPreview }) {
   const href = `/strain/${slugify(preview.name)}`;
   const type = preview.type;
+  const displayName = toTitleCase(preview.name);
 
   return (
     <Link
@@ -469,7 +471,7 @@ function DirectoryPreviewCard({ preview }: { preview: StrainPreview }) {
       <StrainImage
         src={preview.imageUrl}
         fallbackSrc={getPhotoURL(preview.name)}
-        alt=""
+        alt={`${displayName} flower`}
         type={type}
         className="aspect-[4/3] w-full rounded-2xl border border-border/70"
         iconClassName="size-7"
@@ -480,7 +482,7 @@ function DirectoryPreviewCard({ preview }: { preview: StrainPreview }) {
         </Badge>
       )}
       <p className="min-h-[38px] font-display text-[16px] font-semibold leading-snug text-pretty line-clamp-2">
-        {preview.name}
+        {displayName}
       </p>
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         {preview.thcRange && (
@@ -511,7 +513,7 @@ function DirectoryPreviewCard({ preview }: { preview: StrainPreview }) {
 export function DirectoryGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div
-      className="grid grid-cols-2 gap-4"
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
       aria-busy="true"
       aria-live="polite"
       data-testid="directory-grid-skeleton"

@@ -86,7 +86,11 @@ describe("StrainDirectory populated state", () => {
     expect(links[1].getAttribute("href")).toBe("/strain/northern-lights");
 
     const grid = links[0].parentElement as HTMLElement;
-    expect(grid.className).toContain("grid-cols-2");
+    // Responsive 1/2/3-column grid (1 col on phones, 2 cols at the
+    // `sm` breakpoint, 3 cols on wide screens). The exact classnames
+    // come from main's Tailwind setup that landed alongside PR #281.
+    expect(grid.className).toContain("sm:grid-cols-2");
+    expect(grid.className).toContain("lg:grid-cols-3");
   });
 
   test("the entire card is a single Link — no separate View button", async () => {
