@@ -274,16 +274,14 @@ describe("DESCRIBE_SYSTEM_PROMPT", () => {
     expect(prompt.toLowerCase()).toContain("do not skew positive");
   });
 
-  test("requires substantive paragraphs separated by blank lines", () => {
-    // Pin the breathing-room clause: each section's body MUST be
-    // exactly 3 paragraphs of 2-4 sentences each, separated by blank
-    // lines, so the patient gets a real read on the strain instead of
-    // a terse summary or a wall of text. The renderers split on "\n\n"
-    // so the model must use that exact delimiter.
-    expect(prompt.toLowerCase()).toContain("concrete specifics");
-    expect(prompt).toContain("2-4 sentences");
+  test("requires short paragraphs separated by blank lines so each section reads on a phone", () => {
+    // Pin the breathing-room clause: each section's body should be 1-3
+    // short paragraphs separated by blank lines, not a wall of text.
+    // The renderers split on "\n\n" so the model must use that exact
+    // delimiter.
+    expect(prompt.toLowerCase()).toContain("easy to skim");
+    expect(prompt).toContain("1-2 sentences");
     expect(prompt).toContain("\\n\\n");
-    expect(prompt.toLowerCase()).toContain("exactly 3 paragraphs");
   });
 });
 

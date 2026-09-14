@@ -805,9 +805,9 @@ function CompareSuggestions({
       <div className="mt-1 flex flex-wrap items-center gap-2">
         <span
           className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-semibold text-foreground"
-          aria-label={`Currently viewing ${profileName}`}
+          aria-label={`Currently viewing ${toTitleCase(profileName)}`}
         >
-          {profileName}
+          {toTitleCase(profileName)}
         </span>
         {others.slice(0, 4).map((name) => (
           <Button
@@ -820,7 +820,7 @@ function CompareSuggestions({
             <Link
               to={`/dashboard?mode=compare&strains=${encodeURIComponent(`${profileName},${name}`)}`}
             >
-              vs {name}
+              vs {toTitleCase(name)}
               <StrainNoteIndicator strainName={name} />
             </Link>
           </Button>
