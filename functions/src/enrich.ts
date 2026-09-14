@@ -1,10 +1,11 @@
 // Consolidate per-source strain profiles (Leafly + Weedmaps + Allbud),
-// attach Reddit quotes for the patient's ailments, and ask Groq to
-// fill any fields still missing — the same shape the old curated
+// attach Reddit quotes for the patient's ailments, and ask OpenRouter
+// to fill any fields still missing — the same shape the old curated
 // knowledge base carried. The consolidator does the per-source
 // caching, the numeric averaging, and the source attribution in
-// one pass; this file adds Reddit quotes and the AI fallback on top.
-import { callGroq, extractJsonObject } from "./groq";
+// one pass; this file adds Reddit quotes and the AI fill-in on top.
+import { extractJsonObject } from "./ai-json";
+import { callOpenRouter, OPENROUTER_MODEL } from "./openrouter";
 import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
 import type { CommunityNote, CommunityNoteKind, StrainProfile } from "./types";
 import { consolidateStrain } from "./consolidate";
@@ -271,7 +272,7 @@ function asNotes(value: unknown): CommunityNote[] | undefined {
 async function researchMissing(
   profiles: StrainProfile[],
   conditions: string[],
-  apiKey: string,
+  openRouterApiKey: string,
 ): Promise<Map<string, Partial<StrainProfile>>> {
   const missing = profiles.filter(needsResearch);
   if (missing.length === 0) return new Map();
@@ -317,7 +318,11 @@ Return ONLY a JSON object of the form:
   }
 }`;
 
-  const raw = await callGroq(apiKey, [{ role: "user", content: prompt }]);
+  const raw = await callOpenRouter(
+    openRouterApiKey,
+    [{ role: "user", content: prompt }],
+    OPENROUTER_MODEL,
+  );
   const obj = extractJsonObject(raw);
   const map = new Map<string, Partial<StrainProfile>>();
   if (!obj || typeof obj !== "object") return map;
@@ -368,7 +373,7 @@ function applyResearch(
 export async function enrichProfiles(
   names: string[],
   conditions: string[] = [],
-  apiKey?: string,
+  openRouterApiKey?: string,
 ): Promise<StrainProfile[]> {
   const unique = [
     ...new Set(names.map((n) => n.trim()).filter((n) => n !== "")),
@@ -389,9 +394,13 @@ export async function enrichProfiles(
     .filter((c): c is NonNullable<typeof c> => c !== null)
     .map((c) => c as StrainProfile);
 
-  if (apiKey && merged.some(needsResearch)) {
+  if (openRouterApiKey && merged.some(needsResearch)) {
     try {
-      const researched = await researchMissing(merged, conditions, apiKey);
+      const researched = await researchMissing(
+        merged,
+        conditions,
+        openRouterApiKey,
+      );
       merged = merged.map((p) =>
         applyResearch(p, researched.get(p.name.toLowerCase())),
       );

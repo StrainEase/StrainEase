@@ -1,10 +1,10 @@
 // StrainEase backend.
 //
 // - popularStrains / searchStrain: public Leafly data lookups (no AI).
-// - compareStrains / recommendStrainsForConditions: Groq AI synthesis
-//   (openai/gpt-oss-120b), auth-gated — Firebase callable functions
-//   automatically attach the caller's ID token, and we reject calls
-//   without `request.auth`.
+// - compareStrains / recommendStrainsForConditions / describeStrainForUser /
+//   elaborateSection: OpenRouter AI synthesis (Llama 3.3 70B via the
+//   `:nitro` tier), auth-gated — Firebase callable functions automatically
+//   attach the caller's ID token, and we reject calls without `request.auth`.
 import {
   HttpsError,
   onCall,
@@ -43,14 +43,8 @@ import {
   type StrainPreview,
 } from "./leafly";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
-import {
-  callGroq,
-  extractJsonObject,
-  GROQ_DESCRIPTION_MODEL,
-  GROQ_MODEL,
-} from "./groq";
-import { callWithOpenRouterFallback } from "./ai-fallback";
-import { OPENROUTER_MODEL } from "./openrouter";
+import { extractJsonObject } from "./ai-json";
+import { callOpenRouter, OPENROUTER_MODEL } from "./openrouter";
 import { matchRedditSeeds } from "./reddit-seed";
 import {
   buildVettedWrite,
@@ -83,11 +77,10 @@ import type {
   StrainRecommendation,
 } from "./types";
 
-export const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
 export const OPENROUTER_API_KEY = defineSecret("OPENROUTER_API_KEY");
 
 const AI_OPTIONS: CallableOptions = {
-  secrets: [GROQ_API_KEY, OPENROUTER_API_KEY],
+  secrets: [OPENROUTER_API_KEY],
   timeoutSeconds: 120,
   memory: "512MiB",
 };
@@ -1104,11 +1097,11 @@ function prefsBlock(prefs: ResearchPrefs | undefined): string {
 
 /**
  * Cap the per-strain fields we send to the LLM so a single rich profile
- * doesn't blow past Groq's free-tier 8K TPM budget. Compare/recommend
- * use these compact defaults. The single-strain description deliberately
- * preserves its full description and uses the options below to bound
- * community and Reddit evidence; GPT-OSS 20B has the same 131K context
- * window as the 120B model and is used for that larger payload.
+ * doesn't blow the per-request token budget. Compare/recommend use these
+ * compact defaults. The single-strain description deliberately preserves
+ * its full description and uses the options below to bound community and
+ * Reddit evidence; OpenRouter's per-token meter means we still want to
+ * keep prompts lean, not just rate-limit-safe.
  */
 const PROMPT_DESCRIPTION_MAX = 800;
 const PROMPT_COMMUNITY_NOTE_TEXT_MAX = 280;
@@ -1140,7 +1133,7 @@ function capString(value: string | undefined, max: number): string | undefined {
  * JSON.stringify without indentation. Pretty-printing adds ~30% tokens
  * to every payload we send to the LLM, with no benefit to the model —
  * it parses JSON the same way. We always use this for user-message
- * payloads to keep the request under Groq's free-tier 8K TPM cap.
+ * payloads to keep OpenRouter's per-token meter as low as practical.
  */
 function compactJson(value: unknown): string {
   return JSON.stringify(value);
@@ -1282,7 +1275,7 @@ async function comparePrompt(
   prefs?: ResearchPrefs,
 ): Promise<string> {
   const payload = strains.map(compareStrainPayload);
-  // Keep the prompt pool small enough for Groq's TPM budget.
+  // Keep the prompt pool small enough for OpenRouter's per-token meter.
   const redditFallback = matchRedditSeeds({
     conditions: conditions ?? [],
     strainNames: strains.map((s) => s.name),
@@ -1330,7 +1323,7 @@ function recommendPrompt(
       description: s.description,
     }),
   );
-  // Keep the prompt pool small enough for Groq's TPM budget.
+  // Keep the prompt pool small enough for OpenRouter's per-token meter.
   const redditSeeds = matchRedditSeeds({
     conditions,
     strainNames: strains.map((s) => s.name),
@@ -1630,16 +1623,15 @@ export const compareStrains = onCall(
     }
 
     // Full profiles: Leafly + Weedmaps, Reddit quotes for the ailments,
-    // and Groq fill-in when a name is missing from both catalogs.
+    // and OpenRouter fill-in when a name is missing from both catalogs.
     const strains = await enrichProfiles(
       names,
       condition,
-      GROQ_API_KEY.value(),
+      OPENROUTER_API_KEY.value(),
     );
 
-    const content = await callWithOpenRouterFallback(
+    const content = await callOpenRouter(
       OPENROUTER_API_KEY.value(),
-      GROQ_API_KEY.value(),
       [
         {
           role: "system",
@@ -1651,12 +1643,11 @@ export const compareStrains = onCall(
         },
       ],
       OPENROUTER_MODEL,
-      GROQ_MODEL,
     );
 
     const analysis = parseAnalysis(content);
     const payload = { strains, analysis };
-    await putCachedAiResult("compareCache", cacheHash, payload, GROQ_MODEL);
+    await putCachedAiResult("compareCache", cacheHash, payload, OPENROUTER_MODEL);
     let resultId: string | undefined;
     try {
       resultId = await persistResult({
@@ -1715,16 +1706,20 @@ export const recommendStrainsForConditions = onCall(
     const popular = await fetchPopular();
     const detailed = await fetchProfiles(popular.map((p) => p.name));
 
-    const content = await callGroq(GROQ_API_KEY.value(), [
-      {
-        role: "system",
-        content: withLanguageClause(RECOMMEND_SYSTEM_PROMPT, language),
-      },
-      {
-        role: "user",
-        content: recommendPrompt(detailed, conditions, potency, prefs),
-      },
-    ]);
+    const content = await callOpenRouter(
+      OPENROUTER_API_KEY.value(),
+      [
+        {
+          role: "system",
+          content: withLanguageClause(RECOMMEND_SYSTEM_PROMPT, language),
+        },
+        {
+          role: "user",
+          content: recommendPrompt(detailed, conditions, potency, prefs),
+        },
+      ],
+      OPENROUTER_MODEL,
+    );
 
     const parsed = extractJsonObject(content);
     const p = (parsed ?? {}) as Record<string, unknown>;
@@ -1740,7 +1735,7 @@ export const recommendStrainsForConditions = onCall(
     const strains = await enrichProfiles(
       names,
       conditions,
-      GROQ_API_KEY.value(),
+      OPENROUTER_API_KEY.value(),
     );
 
     const payload: import("./types").RecommendationResult = {
@@ -2357,9 +2352,8 @@ export const describeStrainForUser = onCall(
       return cached.result;
     }
 
-    const content = await callWithOpenRouterFallback(
+    const content = await callOpenRouter(
       OPENROUTER_API_KEY.value(),
-      GROQ_API_KEY.value(),
       [
         {
           role: "system",
@@ -2377,7 +2371,6 @@ export const describeStrainForUser = onCall(
         },
       ],
       OPENROUTER_MODEL,
-      GROQ_DESCRIPTION_MODEL,
     );
 
     const result = parseDescription(content, name);
@@ -2385,7 +2378,7 @@ export const describeStrainForUser = onCall(
       "descriptionCache",
       cacheHash,
       result,
-      GROQ_DESCRIPTION_MODEL,
+      OPENROUTER_MODEL,
     );
     return result;
   },
@@ -2400,7 +2393,7 @@ type ElaborateSectionResult = {
 };
 
 /**
- * Pull the elaboration text out of a Groq response. The model is
+ * Pull the elaboration text out of an OpenRouter response. The model is
  * expected to return a single JSON object with one `elaboration` field.
  * We tolerate a few failure modes the same way `parseDescription`
  * does: a string body, an unparseable blob, or a missing field. When
@@ -2545,23 +2538,27 @@ export const elaborateSection = onCall(
     const language = parseOutputLanguage(data.language);
     const safeStrain: StrainProfile = { ...strain, name };
 
-    const content = await callGroq(GROQ_API_KEY.value(), [
-      {
-        role: "system",
-        content: withLanguageClause(ELABORATE_SECTION_SYSTEM_PROMPT, language),
-      },
-      {
-        role: "user",
-        content: elaborateSectionPrompt(
-          safeStrain,
-          heading,
-          body,
-          ailments,
-          medications,
-          reliefHistory,
-        ),
-      },
-    ]);
+    const content = await callOpenRouter(
+      OPENROUTER_API_KEY.value(),
+      [
+        {
+          role: "system",
+          content: withLanguageClause(ELABORATE_SECTION_SYSTEM_PROMPT, language),
+        },
+        {
+          role: "user",
+          content: elaborateSectionPrompt(
+            safeStrain,
+            heading,
+            body,
+            ailments,
+            medications,
+            reliefHistory,
+          ),
+        },
+      ],
+      OPENROUTER_MODEL,
+    );
 
     return parseElaboration(content, name, heading);
   },

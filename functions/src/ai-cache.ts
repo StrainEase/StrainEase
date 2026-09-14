@@ -1,13 +1,12 @@
 // Generic Firestore-backed cache for AI callable results.
 //
 // Both `describeStrainForUser` and `compareStrains` are prompt-heavy
-// Groq calls that get hit hard when a user opens multiple strain pages
-// in a minute. Groq's free tier caps each model at 8000 TPM (tokens per
-// minute); a single full-strain profile + ailments prompt is ~1.5–3K
-// tokens, so 3–4 strain views in a minute trips the limit and the call
-// returns 429 (which `callGroq` surfaces as a 500). Cache by stable
-// input hash so repeat views of the same strain + ailments + meds +
-// prefs return the stored response without spending tokens.
+// OpenRouter calls. OpenRouter charges per token, so caching by stable
+// input hash keeps repeat views of the same strain + ailments + meds +
+// prefs from spending more tokens on the same response. The cache is
+// also what kept us inside rate limits when Groq was the primary; we
+// keep the in-memory + Firestore + best-effort-write pattern so a
+// future provider swap inherits the same protection automatically.
 //
 // Pattern (mirrors `strain-info-cache.ts`):
 //   1. In-memory Map<key, entry>. Resets on cold start, covers the
