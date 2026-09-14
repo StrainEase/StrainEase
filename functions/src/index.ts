@@ -13,7 +13,22 @@ import {
 import { defineSecret } from "firebase-functions/params";
 import { getFirestore, type Transaction } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { getApps, initializeApp } from "firebase-admin/app";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+
+// `ignoreUndefinedProperties: true` is the Firebase-recommended flag
+// for the StrainProfile / StrainPreview shapes we cache: both types
+// have many optional fields (`weedmapsRating`, `imageUrl`, ...) that
+// are legitimately undefined for some strains. Without this flag the
+// Firestore serializer rejects the entire write the moment it hits
+// the first undefined value, and the `writePopularListCache` and
+// `putSourceCache` paths silently drop the whole doc. Guarded behind
+// `getApps().length === 0` so the per-module init in `results.ts` /
+// `reddit-cache.ts` stays a no-op once the default app is up.
+if (getApps().length === 0) {
+  initializeApp();
+}
+getFirestore().settings({ ignoreUndefinedProperties: true });
 import { enrichProfiles, lookupProfile } from "./enrich";
 import {
   findDoctors as findDoctorsImpl,
@@ -119,8 +134,16 @@ async function writePopularListCache(previews: StrainPreview[]): Promise<void> {
         },
         { merge: true },
       );
-  } catch {
-    // Best-effort. A missed write just means the next cold start scrapes again.
+  } catch (err) {
+    // Surface any future write failure. With `ignoreUndefinedProperties`
+    // set on the default app (top of this file), undefined fields are
+    // silently dropped at the Firestore serializer, so this catch should
+    // be near-dead — anything that does land here is a real bug worth
+    // knowing about.
+    console.error(
+      "[warmStrainDirectory] Firestore write failed:",
+      err,
+    );
   }
 }
 
