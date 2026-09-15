@@ -31,6 +31,10 @@ if (getApps().length === 0) {
 getFirestore().settings({ ignoreUndefinedProperties: true });
 import { enrichProfiles, lookupProfile } from "./enrich";
 import {
+  canonicalProfileName,
+  registerCatalogName,
+} from "./canonical-strain-name";
+import {
   findDoctors as findDoctorsImpl,
   type DoctorQuery,
   type DoctorResult,
@@ -88,6 +92,22 @@ const AI_OPTIONS: CallableOptions = {
 /* ── Public data lookups (no AI, no auth required) ─────────────────── */
 
 const POPULAR_LIST_CACHE_DOC = "popularListCache";
+
+/**
+ * Seed the canonical-name catalog with every preview we have on hand.
+ * Cheap and idempotent — repeated calls with the same data are a
+ * no-op, and registration only runs once per preview slug per cold
+ * instance. Pairs with `canonicalProfileName` to make sure a user
+ * search for "mac 1" resolves to the catalog's "Mac 1" (a person's
+ * name) rather than pure title-casing it to "MAC 1" (an acronym).
+ */
+function seedCatalogFromPreviews(
+  previews: ReadonlyArray<{ name?: string; slug?: string }>,
+): void {
+  for (const p of previews) {
+    if (p.slug && p.name) registerCatalogName(p.slug, p.name);
+  }
+}
 const POPULAR_LIST_CACHE_COLLECTION = "strainCatalog";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -162,11 +182,14 @@ export const popularStrains = onCall(
     }
     const cache = await readPopularListCache();
     if (cache && cache.previews.length > 0) {
+      seedCatalogFromPreviews(cache.previews);
       // Convert previews back to StrainProfiles (lightweight — no full scrape needed).
       // Effects and medicalUses travel with the preview so the browse page can
-      // filter by them without re-fetching each strain.
+      // filter by them without re-fetching each strain. `canonicalProfileName`
+      // is run as a defensive pass at the boundary so every platform gets the
+      // same casing from the same payload.
       return cache.previews.slice(0, 12).map((p) => ({
-        name: p.name,
+        name: canonicalProfileName(p.name),
         inKnowledgeBase: true,
         type: p.type as StrainProfile["type"],
         thcRange: p.thcRange,
@@ -180,7 +203,12 @@ export const popularStrains = onCall(
     const all = await fetchAllStrains();
     const previews = all.map(toPreview);
     void writePopularListCache(previews);
-    return all.slice(0, 12);
+    // Register names from the cold miss too — same hydration either path.
+    seedCatalogFromPreviews(previews);
+    return all.slice(0, 12).map((p) => ({
+      ...p,
+      name: canonicalProfileName(p.name),
+    }));
   },
 );
 
@@ -221,8 +249,17 @@ export const browseStrains = onCall(
 
     const cache = await readPopularListCache();
     if (cache && cache.previews.length > 0) {
+      seedCatalogFromPreviews(cache.previews);
+      // Defensive canonicalization at the boundary so every page sees
+      // the same casing — pure title-case is a no-op on already-cased
+      // names from the cache; the catalog lookup handles names like
+      // "Mac 1" where title-casing would mis-render them as "MAC 1".
+      const sliced = cache.previews.slice(offset, offset + limit).map((p) => ({
+        ...p,
+        name: canonicalProfileName(p.name),
+      }));
       return {
-        previews: cache.previews.slice(offset, offset + limit),
+        previews: sliced,
         totalCount: cache.totalCount,
         offset,
         fetchedAt: cache.fetchedAt,
@@ -233,8 +270,13 @@ export const browseStrains = onCall(
     const all = await fetchAllStrains();
     const previews = all.map(toPreview);
     void writePopularListCache(previews);
+    seedCatalogFromPreviews(previews);
+    const sliced = previews.slice(offset, offset + limit).map((p) => ({
+      ...p,
+      name: canonicalProfileName(p.name),
+    }));
     return {
-      previews: previews.slice(offset, offset + limit),
+      previews: sliced,
       totalCount: previews.length,
       offset,
       fetchedAt: Date.now(),
