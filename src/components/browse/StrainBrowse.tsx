@@ -13,6 +13,9 @@ import { useMedications } from "@/hooks/use-medications";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
+import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
+import { slugify } from "@/lib/saved-strains";
 import {
   longPressRingClass,
   useCompareLongPress,
@@ -30,7 +33,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
-import { slugify } from "@/lib/saved-strains";
 import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
 import { compactPrefs, type ResearchPrefs, type ThcSensitivity } from "@/lib/research-prefs";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
@@ -237,19 +239,20 @@ function StrainCardsSection({
       <div className="flex gap-4 overflow-x-auto pb-2 scroll-smooth">
         {recommendations.slice(0, 6).map((rec, i) => {
           const profile = profilesByName.get(rec.strainName.toLowerCase());
+          const strainSlug = slugify(rec.strainName);
           return (
             <Link
               key={`${rec.strainName}-${i}`}
-              to={`/strain/${slugify(rec.strainName)}`}
+              to={`/strain/${strainSlug}`}
               className="group relative flex min-w-[180px] max-w-[180px] flex-col rounded-2xl border border-border/70 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
             >
               {/* Rank badge */}
-              <span className="absolute left-3 top-3 flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              <span className="absolute left-3 top-3 z-10 flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                 {i + 1}
               </span>
 
               {/* Save button */}
-              <div className="absolute right-3 top-3" onClick={(e) => e.preventDefault()}>
+              <div className="absolute right-3 top-3 z-10" onClick={(e) => e.preventDefault()}>
                 <SaveStrainButton
                   profile={
                     profile ?? {
@@ -260,9 +263,15 @@ function StrainCardsSection({
                 />
               </div>
 
-              {/* Photo placeholder */}
-              <div className="mt-6 flex h-24 items-center justify-center rounded-xl bg-muted/50">
-                <span className="text-3xl">🌿</span>
+              {/* Strain photo with proper loading */}
+              <div className="mt-6 overflow-hidden rounded-xl">
+                <StrainImage
+                  src={profile?.imageUrl}
+                  alt={rec.strainName}
+                  fallbackSrc={profile ? getPhotoURL(slugify(profile.name)) : undefined}
+                  type={profile?.type}
+                  className="h-24 w-full"
+                />
               </div>
 
               {/* Strain name */}
@@ -305,7 +314,7 @@ function StrainCardsSection({
               {/* Caution */}
               {rec.caution && (
                 <p className="mt-1 text-[11px] leading-4 text-amber-700">
-                  <span className="font-medium">⚠️ Caution:</span> {rec.caution}
+                  <span className="font-medium">Caution:</span> {rec.caution}
                 </p>
               )}
 
@@ -324,7 +333,7 @@ function StrainCardsSection({
                       key={j}
                       className="rounded-full bg-amber-500/8 px-1.5 py-0.5 text-[9px] font-medium text-amber-700"
                     >
-                      ✓ {pref}
+                      {pref}
                     </span>
                   ))}
                   {rec.reasoning.preferencesApplied.length > 2 && (
