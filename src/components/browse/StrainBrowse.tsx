@@ -13,6 +13,10 @@ import { useMedications } from "@/hooks/use-medications";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
+import {
+  longPressRingClass,
+  useCompareLongPress,
+} from "@/hooks/use-compare-long-press";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,6 +73,151 @@ const RESEARCH_STEPS = [
   "Collecting Reddit quotes for your symptoms…",
   "Ranking the best strains with Dr. Kaya…",
 ];
+
+/**
+ * Single recommendation card with the "press and hold to add to compare"
+ * gesture wired up. Extracted from the parent so the long-press hook
+ * lives on the card's own wrapper span, matching how
+ * {@link import("@/components/strain/ComparableStrainPoster")} wires
+ * the gesture on Home rails and the Browse grid. The visible "Add to
+ * compare" button stays as the affordance; the hold is a shortcut.
+ *
+ * A plain tap on the strain name link still navigates to the strain
+ * page; the long-press handler swallows the release click only when
+ * the hold timer actually fired.
+ */
+function ComparableRecommendation({
+  recommendation,
+  index,
+  profile,
+  added,
+  disabled,
+  compareAtCap,
+  onAddToCompare,
+}: {
+  recommendation: import("@/lib/strain-api").StrainRecommendation;
+  index: number;
+  profile: import("@/lib/strain-api").RecommendationResult["strains"][number] | undefined;
+  added: boolean;
+  disabled: boolean;
+  compareAtCap: boolean | undefined;
+  onAddToCompare?: (name: string) => void;
+}) {
+  const { handlers, flash, inCompare } = useCompareLongPress(
+    recommendation.strainName,
+  );
+  return (
+    <div
+      {...handlers}
+      className={cn(
+        "relative flex min-w-0 snap-start flex-col rounded-2xl border border-border/70 bg-card p-5",
+        flash && longPressRingClass(flash),
+      )}
+    >
+      {inCompare && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full border border-primary/50 bg-background text-primary"
+          title="In the compare tray"
+        >
+          <Check className="size-3.5" strokeWidth={2.75} />
+        </span>
+      )}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+            {index + 1}
+          </span>
+          <h3 className="flex items-center gap-1.5 text-base font-semibold tracking-tight">
+            <Link
+              to={`/strain/${slugify(recommendation.strainName)}`}
+              className="hover:text-primary"
+            >
+              {recommendation.strainName}
+            </Link>
+            <StrainNoteIndicator strainName={recommendation.strainName} />
+          </h3>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <SaveStrainButton
+            profile={
+              profile ?? {
+                name: recommendation.strainName,
+                inKnowledgeBase: false,
+              }
+            }
+          />
+          {profile?.type && (
+            <Badge
+              className={cn(
+                typeBadgeClass(profile.type),
+                "capitalize",
+              )}
+            >
+              {TYPE_LABEL[profile.type]}
+            </Badge>
+          )}
+        </div>
+      </div>
+      {onAddToCompare && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={added ? "secondary" : "outline"}
+            className={cn(
+              "cursor-pointer rounded-full",
+              added &&
+                "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15",
+              disabled && "cursor-not-allowed opacity-50",
+            )}
+            disabled={disabled}
+            onClick={() => onAddToCompare(recommendation.strainName)}
+            title={
+              added
+                ? "Remove from compare selection"
+                : compareAtCap
+                  ? "Compare is full (3 strains)"
+                  : "Add to your compare selection"
+            }
+          >
+            {added ? (
+              <>
+                <Check className="size-3.5" />
+                Added to compare
+              </>
+            ) : (
+              <>
+                <GitCompareArrows className="size-3.5" />
+                Add to compare
+              </>
+            )}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Researching only? Pick strains here, run the comparison when
+            you&apos;re ready.
+          </span>
+        </div>
+      )}
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+        {recommendation.reason}
+      </p>
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {recommendation.bestFor && (
+          <span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">
+            Best for: {recommendation.bestFor}
+          </span>
+        )}
+        {recommendation.caution && (
+          <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700">
+            Caution: {recommendation.caution}
+          </span>
+        )}
+      </div>
+      <ReasoningTrace reasoning={recommendation.reasoning} />
+    </div>
+  );
+}
 
 export function StrainBrowse({
   onCompare,
@@ -561,103 +710,16 @@ export function StrainBrowse({
                 const added = inCompareSelection?.(r.strainName) ?? false;
                 const disabled = !added && (compareAtCap ?? false);
                 return (
-                  <div
+                  <ComparableRecommendation
                     key={`${r.strainName}-${i}`}
-                    className="flex min-w-0 snap-start flex-col rounded-2xl border border-border/70 bg-card p-5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                          {i + 1}
-                        </span>
-                        <h3 className="flex items-center gap-1.5 text-base font-semibold tracking-tight">
-                          <Link
-                            to={`/strain/${slugify(r.strainName)}`}
-                            className="hover:text-primary"
-                          >
-                            {r.strainName}
-                          </Link>
-                          <StrainNoteIndicator strainName={r.strainName} />
-                        </h3>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <SaveStrainButton
-                          profile={
-                            profile ?? {
-                              name: r.strainName,
-                              inKnowledgeBase: false,
-                            }
-                          }
-                        />
-                        {profile?.type && (
-                          <Badge
-                            className={cn(
-                              typeBadgeClass(profile.type),
-                              "capitalize",
-                            )}
-                          >
-                            {TYPE_LABEL[profile.type]}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    {onAddToCompare && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={added ? "secondary" : "outline"}
-                          className={cn(
-                            "cursor-pointer rounded-full",
-                            added &&
-                              "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15",
-                            disabled && "cursor-not-allowed opacity-50",
-                          )}
-                          disabled={disabled}
-                          onClick={() => onAddToCompare(r.strainName)}
-                          title={
-                            added
-                              ? "Remove from compare selection"
-                              : compareAtCap
-                                ? "Compare is full (3 strains)"
-                                : "Add to your compare selection"
-                          }
-                        >
-                          {added ? (
-                            <>
-                              <Check className="size-3.5" />
-                              Added to compare
-                            </>
-                          ) : (
-                            <>
-                              <GitCompareArrows className="size-3.5" />
-                              Add to compare
-                            </>
-                          )}
-                        </Button>
-                        <span className="text-xs text-muted-foreground">
-                          Researching only? Pick strains here, run the
-                          comparison when you&apos;re ready.
-                        </span>
-                      </div>
-                    )}
-                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                      {r.reason}
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      {r.bestFor && (
-                        <span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">
-                          Best for: {r.bestFor}
-                        </span>
-                      )}
-                      {r.caution && (
-                        <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700">
-                          Caution: {r.caution}
-                        </span>
-                      )}
-                    </div>
-                    <ReasoningTrace reasoning={r.reasoning} />
-                  </div>
+                    recommendation={r}
+                    index={i}
+                    profile={profile}
+                    added={added}
+                    disabled={disabled}
+                    compareAtCap={compareAtCap}
+                    onAddToCompare={onAddToCompare}
+                  />
                 );
               })}
             </div>
