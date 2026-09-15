@@ -906,11 +906,19 @@ JSON shape (all fields required):
   ]
 }`;
 
+const RECOMMEND_TARGET_COUNT = 4;
+
+/** Pinned follow-up the model gets when the first attempt returns
+ *  fewer than `RECOMMEND_TARGET_COUNT` recommendations. Hard-targets
+ *  the count so the Discover surface never ships a single-card result
+ *  while the prompt still says "4 strains". */
+const RECOMMEND_TOPUP_PROMPT = `The previous response returned fewer than ${RECOMMEND_TARGET_COUNT} recommendations. Add the missing entries — distinct strains, not variants of strains you already listed — following the same JSON shape. Return the FULL final object (headline, summary, citations, recommendations, redditSources), not a partial patch.`;
+
 const RECOMMEND_SYSTEM_PROMPT = `${KAYA_CORE}
 
 Task: recommend the strains most commonly reported to help with the patient's symptoms or conditions.
 - You may also suggest well-known strains NOT in the provided list, if confident they really exist and are commonly reported for these symptoms.
-- Recommend 3-5 distinct strains, ordered from best overall fit to least. Each needs: a concrete reason tied to the patient's symptoms (include one sentence with info specifically helpful for the patient's situation, e.g. a relevant effect, time-of-day fit, or interaction watch-out), a note on who it suits best (e.g. daytime vs evening use, anxiety-sensitive patients), one practical caution, AND a "reasoning" trace so the patient can audit why you picked it.
+- Recommend EXACTLY ${RECOMMEND_TARGET_COUNT} distinct strains, ordered from best overall fit to least. The Discover page surfaces one card per strain, so falling short leaves the patient with a blank half of the screen — that is a worse outcome than a slightly weaker fourth pick. Each needs: a concrete reason tied to the patient's symptoms (include one sentence with info specifically helpful for the patient's situation, e.g. a relevant effect, time-of-day fit, or interaction watch-out), a note on who it suits best (e.g. daytime vs evening use, anxiety-sensitive patients), one practical caution, AND a "reasoning" trace so the patient can audit why you picked it.
 - Respect the potency preference when given.
 - Honor patient context when provided: time of day, form, THC sensitivity, medications (caution only — never tell them to stop a prescription), strains they already own, and anything written in their own words. Treat their own sentence as the primary intent.
 - Reddit sources: include 1-3 threads, taken ONLY from the vetted list at the bottom of the user message. Copy "url", "subreddit", and "title" verbatim; you may paraphrase "snippet" and set "score" to null. Dedupe; prefer threads matching the symptom focus. If none fit, return [] — never fabricate a URL.
@@ -949,6 +957,8 @@ JSON shape (all fields required):
     {"url": "https://old.reddit.com/r/<sub>/comments/<id>/<slug>/", "subreddit": "<sub>", "title": "thread title", "snippet": "1-sentence vibe of the thread (optional)", "score": 0}
   ]
 }
+
+The "recommendations" array must contain EXACTLY ${RECOMMEND_TARGET_COUNT} entries — no more, no fewer. Falling short ships a half-empty Discover page to the patient.
 
 Reddit: pick ONLY from the vetted list in the user message. Copy url/subreddit/title verbatim. 1–3 threads per recommendation, deduped. Empty list → return [].`;
 
@@ -1732,28 +1742,80 @@ export const recommendStrainsForConditions = onCall(
     const popular = await fetchPopular();
     const detailed = await fetchProfiles(popular.map((p) => p.name));
 
-    const content = await callOpenRouter(
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      {
+        role: "system",
+        content: withLanguageClause(RECOMMEND_SYSTEM_PROMPT, language),
+      },
+      {
+        role: "user",
+        content: recommendPrompt(detailed, conditions, potency, prefs),
+      },
+    ];
+
+    let content = await callOpenRouter(
       OPENROUTER_API_KEY.value(),
-      [
-        {
-          role: "system",
-          content: withLanguageClause(RECOMMEND_SYSTEM_PROMPT, language),
-        },
-        {
-          role: "user",
-          content: recommendPrompt(detailed, conditions, potency, prefs),
-        },
-      ],
+      messages,
       OPENROUTER_MODEL,
     );
-
-    const parsed = extractJsonObject(content);
-    const p = (parsed ?? {}) as Record<string, unknown>;
-    const recommendations = normalizeRecommendations(p.recommendations);
+    let parsed = extractJsonObject(content);
+    let p = (parsed ?? {}) as Record<string, unknown>;
+    let recommendations = normalizeRecommendations(p.recommendations);
     if (recommendations.length === 0) {
       throw new HttpsError(
         "internal",
         "The research service did not return usable recommendations. Please try again.",
+      );
+    }
+
+    // The Discover page renders one card per recommendation. If the
+    // first attempt falls short of `RECOMMEND_TARGET_COUNT`, send a
+    // short follow-up asking the model to top up to the target
+    // rather than ship a half-empty page. We ask once, then fail
+    // loudly if the model still won't cooperate — silently padding
+    // the array with garbage would be worse than retrying.
+    if (recommendations.length < RECOMMEND_TARGET_COUNT) {
+      messages.push({ role: "assistant", content });
+      messages.push({ role: "user", content: RECOMMEND_TOPUP_PROMPT });
+      const topup = await callOpenRouter(
+        OPENROUTER_API_KEY.value(),
+        messages,
+        OPENROUTER_MODEL,
+      );
+      const topupParsed = extractJsonObject(topup);
+      const tp = (topupParsed ?? {}) as Record<string, unknown>;
+      const topupRecs = normalizeRecommendations(tp.recommendations);
+      if (topupRecs.length > recommendations.length) {
+        // Merge the top-up strains into the original picks without
+        // duplicating any we already had. Headline / summary / Reddit
+        // / citations get the model's top-up copy so the human
+        // surfaces read naturally.
+        const existing = new Set(
+          recommendations.map((r) => r.strainName.toLowerCase()),
+        );
+        for (const r of topupRecs) {
+          if (!existing.has(r.strainName.toLowerCase())) {
+            recommendations.push(r);
+            existing.add(r.strainName.toLowerCase());
+          }
+        }
+        if (typeof tp.headline === "string" && tp.headline.trim()) {
+          p = tp;
+        }
+        if (typeof tp.summary === "string" && tp.summary.trim()) {
+          p = { ...p, summary: tp.summary.trim() };
+        }
+        const tpReddit = normalizeRedditSources(tp.redditSources);
+        if (tpReddit.length > 0) p.redditSources = tpReddit;
+        const tpCitations = normalizeCitations(tp.citations);
+        if (tpCitations.length > 0) p.citations = tpCitations;
+      }
+    }
+
+    if (recommendations.length < RECOMMEND_TARGET_COUNT) {
+      throw new HttpsError(
+        "internal",
+        "The research service returned fewer than the recommended strains. Please try again.",
       );
     }
 
@@ -2604,6 +2666,8 @@ export const __testing = {
   normalizeRecommendations,
   COMPARE_SYSTEM_PROMPT,
   RECOMMEND_SYSTEM_PROMPT,
+  RECOMMEND_TARGET_COUNT,
+  RECOMMEND_TOPUP_PROMPT,
   DESCRIBE_SYSTEM_PROMPT,
   ELABORATE_SECTION_SYSTEM_PROMPT,
   parseOutputLanguage,

@@ -5,7 +5,31 @@ const {
   normalizeReasoning,
   normalizeRecommendations,
   RECOMMEND_SYSTEM_PROMPT,
+  RECOMMEND_TARGET_COUNT,
+  RECOMMEND_TOPUP_PROMPT,
 } = __testing;
+
+describe("RECOMMEND_TARGET_COUNT", () => {
+  test("the prompt hard-targets the count", () => {
+    // The Discover page renders one card per recommendation, so the
+    // model has to ship a fixed number — falling short leaves a
+    // visible half-empty surface.
+    expect(RECOMMEND_TARGET_COUNT).toBe(4);
+    expect(RECOMMEND_SYSTEM_PROMPT).toContain(
+      `Recommend EXACTLY ${RECOMMEND_TARGET_COUNT} distinct strains`,
+    );
+    expect(RECOMMEND_SYSTEM_PROMPT).toContain(
+      `EXACTLY ${RECOMMEND_TARGET_COUNT} entries`,
+    );
+  });
+
+  test("the top-up prompt asks the model to refill missing entries", () => {
+    expect(RECOMMEND_TOPUP_PROMPT).toContain(
+      `fewer than ${RECOMMEND_TARGET_COUNT} recommendations`,
+    );
+    expect(RECOMMEND_TOPUP_PROMPT.toLowerCase()).toContain("distinct strains");
+  });
+});
 
 describe("RECOMMEND_SYSTEM_PROMPT", () => {
   test("requires the new reasoning field in the JSON shape", () => {
