@@ -238,11 +238,11 @@ function StrainCardsSection({
   onAddToCompare?: (name: string) => void;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 -mx-4 px-4">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         Tap a strain for details
       </p>
-      <div className="flex gap-4 overflow-x-auto pb-2 scroll-smooth">
+      <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch]">
         {recommendations.slice(0, 6).map((rec, i) => {
           const profile = profilesByName.get(rec.strainName.toLowerCase());
           const strainSlug = slugify(rec.strainName);
@@ -251,7 +251,7 @@ function StrainCardsSection({
           return (
             <div
               key={`${rec.strainName}-${i}`}
-              className="group relative flex min-w-[180px] max-w-[180px] flex-col rounded-2xl border border-border/70 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              className="group relative flex min-w-[85vw] max-w-[85vw] snap-start flex-col rounded-2xl border border-border/70 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md sm:min-w-[280px] sm:max-w-[280px]"
             >
               {/* Rank badge */}
               <span className="absolute left-3 top-3 z-10 flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
@@ -277,7 +277,7 @@ function StrainCardsSection({
                   alt={rec.strainName}
                   fallbackSrc={profile ? getPhotoURL(slugify(profile.name)) : undefined}
                   type={profile?.type}
-                  className="h-24 w-full"
+                  className="h-32 w-full"
                 />
               </Link>
 
