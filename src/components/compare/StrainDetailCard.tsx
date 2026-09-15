@@ -9,7 +9,6 @@ import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
-import { toTitleCase } from "@/lib/title-case";
 import {
   listenToPublicNotes,
   slugify,
@@ -107,7 +106,7 @@ export function StrainDetailCard({
           <StrainImage
             src={strain.imageUrl}
             fallbackSrc={getPhotoURL(strain.name)}
-            alt={`${toTitleCase(strain.name)} flower`}
+            alt={`${strain.name} flower`}
             className="mb-4 h-72 w-full rounded-xl border border-border/70"
           />
         )}
@@ -119,7 +118,7 @@ export function StrainDetailCard({
                   to={`/strain/${slugify(strain.name)}`}
                   className="hover:text-primary"
                 >
-                  {toTitleCase(strain.name)}
+                  {strain.name}
                 </Link>
                 <StrainNoteIndicator strainName={strain.name} />
               </Heading>

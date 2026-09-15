@@ -1,6 +1,5 @@
 import { CATALOG, getPhotoURL } from "@/lib/strain-catalog";
 import { Input } from "@/components/ui/input";
-import { toTitleCase } from "@/lib/title-case";
 import { Plus, X } from "lucide-react";
 import { useEffect, useRef, useMemo, useState } from "react";
 
@@ -96,14 +95,14 @@ export function StrainAutocomplete({
                     {item.thc}
                   </span>
                 )}
-                {toTitleCase(item.name)}
+                {item.name}
                 <span className="text-[10px] capitalize text-primary/60">
                   ({item.type})
                 </span>
               </span>
               <button
                 type="button"
-                aria-label={`Remove ${toTitleCase(item.name)}`}
+                aria-label={`Remove ${item.name}`}
                 className="rounded-full p-0.5 transition-colors hover:bg-primary/20"
                 onClick={() => handleRemove(item.name)}
               >
@@ -171,7 +170,7 @@ export function StrainAutocomplete({
                       <div className="size-10 shrink-0 rounded-lg bg-muted" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{toTitleCase(item.name)}</p>
+                      <p className="truncate text-sm font-medium">{item.name}</p>
                       <p className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-semibold">{item.thc}</span>
                         <span className="capitalize">{item.type}</span>
