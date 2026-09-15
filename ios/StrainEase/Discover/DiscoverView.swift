@@ -563,22 +563,84 @@ struct DiscoverView: View {
                     .font(.system(.title, design: .serif))
                     .foregroundStyle(Palette.foreground)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(result.summary)
-                    .font(.system(size: 15))
+                // Split summary into paragraphs for better readability
+                let paragraphs = result.summary.components(separatedBy: "\n\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, paragraph in
+                        Text(paragraph.trimmingCharacters(in: .whitespaces))
+                            .font(.system(size: 15))
+                            .foregroundStyle(Palette.mutedForeground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+
+            // Horizontal scroll strain cards section
+            StrainCardsSection(
+                recommendations: Array(result.recommendations.prefix(6)),
+                profilesByName: result,
+                onAddToCompare: { name in model.toggleCompare(name) },
+                isInCompare: { model.isInCompare($0) },
+                compareAtCap: model.compareAtCap,
+                onTapStrain: { profile in path.append(profile) }
+            )
+
+            // Disclaimer above compare card
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.primary)
+                Text("Recommendations by Dr. Kaya, our AI cannabis care assistant. Synthesized from aggregated public sources. Not medical advice. Consult your healthcare provider.")
+                    .font(.system(size: 12))
                     .foregroundStyle(Palette.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            ForEach(Array(result.recommendations.enumerated()), id: \.element.id) { index, rec in
-                let profile = result.profile(named: rec.strainName)
-                    ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
-                Button {
-                    path.append(profile)
-                } label: {
-                    recommendationCard(rec, rank: index + 1, profile: profile)
+            // Compare card - full width with stacked layout
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Narrowed it down?")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.foreground)
+                Text("Turn your top picks into a full side-by-side comparison with differences, common ground, and cautions.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.mutedForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+                if result.recommendations.count < 2 {
+                    Text("Add at least two recommendations to compare — or use the compare tab to pick your own strains.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.mutedForeground)
+                } else {
+                    Button {
+                        // Add top 3 strains to compare and trigger comparison
+                        let topNames = result.recommendations.prefix(3).map(\.strainName)
+                        for name in topNames {
+                            model.addToCompare(name)
+                        }
+                        Task {
+                            await model.compareSelected()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.left.arrow.right")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("Compare the top picks")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundStyle(Palette.primaryForeground)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Palette.primary, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Palette.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Palette.primary.opacity(0.2), lineWidth: 1)
+            )
 
             RedditThreadsView(sources: result.redditSources ?? [])
 
@@ -587,41 +649,6 @@ struct DiscoverView: View {
                 .foregroundStyle(Palette.mutedForeground)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
-        }
-    }
-
-    private func recommendationCard(_ rec: StrainRecommendation, rank: Int, profile: StrainProfile) -> some View {
-        SWCard(emphasized: rank == 1) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(String(format: "%02d", rank))
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Palette.primary)
-                    Text(rec.strainName)
-                        .font(.system(.title3, design: .serif))
-                        .foregroundStyle(Palette.foreground)
-                    NoteBadge(profile: profile, size: 14)
-                    Spacer(minLength: 8)
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Palette.mutedForeground)
-                        .frame(width: 28, height: 28)
-                        .background(Palette.muted, in: Circle())
-                }
-                if let type = profile.type {
-                    TypeBadge(type: type)
-                }
-                compareButton(for: rec.strainName)
-                Text(rec.reason)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.foreground.opacity(0.88))
-                    .fixedSize(horizontal: false, vertical: true)
-                VStack(alignment: .leading, spacing: 4) {
-                    labeled("Best for", rec.bestFor)
-                    labeled("Caution", rec.caution)
-                }
-                ReasoningTraceView(reasoning: rec.reasoning)
-            }
         }
     }
 
@@ -674,6 +701,265 @@ struct DiscoverView: View {
 
     private func errorBanner(_ text: String) -> some View {
         SWErrorBanner(message: text)
+    }
+}
+
+/// Horizontal scroll section of strain cards with rich recommendation info.
+/// Combines photo, strain info, and Add to compare functionality in ONE card per strain.
+struct StrainCardsSection: View {
+    let recommendations: [StrainRecommendation]
+    let profilesByName: RecommendationResult
+    let onAddToCompare: (String) -> Void
+    let isInCompare: (String) -> Bool
+    let compareAtCap: Bool
+    let onTapStrain: (StrainProfile) -> Void
+
+    @State private var activeIndex: Int = 0
+    @State private var scrollPosition: CGFloat = 0
+
+    private var cardWidth: CGFloat {
+        // 85% of screen width for mobile, fixed for larger
+        UIScreen.main.bounds.width * 0.85
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section header
+            Text("Tap a strain for details")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(Palette.mutedForeground)
+
+            // Horizontal scroll with snap
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(Array(recommendations.enumerated()), id: \.element.id) { index, rec in
+                        let profile = profilesByName.profile(named: rec.strainName)
+                            ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
+
+                        StrainRecommendationCard(
+                            recommendation: rec,
+                            profile: profile,
+                            rank: index + 1,
+                            isAdded: isInCompare(rec.strainName),
+                            disabled: !isInCompare(rec.strainName) && compareAtCap,
+                            onAddToCompare: { onAddToCompare(rec.strainName) },
+                            onTap: { onTapStrain(profile) }
+                        )
+                        .frame(width: cardWidth)
+                        .id(index)
+                    }
+                }
+                .scrollTargetLayout()
+                .padding(.horizontal, 20)
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .defaultScrollAnchor(.center)
+            .background(
+                GeometryReader { geo in
+                    Color.clear.preference(
+                        key: ScrollOffsetPreferenceKey.self,
+                        value: geo.frame(in: .named("scroll")).minX
+                    )
+                }
+            )
+            .coordinateSpace(name: "scroll")
+
+            // Indicator dots
+            if recommendations.count > 1 {
+                HStack(spacing: 8) {
+                    ForEach(0..<recommendations.count, id: \.self) { index in
+                        Button {
+                            // Scroll to card at index
+                            activeIndex = index
+                        } label: {
+                            Capsule()
+                                .fill(index == activeIndex ? Palette.primary : Palette.primary.opacity(0.3))
+                                .frame(width: index == activeIndex ? 20 : 8, height: 8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, -20)
+        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
+            let cardWithGap = cardWidth + 16
+            let newIndex = Int(-offset / cardWithGap)
+            if newIndex != activeIndex {
+                activeIndex = max(0, min(newIndex, recommendations.count - 1))
+            }
+        }
+    }
+}
+
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// Individual strain recommendation card with photo, info, and compare button.
+struct StrainRecommendationCard: View {
+    let recommendation: StrainRecommendation
+    let profile: StrainProfile
+    let rank: Int
+    let isAdded: Bool
+    let disabled: Bool
+    let onAddToCompare: () -> Void
+    let onTap: () -> Void
+
+    @Environment(SavedStrainsStore.self) private var savedStrains
+
+    private var noteCount: Int {
+        savedStrains.notes(for: profile.slug).count
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Card content
+            VStack(alignment: .leading, spacing: 10) {
+                // Rank badge (absolute positioned)
+                ZStack(alignment: .topLeading) {
+                    // Photo
+                    Button(action: onTap) {
+                        StrainPhoto(
+                            urlString: profile.imageUrl,
+                            fallbackURLString: StrainCatalog.photoURL(for: profile.slug),
+                            type: profile.type,
+                            height: 128,
+                            cornerRadius: 16
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    // Rank badge
+                    Text(String(format: "%d", rank))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Palette.primary)
+                        .frame(width: 24, height: 24)
+                        .background(Palette.primary.opacity(0.1), in: Circle())
+                        .padding(12)
+                }
+
+                // Strain name - clickable
+                Button(action: onTap) {
+                    HStack(spacing: 4) {
+                        Text(recommendation.strainName)
+                            .font(.system(size: 14, weight: .semibold, design: .serif))
+                            .foregroundStyle(Palette.foreground)
+                        if noteCount > 0 {
+                            Image(systemName: "square.and.pencil")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Palette.primary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Palette.accent.opacity(0.85), in: Capsule())
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
+                // THC, CBD, Type badges
+                HStack(spacing: 6) {
+                    if let thc = profile.thcRange, !thc.isEmpty {
+                        Text("THC \(thc)")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(Palette.primary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Palette.primary.opacity(0.08), in: Capsule())
+                    }
+                    if let cbd = profile.cbdRange, !cbd.isEmpty {
+                        Text("CBD \(cbd)")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.green.opacity(0.08), in: Capsule())
+                    }
+                    if let type = profile.type {
+                        TypeBadge(type: type)
+                    }
+                }
+
+                // Best for
+                if !recommendation.bestFor.isEmpty {
+                    Text("Best for: \(recommendation.bestFor)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.mutedForeground)
+                        .lineLimit(2)
+                }
+
+                // Caution
+                if !recommendation.caution.isEmpty {
+                    Text("Caution: \(recommendation.caution)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                        .lineLimit(2)
+                }
+
+                // Reason snippet
+                if !recommendation.reason.isEmpty {
+                    Text(recommendation.reason)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.mutedForeground)
+                        .lineLimit(2)
+                }
+
+                // Matched preferences from reasoning
+                if let prefs = recommendation.reasoning?.preferencesApplied, !prefs.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(prefs.prefix(2), id: \.self) { pref in
+                            Text(pref)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(.orange)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.08), in: Capsule())
+                        }
+                        if prefs.count > 2 {
+                            Text("+\(prefs.count - 2)")
+                                .font(.system(size: 9))
+                                .foregroundStyle(Palette.mutedForeground)
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                // Add to compare button
+                Button(action: onAddToCompare) {
+                    HStack(spacing: 6) {
+                        Image(systemName: isAdded ? "checkmark" : "arrow.left.arrow.right")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(isAdded ? "Added" : "Compare")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(isAdded ? Palette.primary : Palette.foreground)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(isAdded ? Palette.primary.opacity(0.12) : Palette.card, in: Capsule())
+                    .overlay(
+                        Capsule().strokeBorder(
+                            isAdded ? Palette.primary.opacity(0.4) : Palette.border,
+                            lineWidth: 1
+                        )
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(disabled)
+                .opacity(disabled ? 0.45 : 1)
+            }
+            .padding(14)
+        }
+        .background(Palette.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Palette.border.opacity(0.7), lineWidth: 1)
+        )
     }
 }
 
