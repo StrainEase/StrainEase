@@ -732,6 +732,42 @@ private fun RecommendationStrainCard(
                 }
             }
 
+            // Matched preferences
+            rec?.matchedPrefs?.let { matchedPrefs ->
+                if (matchedPrefs.isNotEmpty()) {
+                    Text(
+                        text = "Matched prefs: $matchedPrefs",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        maxLines = 1,
+                    )
+                }
+            }
+
+            // Weight before trying
+            rec?.weightBeforeTrying?.let { weight ->
+                if (weight.isNotEmpty()) {
+                    Text(
+                        text = "Weight before trying: $weight",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+
+            // Source anchors
+            rec?.sourceAnchors?.let { sources ->
+                if (sources.isNotEmpty()) {
+                    Text(
+                        text = "Sources: $sources",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1,
+                    )
+                }
+            }
+
             // Save button
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),

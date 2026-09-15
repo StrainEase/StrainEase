@@ -840,6 +840,30 @@ private struct RecommendationStrainCard: View {
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
 
+            // Matched preferences
+            if !rec.matchedPrefs.isEmpty {
+                Text("Matched prefs: \(rec.matchedPrefs)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Palette.primary.opacity(0.8))
+                    .lineLimit(1)
+            }
+
+            // Weight before trying
+            if !rec.weightBeforeTrying.isEmpty {
+                Text("Weight before trying: \(rec.weightBeforeTrying)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.mutedForeground)
+                    .lineLimit(1)
+            }
+
+            // Source anchors
+            if !rec.sourceAnchors.isEmpty {
+                Text("Sources: \(rec.sourceAnchors)")
+                    .font(.system(size: 9))
+                    .foregroundStyle(Palette.mutedForeground.opacity(0.7))
+                    .lineLimit(1)
+            }
+
             // Save button
             HStack(spacing: 4) {
                 Image(systemName: isLiked_ ? "heart.fill" : "heart")

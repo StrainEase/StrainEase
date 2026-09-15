@@ -28,8 +28,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
-import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
 import { slugify } from "@/lib/saved-strains";
 import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
@@ -157,6 +155,27 @@ function StrainCardsSection({
               <p className="mt-1 line-clamp-3 text-[10px] leading-tight text-muted-foreground/80">
                 {rec.reason}
               </p>
+
+              {/* Matched preferences */}
+              {rec.matchedPrefs && (
+                <p className="mt-1 text-[10px] font-medium text-primary/80">
+                  Matched prefs: {rec.matchedPrefs}
+                </p>
+              )}
+
+              {/* Weight before trying */}
+              {rec.weightBeforeTrying && (
+                <p className="text-[10px] text-muted-foreground">
+                  Weight before trying: {rec.weightBeforeTrying}
+                </p>
+              )}
+
+              {/* Source anchors */}
+              {rec.sourceAnchors && (
+                <p className="text-[9px] text-muted-foreground/70">
+                  Sources: {rec.sourceAnchors}
+                </p>
+              )}
 
               {/* Save button */}
               <div className="mt-2 flex items-center gap-1.5 rounded-full bg-secondary/50 px-2.5 py-1 text-xs text-muted-foreground">
@@ -840,25 +859,6 @@ export function StrainBrowse({
                 Add at least two recommendations to compare — or use the compare
                 tab to pick your own strains.
               </p>
-            )}
-
-            {result.strains.length > 0 && (
-              <div
-                className={cn(
-                  "grid gap-6",
-                  result.strains.length === 3
-                    ? "md:grid-cols-2 xl:grid-cols-3"
-                    : "md:grid-cols-2",
-                )}
-              >
-                {result.strains.map((s) => (
-                  <StrainDetailCard
-                    key={s.name}
-                    strain={s}
-                    conditions={searched}
-                  />
-                ))}
-              </div>
             )}
 
             <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
