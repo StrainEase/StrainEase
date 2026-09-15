@@ -26,7 +26,7 @@ private val AILMENTS_KEY = stringPreferencesKey("ailments_v1")
  * cap it either).
  *
  * Read sites:
- *  - FindModel.hydrateAilmentsIfNeeded seeds the Find screen
+ *  - DiscoverModel.hydrateAilmentsIfNeeded seeds the Discover screen
  *  - HomeModel uses the list to render the For-Your-Symptoms
  *    rail + the ailment carousel
  */

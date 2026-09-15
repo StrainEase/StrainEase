@@ -21,7 +21,7 @@
     <!-- Tabs (wired in PR-A5) -->
     <string name="tab_home">Home</string>
     <string name="tab_find">Find</string>
-    <string name="tab_browse">Browse</string>
+    <string name="tab_discover">Discover</string>
     <string name="tab_doctors">Doctors</string>
 
     <!-- Errors -->

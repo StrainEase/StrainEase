@@ -1,4 +1,4 @@
-package ai.strainease.app.ui.browse
+package ai.strainease.app.ui.find
 
 import ai.strainease.app.models.Conditions
 import ai.strainease.app.models.StrainProfile
@@ -6,10 +6,10 @@ import ai.strainease.app.models.StrainType
 
 /**
  * Search + type / THC / effect filters for the popular
- * catalog. 1:1 port of the iOS `DirectoryFilter.swift` /
+ * catalog. 1:1 port of the iOS `FindFilter.swift` /
  * web `src/components/directory/StrainDirectory.tsx`.
  */
-object DirectoryFilter {
+object FindFilter {
 
     enum class TypeFilter(val label: String, val strainType: StrainType?) {
         All("All types", null),

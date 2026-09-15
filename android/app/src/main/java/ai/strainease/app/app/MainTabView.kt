@@ -46,7 +46,7 @@ val LocalAppNavigation = compositionLocalOf<AppNavigation> {
 
 /**
  * The four-tab shell. Direct port of the iOS `MainTabView.swift`:
- *  - Home / Find / Browse / Doctors
+ *  - Home / Find / Discover / Doctors
  *  - Primary tint
  *  - CompareTrayBar slot (PR-A10 will fill this)
  *  - Account / Saved sheets on top
@@ -71,8 +71,8 @@ fun MainTabView() {
         as ai.strainease.app.StrainEaseApplication
     val homeModel = remember { ai.strainease.app.ui.home.HomeModel() }
     val recents = remember { ai.strainease.app.data.RecentlyViewedStore(app) }
+    val discoverModel = remember { ai.strainease.app.ui.discover.DiscoverModel() }
     val findModel = remember { ai.strainease.app.ui.find.FindModel() }
-    val directoryModel = remember { ai.strainease.app.ui.browse.DirectoryModel() }
     val compareStore = remember { ai.strainease.app.ui.compare.CompareSelectionStore() }
     val doctorsModel = remember { ai.strainease.app.ui.doctors.DoctorsModel() }
     val savedAilments = remember { ai.strainease.app.data.SavedAilmentsStore(app) }
@@ -176,18 +176,18 @@ fun MainTabView() {
                     )
                     AppTab.Find -> ai.strainease.app.ui.find.FindView(
                         model = findModel,
+                        compareStore = compareStore,
+                        onOpenProfile = openStrain,
+                        modifier = Modifier.padding(padding),
+                    )
+                    AppTab.Discover -> ai.strainease.app.ui.discover.DiscoverView(
+                        model = discoverModel,
                         savedAilments = savedAilments,
                         savedMedications = savedMedications,
                         triedStrainsStore = triedStrains,
                         relief = relief,
                         compareStore = compareStore,
                         researchHistory = researchHistory,
-                        onOpenProfile = openStrain,
-                        modifier = Modifier.padding(padding),
-                    )
-                    AppTab.Browse -> ai.strainease.app.ui.browse.DirectoryView(
-                        model = directoryModel,
-                        compareStore = compareStore,
                         onOpenProfile = openStrain,
                         modifier = Modifier.padding(padding),
                     )
@@ -373,10 +373,10 @@ private fun FindTabPlaceholder(modifier: Modifier) =
     }
 
 @Composable
-private fun BrowseTabPlaceholder(modifier: Modifier) =
+private fun DiscoverTabPlaceholder(modifier: Modifier) =
     ai.strainease.app.ui.components.SWCard(modifier = modifier) {
         Text(
-            text = "Browse (PR-A8)",
+            text = "Discover (PR-A8)",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )

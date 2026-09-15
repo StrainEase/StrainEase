@@ -118,7 +118,11 @@ enum class Potency(val wire: String) {
 
     val label: String
         get() = when (this) {
-            Any -> "Any"
+            // 'Any THC' (not bare 'Any') so the Find chip and the
+            // Browse tab's FindFilter.ThcBand.Any chip read
+            // the same way — no surprises when the user switches
+            // tabs mid-research.
+            Any -> "Any THC"
             Mild -> "Mild"
             Balanced -> "Balanced"
             Strong -> "Strong"

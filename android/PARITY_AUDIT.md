@@ -12,7 +12,7 @@ Last updated: 2026-08-27
 | StrainGridView | ✅ Implemented |
 | FindView | ✅ Implemented |
 | FindModel + recommendation + CompareResultsView | ✅ Implemented |
-| DirectoryView (Browse tab) | ✅ Implemented |
+| FindView (Find tab) | ✅ Implemented |
 | StrainDetailView header | ✅ Implemented |
 | StrainDetailView effects chips | ✅ Implemented |
 | StrainDetailView terpene rows | ✅ Implemented |
