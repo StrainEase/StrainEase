@@ -553,24 +553,223 @@ private fun resultBlock(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        result.strains.take(6).forEach { profile ->
-            SWCard(emphasized = true) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Horizontal scroll strain cards section
+        StrainCardsSection(
+            result = result,
+            onOpenProfile = onOpenProfile,
+        )
+    }
+}
+
+/**
+ * Horizontal scroll section with compact strain cards. Each card shows
+ * strain name, photo, THC, CBD, type badge, and save button. Tap to open detail.
+ */
+@Composable
+private fun StrainCardsSection(
+    result: RecommendationResult,
+    onOpenProfile: (StrainProfile) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = "TAP A STRAIN FOR DETAILS",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        androidx.compose.foundation.lazy.LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp),
+        ) {
+            items(result.strains.take(6).size) { index ->
+                val profile = result.strains.get(index)
+                val rec = result.recommendations.firstOrNull { it.strainName.equals(profile.name, ignoreCase = true) }
+                RecommendationStrainCard(
+                    profile = profile,
+                    rank = index + 1,
+                    rec = rec,
+                    onClick = { onOpenProfile(profile) },
+                    modifier = Modifier.width(180.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Compact strain card for horizontal scroll. Shows strain name, photo,
+ * THC, CBD, type badge, best for, caution, and save button. Tap to navigate to detail.
+ */
+@Composable
+private fun RecommendationStrainCard(
+    profile: StrainProfile,
+    rank: Int,
+    rec: StrainRecommendation?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SWCard(modifier = modifier.clickable { onClick() }) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            // Rank badge + photo
+            Box {
+                // Placeholder for strain photo - actual implementation would use Coil/AsyncImage
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(90.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Text(
-                        text = profile.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = profile.name.take(1).uppercase(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
-                    StrainPoster(
-                        profile = profile,
-                        onClick = { onOpenProfile(profile) },
-                        compareStore = compareStore,
-                    )
-                    result.recommendations.firstOrNull { it.strainName.equals(profile.name, ignoreCase = true) }
-                        ?.let { rec ->
-                            RecommendationBlurb(rec)
-                        }
                 }
+                // Rank badge
+                Box(
+                    modifier = Modifier
+                        .padding(6.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(50),
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = String.format("%02d", rank),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+
+            // Strain name
+            Text(
+                text = profile.name,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+            )
+
+            // THC
+            profile.thcRange?.let { thc ->
+                Text(
+                    text = "THC $thc",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // CBD
+            profile.cbdRange?.let { cbd ->
+                Text(
+                    text = "CBD $cbd",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Type badge
+            profile.type?.let { type ->
+                val typeLabel = when (type) {
+                    ai.strainease.app.models.StrainType.SATIVA -> "Sativa"
+                    ai.strainease.app.models.StrainType.INDICA -> "Indica"
+                    ai.strainease.app.models.StrainType.HYBRID -> "Hybrid"
+                    else -> type.name
+                }
+                val typeColor = when (type) {
+                    ai.strainease.app.models.StrainType.SATIVA -> MaterialTheme.colorScheme.tertiary
+                    ai.strainease.app.models.StrainType.INDICA -> MaterialTheme.colorScheme.secondary
+                    else -> MaterialTheme.colorScheme.primary
+                }
+                Text(
+                    text = typeLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = typeColor,
+                    modifier = Modifier
+                        .background(typeColor.copy(alpha = 0.1f), RoundedCornerShape(50))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+
+            // Best for - why this strain
+            rec?.bestFor?.let { bestFor ->
+                if (bestFor.isNotEmpty()) {
+                    Text(
+                        text = "Best for: $bestFor",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 2,
+                    )
+                }
+            }
+
+            // Caution
+            rec?.caution?.let { caution ->
+                if (caution.isNotEmpty()) {
+                    Text(
+                        text = "Caution: $caution",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                    )
+                }
+            }
+
+            // Reason / why this strain
+            rec?.reason?.let { reason ->
+                if (reason.isNotEmpty()) {
+                    Text(
+                        text = reason,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        maxLines = 3,
+                    )
+                }
+            }
+
+            // Save button
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.FavoriteBorder,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Save",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // View details hint
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "View details",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }

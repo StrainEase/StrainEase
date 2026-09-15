@@ -569,17 +569,10 @@ struct DiscoverView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            ForEach(Array(result.recommendations.enumerated()), id: \.element.id) { index, rec in
-                let profile = result.profile(named: rec.strainName)
-                    ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
-                Button {
-                    path.append(profile)
-                } label: {
-                    recommendationCard(rec, rank: index + 1, profile: profile)
-                }
-                .buttonStyle(.plain)
-            }
+            // Horizontal scroll strain cards - click to view detail
+            strainCardsSection(result)
 
+            // Reddit threads at the bottom
             RedditThreadsView(sources: result.redditSources ?? [])
 
             Button("Start over", action: model.reset)
@@ -587,6 +580,35 @@ struct DiscoverView: View {
                 .foregroundStyle(Palette.mutedForeground)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
+        }
+    }
+
+    /// Horizontal scroll section with strain cards. Each card shows
+    /// strain name, THC, CBD, type, and save button. Tap to open detail view.
+    private func strainCardsSection(_ result: RecommendationResult) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionLabel("Tap a strain for details")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(Array(result.recommendations.enumerated()), id: \.element.id) { index, rec in
+                        let profile = result.profile(named: rec.strainName)
+                            ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
+                        Button {
+                            path.append(profile)
+                        } label: {
+                            RecommendationStrainCard(
+                                rec: rec,
+                                rank: index + 1,
+                                profile: profile
+                            )
+                            .frame(width: 180, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+            .padding(.horizontal, -4)
         }
     }
 
@@ -736,5 +758,125 @@ private struct CompareChip: View {
         .background(Palette.primary, in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("find.compare.chip.\(name)")
+    }
+}
+
+/// Compact strain card for horizontal scroll. Shows strain name, photo,
+/// THC, CBD, type badge, best for, caution, and save button. Tap to navigate to detail.
+private struct RecommendationStrainCard: View {
+    let rec: StrainRecommendation
+    let rank: Int
+    let profile: StrainProfile
+
+    @Environment(SavedStrainsStore.self) private var saved
+    @State private var isLiked = false
+
+    private var isLiked_: Bool { saved.isSaved(profile.slug) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Rank badge + photo
+            ZStack(alignment: .topLeading) {
+                StrainPhoto(
+                    urlString: profile.imageUrl,
+                    fallbackURLString: StrainCatalog.photoURL(for: profile.slug),
+                    type: profile.type,
+                    height: 100,
+                    cornerRadius: 12
+                )
+                Text(String(format: "%02d", rank))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Palette.primaryForeground)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Palette.primary, in: Capsule())
+                    .padding(6)
+            }
+
+            // Strain name
+            Text(rec.strainName)
+                .font(.system(size: 14, weight: .semibold, design: .serif))
+                .foregroundStyle(Palette.foreground)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // THC + CBD
+            if let thc = profile.thcRange, !thc.isEmpty {
+                Text("THC \(thc)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.mutedForeground)
+            }
+            if let cbd = profile.cbdRange, !cbd.isEmpty {
+                Text("CBD \(cbd)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.mutedForeground)
+            }
+
+            // Type badge
+            if let type = profile.type {
+                TypeBadge(type: type)
+            }
+
+            // Best for - why this strain
+            if !rec.bestFor.isEmpty {
+                Text("Best for: \(rec.bestFor)")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Palette.primary)
+                    .lineLimit(2)
+            }
+
+            // Caution
+            if !rec.caution.isEmpty {
+                Text("Caution: \(rec.caution)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.mutedForeground)
+                    .lineLimit(2)
+            }
+
+            // Reason / why this strain
+            Text(rec.reason)
+                .font(.system(size: 10))
+                .foregroundStyle(Palette.foreground.opacity(0.8))
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Save button
+            HStack(spacing: 4) {
+                Image(systemName: isLiked_ ? "heart.fill" : "heart")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(isLiked_ ? Palette.primary : Palette.mutedForeground)
+                Text(isLiked_ ? "Saved" : "Save")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(isLiked_ ? Palette.primary : Palette.mutedForeground)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isLiked_ ? Palette.primary.opacity(0.1) : Palette.muted.opacity(0.5), in: Capsule())
+            .overlay(
+                Capsule().strokeBorder(isLiked_ ? Palette.primary.opacity(0.3) : Palette.border, lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Task {
+                    await saved.toggle(profile)
+                }
+            }
+
+            // Tap hint
+            HStack(spacing: 4) {
+                Text("View details")
+                    .font(.system(size: 11, weight: .medium))
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundStyle(Palette.primary)
+        }
+        .padding(12)
+        .frame(width: 180, alignment: .leading)
+        .background(Palette.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Palette.border, lineWidth: 1)
+        )
     }
 }

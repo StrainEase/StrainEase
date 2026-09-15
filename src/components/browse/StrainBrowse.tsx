@@ -75,6 +75,111 @@ const RESEARCH_STEPS = [
 ];
 
 /**
+ * Horizontal scroll section with compact strain cards. Each card shows
+ * strain name, photo, THC, CBD, type badge, best for, caution, and save button.
+ * Tap to open detail.
+ */
+function StrainCardsSection({
+  recommendations,
+  profilesByName,
+}: {
+  recommendations: import("@/lib/strain-api").StrainRecommendation[];
+  profilesByName: Map<string, import("@/lib/strain-api").RecommendationResult["strains"][number]>;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Tap a strain for details
+      </p>
+      <div className="flex gap-4 overflow-x-auto pb-2 scroll-smooth">
+        {recommendations.slice(0, 6).map((rec, i) => {
+          const profile = profilesByName.get(rec.strainName.toLowerCase());
+          return (
+            <Link
+              key={`${rec.strainName}-${i}`}
+              to={`/strain/${slugify(rec.strainName)}`}
+              className="group relative flex min-w-[180px] max-w-[180px] flex-col rounded-2xl border border-border/70 bg-card p-3 transition-all hover:border-primary/40 hover:shadow-md"
+            >
+              {/* Rank badge */}
+              <span className="absolute left-2 top-2 z-10 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {i + 1}
+              </span>
+
+              {/* Photo placeholder */}
+              <div className="flex h-20 items-center justify-center rounded-xl bg-primary/10">
+                <span className="text-3xl font-semibold text-primary/40">
+                  {rec.strainName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+
+              {/* Strain name */}
+              <h3 className="mt-2 flex items-center gap-1 text-sm font-semibold leading-tight">
+                {rec.strainName}
+                <StrainNoteIndicator strainName={rec.strainName} />
+              </h3>
+
+              {/* THC */}
+              {profile?.thcRange && (
+                <p className="text-[11px] text-muted-foreground">
+                  THC {profile.thcRange}
+                </p>
+              )}
+
+              {/* CBD */}
+              {profile?.cbdRange && (
+                <p className="text-[11px] text-muted-foreground">
+                  CBD {profile.cbdRange}
+                </p>
+              )}
+
+              {/* Type badge */}
+              {profile?.type && (
+                <span className={cn("mt-1 w-fit rounded-full px-2 py-0.5 text-[10px] font-medium capitalize", typeBadgeClass(profile.type))}>
+                  {TYPE_LABEL[profile.type]}
+                </span>
+              )}
+
+              {/* Best for */}
+              {rec.bestFor && (
+                <p className="mt-1 text-[10px] font-semibold text-primary">
+                  Best for: {rec.bestFor}
+                </p>
+              )}
+
+              {/* Caution */}
+              {rec.caution && (
+                <p className="text-[10px] text-muted-foreground">
+                  Caution: {rec.caution}
+                </p>
+              )}
+
+              {/* Why this strain / reason */}
+              <p className="mt-1 line-clamp-3 text-[10px] leading-tight text-muted-foreground/80">
+                {rec.reason}
+              </p>
+
+              {/* Save button */}
+              <div className="mt-2 flex items-center gap-1.5 rounded-full bg-secondary/50 px-2.5 py-1 text-xs text-muted-foreground">
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+                Save
+              </div>
+
+              {/* View details hint */}
+              <div className="mt-2 flex items-center gap-1 text-[11px] font-medium text-primary">
+                View details
+                <ArrowRight className="size-3" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Single recommendation card with the "press and hold to add to compare"
  * gesture wired up. Extracted from the parent so the long-press hook
  * lives on the card's own wrapper span, matching how
@@ -704,25 +809,11 @@ export function StrainBrowse({
               )}
             </div>
 
-            <div className="grid snap-x snap-mandatory auto-cols-[minmax(18rem,85%)] grid-flow-col gap-4 overflow-x-auto pb-2 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-3">
-              {result.recommendations.map((r, i) => {
-                const profile = profilesByName.get(r.strainName.toLowerCase());
-                const added = inCompareSelection?.(r.strainName) ?? false;
-                const disabled = !added && (compareAtCap ?? false);
-                return (
-                  <ComparableRecommendation
-                    key={`${r.strainName}-${i}`}
-                    recommendation={r}
-                    index={i}
-                    profile={profile}
-                    added={added}
-                    disabled={disabled}
-                    compareAtCap={compareAtCap}
-                    onAddToCompare={onAddToCompare}
-                  />
-                );
-              })}
-            </div>
+            {/* Horizontal scroll strain cards - tap to view full detail */}
+            <StrainCardsSection
+              recommendations={result.recommendations}
+              profilesByName={profilesByName}
+            />
 
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-5 py-4">
               <div className="min-w-0 flex-1">
