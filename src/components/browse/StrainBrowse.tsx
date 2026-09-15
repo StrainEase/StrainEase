@@ -53,6 +53,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router";
+import { useRef, useState, useEffect } from "react";
 
 type Potency = "" | Exclude<ThcBand, "any">;
 
@@ -237,12 +238,44 @@ function StrainCardsSection({
   compareAtCap?: boolean;
   onAddToCompare?: (name: string) => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const visibleRecommendations = recommendations.slice(0, 6);
+
+  // Track scroll position to update active dot
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const scrollLeft = scrollContainer.scrollLeft;
+      const cardWidth = scrollContainer.offsetWidth * 0.85 + 16; // card width + gap
+      const newIndex = Math.round(scrollLeft / cardWidth);
+      setActiveIndex(Math.min(newIndex, visibleRecommendations.length - 1));
+    };
+
+    scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+  }, [visibleRecommendations.length]);
+
+  // Scroll to specific card when dot is clicked
+  const scrollToCard = (index: number) => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+    const cardWidth = scrollContainer.offsetWidth * 0.85 + 16; // card width + gap
+    scrollContainer.scrollTo({
+      left: index * cardWidth,
+      behavior: "smooth",
+    });
+    setActiveIndex(index);
+  };
+
   return (
     <div className="space-y-3 -mx-4 px-4">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         Tap a strain for details
       </p>
-      <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch]">
+      <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch]">
         {recommendations.slice(0, 6).map((rec, i) => {
           const profile = profilesByName.get(rec.strainName.toLowerCase());
           const strainSlug = slugify(rec.strainName);
@@ -384,6 +417,26 @@ function StrainCardsSection({
           );
         })}
       </div>
+
+      {/* Indicator dots */}
+      {visibleRecommendations.length > 1 && (
+        <div className="flex justify-center gap-2 pt-1">
+          {visibleRecommendations.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => scrollToCard(i)}
+              className={cn(
+                "h-2 w-2 rounded-full transition-all duration-200",
+                i === activeIndex
+                  ? "w-5 bg-primary"
+                  : "bg-primary/30 hover:bg-primary/50",
+              )}
+              aria-label={`Go to card ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
