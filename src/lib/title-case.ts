@@ -57,6 +57,17 @@ const STRAIN_ACRONYMS = new Set([
   "gg",
   "gdp",
   "gsc",
+  // Strain-name acronyms that show up in dispensary menus, AI-researched
+  // names, and the Leafly/Allbud catalog. SPK (Sour Patch Kids) is the one
+  // we keep missing in the wild — keep this list populated as new ones
+  // surface.
+  "spk", // Sour Patch Kids
+  "gmo", // Garlic / Mushroom / Onion ("GMO Cookies")
+  "mac", // Miracle Alien Cookies ("MAC", "Mac 1")
+  "fpog", // Fruity Pebbles OG
+  "ak", // AK-47 (so "AK-47" renders as "AK-47" not "Ak-47")
+  "rs", // RS11 (so "RS11" renders as "RS11" not "Rs11")
+  "mk", // MK Ultra
 ]);
 
 export function toTitleCase(input: string | null | undefined): string {
