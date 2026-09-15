@@ -884,39 +884,42 @@ export function StrainBrowse({
               />
             )}
 
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-5 py-4">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold tracking-tight">
-                  Narrowed it down?
-                </p>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Turn your top picks into a full side-by-side comparison with
-                  differences, common ground, and cautions.
-                </p>
-              </div>
-              <Button
-                type="button"
-                className="cursor-pointer rounded-full"
-                disabled={topNames.length < 2}
-                onClick={() => onCompare(topNames, searched)}
-              >
-                <GitCompareArrows className="size-4" />
-                Compare the top picks
-              </Button>
-            </div>
-            {topNames.length < 2 && (
-              <p className="-mt-4 text-xs text-muted-foreground">
-                Add at least two recommendations to compare — or use the compare
-                tab to pick your own strains.
-              </p>
-            )}
-
+            {/* Disclaimer above compare card */}
             <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
               <Sparkles className="size-3.5 shrink-0 text-primary" />
               Recommendations by Dr. Kaya, our AI cannabis care assistant.
               Synthesized from aggregated public sources. Not medical advice.
               Consult your healthcare provider.
             </p>
+
+            {/* Compare card - full width with stacked layout */}
+            <div className="space-y-3 rounded-2xl border border-primary/25 bg-primary/5 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold tracking-tight">
+                  Narrowed it down?
+                </p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Turn your top picks into a full side-by-side comparison with
+                  differences, common ground, and cautions.
+                </p>
+              </div>
+              {topNames.length < 2 ? (
+                <p className="text-xs text-muted-foreground">
+                  Add at least two recommendations to compare — or use the compare
+                  tab to pick your own strains.
+                </p>
+              ) : (
+                <Button
+                  type="button"
+                  className="w-full cursor-pointer rounded-full"
+                  disabled={topNames.length < 2}
+                  onClick={() => onCompare(topNames, searched)}
+                >
+                  <GitCompareArrows className="size-4" />
+                  Compare the top picks
+                </Button>
+              )}
+            </div>
 
             <RedditThreads
               sources={result.redditSources ?? []}
