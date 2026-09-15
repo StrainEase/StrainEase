@@ -1,4 +1,4 @@
-package ai.strainease.app.ui.browse
+package ai.strainease.app.ui.discover
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background

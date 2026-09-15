@@ -1,4 +1,4 @@
-package ai.strainease.app.ui.browse
+package ai.strainease.app.ui.discover
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -68,7 +68,7 @@ import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.launch
 
 /**
- * The Find tab. 1:1 port of the iOS `BrowseView` with a slightly
+ * The Discover tab. 1:1 port of the iOS `DiscoverView` with a slightly
  * slimmer surface for the first Android cut: the hero, the
  * symptom picker (catalog chips + custom add), the prefs
  * panels (potency, time of day, consume form, THC sensitivity,
@@ -80,8 +80,8 @@ import kotlinx.coroutines.launch
  * 30-second "tonight hint" relief-log card lives here.
  */
 @Composable
-fun BrowseView(
-    model: BrowseModel,
+fun DiscoverView(
+    model: DiscoverModel,
     savedAilments: SavedAilmentsStore,
     savedMedications: SavedMedicationsStore,
     triedStrainsStore: TriedStrainsStore,
@@ -127,7 +127,7 @@ fun BrowseView(
 
     // Keep the picked ailments in sync with the
     // SavedAilmentsStore so symptoms the user added via
-    // AccountView show up here. Mirrors iOS BrowseView's
+    // AccountView show up here. Mirrors iOS DiscoverView's
     // ailmentsStore observation. (Hydrate on first frame so
     // the user doesn't see an empty list when their saved
     // ailments aren't yet in the model.)
@@ -289,7 +289,7 @@ fun BrowseView(
                         // Persist a Past-research row so the user
                         // can re-open this exact run from the
                         // Account sheet. Mirrors the iOS
-                        // BrowseView's `history.remember(find:)`
+                        // DiscoverView's `history.remember(find:)`
                         // call after a successful run.
                         model.result.value?.let { result ->
                             researchHistory.remember(
@@ -307,7 +307,7 @@ fun BrowseView(
             error?.let { SWErrorBanner(message = it) }
             result?.let { resultBlock(it, compareStore, onOpenProfile) }
             // Surface the cross-strain comparison result produced by
-            // CompareTrayBar's "Compare" CTA. Mirrors iOS BrowseView
+            // CompareTrayBar's "Compare" CTA. Mirrors iOS DiscoverView
             // which shows the same view inline below the
             // recommendations block.
             comparison?.let { comparison ->
@@ -339,14 +339,14 @@ private fun hero() {
 
 @Composable
 private fun conditionsBlock(
-    model: BrowseModel,
+    model: DiscoverModel,
     ailments: List<String>,
     customAilment: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Same chip list, same label as FindView's ailment
         // row — so the user's vocabulary matches when they hop
-        // between the Find and Browse tabs.
+        // between the Find and Discover tabs.
         SectionLabel(title = "Commonly used for", index = 1)
         SWFlowRow {
             ai.strainease.app.models.Conditions.catalog.forEach { name ->
@@ -413,9 +413,9 @@ private fun conditionsBlock(
 }
 
 @Composable
-private fun potencyBlock(model: BrowseModel, potency: Potency) {
+private fun potencyBlock(model: DiscoverModel, potency: Potency) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Matches the Browse tab's "THC" section header so the
+        // Matches the Find tab's "THC" section header so the
         // same chip strip reads the same on both surfaces.
         SectionLabel(title = "THC", index = 2)
         SWFlowRow {
@@ -437,7 +437,7 @@ private fun potencyBlock(model: BrowseModel, potency: Potency) {
 
 @Composable
 private fun prefsBlock(
-    model: BrowseModel,
+    model: DiscoverModel,
     prefs: ai.strainease.app.models.ResearchPrefs,
     triedStrainsList: List<TriedStrain>,
     onTriedStrainsChange: (List<TriedStrain>) -> Unit,

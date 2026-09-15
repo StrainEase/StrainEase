@@ -66,7 +66,7 @@ fun CompareTrayBar(
     val scope = rememberCoroutineScope()
     var isRunning by remember { mutableStateOf(false) }
 
-    val visible = names.isNotEmpty() && currentTab != ai.strainease.app.app.AppTab.Find
+    val visible = names.isNotEmpty() && currentTab != ai.strainease.app.app.AppTab.Discover
     AnimatedVisibility(visible = visible) {
         Column(
             modifier = modifier

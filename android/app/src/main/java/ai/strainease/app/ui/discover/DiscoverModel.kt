@@ -1,4 +1,4 @@
-package ai.strainease.app.ui.browse
+package ai.strainease.app.ui.discover
 
 import ai.strainease.app.StrainEaseApplication
 import ai.strainease.app.data.SavedAilmentsStore
@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Find view-model. 1:1 port of the iOS `BrowseModel`.
+ * Discover view-model. 1:1 port of the iOS `DiscoverModel`.
  *
  *  - [ailments] is the picked set of conditions for the
  *    current recommend run. Hydrated from [SavedAilmentsStore]
@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *    the last [recommend] call succeeded; used by the inline
  *    comparison results to surface "for X, Y" labels.
  */
-class BrowseModel(
+class DiscoverModel(
     private val api: StrainAPI = StrainEaseApplication.strainAPI,
 ) {
     private val _ailments = MutableStateFlow<List<String>>(emptyList())
@@ -63,7 +63,7 @@ class BrowseModel(
 
     /** Seed the picked ailments from the user's saved list on
      *  first appearance. Subsequent saved-ailments changes are
-     *  surfaced by the BrowseView's own collect. */
+     *  surfaced by the DiscoverView's own collect. */
     fun hydrateAilmentsIfNeeded(store: SavedAilmentsStore) {
         if (ailmentsHydrated) return
         _ailments.value = store.ailments

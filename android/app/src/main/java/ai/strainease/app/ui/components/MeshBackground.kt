@@ -13,7 +13,7 @@ import ai.strainease.app.ui.theme.Palette
 
 /**
  * Quiet two-orb mesh background. Mirrors the iOS `MeshBackground`
- * view used by the Home, Find, Browse, Doctors, Strain Detail, and
+ * view used by the Home, Find, Discover, Doctors, Strain Detail, and
  * Account screens.
  *
  *  - Top-right orb: glowMint radial, 420dp radius, offset (40, -80)

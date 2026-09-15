@@ -188,7 +188,7 @@ private fun hero() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Eyebrow(text = "Strain directory")
         Text(
-            text = "Browse popular strains",
+            text = "Find popular strains",
             style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.onBackground,
         )

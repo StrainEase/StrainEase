@@ -1,7 +1,7 @@
 package ai.strainease.app.app
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Search
@@ -16,8 +16,8 @@ import ai.strainease.app.models.StrainProfile
  */
 enum class AppTab(val title: String, val systemImage: ImageVector) {
     Home("Home", Icons.Filled.Home),
-    Find("Browse", Icons.Filled.Book),
-    Browse("Find", Icons.Filled.Search),
+    Find("Find", Icons.Filled.Search),
+    Discover("Discover", Icons.Filled.AutoAwesome),
     Doctors("Doctors", Icons.Filled.MedicalServices),
 }
 

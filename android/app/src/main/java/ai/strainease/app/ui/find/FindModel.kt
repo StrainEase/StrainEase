@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Browse view-model. 1:1 port of the iOS `FindModel`.
+ * Find view-model. 1:1 port of the iOS `FindModel`.
  *
  *  - [query] is the free-text search.
  *  - [typeFilter] / [thc] / [effectIDs] / [ailmentFilters]
