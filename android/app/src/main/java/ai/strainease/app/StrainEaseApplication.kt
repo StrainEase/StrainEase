@@ -6,6 +6,7 @@ import ai.strainease.app.auth.AuthSession
 import ai.strainease.app.compliance.AgeVerificationStore
 import ai.strainease.app.data.LiveStrainAPI
 import ai.strainease.app.data.StrainAPI
+import ai.strainease.app.data.StrainCatalog
 import ai.strainease.app.services.FirebaseBootstrap
 import ai.strainease.app.services.ImageCache
 
@@ -36,6 +37,11 @@ class StrainEaseApplication : Application() {
         super.onCreate()
         FirebaseBootstrap.configure(this)
         Coil.setImageLoader(ImageCache.get(this))
+        // Wire the bundled strain-directory.json into StrainCatalog before
+        // any UI touches it. Without this, `StrainCatalog.all` falls back
+        // to the 24 curated entries and the home rails show ~8 strains
+        // per type instead of the full directory (~115 hybrid, etc).
+        StrainCatalog.init(this)
         strainAPI = LiveStrainAPI()
         authSession.start()
     }
