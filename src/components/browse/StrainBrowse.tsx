@@ -222,14 +222,20 @@ function ComparableRecommendation({
 
 /**
  * Horizontal scroll section of strain cards with rich recommendation info.
- * Cards link to the strain detail page instead of embedding the detail view.
+ * Combines photo, strain info, and Add to compare functionality in ONE card per strain.
  */
 function StrainCardsSection({
   recommendations,
   profilesByName,
+  inCompareSelection,
+  compareAtCap,
+  onAddToCompare,
 }: {
   recommendations: import("@/lib/strain-api").StrainRecommendation[];
   profilesByName: Map<string, import("@/lib/strain-api").RecommendationResult["strains"][number]>;
+  inCompareSelection?: (name: string) => boolean;
+  compareAtCap?: boolean;
+  onAddToCompare?: (name: string) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -240,10 +246,11 @@ function StrainCardsSection({
         {recommendations.slice(0, 6).map((rec, i) => {
           const profile = profilesByName.get(rec.strainName.toLowerCase());
           const strainSlug = slugify(rec.strainName);
+          const added = inCompareSelection?.(rec.strainName) ?? false;
+          const disabled = !added && (compareAtCap ?? false);
           return (
-            <Link
+            <div
               key={`${rec.strainName}-${i}`}
-              to={`/strain/${strainSlug}`}
               className="group relative flex min-w-[180px] max-w-[180px] flex-col rounded-2xl border border-border/70 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
             >
               {/* Rank badge */}
@@ -252,7 +259,7 @@ function StrainCardsSection({
               </span>
 
               {/* Save button */}
-              <div className="absolute right-3 top-3 z-10" onClick={(e) => e.preventDefault()}>
+              <div className="absolute right-3 top-3 z-10">
                 <SaveStrainButton
                   profile={
                     profile ?? {
@@ -263,8 +270,8 @@ function StrainCardsSection({
                 />
               </div>
 
-              {/* Strain photo with proper loading */}
-              <div className="mt-6 overflow-hidden rounded-xl">
+              {/* Strain photo with proper loading - clickable to details */}
+              <Link to={`/strain/${strainSlug}`} className="block overflow-hidden rounded-xl">
                 <StrainImage
                   src={profile?.imageUrl}
                   alt={rec.strainName}
@@ -272,13 +279,13 @@ function StrainCardsSection({
                   type={profile?.type}
                   className="h-24 w-full"
                 />
-              </div>
+              </Link>
 
-              {/* Strain name */}
-              <h3 className="mt-3 flex items-center gap-1.5 text-sm font-semibold">
+              {/* Strain name - clickable to details */}
+              <Link to={`/strain/${strainSlug}`} className="mt-3 flex items-center gap-1.5 text-sm font-semibold hover:text-primary">
                 {rec.strainName}
                 <StrainNoteIndicator strainName={rec.strainName} />
-              </h3>
+              </Link>
 
               {/* THC & Type badges */}
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -344,14 +351,36 @@ function StrainCardsSection({
                 </div>
               )}
 
-              {/* Tap hint */}
-              <div className="mt-auto flex items-center gap-1 pt-2">
-                <span className="text-[10px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                  View details
-                </span>
-                <ArrowRight className="size-3 text-primary opacity-0 transition-opacity group-hover:opacity-100" />
-              </div>
-            </Link>
+              {/* Add to compare button */}
+              {onAddToCompare && (
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={added ? "secondary" : "outline"}
+                    className={cn(
+                      "w-full cursor-pointer rounded-full text-xs",
+                      added && "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15",
+                      disabled && "cursor-not-allowed opacity-50",
+                    )}
+                    disabled={disabled}
+                    onClick={() => onAddToCompare(rec.strainName)}
+                  >
+                    {added ? (
+                      <>
+                        <Check className="size-3" />
+                        Added
+                      </>
+                    ) : (
+                      <>
+                        <GitCompareArrows className="size-3" />
+                        Compare
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
@@ -844,25 +873,16 @@ export function StrainBrowse({
               )}
             </div>
 
-            <div className="grid snap-x snap-mandatory auto-cols-[minmax(18rem,85%)] grid-flow-col gap-4 overflow-x-auto pb-2 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-3">
-              {result.recommendations.map((r, i) => {
-                const profile = profilesByName.get(r.strainName.toLowerCase());
-                const added = inCompareSelection?.(r.strainName) ?? false;
-                const disabled = !added && (compareAtCap ?? false);
-                return (
-                  <ComparableRecommendation
-                    key={`${r.strainName}-${i}`}
-                    recommendation={r}
-                    index={i}
-                    profile={profile}
-                    added={added}
-                    disabled={disabled}
-                    compareAtCap={compareAtCap}
-                    onAddToCompare={onAddToCompare}
-                  />
-                );
-              })}
-            </div>
+            {/* Horizontal scroll strain cards - ONE card per strain with photo, info, and compare */}
+            {result.recommendations.length > 0 && (
+              <StrainCardsSection
+                recommendations={result.recommendations}
+                profilesByName={profilesByName}
+                inCompareSelection={inCompareSelection}
+                compareAtCap={compareAtCap}
+                onAddToCompare={onAddToCompare}
+              />
+            )}
 
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-5 py-4">
               <div className="min-w-0 flex-1">
@@ -889,14 +909,6 @@ export function StrainBrowse({
                 Add at least two recommendations to compare — or use the compare
                 tab to pick your own strains.
               </p>
-            )}
-
-            {/* Horizontal scroll strain cards with full recommendation info */}
-            {result.recommendations.length > 0 && (
-              <StrainCardsSection
-                recommendations={result.recommendations}
-                profilesByName={profilesByName}
-              />
             )}
 
             <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
