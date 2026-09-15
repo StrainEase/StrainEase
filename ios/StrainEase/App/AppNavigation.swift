@@ -3,14 +3,14 @@ import SwiftUI
 enum AppTab: String, Hashable, CaseIterable {
     case home
     case find
-    case browse
+    case discover
     case doctors
 
     var title: String {
         switch self {
         case .home: "Home"
         case .find: "Find"
-        case .browse: "Browse"
+        case .discover: "Discover"
         case .doctors: "Doctors"
         }
     }
@@ -19,7 +19,7 @@ enum AppTab: String, Hashable, CaseIterable {
         switch self {
         case .home: "house.fill"
         case .find: "magnifyingglass"
-        case .browse: "book.closed.fill"
+        case .discover: "sparkles"
         case .doctors: "stethoscope"
         }
     }
