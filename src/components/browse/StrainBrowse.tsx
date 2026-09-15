@@ -28,10 +28,11 @@ import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
 import { slugify } from "@/lib/saved-strains";
-import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
-import { compactPrefs, SENSITIVITY_OPTIONS, type ResearchPrefs, type ThcSensitivity } from "@/lib/research-prefs";
+import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
+import { compactPrefs, type ResearchPrefs, type ThcSensitivity } from "@/lib/research-prefs";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { thcSensitivityLabel } from "@/lib/thc-sensitivity";
+import { THC_BANDS, type ThcBand } from "@/lib/thc-bands";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
@@ -48,14 +49,18 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 
-type Potency = "" | "mild" | "balanced" | "strong";
+type Potency = "" | Exclude<ThcBand, "any">;
 
-const POTENCY_OPTIONS: { value: Potency; label: string; hint: string }[] = [
-  { value: "", label: "Any", hint: "No preference" },
-  { value: "mild", label: "Mild", hint: "THC under ~15%" },
-  { value: "balanced", label: "Balanced", hint: "THC 15–22%" },
-  { value: "strong", label: "Strong", hint: "THC above ~22%" },
-];
+const POTENCY_OPTIONS: { value: Potency; label: string; hint: string }[] =
+  THC_BANDS.map((band) => ({
+    // Keep the historical `""` sentinel for "Any THC" so the rest of
+    // this file (and the API contract) doesn't need to special-case
+    // a new string. Bands live in lib/thc-bands so a tweak there
+    // propagates here automatically.
+    value: band.value === "any" ? "" : band.value,
+    label: band.label,
+    hint: band.hint,
+  }));
 
 const QUICK_AILMENTS = ["Insomnia", "Chronic pain", "Anxiety", "Migraine"];
 
@@ -65,7 +70,7 @@ const RESEARCH_STEPS = [
   "Ranking the best strains with Dr. Kaya…",
 ];
 
-export function StrainFinder({
+export function StrainBrowse({
   onCompare,
   onAddToCompare,
   inCompareSelection,
@@ -284,7 +289,7 @@ export function StrainFinder({
             {/* Ailments */}
             <div>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                1 · What are you treating?
+                1 · Commonly used for
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {/* My Ailments chip with gold gradient - always first */}
@@ -381,7 +386,7 @@ export function StrainFinder({
             {/* Potency */}
             <div>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                2 · Potency preference (optional)
+                2 · THC (optional)
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {POTENCY_OPTIONS.map((opt) => (

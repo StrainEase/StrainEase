@@ -17,9 +17,9 @@ describe("dashboardModeFromSearch", () => {
 });
 
 describe("dashboardTab", () => {
-  test("only find and browse light a tab", () => {
-    expect(dashboardTab("find")).toBe("find");
-    expect(dashboardTab("directory")).toBe("directory");
+  test("only find and discover light a tab", () => {
+    expect(dashboardTab("find")).toBe("discover");
+    expect(dashboardTab("directory")).toBe("find");
     expect(dashboardTab("compare")).toBeUndefined();
     expect(dashboardTab("history")).toBeUndefined();
   });
@@ -30,7 +30,7 @@ describe("APP_NAV", () => {
     expect(APP_NAV.map((item) => item.id)).toEqual([
       "home",
       "find",
-      "directory",
+      "discover",
       "doctors",
     ]);
   });

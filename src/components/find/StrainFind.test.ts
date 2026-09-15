@@ -1,30 +1,16 @@
 import { describe, expect, test } from "bun:test";
+import {
+  THC_BANDS,
+  matchesThcBand,
+  thcMidpoint,
+} from "@/lib/thc-bands";
 import type { StrainProfile } from "@/lib/strain-profile";
 
 /**
- * Mirror the helpers exported by StrainDirectory.tsx. We re-declare
- * them here so the test file doesn't pull React / DOM into bun:test
- * — the directory component is JSX-only.
+ * Re-declare the EFFECT_BUCKETS array here so this test file stays
+ * free of UI imports. Same approach the original test used for the
+ * THC midpoint helper, before that helper moved into `lib/thc-bands`.
  */
-
-function thcMidpoint(range: string | undefined): number | null {
-  if (!range) return null;
-  const cleaned = range.replace(/[%~\s<>]/g, "").trim();
-  if (!cleaned) return null;
-  if (range.includes("<")) {
-    const n = Number(cleaned.replace(/[^0-9.]/g, ""));
-    return Number.isFinite(n) ? Math.max(0, n - 0.5) : null;
-  }
-  const dash = cleaned.split("-");
-  if (dash.length === 2) {
-    const a = Number(dash[0]);
-    const b = Number(dash[1]);
-    if (Number.isFinite(a) && Number.isFinite(b)) return (a + b) / 2;
-  }
-  const single = Number(cleaned);
-  if (Number.isFinite(single)) return single;
-  return null;
-}
 
 const EFFECT_BUCKETS = [
   {
@@ -82,6 +68,55 @@ describe("thcMidpoint", () => {
     expect(thcMidpoint("")).toBeNull();
     expect(thcMidpoint("abc")).toBeNull();
     expect(thcMidpoint("--")).toBeNull();
+  });
+});
+
+describe("matchesThcBand", () => {
+  // Belt-and-braces coverage: every band that promises a range must
+  // include strains whose midpoint sits inside it, and exclude
+  // strains whose midpoint sits outside. `any` is the catch-all and
+  // also includes strains with no parseable THC range.
+
+  test("any includes every strain, including unknowns", () => {
+    expect(matchesThcBand("17-24%", "any")).toBe(true);
+    expect(matchesThcBand("<1%", "any")).toBe(true);
+    expect(matchesThcBand(undefined, "any")).toBe(true);
+    expect(matchesThcBand("", "any")).toBe(true);
+    expect(matchesThcBand("abc", "any")).toBe(true);
+  });
+
+  test("mild keeps strains below 15% THC and drops everything else", () => {
+    expect(matchesThcBand("<1%", "mild")).toBe(true);
+    expect(matchesThcBand("10-12%", "mild")).toBe(true);
+    expect(matchesThcBand("14%", "mild")).toBe(true);
+    // Midpoint 14.5 (15-14, range written with en-dash) sits just
+    // below the 15% cutoff and is still mild.
+    expect(matchesThcBand("14-15%", "mild")).toBe(true);
+    expect(matchesThcBand("17-24%", "mild")).toBe(false);
+    expect(matchesThcBand("22%", "mild")).toBe(false);
+    // Unknown THC ranges can't honestly bucket into mild/balanced/
+    // strong — only `any` admits them.
+    expect(matchesThcBand(undefined, "mild")).toBe(false);
+    expect(matchesThcBand("", "mild")).toBe(false);
+  });
+
+  test("balanced keeps 15–22% THC strains", () => {
+    expect(matchesThcBand("15-20%", "balanced")).toBe(true);
+    expect(matchesThcBand("20%", "balanced")).toBe(true);
+    expect(matchesThcBand("21%", "balanced")).toBe(true);
+    expect(matchesThcBand("<1%", "balanced")).toBe(false);
+    expect(matchesThcBand("23-29%", "balanced")).toBe(false);
+  });
+
+  test("strong keeps 22%+ THC strains", () => {
+    expect(matchesThcBand("22%", "strong")).toBe(true);
+    expect(matchesThcBand("23-29%", "strong")).toBe(true);
+    expect(matchesThcBand("17-24%", "strong")).toBe(false);
+  });
+
+  test("every band label is unique so the UI chips don't collide", () => {
+    const labels = new Set(THC_BANDS.map((b) => b.label));
+    expect(labels.size).toBe(THC_BANDS.length);
   });
 });
 

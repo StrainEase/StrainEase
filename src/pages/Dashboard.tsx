@@ -29,11 +29,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
-import { StrainDirectory } from "@/components/directory/StrainDirectory";
+import { StrainFind } from "@/components/find/StrainFind";
 import { StrainImage } from "@/components/strain/StrainImage";
 import { getPhotoURL } from "@/lib/strain-catalog";
-import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
-import { StrainFinder } from "@/components/finder/StrainFinder";
+import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
+import { StrainBrowse } from "@/components/browse/StrainBrowse";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
 import { CheckInPanel } from "@/components/check-ins/CheckInPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
@@ -58,13 +58,11 @@ import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
 import {
   ArrowRight,
-  BookOpen,
   Calendar,
   Check,
   Clock,
   FlaskConical,
   GitCompareArrows,
-  HeartPulse,
   Loader2,
   Pill,
   Plus,
@@ -363,9 +361,9 @@ export default function Dashboard() {
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <HeartPulse className="size-4" />
-              <span className="sm:hidden">Find</span>
-              <span className="hidden sm:inline">Find for ailments</span>
+              <Sparkles className="size-4" />
+              <span className="sm:hidden">Discover</span>
+              <span className="hidden sm:inline">Discover for ailments</span>
             </button>
             <button
               type="button"
@@ -377,8 +375,8 @@ export default function Dashboard() {
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <BookOpen className="size-4" />
-              <span className="sm:hidden">Browse</span>
+              <Search className="size-4" />
+              <span className="sm:hidden">Find</span>
               <span className="hidden sm:inline">Strain directory</span>
             </button>
             <button
@@ -426,7 +424,7 @@ export default function Dashboard() {
 
         {/* ── Strain finder (main focus) ────────────────────── */}
         <div className={cn(mode !== "find" && "hidden")}>
-          <StrainFinder
+          <StrainBrowse
             onCompare={startCompareFromFinder}
             onAddToCompare={selection.toggle}
             inCompareSelection={selection.isIn}
@@ -439,7 +437,7 @@ export default function Dashboard() {
 
         {/* ── Strain directory ───────────────────────────── */}
         <div className={cn(mode !== "directory" && "hidden")}>
-          <StrainDirectory />
+          <StrainFind />
         </div>
 
         {/* ── History (reopen shareable results) ────────────── */}
@@ -660,7 +658,7 @@ export default function Dashboard() {
                 {/* Condition focus */}
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    2 · Condition focus (optional — pick several)
+                    2 · Commonly used for (optional — pick several)
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {/* My Ailments chip with gold gradient - always first */}

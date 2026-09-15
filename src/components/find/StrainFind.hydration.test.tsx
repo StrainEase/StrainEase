@@ -1,20 +1,20 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { StrainDirectory, DirectoryGridSkeleton } from "./StrainDirectory";
+import { StrainFind, FindGridSkeleton } from "./StrainFind";
 
 afterEach(() => {
   cleanup();
 });
 
-describe("StrainDirectory hydration", () => {
-  test("DirectoryGridSkeleton renders the requested number of card placeholders", () => {
+describe("StrainFind hydration", () => {
+  test("FindGridSkeleton renders the requested number of card placeholders", () => {
     render(
       <MemoryRouter>
-        <DirectoryGridSkeleton count={6} />
+        <FindGridSkeleton count={6} />
       </MemoryRouter>,
     );
-    const skeleton = screen.getByTestId("directory-grid-skeleton");
+    const skeleton = screen.getByTestId("find-grid-skeleton");
     const cards = skeleton.querySelectorAll(":scope > div");
     // 6 cards rendered.
     expect(cards.length).toBe(6);
@@ -23,42 +23,42 @@ describe("StrainDirectory hydration", () => {
     expect(lines.length).toBe(24);
   });
 
-  test("DirectoryGridSkeleton defaults to 6 cards when count is omitted", () => {
+  test("FindGridSkeleton defaults to 6 cards when count is omitted", () => {
     render(
       <MemoryRouter>
-        <DirectoryGridSkeleton />
+        <FindGridSkeleton />
       </MemoryRouter>,
     );
-    const skeleton = screen.getByTestId("directory-grid-skeleton");
+    const skeleton = screen.getByTestId("find-grid-skeleton");
     const cards = skeleton.querySelectorAll(":scope > div");
     expect(cards.length).toBe(6);
   });
 
-  test("DirectoryGridSkeleton respects a custom count", () => {
+  test("FindGridSkeleton respects a custom count", () => {
     render(
       <MemoryRouter>
-        <DirectoryGridSkeleton count={3} />
+        <FindGridSkeleton count={3} />
       </MemoryRouter>,
     );
-    const skeleton = screen.getByTestId("directory-grid-skeleton");
+    const skeleton = screen.getByTestId("find-grid-skeleton");
     const cards = skeleton.querySelectorAll(":scope > div");
     expect(cards.length).toBe(3);
   });
 
-  test("StrainDirectory shows the filter strip and search bar even before the catalog loads", () => {
+  test("StrainFind shows the filter strip and search bar even before the catalog loads", () => {
     // We can't easily mock the `browseStrains` network call from
     // here without setting up firebase-mock. The page mounts with
     // `allPreviews === null`, so the filter strip should be present
     // and the grid skeleton should be visible too.
     render(
       <MemoryRouter>
-        <StrainDirectory />
+        <StrainFind />
       </MemoryRouter>,
     );
-    expect(screen.getByPlaceholderText("Filter by name…")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Search the catalog")).toBeTruthy();
     // The "All types" button is in the type filter row.
     expect(screen.getByRole("button", { name: "All types" })).toBeTruthy();
     // Skeleton grid is rendered while previews are loading.
-    expect(screen.getByTestId("directory-grid-skeleton")).toBeTruthy();
+    expect(screen.getByTestId("find-grid-skeleton")).toBeTruthy();
   });
 });
