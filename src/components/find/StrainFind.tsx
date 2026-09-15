@@ -393,7 +393,7 @@ export function StrainFind() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3">
           {visible.map((p) => (
             <FindPreviewCard key={p.name} preview={p} />
           ))}
@@ -513,7 +513,7 @@ function FindPreviewCard({ preview }: { preview: StrainPreview }) {
 export function FindGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid grid-cols-2 gap-3"
       aria-busy="true"
       aria-live="polite"
       data-testid="find-grid-skeleton"
