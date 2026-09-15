@@ -316,10 +316,10 @@ function StrainCardsSection({
                 </p>
               )}
 
-              {/* Matched prefs */}
-              {rec.matchedPrefs && rec.matchedPrefs.length > 0 && (
+              {/* Matched prefs from reasoning */}
+              {rec.reasoning?.preferencesApplied && rec.reasoning.preferencesApplied.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {rec.matchedPrefs.slice(0, 2).map((pref, j) => (
+                  {rec.reasoning.preferencesApplied.slice(0, 2).map((pref: string, j: number) => (
                     <span
                       key={j}
                       className="rounded-full bg-amber-500/8 px-1.5 py-0.5 text-[9px] font-medium text-amber-700"
@@ -327,26 +327,12 @@ function StrainCardsSection({
                       ✓ {pref}
                     </span>
                   ))}
-                  {rec.matchedPrefs.length > 2 && (
+                  {rec.reasoning.preferencesApplied.length > 2 && (
                     <span className="text-[9px] text-muted-foreground">
-                      +{rec.matchedPrefs.length - 2}
+                      +{rec.reasoning.preferencesApplied.length - 2}
                     </span>
                   )}
                 </div>
-              )}
-
-              {/* Weight before trying */}
-              {rec.weightBeforeTrying && (
-                <p className="mt-1.5 rounded-lg bg-blue-500/5 px-2 py-1 text-[10px] leading-3 text-blue-700">
-                  {rec.weightBeforeTrying}
-                </p>
-              )}
-
-              {/* Sources */}
-              {rec.sourceAnchors && rec.sourceAnchors.length > 0 && (
-                <p className="mt-2 text-[10px] text-muted-foreground">
-                  {rec.sourceAnchors.length} source{rec.sourceAnchors.length !== 1 ? "s" : ""}
-                </p>
               )}
 
               {/* Tap hint */}
