@@ -407,11 +407,26 @@ private fun AppChromeButtons(
     modifier: Modifier = Modifier,
 ) {
     val session = ai.strainease.app.auth.LocalAuthSession.current
-    val name = session.user?.name?.trim().orEmpty()
-    val initials = when {
-        name.isEmpty() -> "·"
-        else -> name.split(" ").let { parts ->
+    val user = session.user
+    val initials = if (user == null) {
+        // Signed out — show the "?" placeholder so the chrome still
+        // hints at an account behind the button. The button still
+        // opens the Account sheet, which renders the sign-in prompt.
+        "?"
+    } else {
+        // Prefer displayName; if missing or whitespace, fall back to
+        // the email local-part so signed-in users always see real
+        // initials (e.g. "jcsanchez" → "JC"). Only drop to "Patient"
+        // when both displayName and email are unavailable.
+        val emailLocal = user.email
+            ?.takeIf { it.contains('@') }
+            ?.substringBefore('@')
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+        val source = user.name.trim().ifEmpty { emailLocal ?: "Patient" }
+        source.split(" ").filter { it.isNotBlank() }.let { parts ->
             when {
+                parts.isEmpty() -> "P"
                 parts.size == 1 -> parts[0].take(2).uppercase()
                 else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
             }
