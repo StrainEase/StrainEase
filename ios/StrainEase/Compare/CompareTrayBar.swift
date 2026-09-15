@@ -1,8 +1,12 @@
 import SwiftUI
 import UIKit
 
-/// Floating compare tray that floats above the tab bar (except on Find,
-/// where the FindView's inline `compareTray` block is the single CTA).
+/// Floating compare tray that floats above the tab bar on the Find tab
+/// only. Hidden on Discover (Home), Browse, and Doctors — those pages
+/// surface compare only via the per-strain `CompareToggleButton` in
+/// `StrainDetailView`, which adds to the shared selection without
+/// rendering the tray. Find additionally has an inline `compareTray`
+/// block in `FindView`; both can coexist.
 ///
 /// Reads its selection + run state from the shared `CompareSelectionStore`
 /// injected at the `MainTabView` root. The tray's "Compare N strains"
@@ -21,7 +25,10 @@ struct CompareTrayBar: View {
     @State private var trayPath: [StrainProfile] = []
     @State private var keyboardHeight: CGFloat = 0
 
-    private var visible: Bool { !store.names.isEmpty && nav.tab != .find }
+    // Visible only on Find. Discover/Home, Browse, and Doctors stay clean:
+    // the user adds strains via StrainDetailView's CompareToggleButton from
+    // anywhere, then jumps to Find to see + run the comparison.
+    private var visible: Bool { !store.names.isEmpty && nav.tab == .find }
 
     var body: some View {
         Group {
