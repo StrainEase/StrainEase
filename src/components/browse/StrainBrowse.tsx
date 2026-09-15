@@ -53,7 +53,6 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router";
-import { useRef, useState, useEffect } from "react";
 
 type Potency = "" | Exclude<ThcBand, "any">;
 
