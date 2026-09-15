@@ -906,9 +906,15 @@ export function StrainBrowse({
               <h2 className="text-xl font-semibold tracking-tight text-balance sm:text-2xl">
                 {result.headline}
               </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                {result.summary}
-              </p>
+              {/* Split summary into paragraphs for better readability */}
+              <div className="mt-3 max-w-3xl space-y-3 text-sm leading-7 text-muted-foreground sm:text-base">
+                {result.summary
+                  .split(/\n\n|\n/)
+                  .filter((p) => p.trim())
+                  .map((paragraph, idx) => (
+                    <p key={idx}>{paragraph.trim()}</p>
+                  ))}
+              </div>
               {verdictQuotes.length > 0 && (
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   {verdictQuotes.map(({ strain, note }) => (
