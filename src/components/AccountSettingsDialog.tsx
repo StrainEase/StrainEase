@@ -24,7 +24,7 @@ import {
 import { CONDITIONS } from "@/lib/strain-ui";
 import { cn } from "@/lib/utils";
 import { Clock, FileText, LogOut, Pill, Plus, ShieldCheck, Sparkles, User, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 /**
@@ -55,11 +55,21 @@ export function AccountSettingsDialog({
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(false);
+
   // Seed drafts when the dialog opens, and re-sync name/ailments/THC/medications
   // from live sources while the dialog is open and the user hasn't
   // edited yet.
   useEffect(() => {
-    if (!open || !user) return;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open || !user || !isMountedRef.current) return;
     setDraftName(user.name);
     setDraftAilments(ailments.names.slice());
     setDraftMedications(medications.names.slice());
@@ -72,34 +82,12 @@ export function AccountSettingsDialog({
       })),
     );
     setSavedAt(null);
-  }, [open, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, user?.uid]);
 
-  // Keep draft ailments aligned with remote updates only when the user
-  // hasn't made local changes (avoids clobbering an in-progress edit).
-  useEffect(() => {
-    if (!open) return;
-    setDraftAilments((prev) =>
-      ailmentsEqual(prev, ailments.names) ? ailments.names.slice() : prev,
-    );
-  }, [open, ailments.names]);
-
-  // Keep draft medications aligned with remote updates.
-  useEffect(() => {
-    if (!open) return;
-    setDraftMedications((prev) =>
-      prev.length === medications.names.length &&
-      prev.every((m) => medications.names.includes(m))
-        ? medications.names.slice()
-        : prev,
-    );
-  }, [open, medications.names]);
-
-  // Same idea for THC sensitivity: only resync when the user hasn't
-  // picked something different locally.
-  useEffect(() => {
-    if (!open) return;
-    setDraftThc((prev) => (prev === thcSensitivity.value ? prev : prev));
-  }, [open, thcSensitivity.value]);
+  // NOTE: Removed sync useEffects that were causing React error #185
+  // (MAXIMUM_UPDATE_DEPTH_EXCEEDED) due to cascading state updates.
+  // The initial seed above is sufficient for this dialog's lifecycle.
 
   if (!user) return null;
 
