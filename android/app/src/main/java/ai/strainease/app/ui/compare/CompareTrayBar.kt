@@ -49,6 +49,12 @@ import kotlinx.coroutines.launch
  * strain chips, a "Compare" button that fires the
  * `compareStrains` callable, the inline error banner, and
  * the "Clear" affordance.
+ *
+ * Visible on Home and Find, hidden on Discover (which has
+ * its own inline compare results) and Doctors (no compare
+ * context there). Users can still add strains from the
+ * per-strain CompareToggleButton in StrainDetailView from
+ * any tab.
  */
 @Composable
 fun CompareTrayBar(
@@ -66,7 +72,9 @@ fun CompareTrayBar(
     val scope = rememberCoroutineScope()
     var isRunning by remember { mutableStateOf(false) }
 
-    val visible = names.isNotEmpty() && currentTab != ai.strainease.app.app.AppTab.Discover
+    val visible = names.isNotEmpty() &&
+        currentTab != ai.strainease.app.app.AppTab.Discover &&
+        currentTab != ai.strainease.app.app.AppTab.Doctors
     AnimatedVisibility(visible = visible) {
         Column(
             modifier = modifier

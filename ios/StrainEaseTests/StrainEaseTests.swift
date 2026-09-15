@@ -38,16 +38,6 @@ final class StrainEaseTests: XCTestCase {
     }
 
     @MainActor
-    func testCanLookupRequiresNonEmptyQuery() {
-        let model = FindModel(api: PreviewStrainAPI())
-        XCTAssertFalse(model.canLookup)
-        model.lookupQuery = "   "
-        XCTAssertFalse(model.canLookup)
-        model.lookupQuery = "Blue Dream"
-        XCTAssertTrue(model.canLookup)
-    }
-
-    @MainActor
     func testPreviewSavedStoreTogglesLike() async {
         let store = SavedStrainsStore.preview()
         XCTAssertFalse(store.isSaved("granddaddy-purple"))
@@ -181,8 +171,8 @@ final class StrainEaseTests: XCTestCase {
     }
 
     @MainActor
-    func testFindModelAppliesSavedAilmentsAndRestoredResult() {
-        let model = FindModel(api: PreviewStrainAPI())
+    func testDiscoverModelAppliesSavedAilmentsAndRestoredResult() {
+        let model = DiscoverModel(api: PreviewStrainAPI())
         model.applyAilments(["Insomnia", " insomnia ", "Pain"])
         XCTAssertEqual(model.ailments, ["Insomnia", "Pain"])
         model.applyAilments(["Anxiety"], replace: true)
@@ -610,12 +600,12 @@ final class StrainEaseTests: XCTestCase {
     }
 
     func testThcMidpointMatchesWebRangeRules() {
-        XCTAssertEqual(DirectoryFilter.thcMidpoint("17-24%"), 20.5)
-        XCTAssertEqual(DirectoryFilter.thcMidpoint("~20%"), 20)
-        XCTAssertEqual(DirectoryFilter.thcMidpoint("<1%"), 0.5)
-        XCTAssertEqual(DirectoryFilter.thcMidpoint("17–24%"), 20.5)
-        XCTAssertNil(DirectoryFilter.thcMidpoint(nil))
-        XCTAssertNil(DirectoryFilter.thcMidpoint("abc"))
+        XCTAssertEqual(FindFilter.thcMidpoint("17-24%"), 20.5)
+        XCTAssertEqual(FindFilter.thcMidpoint("~20%"), 20)
+        XCTAssertEqual(FindFilter.thcMidpoint("<1%"), 0.5)
+        XCTAssertEqual(FindFilter.thcMidpoint("17–24%"), 20.5)
+        XCTAssertNil(FindFilter.thcMidpoint(nil))
+        XCTAssertNil(FindFilter.thcMidpoint("abc"))
     }
 
     func testRelaxedEffectMatchesRelaxingNotSleepy() {
@@ -624,13 +614,13 @@ final class StrainEaseTests: XCTestCase {
             inKnowledgeBase: true,
             effects: [StrainEffect(name: "relaxed", intensity: 3)]
         )
-        XCTAssertTrue(DirectoryFilter.matches(profile, bucket: .relaxing))
-        XCTAssertFalse(DirectoryFilter.matches(profile, bucket: .sleepy))
+        XCTAssertTrue(FindFilter.matches(profile, bucket: .relaxing))
+        XCTAssertFalse(FindFilter.matches(profile, bucket: .sleepy))
         XCTAssertTrue(
-            DirectoryFilter.matches(profile, effectIDs: ["relaxed"])
+            FindFilter.matches(profile, effectIDs: ["relaxed"])
         )
         XCTAssertFalse(
-            DirectoryFilter.matches(profile, effectIDs: ["sleepy"])
+            FindFilter.matches(profile, effectIDs: ["sleepy"])
         )
     }
 
@@ -649,7 +639,7 @@ final class StrainEaseTests: XCTestCase {
         )
         let list = [mildSativa, strongIndica]
         XCTAssertEqual(
-            DirectoryFilter.apply(
+            FindFilter.apply(
                 to: list,
                 query: "jack",
                 type: .all,
@@ -659,7 +649,7 @@ final class StrainEaseTests: XCTestCase {
             ["Jack Herer"]
         )
         XCTAssertEqual(
-            DirectoryFilter.apply(
+            FindFilter.apply(
                 to: list,
                 query: "",
                 type: .indica,
@@ -669,7 +659,7 @@ final class StrainEaseTests: XCTestCase {
             ["Granddaddy Purple"]
         )
         XCTAssertTrue(
-            DirectoryFilter.apply(
+            FindFilter.apply(
                 to: list,
                 query: "",
                 type: .sativa,
@@ -679,14 +669,20 @@ final class StrainEaseTests: XCTestCase {
         )
     }
 
-    func testPrimaryTabsAreHomeFindBrowse() {
-        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Browse", "Doctors"])
+    func testPrimaryTabsAreHomeFindDiscover() {
+        // Tabs in order: Home, Find (strain directory, magnifyingglass),
+        // Discover (patient research, sparkles), Doctors. The Discover
+        // case replaced .browse after the PR #284 swap settled on the
+        // Find = catalog / Discover = research split. Don't try to
+        // 'fix' this back — the test pins the user-visible tab order.
+        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Discover", "Doctors"])
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("saved"))
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
+        XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("browse"))
     }
 
     @MainActor
-    func testHeaderFavoritesOpensSavedNotBrowse() {
+    func testHeaderFavoritesOpensSavedNotDiscover() {
         let nav = AppNavigation()
         XCTAssertFalse(nav.showSaved)
         XCTAssertEqual(nav.tab, .home)
@@ -782,9 +778,9 @@ final class StrainEaseTests: XCTestCase {
             inKnowledgeBase: true,
             medicalUses: ["Insomnia", "Stress"]
         )
-        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "Insomnia", uses: profile.medicalUses ?? []))
-        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "insomnia", uses: profile.medicalUses ?? []))
-        XCTAssertFalse(DirectoryFilter.matchesCondition(ailment: "Chronic pain", uses: profile.medicalUses ?? []))
+        XCTAssertTrue(FindFilter.matchesCondition(ailment: "Insomnia", uses: profile.medicalUses ?? []))
+        XCTAssertTrue(FindFilter.matchesCondition(ailment: "insomnia", uses: profile.medicalUses ?? []))
+        XCTAssertFalse(FindFilter.matchesCondition(ailment: "Chronic pain", uses: profile.medicalUses ?? []))
     }
 
     func testDirectoryAilmentAliasOCDToAnxiety() {
@@ -793,14 +789,14 @@ final class StrainEaseTests: XCTestCase {
             inKnowledgeBase: true,
             medicalUses: ["Anxiety"]
         )
-        XCTAssertTrue(DirectoryFilter.matchesCondition(ailment: "OCD", uses: profile.medicalUses ?? []))
+        XCTAssertTrue(FindFilter.matchesCondition(ailment: "OCD", uses: profile.medicalUses ?? []))
     }
 
     func testDirectoryAilmentFilterAndCombines() {
         let insomnia = StrainProfile(name: "A", inKnowledgeBase: true, medicalUses: ["Insomnia"])
         let insomniaPain = StrainProfile(name: "B", inKnowledgeBase: true, medicalUses: ["Insomnia", "Chronic pain"])
         let profiles = [insomnia, insomniaPain]
-        let kept = DirectoryFilter.apply(
+        let kept = FindFilter.apply(
             to: profiles,
             query: "",
             type: .all,
