@@ -69,7 +69,7 @@ afterEach(() => {
 });
 
 describe("StrainFind populated state", () => {
-  test("renders the catalog in a 2-column grid that mirrors the browse rails", async () => {
+  test("renders the catalog in a 2-column grid on phones, 3 cols at lg", async () => {
     render(
       <MemoryRouter>
         <StrainFind />
@@ -86,9 +86,11 @@ describe("StrainFind populated state", () => {
     expect(links[1].getAttribute("href")).toBe("/strain/northern-lights");
 
     const grid = links[0].parentElement as HTMLElement;
-    // Always 2 columns on every breakpoint, matching the iOS and
-    // Android Find tab (vertical 2-column grid, PR #284 / #268).
+    // Default to 2 columns starting at the smallest viewport, drop
+    // the sm: breakpoint, keep the 3-column layout on lg+ so the
+    // desktop directory can show more cards per row.
     expect(grid.className).toContain("grid-cols-2");
+    expect(grid.className).toContain("lg:grid-cols-3");
   });
 
   test("the entire card is a single Link — no separate View button", async () => {

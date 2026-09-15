@@ -393,7 +393,7 @@ export function StrainFind() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           {visible.map((p) => (
             <FindPreviewCard key={p.name} preview={p} />
           ))}
@@ -507,13 +507,13 @@ function FindPreviewCard({ preview }: { preview: StrainPreview }) {
 /**
  * Skeleton that mirrors the directory card shape: a photo block, a
  * title bar, and a couple of meta lines. Renders `count` cards in the
- * same 2-column grid the populated state uses, so the page doesn't
+ * same 2-3 column grid the populated state uses, so the page doesn't
  * jump when the first batch of previews lands.
  */
 export function FindGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div
-      className="grid grid-cols-2 gap-3"
+      className="grid grid-cols-2 gap-3 lg:grid-cols-3"
       aria-busy="true"
       aria-live="polite"
       data-testid="find-grid-skeleton"
