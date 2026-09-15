@@ -28,7 +28,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
 import { slugify } from "@/lib/saved-strains";
@@ -215,6 +214,152 @@ function ComparableRecommendation({
         )}
       </div>
       <ReasoningTrace reasoning={recommendation.reasoning} />
+    </div>
+  );
+}
+
+/**
+ * Horizontal scroll section of strain cards with rich recommendation info.
+ * Cards link to the strain detail page instead of embedding the detail view.
+ */
+function StrainCardsSection({
+  recommendations,
+  profilesByName,
+}: {
+  recommendations: import("@/lib/strain-api").StrainRecommendation[];
+  profilesByName: Map<string, import("@/lib/strain-api").RecommendationResult["strains"][number]>;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Tap a strain for details
+      </p>
+      <div className="flex gap-4 overflow-x-auto pb-2 scroll-smooth">
+        {recommendations.slice(0, 6).map((rec, i) => {
+          const profile = profilesByName.get(rec.strainName.toLowerCase());
+          return (
+            <Link
+              key={`${rec.strainName}-${i}`}
+              to={`/strain/${slugify(rec.strainName)}`}
+              className="group relative flex min-w-[180px] max-w-[180px] flex-col rounded-2xl border border-border/70 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+            >
+              {/* Rank badge */}
+              <span className="absolute left-3 top-3 flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {i + 1}
+              </span>
+
+              {/* Save button */}
+              <div className="absolute right-3 top-3" onClick={(e) => e.preventDefault()}>
+                <SaveStrainButton
+                  profile={
+                    profile ?? {
+                      name: rec.strainName,
+                      inKnowledgeBase: false,
+                    }
+                  }
+                />
+              </div>
+
+              {/* Photo placeholder */}
+              <div className="mt-6 flex h-24 items-center justify-center rounded-xl bg-muted/50">
+                <span className="text-3xl">🌿</span>
+              </div>
+
+              {/* Strain name */}
+              <h3 className="mt-3 flex items-center gap-1.5 text-sm font-semibold">
+                {rec.strainName}
+                <StrainNoteIndicator strainName={rec.strainName} />
+              </h3>
+
+              {/* THC & Type badges */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {profile?.thcRange && (
+                  <span className="rounded-full bg-primary/8 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    THC {profile.thcRange}
+                  </span>
+                )}
+                {profile?.cbdRange && (
+                  <span className="rounded-full bg-green-500/8 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                    CBD {profile.cbdRange}
+                  </span>
+                )}
+                {profile?.type && (
+                  <Badge
+                    className={cn(
+                      typeBadgeClass(profile.type),
+                      "capitalize text-[10px]",
+                    )}
+                  >
+                    {TYPE_LABEL[profile.type]}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Best for */}
+              {rec.bestFor && (
+                <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+                  <span className="font-medium text-primary">Best for:</span> {rec.bestFor}
+                </p>
+              )}
+
+              {/* Caution */}
+              {rec.caution && (
+                <p className="mt-1 text-[11px] leading-4 text-amber-700">
+                  <span className="font-medium">⚠️ Caution:</span> {rec.caution}
+                </p>
+              )}
+
+              {/* Reason snippet */}
+              {rec.reason && (
+                <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-muted-foreground">
+                  {rec.reason}
+                </p>
+              )}
+
+              {/* Matched prefs */}
+              {rec.matchedPrefs && rec.matchedPrefs.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {rec.matchedPrefs.slice(0, 2).map((pref, j) => (
+                    <span
+                      key={j}
+                      className="rounded-full bg-amber-500/8 px-1.5 py-0.5 text-[9px] font-medium text-amber-700"
+                    >
+                      ✓ {pref}
+                    </span>
+                  ))}
+                  {rec.matchedPrefs.length > 2 && (
+                    <span className="text-[9px] text-muted-foreground">
+                      +{rec.matchedPrefs.length - 2}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Weight before trying */}
+              {rec.weightBeforeTrying && (
+                <p className="mt-1.5 rounded-lg bg-blue-500/5 px-2 py-1 text-[10px] leading-3 text-blue-700">
+                  {rec.weightBeforeTrying}
+                </p>
+              )}
+
+              {/* Sources */}
+              {rec.sourceAnchors && rec.sourceAnchors.length > 0 && (
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  {rec.sourceAnchors.length} source{rec.sourceAnchors.length !== 1 ? "s" : ""}
+                </p>
+              )}
+
+              {/* Tap hint */}
+              <div className="mt-auto flex items-center gap-1 pt-2">
+                <span className="text-[10px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                  View details
+                </span>
+                <ArrowRight className="size-3 text-primary opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -751,23 +896,12 @@ export function StrainBrowse({
               </p>
             )}
 
-            {result.strains.length > 0 && (
-              <div
-                className={cn(
-                  "grid gap-6",
-                  result.strains.length === 3
-                    ? "md:grid-cols-2 xl:grid-cols-3"
-                    : "md:grid-cols-2",
-                )}
-              >
-                {result.strains.map((s) => (
-                  <StrainDetailCard
-                    key={s.name}
-                    strain={s}
-                    conditions={searched}
-                  />
-                ))}
-              </div>
+            {/* Horizontal scroll strain cards with full recommendation info */}
+            {result.recommendations.length > 0 && (
+              <StrainCardsSection
+                recommendations={result.recommendations}
+                profilesByName={profilesByName}
+              />
             )}
 
             <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
