@@ -374,9 +374,13 @@ enum Potency: String, CaseIterable, Identifiable, Hashable, Sendable {
     case balanced
     case strong
     var id: String { rawValue.isEmpty ? "any" : rawValue }
+    /// Display label. Kept in lockstep with the Find tab's
+    /// `FindFilter.ThcBand` so a chip labelled "Any THC" here
+    /// reads the same way on Find — no surprises when the user
+    /// switches tabs mid-research.
     var label: String {
         switch self {
-        case .any: "Any"
+        case .any: "Any THC"
         case .mild: "Mild"
         case .balanced: "Balanced"
         case .strong: "Strong"

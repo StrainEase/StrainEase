@@ -1,8 +1,12 @@
 import SwiftUI
 import UIKit
 
-/// Floating compare tray that floats above the tab bar (except on Find,
-/// where the FindView's inline `compareTray` block is the single CTA).
+/// Floating compare tray that floats above the tab bar on Home and Find.
+/// Hidden on Discover and Doctors — those pages surface compare only via
+/// the per-strain `CompareToggleButton` in `StrainDetailView`, which adds
+/// to the shared selection without rendering the tray. Discover
+/// additionally has an inline `compareTray` block in `DiscoverView`; both
+/// can coexist.
 ///
 /// Reads its selection + run state from the shared `CompareSelectionStore`
 /// injected at the `MainTabView` root. The tray's "Compare N strains"
@@ -21,7 +25,14 @@ struct CompareTrayBar: View {
     @State private var trayPath: [StrainProfile] = []
     @State private var keyboardHeight: CGFloat = 0
 
-    private var visible: Bool { !store.names.isEmpty && nav.tab != .find }
+    // Visible on Home and Find. Discover and Doctors stay clean: the
+    // user adds strains via StrainDetailView's CompareToggleButton from
+    // any tab, and the tray is only meaningful on the pages where the
+    // user is actually browsing the catalog or jumping into a research
+    // session.
+    private var visible: Bool {
+        !store.names.isEmpty && (nav.tab == .home || nav.tab == .find)
+    }
 
     var body: some View {
         Group {
@@ -34,19 +45,24 @@ struct CompareTrayBar: View {
         .animation(.snappy(duration: 0.32), value: store.names.isEmpty)
         .animation(.snappy(duration: 0.32), value: nav.tab)
         .onChange(of: store.comparison) { _, new in
-            // Only present the sheet on non-Find tabs — Find renders inline.
-            // Sync once per non-nil comparison so the sheet doesn't keep
-            // re-presenting when the user dismisses it manually.
-            if let new, nav.tab != .find {
+            // Present the sheet on Home, Find, and Doctors (no inline
+            // comparison there). On Discover, the inline
+            // `CompareResultsView` in DiscoverView takes over, so the
+            // sheet is skipped to avoid stacking. Sync once per non-nil
+            // comparison so the sheet doesn't keep re-presenting when
+            // the user dismisses it manually.
+            if let new, nav.tab != .discover {
                 presented = ComparisonPresentation(comparison: new)
             } else if new == nil {
                 presented = nil
             }
         }
         .onChange(of: nav.tab) { _, new in
-            // If the user switches to Find mid-comparison, dismiss the sheet
-            // so the inline Find view takes over without a stacked sheet.
-            if new == .find { presented = nil }
+            // If the user switches to Discover mid-comparison, dismiss
+            // the sheet so the inline DiscoverView takes over without a
+            // stacked sheet. Switching to Find or Doctors leaves the
+            // sheet up (it's modal context for the comparison itself).
+            if new == .discover { presented = nil }
         }
         .sheet(item: $presented) { presentation in
             NavigationStack(path: $trayPath) {
