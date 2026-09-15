@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { toTitleCase } from "@/lib/title-case";
 import type { CompareSelection } from "@/hooks/use-compare-selection";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GitCompareArrows, Sparkles, X } from "lucide-react";
@@ -79,10 +78,10 @@ export function CompareTray({
                   key={name}
                   className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 py-1 pl-3 pr-1.5 text-xs font-medium text-primary"
                 >
-                  {toTitleCase(name)}
+                  {name}
                   <button
                     type="button"
-                    aria-label={`Remove ${toTitleCase(name)}`}
+                    aria-label={`Remove ${name}`}
                     className="cursor-pointer rounded-full p-0.5 transition-colors hover:bg-primary/15"
                     onClick={() => remove(name)}
                   >

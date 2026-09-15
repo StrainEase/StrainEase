@@ -8,7 +8,6 @@ import {
 } from "@/lib/strain-ui";
 import type { StrainType } from "@/lib/strain-profile";
 import { THC_BANDS, matchesThcBand, type ThcBand } from "@/lib/thc-bands";
-import { toTitleCase } from "@/lib/title-case";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StrainImage } from "@/components/strain/StrainImage";
@@ -451,7 +450,6 @@ export function StrainFind() {
 function FindPreviewCard({ preview }: { preview: StrainPreview }) {
   const href = `/strain/${slugify(preview.name)}`;
   const type = preview.type;
-  const displayName = toTitleCase(preview.name);
 
   return (
     <Link
@@ -471,7 +469,7 @@ function FindPreviewCard({ preview }: { preview: StrainPreview }) {
       <StrainImage
         src={preview.imageUrl}
         fallbackSrc={getPhotoURL(preview.name)}
-        alt={`${displayName} flower`}
+        alt={`${preview.name} flower`}
         type={type}
         className="aspect-[4/3] w-full rounded-2xl border border-border/70"
         iconClassName="size-7"
@@ -482,7 +480,7 @@ function FindPreviewCard({ preview }: { preview: StrainPreview }) {
         </Badge>
       )}
       <p className="min-h-[38px] font-display text-[16px] font-semibold leading-snug text-pretty line-clamp-2">
-        {displayName}
+        {preview.name}
       </p>
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         {preview.thcRange && (
