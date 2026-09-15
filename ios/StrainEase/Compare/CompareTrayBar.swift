@@ -1,12 +1,11 @@
 import SwiftUI
 import UIKit
 
-/// Floating compare tray that floats above the tab bar on the Find tab
-/// only. Hidden on Discover (Home), Browse, and Doctors — those pages
-/// surface compare only via the per-strain `CompareToggleButton` in
-/// `StrainDetailView`, which adds to the shared selection without
-/// rendering the tray. Find additionally has an inline `compareTray`
-/// block in `FindView`; both can coexist.
+/// Floating compare tray that floats above the tab bar on Home and Find.
+/// Hidden on Browse and Doctors — those pages surface compare only via
+/// the per-strain `CompareToggleButton` in `StrainDetailView`, which adds
+/// to the shared selection without rendering the tray. Find additionally
+/// has an inline `compareTray` block in `FindView`; both can coexist.
 ///
 /// Reads its selection + run state from the shared `CompareSelectionStore`
 /// injected at the `MainTabView` root. The tray's "Compare N strains"
@@ -25,10 +24,13 @@ struct CompareTrayBar: View {
     @State private var trayPath: [StrainProfile] = []
     @State private var keyboardHeight: CGFloat = 0
 
-    // Visible only on Find. Discover/Home, Browse, and Doctors stay clean:
-    // the user adds strains via StrainDetailView's CompareToggleButton from
-    // anywhere, then jumps to Find to see + run the comparison.
-    private var visible: Bool { !store.names.isEmpty && nav.tab == .find }
+    // Visible on Home and Find. Browse and Doctors stay clean: the user
+    // adds strains via StrainDetailView's CompareToggleButton from any tab,
+    // and the tray is only meaningful on the pages where the user is
+    // actually browsing the catalog or running research.
+    private var visible: Bool {
+        !store.names.isEmpty && (nav.tab == .home || nav.tab == .find)
+    }
 
     var body: some View {
         Group {
@@ -41,9 +43,11 @@ struct CompareTrayBar: View {
         .animation(.snappy(duration: 0.32), value: store.names.isEmpty)
         .animation(.snappy(duration: 0.32), value: nav.tab)
         .onChange(of: store.comparison) { _, new in
-            // Only present the sheet on non-Find tabs — Find renders inline.
-            // Sync once per non-nil comparison so the sheet doesn't keep
-            // re-presenting when the user dismisses it manually.
+            // Present the sheet on Home (no inline comparison there). On
+            // Find, the inline `CompareResultsView` in FindView takes over,
+            // so the sheet is skipped to avoid stacking. Sync once per
+            // non-nil comparison so the sheet doesn't keep re-presenting
+            // when the user dismisses it manually.
             if let new, nav.tab != .find {
                 presented = ComparisonPresentation(comparison: new)
             } else if new == nil {
@@ -51,8 +55,10 @@ struct CompareTrayBar: View {
             }
         }
         .onChange(of: nav.tab) { _, new in
-            // If the user switches to Find mid-comparison, dismiss the sheet
-            // so the inline Find view takes over without a stacked sheet.
+            // If the user switches to Find mid-comparison, dismiss the
+            // sheet so the inline Find view takes over without a stacked
+            // sheet. Switching to Browse or Doctors leaves the sheet up
+            // (it's modal context for the comparison itself).
             if new == .find { presented = nil }
         }
         .sheet(item: $presented) { presentation in
