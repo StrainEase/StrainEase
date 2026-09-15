@@ -576,6 +576,7 @@ struct DiscoverView: View {
                     path.append(profile)
                 } label: {
                     recommendationCard(rec, rank: index + 1, profile: profile)
+                        .compareHoldable(rec.strainName)
                 }
                 .buttonStyle(.plain)
             }
