@@ -8,7 +8,7 @@ enum ResearchStep: String, CaseIterable, Equatable {
 
 @Observable
 @MainActor
-final class BrowseModel {
+final class DiscoverModel {
     var ailments: [String] = []
     var customAilment = ""
     var potency: Potency = .any
@@ -163,13 +163,13 @@ final class BrowseModel {
     }
 }
 
-extension BrowseModel {
-    static var previewEmpty: BrowseModel {
-        BrowseModel(api: PreviewStrainAPI())
+extension DiscoverModel {
+    static var previewEmpty: DiscoverModel {
+        DiscoverModel(api: PreviewStrainAPI())
     }
 
-    static var previewFilled: BrowseModel {
-        let model = BrowseModel(api: PreviewStrainAPI())
+    static var previewFilled: DiscoverModel {
+        let model = DiscoverModel(api: PreviewStrainAPI())
         model.ailments = ["Insomnia"]
         model.searched = ["Insomnia"]
         model.result = .sample

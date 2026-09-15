@@ -1,8 +1,8 @@
 import SwiftUI
 import UIKit
 
-/// Floating compare tray that floats above the tab bar (except on Browse,
-/// where the BrowseView's inline `compareTray` block is the single CTA).
+/// Floating compare tray that floats above the tab bar (except on Discover,
+/// where the DiscoverView's inline `compareTray` block is the single CTA).
 ///
 /// Reads its selection + run state from the shared `CompareSelectionStore`
 /// injected at the `MainTabView` root. The tray's "Compare N strains"

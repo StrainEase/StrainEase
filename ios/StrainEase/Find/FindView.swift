@@ -58,7 +58,7 @@ struct FindView: View {
     private var hero: some View {
         VStack(alignment: .leading, spacing: 8) {
             Eyebrow(text: "Strain directory")
-            Text("Browse popular strains")
+            Text("Find popular strains")
                 .font(.system(.largeTitle, design: .serif).weight(.regular))
                 .foregroundStyle(Palette.foreground)
             Text("Live from Leafly. Filter by type, THC, or the effects you’re after.")
@@ -193,7 +193,7 @@ struct FindView: View {
     }
 }
 
-#Preview("Browse") {
+#Preview("Find") {
     FindView(model: FindModel(api: PreviewStrainAPI()))
         .environment(\.strainAPI, PreviewStrainAPI())
         .environment(AppNavigation())

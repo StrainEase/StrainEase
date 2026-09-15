@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct BrowseView: View {
+struct DiscoverView: View {
     @Environment(SavedAilmentsStore.self) private var savedAilments
     @Environment(SavedMedicationsStore.self) private var savedMedications
     @Environment(TriedStrainsStore.self) private var triedStrains
@@ -10,7 +10,7 @@ struct BrowseView: View {
     @Environment(AppNavigation.self) private var nav
     @Environment(ResearchHistoryStore.self) private var history
 
-    @State private var model: BrowseModel
+    @State private var model: DiscoverModel
     @State private var path: [StrainProfile] = []
     @FocusState private var focused: Field?
     @State private var didHydrateAilments = false
@@ -29,7 +29,7 @@ struct BrowseView: View {
     }
 
 
-    init(model: BrowseModel) {
+    init(model: DiscoverModel) {
         _model = State(initialValue: model)
     }
 
@@ -89,7 +89,7 @@ struct BrowseView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .navigationTitle("Browse")
+            .navigationTitle("Discover")
             .navigationBarTitleDisplayMode(.inline)
             .appChrome()
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -144,7 +144,7 @@ struct BrowseView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Same chip list, same label as FindView's ailment
             // row — so the user's vocabulary matches when they hop
-            // between the Find and Browse tabs.
+            // between the Find and Discover tabs.
             SectionLabel("Commonly used for", index: 1)
             FlowLayout(spacing: 8) {
                 ForEach(Conditions.catalog, id: \.self) { name in
@@ -195,7 +195,7 @@ struct BrowseView: View {
 
     private var potency: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Matches the Browse tab's "THC" section header so the
+            // Matches the Find tab's "THC" section header so the
             // same chip strip reads the same on both surfaces.
             SectionLabel("THC", index: 2)
             FlowLayout(spacing: 8) {
@@ -678,7 +678,7 @@ struct BrowseView: View {
 }
 
 #Preview("Empty") {
-    BrowseView(model: .previewEmpty)
+    DiscoverView(model: .previewEmpty)
         .environment(\.strainAPI, PreviewStrainAPI())
         .environment(AppNavigation())
         .environment(AuthSession.previewSignedIn)
@@ -694,7 +694,7 @@ struct BrowseView: View {
 }
 
 #Preview("Results · Dark") {
-    BrowseView(model: .previewFilled)
+    DiscoverView(model: .previewFilled)
         .environment(\.strainAPI, PreviewStrainAPI())
         .environment(AppNavigation())
         .environment(AuthSession.previewSignedIn)

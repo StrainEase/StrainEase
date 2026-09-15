@@ -171,8 +171,8 @@ final class StrainEaseTests: XCTestCase {
     }
 
     @MainActor
-    func testBrowseModelAppliesSavedAilmentsAndRestoredResult() {
-        let model = BrowseModel(api: PreviewStrainAPI())
+    func testDiscoverModelAppliesSavedAilmentsAndRestoredResult() {
+        let model = DiscoverModel(api: PreviewStrainAPI())
         model.applyAilments(["Insomnia", " insomnia ", "Pain"])
         XCTAssertEqual(model.ailments, ["Insomnia", "Pain"])
         model.applyAilments(["Anxiety"], replace: true)
@@ -669,19 +669,20 @@ final class StrainEaseTests: XCTestCase {
         )
     }
 
-    func testPrimaryTabsAreHomeFindBrowse() {
-        // PR #284 swapped the Find/Browse labels and icons so .find now
-        // reads as "Browse" / book.closed.fill and .browse reads as
-        // "Find" / magnifyingglass. The tab labels in MainTabView stay
-        // "Find"/"Browse" (hardcoded) on purpose so the user-facing tabs
-        // match the catalog-vs-recommendations split the rename imposes.
-        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Browse", "Find", "Doctors"])
+    func testPrimaryTabsAreHomeFindDiscover() {
+        // Tabs in order: Home, Find (strain directory, magnifyingglass),
+        // Discover (patient research, sparkles), Doctors. The Discover
+        // case replaced .browse after the PR #284 swap settled on the
+        // Find = catalog / Discover = research split. Don't try to
+        // 'fix' this back — the test pins the user-visible tab order.
+        XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Find", "Discover", "Doctors"])
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("saved"))
         XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("account"))
+        XCTAssertFalse(AppTab.allCases.map(\.rawValue).contains("browse"))
     }
 
     @MainActor
-    func testHeaderFavoritesOpensSavedNotBrowse() {
+    func testHeaderFavoritesOpensSavedNotDiscover() {
         let nav = AppNavigation()
         XCTAssertFalse(nav.showSaved)
         XCTAssertEqual(nav.tab, .home)

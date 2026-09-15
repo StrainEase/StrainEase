@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Reusable rendering of a `StrainComparison`. Used inline on the Browse tab
-/// (BrowseView observes the shared store) and inside the tray's result sheet
+/// Reusable rendering of a `StrainComparison`. Used inline on the Discover tab
+/// (DiscoverView observes the shared store) and inside the tray's result sheet
 /// (which owns its own `NavigationStack` so a strain detail drill-down works
 /// from either surface).
 struct CompareResultsView: View {

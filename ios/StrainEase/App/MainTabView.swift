@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var homeModel = HomeModel()
-    @State private var browseModel: BrowseModel
+    @State private var discoverModel: DiscoverModel
     @State private var findModel = FindModel()
     @State private var doctorsModel = DoctorsModel()
     @State private var nav = AppNavigation()
@@ -11,7 +11,7 @@ struct MainTabView: View {
     init() {
         let store = CompareSelectionStore()
         _compareStore = State(wrappedValue: store)
-        _browseModel = State(wrappedValue: BrowseModel(compareStore: store))
+        _discoverModel = State(wrappedValue: DiscoverModel(compareStore: store))
     }
 
     var body: some View {
@@ -48,8 +48,8 @@ struct MainTabView: View {
                 Tab("Find", systemImage: AppTab.find.systemImage, value: AppTab.find) {
                     FindView(model: findModel)
                 }
-                Tab("Browse", systemImage: AppTab.browse.systemImage, value: AppTab.browse) {
-                    BrowseView(model: browseModel)
+                Tab("Discover", systemImage: AppTab.discover.systemImage, value: AppTab.discover) {
+                    DiscoverView(model: discoverModel)
                 }
                 Tab("Doctors", systemImage: AppTab.doctors.systemImage, value: AppTab.doctors) {
                     DoctorsView(model: doctorsModel)
@@ -63,9 +63,9 @@ struct MainTabView: View {
                 FindView(model: findModel)
                     .tabItem { Label("Find", systemImage: AppTab.find.systemImage) }
                     .tag(AppTab.find)
-                BrowseView(model: browseModel)
-                    .tabItem { Label("Browse", systemImage: AppTab.browse.systemImage) }
-                    .tag(AppTab.browse)
+                DiscoverView(model: discoverModel)
+                    .tabItem { Label("Discover", systemImage: AppTab.discover.systemImage) }
+                    .tag(AppTab.discover)
                 DoctorsView(model: doctorsModel)
                     .tabItem { Label("Doctors", systemImage: AppTab.doctors.systemImage) }
                     .tag(AppTab.doctors)
