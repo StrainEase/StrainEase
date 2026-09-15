@@ -592,7 +592,6 @@ struct DiscoverView: View {
                         .foregroundStyle(Palette.mutedForeground)
                 } else {
                     Button {
-                        // Add top 3 strains to compare and trigger comparison
                         let topNames = result.recommendations.prefix(3).map(\.strainName)
                         for name in topNames {
                             model.addToCompare(name)
@@ -613,6 +612,17 @@ struct DiscoverView: View {
                         .background(Palette.primary, in: Capsule())
                     }
                     .buttonStyle(.plain)
+                }
+            }
+
+            ForEach(Array(result.recommendations.enumerated()), id: \.element.id) { index, rec in
+                let profile = result.profile(named: rec.strainName)
+                    ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
+                Button {
+                    path.append(profile)
+                } label: {
+                    recommendationCard(rec, rank: index + 1, profile: profile)
+                        .compareHoldable(rec.strainName)
                 }
             }
             .padding(16)
