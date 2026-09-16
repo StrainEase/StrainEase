@@ -129,10 +129,11 @@ struct SWPrimaryButton: View {
                 if isBusy {
                     ProgressView()
                         .tint(Palette.primaryForeground)
-                } else {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
                 }
+                Text(title)
+                    .font(.system(size: isBusy ? 14 : 16, weight: .semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 Spacer(minLength: 0)
                 Image(systemName: systemImage)
                     .font(.system(size: 13, weight: .semibold))
