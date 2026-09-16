@@ -28,6 +28,10 @@ import { fetchWeedmapsProfile } from "./weedmaps";
 import { fetchAllbudProfile } from "./allbud";
 import { getSourceCache, putSourceCache, type SourceId } from "./source-cache";
 import {
+  canonicalProfileName,
+  registerCatalogName,
+} from "./canonical-strain-name";
+import {
   averagePercent,
   formatPercent,
   parsePercentMidpoint,
@@ -380,8 +384,19 @@ export async function consolidateStrain(
     descriptionAttribution ||
     ratingAttribution;
 
+  // Seed the canonical-name catalog with whatever authoritative names
+  // we have on hand (Leafly/Weedmaps/Allbud scrape results). The
+  // catalog table is consulted first by `canonicalProfileName`, so a
+  // user search for "mac 1" returns "Mac 1" (the strain name) rather
+  // than "MAC 1" (which is what pure title-casing would produce for
+  // an acronym-looking token).
+  for (const s of SOURCE_ORDER) {
+    const sourceProfile = profiles[s];
+    if (sourceProfile?.name) registerCatalogName(slug, sourceProfile.name);
+  }
+
   const profile: ConsolidatedStrain = {
-    name: trimmed,
+    name: canonicalProfileName(trimmed, trimmed),
     inKnowledgeBase: true,
     type:
       (typeAttribution?.value as StrainType | undefined) ??

@@ -18,7 +18,6 @@ import {
 } from "@/lib/strain-catalog";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { TERPENE_PROFILES, terpeneSlug } from "@/lib/terpenes";
-import { toTitleCase } from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/BrandLogo";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -264,7 +263,6 @@ function StrainCard({
   const tiltRef = usePointerTilt<HTMLAnchorElement>(8);
 
   const hasFooter = Boolean(strain.terpenes) || Boolean(strain.leaflyNote);
-  const displayName = toTitleCase(strain.name);
 
   return (
     <motion.div {...fadeUp(delay)} className="h-full">
@@ -276,13 +274,13 @@ function StrainCard({
         <StrainImage
           src={strain.imageUrl}
           fallbackSrc={getPhotoURL(strain.name)}
-          alt={`${displayName} flower`}
+          alt={`${strain.name} flower`}
           type={strain.type}
           className="mb-4 h-36 w-full rounded-xl border border-border/70"
         />
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold tracking-tight">
-            {displayName}
+            {strain.name}
           </h3>
           <Badge className={cn(typeBadgeClass(strain.type), "capitalize")}>
             {TYPE_LABEL[strain.type] ?? strain.type}
@@ -881,7 +879,7 @@ export default function Landing() {
                     to={`/strain/${slugify(strain.name)}`}
                     className="transition-colors hover:text-foreground"
                   >
-                    {toTitleCase(strain.name)}
+                    {strain.name}
                   </Link>
                 </li>
               ))}

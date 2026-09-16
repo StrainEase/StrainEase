@@ -4,7 +4,6 @@ import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import { slugify } from "@/lib/saved-strains";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
-import { toTitleCase } from "@/lib/title-case";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
@@ -27,7 +26,6 @@ export function StrainPoster({
 }) {
   const href = `/strain/${slugify(profile.name)}`;
   const type = profile.type;
-  const displayName = toTitleCase(profile.name);
 
   return (
     <Link
@@ -38,7 +36,7 @@ export function StrainPoster({
       <StrainImage
         src={profile.imageUrl}
         fallbackSrc={getPhotoURL(profile.name)}
-        alt={`${displayName} flower`}
+        alt={`${profile.name} flower`}
         type={type}
         className="aspect-[4/3] w-full rounded-2xl border border-border/70"
         iconClassName={compact ? "size-6" : "size-7"}
@@ -54,7 +52,7 @@ export function StrainPoster({
           compact ? "min-h-8 text-[14px]" : "min-h-[38px] text-[16px]",
         )}
       >
-        {displayName}
+        {profile.name}
       </p>
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         {profile.thcRange && (

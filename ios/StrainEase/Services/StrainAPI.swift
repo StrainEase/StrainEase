@@ -379,14 +379,56 @@ struct LiveStrainAPI: StrainServicing {
         if let details = info["details"] as? String, !details.isEmpty {
             return details
         }
-        if let message = info["NSLocalizedDescription"] as? String,
-           !message.isEmpty,
-           message != ns.domain
+        if let description = info["NSLocalizedDescription"] as? String,
+           !description.isEmpty,
+           description != ns.domain
         {
-            return message
+            // Firebase iOS SDK 11.x and 12.x have a bug in
+            // `FunctionsError.init(httpStatusCode:...)`: when the server's
+            // error status string maps to `.internal` (which is also the
+            // SDK's default fallback for unknown status names), the SDK
+            // bails out early and discards `errorDetails["message"]`,
+            // surfacing the literal code name "INTERNAL" to the UI.
+            // web and Android clients see the real server message because
+            // their SDKs don't share that code path. Detect the lost-
+            // message case and show a useful fallback instead.
+            if isFirebaseFunctionsLostMessage(domain: ns.domain, description: description) {
+                return lostMessageFallback
+            }
+            return description
+        }
+        if isFirebaseFunctionsLostMessage(
+            domain: ns.domain,
+            description: ns.localizedDescription
+        ) {
+            return lostMessageFallback
         }
         return ns.localizedDescription
     }
+
+    /// Domain string used by the current Swift Firebase Functions SDK.
+    /// The Obj-C bridge historically used `FIRFunctionsErrorDomain`; both
+    /// show up in the wild depending on which SDK version the app was
+    /// linked against, so we accept either.
+    private static let firebaseFunctionsDomains: Set<String> = [
+        "com.firebase.functions",
+        "FIRFunctionsErrorDomain",
+    ]
+
+    /// True when the SDK swallowed the server's HttpsError message and
+    /// surfaced the bare code name "INTERNAL" instead. See the comment
+    /// in `friendlyMessage(from:)` for the upstream bug.
+    private static func isFirebaseFunctionsLostMessage(
+        domain: String,
+        description: String
+    ) -> Bool {
+        firebaseFunctionsDomains.contains(domain) && description == "INTERNAL"
+    }
+
+    /// Fallback copy for the lost-INTERNAL-message case. Keep this in one
+    /// place so it stays consistent across every AI callable.
+    private static let lostMessageFallback =
+        "Our research service is having trouble right now. Please try again in a moment."
 }
 
 struct PreviewStrainAPI: StrainServicing {

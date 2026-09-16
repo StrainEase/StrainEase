@@ -13,6 +13,9 @@ import { useMedications } from "@/hooks/use-medications";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
+import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
+import { slugify } from "@/lib/saved-strains";
 import {
   longPressRingClass,
   useCompareLongPress,
@@ -28,10 +31,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
 import { ReasoningTrace } from "@/components/compare/ReasoningTrace";
 import { RedditThreads } from "@/components/compare/RedditThreads";
-import { slugify } from "@/lib/saved-strains";
 import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
 import { compactPrefs, type ResearchPrefs, type ThcSensitivity } from "@/lib/research-prefs";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
@@ -215,6 +216,226 @@ function ComparableRecommendation({
         )}
       </div>
       <ReasoningTrace reasoning={recommendation.reasoning} />
+    </div>
+  );
+}
+
+/**
+ * Horizontal scroll section of strain cards with rich recommendation info.
+ * Combines photo, strain info, and Add to compare functionality in ONE card per strain.
+ */
+function StrainCardsSection({
+  recommendations,
+  profilesByName,
+  inCompareSelection,
+  compareAtCap,
+  onAddToCompare,
+}: {
+  recommendations: import("@/lib/strain-api").StrainRecommendation[];
+  profilesByName: Map<string, import("@/lib/strain-api").RecommendationResult["strains"][number]>;
+  inCompareSelection?: (name: string) => boolean;
+  compareAtCap?: boolean;
+  onAddToCompare?: (name: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const visibleRecommendations = recommendations.slice(0, 6);
+
+  // Track scroll position to update active dot
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const scrollLeft = scrollContainer.scrollLeft;
+      const cardWidth = scrollContainer.offsetWidth * 0.85 + 16; // card width + gap
+      const newIndex = Math.round(scrollLeft / cardWidth);
+      setActiveIndex(Math.min(newIndex, visibleRecommendations.length - 1));
+    };
+
+    scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+  }, [visibleRecommendations.length]);
+
+  // Scroll to specific card when dot is clicked
+  const scrollToCard = (index: number) => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+    const cardWidth = scrollContainer.offsetWidth * 0.85 + 16; // card width + gap
+    scrollContainer.scrollTo({
+      left: index * cardWidth,
+      behavior: "smooth",
+    });
+    setActiveIndex(index);
+  };
+
+  return (
+    <div className="space-y-3 -mx-4 px-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Tap a strain for details
+      </p>
+      <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch]">
+        {recommendations.slice(0, 6).map((rec, i) => {
+          const profile = profilesByName.get(rec.strainName.toLowerCase());
+          const strainSlug = slugify(rec.strainName);
+          const added = inCompareSelection?.(rec.strainName) ?? false;
+          const disabled = !added && (compareAtCap ?? false);
+          return (
+            <div
+              key={`${rec.strainName}-${i}`}
+              className="group relative flex min-w-[85vw] max-w-[85vw] snap-start flex-col rounded-2xl border border-border/70 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md sm:min-w-[280px] sm:max-w-[280px]"
+            >
+              {/* Rank badge */}
+              <span className="absolute left-3 top-3 z-10 flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {i + 1}
+              </span>
+
+              {/* Save button */}
+              <div className="absolute right-3 top-3 z-10">
+                <SaveStrainButton
+                  profile={
+                    profile ?? {
+                      name: rec.strainName,
+                      inKnowledgeBase: false,
+                    }
+                  }
+                />
+              </div>
+
+              {/* Strain photo with proper loading - clickable to details */}
+              <Link to={`/strain/${strainSlug}`} className="block overflow-hidden rounded-xl">
+                <StrainImage
+                  src={profile?.imageUrl}
+                  alt={rec.strainName}
+                  fallbackSrc={profile ? getPhotoURL(slugify(profile.name)) : undefined}
+                  type={profile?.type}
+                  className="h-32 w-full"
+                />
+              </Link>
+
+              {/* Strain name - clickable to details */}
+              <Link to={`/strain/${strainSlug}`} className="mt-3 flex items-center gap-1.5 text-sm font-semibold hover:text-primary">
+                {rec.strainName}
+                <StrainNoteIndicator strainName={rec.strainName} />
+              </Link>
+
+              {/* THC & Type badges */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {profile?.thcRange && (
+                  <span className="rounded-full bg-primary/8 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    THC {profile.thcRange}
+                  </span>
+                )}
+                {profile?.cbdRange && (
+                  <span className="rounded-full bg-green-500/8 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                    CBD {profile.cbdRange}
+                  </span>
+                )}
+                {profile?.type && (
+                  <Badge
+                    className={cn(
+                      typeBadgeClass(profile.type),
+                      "capitalize text-[10px]",
+                    )}
+                  >
+                    {TYPE_LABEL[profile.type]}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Best for */}
+              {rec.bestFor && (
+                <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+                  <span className="font-medium text-primary">Best for:</span> {rec.bestFor}
+                </p>
+              )}
+
+              {/* Caution */}
+              {rec.caution && (
+                <p className="mt-1 text-[11px] leading-4 text-amber-700">
+                  <span className="font-medium">Caution:</span> {rec.caution}
+                </p>
+              )}
+
+              {/* Reason snippet */}
+              {rec.reason && (
+                <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-muted-foreground">
+                  {rec.reason}
+                </p>
+              )}
+
+              {/* Matched prefs from reasoning */}
+              {rec.reasoning?.preferencesApplied && rec.reasoning.preferencesApplied.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {rec.reasoning.preferencesApplied.slice(0, 2).map((pref: string, j: number) => (
+                    <span
+                      key={j}
+                      className="rounded-full bg-amber-500/8 px-1.5 py-0.5 text-[9px] font-medium text-amber-700"
+                    >
+                      {pref}
+                    </span>
+                  ))}
+                  {rec.reasoning.preferencesApplied.length > 2 && (
+                    <span className="text-[9px] text-muted-foreground">
+                      +{rec.reasoning.preferencesApplied.length - 2}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Add to compare button */}
+              {onAddToCompare && (
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={added ? "secondary" : "outline"}
+                    className={cn(
+                      "w-full cursor-pointer rounded-full text-xs",
+                      added && "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15",
+                      disabled && "cursor-not-allowed opacity-50",
+                    )}
+                    disabled={disabled}
+                    onClick={() => onAddToCompare(rec.strainName)}
+                  >
+                    {added ? (
+                      <>
+                        <Check className="size-3" />
+                        Added
+                      </>
+                    ) : (
+                      <>
+                        <GitCompareArrows className="size-3" />
+                        Compare
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Indicator dots */}
+      {visibleRecommendations.length > 1 && (
+        <div className="flex justify-center gap-2 pt-1">
+          {visibleRecommendations.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => scrollToCard(i)}
+              className={cn(
+                "h-2 w-2 rounded-full transition-all duration-200",
+                i === activeIndex
+                  ? "w-5 bg-primary"
+                  : "bg-primary/30 hover:bg-primary/50",
+              )}
+              aria-label={`Go to card ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -684,9 +905,15 @@ export function StrainBrowse({
               <h2 className="text-xl font-semibold tracking-tight text-balance sm:text-2xl">
                 {result.headline}
               </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                {result.summary}
-              </p>
+              {/* Split summary into paragraphs for better readability */}
+              <div className="mt-3 max-w-3xl space-y-3 text-sm leading-7 text-muted-foreground sm:text-base">
+                {result.summary
+                  .split(/\n\n|\n/)
+                  .filter((p) => p.trim())
+                  .map((paragraph, idx) => (
+                    <p key={idx}>{paragraph.trim()}</p>
+                  ))}
+              </div>
               {verdictQuotes.length > 0 && (
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   {verdictQuotes.map(({ strain, note }) => (
@@ -704,78 +931,53 @@ export function StrainBrowse({
               )}
             </div>
 
-            <div className="grid snap-x snap-mandatory auto-cols-[minmax(18rem,85%)] grid-flow-col gap-4 overflow-x-auto pb-2 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-3">
-              {result.recommendations.map((r, i) => {
-                const profile = profilesByName.get(r.strainName.toLowerCase());
-                const added = inCompareSelection?.(r.strainName) ?? false;
-                const disabled = !added && (compareAtCap ?? false);
-                return (
-                  <ComparableRecommendation
-                    key={`${r.strainName}-${i}`}
-                    recommendation={r}
-                    index={i}
-                    profile={profile}
-                    added={added}
-                    disabled={disabled}
-                    compareAtCap={compareAtCap}
-                    onAddToCompare={onAddToCompare}
-                  />
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-5 py-4">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold tracking-tight">
-                  Narrowed it down?
-                </p>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Turn your top picks into a full side-by-side comparison with
-                  differences, common ground, and cautions.
-                </p>
-              </div>
-              <Button
-                type="button"
-                className="cursor-pointer rounded-full"
-                disabled={topNames.length < 2}
-                onClick={() => onCompare(topNames, searched)}
-              >
-                <GitCompareArrows className="size-4" />
-                Compare the top picks
-              </Button>
-            </div>
-            {topNames.length < 2 && (
-              <p className="-mt-4 text-xs text-muted-foreground">
-                Add at least two recommendations to compare — or use the compare
-                tab to pick your own strains.
-              </p>
+            {/* Horizontal scroll strain cards - ONE card per strain with photo, info, and compare */}
+            {result.recommendations.length > 0 && (
+              <StrainCardsSection
+                recommendations={result.recommendations}
+                profilesByName={profilesByName}
+                inCompareSelection={inCompareSelection}
+                compareAtCap={compareAtCap}
+                onAddToCompare={onAddToCompare}
+              />
             )}
 
-            {result.strains.length > 0 && (
-              <div
-                className={cn(
-                  "grid gap-6",
-                  result.strains.length === 3
-                    ? "md:grid-cols-2 xl:grid-cols-3"
-                    : "md:grid-cols-2",
-                )}
-              >
-                {result.strains.map((s) => (
-                  <StrainDetailCard
-                    key={s.name}
-                    strain={s}
-                    conditions={searched}
-                  />
-                ))}
-              </div>
-            )}
-
+            {/* Disclaimer above compare card */}
             <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
               <Sparkles className="size-3.5 shrink-0 text-primary" />
               Recommendations by Dr. Kaya, our AI cannabis care assistant.
               Synthesized from aggregated public sources. Not medical advice.
               Consult your healthcare provider.
             </p>
+
+            {/* Compare card - full width with stacked layout */}
+            <div className="space-y-3 rounded-2xl border border-primary/25 bg-primary/5 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold tracking-tight">
+                  Narrowed it down?
+                </p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Turn your top picks into a full side-by-side comparison with
+                  differences, common ground, and cautions.
+                </p>
+              </div>
+              {topNames.length < 2 ? (
+                <p className="text-xs text-muted-foreground">
+                  Add at least two recommendations to compare — or use the compare
+                  tab to pick your own strains.
+                </p>
+              ) : (
+                <Button
+                  type="button"
+                  className="w-full cursor-pointer rounded-full"
+                  disabled={topNames.length < 2}
+                  onClick={() => onCompare(topNames, searched)}
+                >
+                  <GitCompareArrows className="size-4" />
+                  Compare the top picks
+                </Button>
+              )}
+            </div>
 
             <RedditThreads
               sources={result.redditSources ?? []}

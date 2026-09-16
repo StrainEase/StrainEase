@@ -53,16 +53,12 @@ import {
 import { documentTitle } from "@/lib/site";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
 import { thcSensitivityLabel } from "@/lib/thc-sensitivity";
-import { toTitleCase } from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
 import {
   ArrowRight,
-  Calendar,
   Check,
-  Clock,
   FlaskConical,
-  GitCompareArrows,
   Loader2,
   Pill,
   Plus,
@@ -347,80 +343,6 @@ export default function Dashboard() {
 
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
         <MedicalDisclaimer className="mb-6" />
-        {/* Desktop keeps the full mode strip. Mobile uses the iOS-style
-            bottom tabs for Find/Browse and the header heart for Saved. */}
-        <div className="mb-8 hidden justify-center sm:flex">
-          <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-border/70 bg-card p-1">
-            <button
-              type="button"
-              onClick={() => applyMode("find")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "find"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Sparkles className="size-4" />
-              <span className="sm:hidden">Discover</span>
-              <span className="hidden sm:inline">Discover for ailments</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => applyMode("directory")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "directory"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Search className="size-4" />
-              <span className="sm:hidden">Find</span>
-              <span className="hidden sm:inline">Strain directory</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => applyMode("compare")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "compare"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <GitCompareArrows className="size-4" />
-              <span className="sm:hidden">Compare</span>
-              <span className="hidden sm:inline">Compare strains</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => applyMode("history")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "history"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Clock className="size-4" />
-              History
-            </button>
-            <button
-              type="button"
-              onClick={() => applyMode("checkins")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "checkins"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Calendar className="size-4" />
-              Check-ins
-            </button>
-          </div>
-        </div>
 
         {/* ── Strain finder (main focus) ────────────────────── */}
         <div className={cn(mode !== "find" && "hidden")}>
@@ -505,10 +427,10 @@ export default function Dashboard() {
                           key={name}
                           className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 py-1 pl-3 pr-1.5 text-xs font-medium text-primary"
                         >
-                          {toTitleCase(name)}
+                          {name}
                           <button
                             type="button"
-                            aria-label={`Remove ${toTitleCase(name)}`}
+                            aria-label={`Remove ${name}`}
                             className="cursor-pointer rounded-full p-0.5 transition-colors hover:bg-primary/15"
                             onClick={() => toggleStrainName(name)}
                           >
@@ -560,7 +482,7 @@ export default function Dashboard() {
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">
-                            Use “{toTitleCase(searchOutcome.name)}”
+                            Use “{searchOutcome.name}”
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
                             Not found on Leafly — the AI will research it during
@@ -954,7 +876,7 @@ function StrainRow({
         iconClassName="size-4"
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{toTitleCase(name)}</p>
+        <p className="truncate text-sm font-medium">{name}</p>
         {subtitle && (
           <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
         )}

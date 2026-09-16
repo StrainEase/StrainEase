@@ -228,4 +228,55 @@ final class LiveStrainAPIFriendlyMessageTests: XCTestCase {
 
         XCTAssertEqual(LiveStrainAPI.friendlyMessage(from: error), "Couldn't reach Leafly.")
     }
+
+    func testSurfacesFallbackWhenFirebaseFunctionsDropsInternalMessage() {
+        // The Firebase iOS SDK 11.x/12.x rewrites any HttpsError whose
+        // status string maps to `.internal` to the bare code name
+        // "INTERNAL", dropping the server's actual message. Mirror that
+        // NSError shape (the modern Swift SDK uses
+        // "com.firebase.functions" as the domain) and confirm we surface
+        // the fallback copy instead of leaving the user staring at
+        // "INTERNAL".
+        let modernSDKError = NSError(
+            domain: "com.firebase.functions",
+            code: 13,
+            userInfo: [
+                "NSLocalizedDescription": "INTERNAL",
+            ]
+        )
+        XCTAssertEqual(
+            LiveStrainAPI.friendlyMessage(from: modernSDKError),
+            "Our research service is having trouble right now. Please try again in a moment."
+        )
+
+        // Older Objective-C bridge used a different domain string. Same
+        // fallback should apply.
+        let legacySDKError = NSError(
+            domain: "FIRFunctionsErrorDomain",
+            code: 13,
+            userInfo: [
+                "NSLocalizedDescription": "INTERNAL",
+            ]
+        )
+        XCTAssertEqual(
+            LiveStrainAPI.friendlyMessage(from: legacySDKError),
+            "Our research service is having trouble right now. Please try again in a moment."
+        )
+
+        // The fallback is only for the INTERNAL dropped-message case.
+        // Any other description on a Firebase Functions error still
+        // flows through to the user unchanged (so a future SDK that
+        // preserves the server text isn't masked by this fallback).
+        let recoverableError = NSError(
+            domain: "com.firebase.functions",
+            code: 13,
+            userInfo: [
+                "NSLocalizedDescription": "Our research service returned an empty response. Please try again.",
+            ]
+        )
+        XCTAssertEqual(
+            LiveStrainAPI.friendlyMessage(from: recoverableError),
+            "Our research service returned an empty response. Please try again."
+        )
+    }
 }

@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -213,7 +214,7 @@ fun AccountView(
                         }
                     },
                 )
-                SavedStrainsList(
+                SavedStrainsView(
                     saved = saved,
                     onOpen = onOpenStrain,
                     onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
@@ -579,6 +580,15 @@ fun SavedStrainsSheet(
  * - Pin a small `Close` remove chip to each cell's top-right
  *   so the user can drop a strain from Favorites without
  *   opening the detail view first.
+ *
+ * The [modifier] lets callers bound the grid's height. When
+ * this list lives inside a parent that already provides a
+ * bounded height (the SavedStrainsSheet's `fillMaxSize`
+ * column) the cap is a no-op. When it lives inside a
+ * `verticalScroll` parent (AccountView), the caller must
+ * pass a `heightIn(max = …)` so Compose gets finite
+ * constraints — a LazyVerticalGrid refuses infinite
+ * max-height constraints.
  */
 @Composable
 private fun SavedStrainsList(
@@ -629,6 +639,38 @@ private fun SavedStrainsList(
             }
         }
     }
+}
+
+/**
+ * In-account wrapper around [SavedStrainsList]. AccountView's
+ * body is a `Column(verticalScroll(...))`, which gives its
+ * children unbounded vertical constraints. A `LazyVerticalGrid`
+ * refuses infinite max-height constraints at measure time and
+ * throws `IllegalStateException`. Cap the grid's height by
+ * the rendered row count so Compose can resolve a finite
+ * constraint; when the list overflows the cap, the outer
+ * AccountView scroll picks up the rest.
+ *
+ * The SavedStrainsSheet caller passes `Modifier.weight(1f)`
+ * instead, which gives the grid the parent Column's remaining
+ * bounded height — no heightIn cap needed there.
+ */
+@Composable
+private fun SavedStrainsView(
+    saved: List<SavedStrain>,
+    onOpen: (ai.strainease.app.models.StrainProfile) -> Unit,
+    onRemove: (String) -> Unit,
+    compareStore: CompareSelectionStore? = null,
+) {
+    val rows = (saved.size + 1) / 2
+    val maxHeight = (rows * 200 + 12).dp
+    SavedStrainsList(
+        saved = saved,
+        onOpen = onOpen,
+        onRemove = onRemove,
+        compareStore = compareStore,
+        modifier = Modifier.heightIn(max = maxHeight),
+    )
 }
 
 /**
