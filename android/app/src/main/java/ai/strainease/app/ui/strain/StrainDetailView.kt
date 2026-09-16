@@ -72,6 +72,7 @@ import ai.strainease.app.ui.components.SWChip
 import ai.strainease.app.ui.components.SWErrorBanner
 import ai.strainease.app.ui.components.SWFlowRow
 import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.theme.PageTopInset
 import ai.strainease.app.ui.components.StrainPhoto
 import ai.strainease.app.ui.components.TypeBadge
 import ai.strainease.app.ui.theme.StrainEaseTypography
@@ -201,8 +202,12 @@ fun StrainDetailView(
                 .verticalScroll(rememberScrollState())
                 // 20dp horizontal gutter so the section cards stop at
                 // the screen edges and match the iOS detail page.
-                // Bottom margin still matches the iOS detail page (48pt).
-                .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 48.dp),
+                // `PageTopInset` keeps the floating heart + compare
+                // buttons (anchored to the photo's top-right) clear of
+                // the status bar with the same breathing room as the
+                // four primary tabs. Bottom margin still matches the
+                // iOS detail page (48pt).
+                .padding(start = 20.dp, top = PageTopInset, end = 20.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             header(

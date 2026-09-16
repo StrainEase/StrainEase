@@ -37,11 +37,14 @@ import ai.strainease.app.models.Conditions
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
+import ai.strainease.app.ui.components.TopGradientOverlay
 import ai.strainease.app.ui.components.SWChip
 import ai.strainease.app.ui.components.SWFlowRow
 import ai.strainease.app.ui.components.SectionLabel
 import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.home.StrainPoster
+import ai.strainease.app.ui.theme.PageBottomInset
+import ai.strainease.app.ui.theme.PageTopInset
 import ai.strainease.app.ui.theme.StrainEaseTypography
 
 /**
@@ -85,7 +88,7 @@ fun FindView(
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = PageTopInset, bottom = PageBottomInset),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.fillMaxSize(),
@@ -180,6 +183,7 @@ fun FindView(
                 )
             }
         }
+        TopGradientOverlay()
     }
 }
 

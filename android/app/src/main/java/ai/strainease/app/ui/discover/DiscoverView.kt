@@ -55,6 +55,7 @@ import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MedicationAutocomplete
 import ai.strainease.app.ui.components.MeshBackground
+import ai.strainease.app.ui.components.TopGradientOverlay
 import ai.strainease.app.ui.components.SWCard
 import ai.strainease.app.ui.components.SWChip
 import ai.strainease.app.ui.components.SWErrorBanner
@@ -64,6 +65,8 @@ import ai.strainease.app.ui.components.SWPrimaryButton
 import ai.strainease.app.ui.components.SectionLabel
 import ai.strainease.app.ui.components.StrainAutocomplete
 import ai.strainease.app.ui.home.StrainPoster
+import ai.strainease.app.ui.theme.PageBottomInset
+import ai.strainease.app.ui.theme.PageTopInset
 import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.launch
 
@@ -213,7 +216,7 @@ fun DiscoverView(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(start = 20.dp, end = 20.dp, top = PageTopInset, bottom = PageBottomInset),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             hero()
@@ -317,6 +320,7 @@ fun DiscoverView(
                 )
             }
         }
+        TopGradientOverlay()
     }
 }
 
