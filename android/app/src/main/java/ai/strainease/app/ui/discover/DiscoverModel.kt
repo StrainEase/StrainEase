@@ -8,9 +8,32 @@ import ai.strainease.app.models.Conditions
 import ai.strainease.app.models.Potency
 import ai.strainease.app.models.RecommendationResult
 import ai.strainease.app.models.ResearchPrefs
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+/**
+ * Phases the Dr. Kaya recommend call moves through. Mirrors the iOS
+ * `ResearchStep` enum and the web `RESEARCH_STEPS` array so the three
+ * platforms stay in lockstep. Surfaced via [DiscoverModel.step] while a
+ * recommend run is in flight; the DiscoverView forwards the active
+ * label to the Find button so the spinner has a meaningful caption.
+ */
+enum class ResearchStep(val message: String) {
+    Leafly("Pulling full Leafly & Weedmaps profiles…"),
+    Reddit("Collecting Reddit quotes for your symptoms…"),
+    Ranking("Ranking the best strains with Dr. Kaya…");
+
+    companion object {
+        /** Same cadence as iOS / web — advance every 1.6s while busy. */
+        const val STEP_INTERVAL_MS: Long = 1_600
+    }
+}
 
 /**
  * Discover view-model. 1:1 port of the iOS `DiscoverModel`.
@@ -28,6 +51,9 @@ import kotlinx.coroutines.flow.asStateFlow
  *    "Or type any symptom" add field.
  *  - [result] / [errorMessage] / [isRunning] track the
  *    recommend call's outcome.
+ *  - [step] is the active phase of the recommend run; cycles
+ *    every [ResearchStep.STEP_INTERVAL_MS] while [isRunning] is
+ *    true so the Find button can label the spinner.
  *  - [searched] records the ailments that were active when
  *    the last [recommend] call succeeded; used by the inline
  *    comparison results to surface "for X, Y" labels.
@@ -56,10 +82,15 @@ class DiscoverModel(
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
 
+    private val _step = MutableStateFlow(ResearchStep.Leafly)
+    val step: StateFlow<ResearchStep> = _step.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private var ailmentsHydrated: Boolean = false
+    private var stepJob: Job? = null
+    private val stepScope = CoroutineScope(Dispatchers.Main)
 
     /** Seed the picked ailments from the user's saved list on
      *  first appearance. Subsequent saved-ailments changes are
@@ -151,6 +182,7 @@ class DiscoverModel(
         _isRunning.value = true
         _errorMessage.value = null
         _searched.value = _ailments.value
+        startStepTicker()
         try {
             val result = api.recommend(
                 conditions = _ailments.value,
@@ -163,8 +195,31 @@ class DiscoverModel(
         } catch (t: Throwable) {
             _errorMessage.value = t.localizedMessage ?: "Couldn't reach the server."
         } finally {
+            stopStepTicker()
             _isRunning.value = false
         }
+    }
+
+    /**
+     * Reset the step ticker to [ResearchStep.Leafly] and start
+     * a coroutine that advances through the steps every
+     * [ResearchStep.STEP_INTERVAL_MS]. Replaces any in-flight ticker.
+     */
+    private fun startStepTicker() {
+        stepJob?.cancel()
+        _step.value = ResearchStep.Leafly
+        stepJob = stepScope.launch {
+            val order = ResearchStep.entries
+            for (index in 0 until order.size - 1) {
+                delay(ResearchStep.STEP_INTERVAL_MS)
+                _step.value = order[index + 1]
+            }
+        }
+    }
+
+    private fun stopStepTicker() {
+        stepJob?.cancel()
+        stepJob = null
     }
 
     companion object {
