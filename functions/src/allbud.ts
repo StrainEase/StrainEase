@@ -476,7 +476,7 @@ const DIRECTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_DIRECTORY_PAGES = 60;
 const DIRECTORY_BASE = "/marijuana-strains/variety";
 
-type DirectoryEntry = { name: string; slug: string; type: StrainType };
+type DirectoryEntry = { name: string; slug: string; type?: StrainType };
 
 const directoryCache = new Map<
   string,
