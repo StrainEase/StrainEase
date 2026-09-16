@@ -37,11 +37,14 @@ import androidx.compose.ui.unit.dp
 import ai.strainease.app.models.Doctor
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
+import ai.strainease.app.ui.components.TopGradientOverlay
 import ai.strainease.app.ui.components.SWCard
 import ai.strainease.app.ui.components.SWErrorBanner
 import ai.strainease.app.ui.components.SWField
 import ai.strainease.app.ui.components.SWPrimaryButton
 import ai.strainease.app.ui.components.SectionLabel
+import ai.strainease.app.ui.theme.PageBottomInset
+import ai.strainease.app.ui.theme.PageTopInset
 import ai.strainease.app.ui.theme.StrainEaseTypography
 import kotlinx.coroutines.launch
 
@@ -75,7 +78,7 @@ fun DoctorsView(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(start = 20.dp, end = 20.dp, top = PageTopInset, bottom = PageBottomInset),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             hero()
@@ -188,6 +191,7 @@ fun DoctorsView(
                 }
             }
         }
+        TopGradientOverlay()
     }
 }
 
