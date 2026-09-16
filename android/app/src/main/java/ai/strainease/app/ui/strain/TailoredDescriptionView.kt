@@ -295,7 +295,9 @@ private fun AskKayaButton(
     onClick: () -> Unit,
 ) {
     val primary = MaterialTheme.colorScheme.primary
-    val accent = MaterialTheme.colorScheme.primaryContainer
+    // `tertiary` maps to Palette.AccentLight/Dark so the pill stays in
+    // the green family; `primaryContainer` defaults to M3's purple tone.
+    val accent = MaterialTheme.colorScheme.tertiary
 
     Row(
         modifier = Modifier
@@ -339,7 +341,7 @@ private fun ElaborationBlock(
     errorMessage: String?,
 ) {
     val primary = MaterialTheme.colorScheme.primary
-    val accent = MaterialTheme.colorScheme.primaryContainer
+    val accent = MaterialTheme.colorScheme.tertiary
 
     Column(
         modifier = Modifier
