@@ -714,8 +714,14 @@ struct StrainCardsSection: View {
     let compareAtCap: Bool
     let onTapStrain: (StrainProfile) -> Void
 
-    @State private var activeIndex: Int = 0
-    @State private var scrollPosition: CGFloat = 0
+    /// Identifies the active card for `scrollPosition(id:)`. The id is the
+    /// recommendation's index in the section's prefix list — SwiftUI uses
+    /// it as the snap target for `.scrollTargetBehavior(.viewAligned)`
+    /// and as the read/write handle that keeps the dot indicator and the
+    /// actual scroll position in sync. Optional because
+    /// `scrollPosition(id:)` requires a `Binding<some Hashable?>`; nil
+    /// means "no card snapped yet" (initial state).
+    @State private var activeId: Int? = 0
 
     private var cardWidth: CGFloat {
         // 85% of screen width for mobile, fixed for larger
@@ -730,74 +736,61 @@ struct StrainCardsSection: View {
                 .tracking(1.2)
                 .foregroundStyle(Palette.mutedForeground)
 
-            // Horizontal scroll with snap
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(Array(recommendations.enumerated()), id: \.element.id) { index, rec in
-                        let profile = profilesByName.profile(named: rec.strainName)
-                            ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
+            // Horizontal scroll with snap. Side padding puts the first and
+            // last card flush with the page margin so the snap target is
+            // the card edge, not its center.
+            GeometryReader { proxy in
+                let sidePadding = max(0, (proxy.size.width - cardWidth) / 2)
 
-                        StrainRecommendationCard(
-                            recommendation: rec,
-                            profile: profile,
-                            rank: index + 1,
-                            isAdded: isInCompare(rec.strainName),
-                            disabled: !isInCompare(rec.strainName) && compareAtCap,
-                            onAddToCompare: { onAddToCompare(rec.strainName) },
-                            onTap: { onTapStrain(profile) }
-                        )
-                        .frame(width: cardWidth)
-                        .id(index)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(Array(recommendations.enumerated()), id: \.element.id) { index, rec in
+                            let profile = profilesByName.profile(named: rec.strainName)
+                                ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
+
+                            StrainRecommendationCard(
+                                recommendation: rec,
+                                profile: profile,
+                                rank: index + 1,
+                                isAdded: isInCompare(rec.strainName),
+                                disabled: !isInCompare(rec.strainName) && compareAtCap,
+                                onAddToCompare: { onAddToCompare(rec.strainName) },
+                                onTap: { onTapStrain(profile) }
+                            )
+                            .frame(width: cardWidth)
+                            .id(index)
+                        }
                     }
+                    .scrollTargetLayout()
+                    .padding(.horizontal, sidePadding)
                 }
-                .scrollTargetLayout()
-                .padding(.horizontal, 20)
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $activeId)
             }
-            .scrollTargetBehavior(.viewAligned)
-            .defaultScrollAnchor(.center)
-            .background(
-                GeometryReader { geo in
-                    Color.clear.preference(
-                        key: ScrollOffsetPreferenceKey.self,
-                        value: geo.frame(in: .named("scroll")).minX
-                    )
-                }
-            )
-            .coordinateSpace(name: "scroll")
+            .frame(height: 380)
 
             // Indicator dots
             if recommendations.count > 1 {
                 HStack(spacing: 8) {
                     ForEach(0..<recommendations.count, id: \.self) { index in
+                        let isActive = activeId == index
                         Button {
-                            // Scroll to card at index
-                            activeIndex = index
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                activeId = index
+                            }
                         } label: {
                             Capsule()
-                                .fill(index == activeIndex ? Palette.primary : Palette.primary.opacity(0.3))
-                                .frame(width: index == activeIndex ? 20 : 8, height: 8)
+                                .fill(isActive ? Palette.primary : Palette.primary.opacity(0.3))
+                                .frame(width: isActive ? 20 : 8, height: 8)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Show recommendation \(index + 1)")
                     }
                 }
                 .frame(maxWidth: .infinity)
             }
         }
         .padding(.horizontal, -20)
-        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-            let cardWithGap = cardWidth + 16
-            let newIndex = Int(-offset / cardWithGap)
-            if newIndex != activeIndex {
-                activeIndex = max(0, min(newIndex, recommendations.count - 1))
-            }
-        }
-    }
-}
-
-struct ScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
 
