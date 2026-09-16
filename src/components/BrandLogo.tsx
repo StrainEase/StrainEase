@@ -1,8 +1,11 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Uses the iOS AppIcon mark as the web logo. Light mode keeps the green mark
- * on white; dark mode turns the mark white and gives it a dark green surface.
+ * Renders the StrainEase iOS app icon (green rounded square + leaf + rod of
+ * Asclepius) as the web brand mark. The asset is the 1024×1024 PNG from
+ * `marketing/icons/light-rounded.png` — self-contained, pixel-stable, no
+ * SVG viewBox math, no theme trick. Used in the landing-page header,
+ * footer, and mobile-menu trigger.
  */
 export function BrandLogo({
   alt = "StrainEase logo",
@@ -12,23 +15,12 @@ export function BrandLogo({
   className?: string;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white dark:bg-[#0c5238]",
-        className,
-      )}
-    >
-      <img
-        src="/logo.svg"
-        alt={alt}
-        className="size-full object-contain dark:hidden"
-      />
-      <img
-        src="/logo.svg"
-        alt=""
-        aria-hidden="true"
-        className="hidden size-full object-contain dark:block dark:brightness-0 dark:invert"
-      />
-    </span>
+    <img
+      src="/logo.png"
+      alt={alt}
+      width={1024}
+      height={1024}
+      className={cn("shrink-0", className)}
+    />
   );
 }
