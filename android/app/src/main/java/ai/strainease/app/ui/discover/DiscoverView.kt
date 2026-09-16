@@ -5,10 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -655,6 +658,11 @@ private fun StrainCardsSection(
     val configuration = context.resources.configuration
     val screenWidthPx = configuration.screenWidthDp.dp
     val cardWidth = (screenWidthPx.value * 0.85f).dp
+    // Pad the LazyRow content by the leftover space on each side of the
+    // first/last card so the snap targets line up with the visible card
+    // edges (start of first card flush with the page margin, end of last
+    // card flush with the opposite margin).
+    val pagePadding = ((screenWidthPx.value - cardWidth.value) / 2f).dp
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Section header
@@ -664,12 +672,21 @@ private fun StrainCardsSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        // Horizontal scroll using Row with scroll state
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
+        // Horizontal scroll using LazyRow with snap so each card
+        // snaps into place as the user flings between them.
+        val lazyState = rememberLazyListState()
+        val snapBehavior = rememberSnapFlingBehavior(lazyState)
+        LazyRow(
+            state = lazyState,
+            flingBehavior = snapBehavior,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = pagePadding),
         ) {
-            recommendations.forEachIndexed { index, rec ->
+            items(
+                count = recommendations.size,
+                key = { idx -> recommendations[idx].strainName },
+            ) { index ->
+                val rec = recommendations[index]
                 val profile = profilesByName[rec.strainName.lowercase()]
                     ?: StrainProfile(name = rec.strainName, inKnowledgeBase = false)
                 StrainRecommendationCard(
