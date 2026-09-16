@@ -832,7 +832,7 @@ export function StrainBrowse({
                 {isRunning ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    Researching…
+                    {RESEARCH_STEPS[stepIndex]}
                   </>
                 ) : (
                   <>
@@ -860,18 +860,7 @@ export function StrainBrowse({
 
       {/* ── Results ─────────────────────────────────────── */}
       <section ref={resultsRef} className="min-w-0 scroll-mt-24">
-        {isRunning ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card px-8 py-20 text-center">
-            <Loader2 className="size-9 animate-spin text-primary" />
-            <p className="mt-6 text-base font-semibold tracking-tight">
-              {RESEARCH_STEPS[stepIndex]}
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Ranking full strain profiles against your symptoms and attaching
-              Reddit quotes when we find them — usually 8–20 seconds.
-            </p>
-          </div>
-        ) : result ? (
+        {result ? (
           <div className="space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
