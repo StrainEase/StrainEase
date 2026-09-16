@@ -6,6 +6,7 @@ import ai.strainease.app.auth.AuthSession
 import ai.strainease.app.compliance.AgeVerificationStore
 import ai.strainease.app.data.LiveStrainAPI
 import ai.strainease.app.data.StrainAPI
+import ai.strainease.app.data.StrainCatalog
 import ai.strainease.app.services.FirebaseBootstrap
 import ai.strainease.app.services.ImageCache
 
@@ -37,6 +38,12 @@ class StrainEaseApplication : Application() {
         FirebaseBootstrap.configure(this)
         Coil.setImageLoader(ImageCache.get(this))
         strainAPI = LiveStrainAPI()
+        // Wire the bundled directory JSON so `StrainCatalog.all`
+        // can read assets, not just the curated list. The
+        // `RecentlyViewedStore` migration relies on this for the
+        // older "Strain" / no-THC entries from before type + THC
+        // persistence landed.
+        StrainCatalog.init(this)
         authSession.start()
     }
 

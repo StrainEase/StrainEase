@@ -7,9 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -127,7 +131,9 @@ fun MainTabView() {
                 modifier = Modifier.fillMaxSize(),
                 containerColor = Color.Transparent,
                 bottomBar = {
-                    Column {
+                    Column(
+                        modifier = Modifier.background(MaterialTheme.colorScheme.background),
+                    ) {
                         ai.strainease.app.ui.compare.CompareTrayBar(
                             store = compareStore,
                             api = ai.strainease.app.StrainEaseApplication.strainAPI,
@@ -268,6 +274,42 @@ fun MainTabView() {
                 }
             }
         }
+        // Flat status-bar overlay painted on top of the
+        // shell mesh AND the strain-detail overlay. Placed
+        // here (after the strain detail branch, before the
+        // modal sheets) because:
+        //
+        // - The shell `MeshBackground()` at the top of this
+        //   Box paints the mint-orb radial under the status
+        //   bar in dark mode — `enableEdgeToEdge()` leaves
+        //   the system bar transparent, so the orb bleeds
+        //   through unless something covers it.
+        // - `StrainDetailView` is its own full-screen overlay
+        //   with its own `MeshBackground()`; it sits above
+        //   the shell mesh in z-order, so any strip placed
+        //   earlier in the tree would still be overpainted
+        //   when the user opens a strain.
+        // - `ModalBottomSheet`s (Account / Saved / Report /
+        //   Account destination) render their own dim scrim
+        //   and don't extend into the status bar area, so
+        //   they don't need to be covered.
+        //
+        // We paint a flat `colorScheme.background` to match
+        // the top stop of every page's `TopGradientOverlay`
+        // (the gradient starts opaque at the page bg and
+        // fades down to transparent — the system bar lives
+        // above the gradient, so it just needs the same
+        // flat color). Light/dark theme flips automatically
+        // because the color resolves from `MaterialTheme`;
+        // status-bar icon contrast is pinned in
+        // `values/themes.xml` (dark icons in light mode,
+        // light icons in dark mode).
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars)
+                .background(MaterialTheme.colorScheme.background),
+        )
 
         if (showAccount) {
             ModalBottomSheet(
