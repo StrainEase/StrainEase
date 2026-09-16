@@ -81,11 +81,15 @@ export function openRouterRequestBody(
   };
 }
 
+/** Timeout in milliseconds for the OpenRouter fetch call. 90 seconds
+ *  gives us headroom under Firebase's 120-second function timeout. */
+const FETCH_TIMEOUT_MS = 90_000;
+
 /**
  * Call OpenRouter's chat completions endpoint. Returns the model's
  * raw string content (already JSON-shaped because we set
  * `response_format: json_object`). Throws `HttpsError` on transport
- * failure, non-2xx, or empty content.
+ * failure, non-2xx, timeout, or empty content.
  */
 export async function callOpenRouter(
   apiKey: string,
@@ -99,6 +103,9 @@ export async function callOpenRouter(
     );
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
   let res: Response;
   try {
     res = await fetch(OPENROUTER_URL, {
@@ -108,12 +115,22 @@ export async function callOpenRouter(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(openRouterRequestBody(model, messages)),
+      signal: controller.signal,
     });
-  } catch {
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new HttpsError(
+        "deadline-exceeded",
+        "The research service took too long to respond. Please try again.",
+      );
+    }
     throw new HttpsError(
       "unavailable",
       "Could not reach our research service. Please try again in a moment.",
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   const data = (await res.json().catch(() => null)) as {

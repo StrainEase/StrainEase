@@ -49,7 +49,6 @@ import type { ReliefLog } from "@/lib/relief-log";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { terpeneProfile } from "@/lib/terpenes";
-import { toTitleCase } from "@/lib/title-case";
 import {
   Activity,
   ChevronDown,
@@ -214,10 +213,12 @@ export default function Strain() {
 
   // Always show the strain name right away — derive it from the slug
   // while the profile is still hydrating so the header never blanks.
-  // Names are normalised to title case so AI-researched and lowercase
-  // catalog entries render the same way as curated ones, matching iOS.
+  // `strainDisplayName` returns the canonical name from the profile
+  // when present (canonicalised server-side via canonicalProfileName
+  // in functions/src/canonical-strain-name.ts) and a sensible
+  // title-cased fallback from the slug otherwise.
   const displayName = useMemo(
-    () => toTitleCase(strainDisplayName(profile, slug)),
+    () => strainDisplayName(profile, slug),
     [profile, slug],
   );
 
@@ -805,9 +806,9 @@ function CompareSuggestions({
       <div className="mt-1 flex flex-wrap items-center gap-2">
         <span
           className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-semibold text-foreground"
-          aria-label={`Currently viewing ${toTitleCase(profileName)}`}
+          aria-label={`Currently viewing ${profileName}`}
         >
-          {toTitleCase(profileName)}
+          {profileName}
         </span>
         {others.slice(0, 4).map((name) => (
           <Button
@@ -820,7 +821,7 @@ function CompareSuggestions({
             <Link
               to={`/dashboard?mode=compare&strains=${encodeURIComponent(`${profileName},${name}`)}`}
             >
-              vs {toTitleCase(name)}
+              vs {name}
               <StrainNoteIndicator strainName={name} />
             </Link>
           </Button>

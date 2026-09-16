@@ -201,9 +201,9 @@ function Gate({
             }}
           >
             <img
-              src="/logo.svg"
+              src="/icon-512.png"
               alt=""
-              className="block size-full object-cover"
+              className="block size-full rounded-[1.35rem] object-contain [image-rendering:-webkit-optimize-contrast]"
               draggable={false}
             />
           </div>
