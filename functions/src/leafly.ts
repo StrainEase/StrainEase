@@ -8,6 +8,7 @@ import {
   putCachedStrainProfile,
 } from "./strain-info-cache";
 import type { CommunityNote, StrainProfile, StrainType } from "./types";
+import { fetchAllbudStrains } from "./allbud";
 
 const BASE = "https://www.leafly.com";
 const UA =
@@ -601,6 +602,26 @@ function delay(ms: number): Promise<void> {
  * the strainCache collection, then serve from there instead of scraping live.
  */
 export async function fetchAllStrains(): Promise<StrainProfile[]> {
+  const leafly = await fetchAllLeaflyDirectoryStrains();
+  // Allbud adds strains Leafly doesn't list and (when a strain is shared)
+  // a free species tag if Leafly's listing was missing one. Failures from
+  // Allbud's scraper never abort the warm — we still serve the Leafly
+  // directory in that case.
+  let allbud: StrainProfile[] = [];
+  try {
+    allbud = await fetchAllbudStrains();
+  } catch (err) {
+    console.error("[fetchAllStrains] Allbud scrape failed:", err);
+  }
+  return mergeDirectoryStrains(leafly, allbud);
+}
+
+/**
+ * Internal: scrape Leafly's strain directory only. Exposed so callers that
+ * want a single-source view (or want to test the merge in isolation) can
+ * reach it directly.
+ */
+async function fetchAllLeaflyDirectoryStrains(): Promise<StrainProfile[]> {
   const seen = new Set<string>();
   const out: StrainProfile[] = [];
   const MAX_PAGES = 50;
@@ -638,6 +659,38 @@ export async function fetchAllStrains(): Promise<StrainProfile[]> {
   }
 
   return out;
+}
+
+/**
+ * Merge two scraped directories into a single list. Leafly is the primary
+ * source — it carries the rich preview fields (thc, effects, image, ratings).
+ * Allbud fills in any strains Leafly didn't list and supplies a type when
+ * Leafly left it undefined. Existing fields on a Leafly entry are never
+ * overwritten by an Allbud entry (we trust the source that had more detail).
+ */
+export function mergeDirectoryStrains(
+  leafly: StrainProfile[],
+  allbud: StrainProfile[],
+): StrainProfile[] {
+  const byKey = new Map<string, StrainProfile>();
+  for (const p of leafly) {
+    const key = p.name.trim().toLowerCase();
+    if (!key || !p.name) continue;
+    byKey.set(key, p);
+  }
+  for (const p of allbud) {
+    const key = p.name.trim().toLowerCase();
+    if (!key || !p.name) continue;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, p);
+      continue;
+    }
+    if (!existing.type && p.type) {
+      byKey.set(key, { ...existing, type: p.type });
+    }
+  }
+  return Array.from(byKey.values());
 }
 
 /**

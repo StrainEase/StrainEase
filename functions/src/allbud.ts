@@ -450,3 +450,116 @@ export async function fetchAllbudProfiles(
 ): Promise<(StrainProfile | null)[]> {
   return Promise.all(names.map((name) => fetchAllbudProfile(name)));
 }
+
+/** Pause for `ms` milliseconds. Used between Allbud page fetches to stay polite. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Directory scrape (per-strain lookup union)
+// ---------------------------------------------------------------------------
+//
+// Allbud's strain directory lives at /marijuana-strains/variety/{species} with
+// ?page=N pagination. Each listing page renders the strain slug list as
+// <a href="/marijuana-strains/{species}/{slug}">Name</a>. We walk the
+// per-species indexes in parallel and merge, deduplicating by lowercase
+// strain name. The full detail page is NOT fetched here — the popular-list
+// scrape stays cheap. `fetchAllbudProfile()` (above) handles detail fetches
+// on demand.
+//
+// Allbud doesn't expose a "total" count in the listing HTML, so we stop
+// paginating when a page returns zero new names. The 24h in-memory TTL
+// keeps the daily warmStrainDirectory run polite to Allbud's servers.
+
+const DIRECTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_DIRECTORY_PAGES = 60;
+const DIRECTORY_BASE = "/marijuana-strains/variety";
+
+type DirectoryEntry = { name: string; slug: string; type: StrainType };
+
+const directoryCache = new Map<
+  string,
+  { at: number; entries: DirectoryEntry[] }
+>();
+
+/** Reset the in-memory directory cache (tests only). */
+export function clearAllbudDirectoryCacheForTest(): void {
+  directoryCache.clear();
+}
+
+/**
+ * Pull every strain listed under one species (sativa | indica | hybrid | cbd).
+ * Pure directory scrape — no detail-page fetches. Stops when a page yields
+ * zero new strain names.
+ */
+export async function fetchAllbudSpeciesDirectory(
+  species: "sativa" | "indica" | "hybrid" | "cbd",
+): Promise<DirectoryEntry[]> {
+  const hit = directoryCache.get(species);
+  if (hit && Date.now() - hit.at < DIRECTORY_CACHE_TTL_MS) return hit.entries;
+
+  const seen = new Set<string>();
+  const out: DirectoryEntry[] = [];
+  const type = species === "cbd" ? undefined : (species as StrainType);
+
+  for (let page = 1; page <= MAX_DIRECTORY_PAGES; page++) {
+    if (page > 1) await delay(200);
+    const path =
+      page === 1
+        ? `${DIRECTORY_BASE}/${species}`
+        : `${DIRECTORY_BASE}/${species}?page=${page}`;
+    const html = await fetchHtml(path);
+    if (!html) break;
+
+    let newCount = 0;
+    // Allbud lists strains as anchors under each variety. Match the
+    // species-specific anchor href shape so we don't pick up unrelated
+    // links (e.g. nav, related-strain widgets).
+    const anchorRe = new RegExp(
+      `<a[^>]+href="/marijuana-strains/${species}/([a-z0-9][a-z0-9-]*)"[^>]*>([^<]+)</a>`,
+      "gi",
+    );
+    let m: RegExpExecArray | null;
+    while ((m = anchorRe.exec(html)) !== null) {
+      const slug = m[1];
+      const name = compressWhitespace(stripTags(htmlDecode(m[2])));
+      if (!slug || !name || name.length > 80) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ name, slug, type });
+      newCount++;
+    }
+    if (newCount === 0) break;
+  }
+
+  directoryCache.set(species, { at: Date.now(), entries: out });
+  return out;
+}
+
+/**
+ * Pull Allbud's full directory across all species. Returns thin profile
+ * entries (just name + type) — enough to dedupe against Leafly and seed
+ * the strainCache for per-strain detail fetches.
+ */
+export async function fetchAllbudStrains(): Promise<StrainProfile[]> {
+  const lists = await Promise.all(
+    SPECIES_PATHS.map((species) => fetchAllbudSpeciesDirectory(species)),
+  );
+  const seen = new Set<string>();
+  const out: StrainProfile[] = [];
+  for (const list of lists) {
+    for (const entry of list) {
+      const key = entry.name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        name: entry.name,
+        inKnowledgeBase: true,
+        type: entry.type,
+      });
+    }
+  }
+  return out;
+}

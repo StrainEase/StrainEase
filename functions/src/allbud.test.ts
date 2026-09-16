@@ -258,3 +258,158 @@ describe("fetchAllbudProfile", () => {
     ).toBe(false);
   });
 });
+
+/**
+ * Directory scraper tests. We stub the listing HTML shape (anchor tags
+ * pointing at /marijuana-strains/{species}/{slug}) and verify pagination
+ * stops on a page that yields zero new names.
+ */
+describe("fetchAllbudSpeciesDirectory", () => {
+  beforeEach(() => {
+    // Reset the per-species in-memory cache between tests so each one
+    // starts with a clean request log.
+    const mod = require("./allbud") as typeof import("./allbud");
+    mod.clearAllbudDirectoryCacheForTest();
+  });
+
+  function directoryHtml(species: string, names: string[]): string {
+    const links = names
+      .map((name) => {
+        const slug = name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        return `<a href="/marijuana-strains/${species}/${slug}">${name}</a>`;
+      })
+      .join("\n");
+    return `<!doctype html><html><body>${links}</body></html>`;
+  }
+
+  test("returns one entry per strain on a single listing page", async () => {
+    const fetchMock = mock(async (url: string) => {
+      expect(url).toContain("/marijuana-strains/variety/sativa");
+      return new Response(
+        directoryHtml("sativa", ["Durban Poison", "Super Sour Diesel", "Thai"]),
+        { status: 200 },
+      );
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const { fetchAllbudSpeciesDirectory } = await import("./allbud");
+    const entries = await fetchAllbudSpeciesDirectory("sativa");
+    const names = entries.map((e) => e.name).sort();
+    expect(names).toEqual(["Durban Poison", "Super Sour Diesel", "Thai"]);
+    expect(entries.every((e) => e.type === "sativa")).toBe(true);
+  });
+
+  test("paginates with ?page=N and stops when a page has no new strains", async () => {
+    const calls: string[] = [];
+    const fetchMock = mock(async (url: string) => {
+      calls.push(url);
+      const u = new URL(url);
+      const page = Number(u.searchParams.get("page") ?? "1");
+      if (page === 1) {
+        return new Response(
+          directoryHtml("indica", ["Bubba Kush", "Northern Lights"]),
+          { status: 200 },
+        );
+      }
+      if (page === 2) {
+        return new Response(
+          directoryHtml("indica", ["Purple Kush", "Granddaddy Purple"]),
+          { status: 200 },
+        );
+      }
+      // page 3+: zero new names → loop breaks
+      return new Response(directoryHtml("indica", []), { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const { fetchAllbudSpeciesDirectory } = await import("./allbud");
+    const entries = await fetchAllbudSpeciesDirectory("indica");
+    expect(entries.map((e) => e.name).sort()).toEqual([
+      "Bubba Kush",
+      "Granddaddy Purple",
+      "Northern Lights",
+      "Purple Kush",
+    ]);
+    expect(calls.length).toBe(3);
+    expect(calls[0]).toContain("/marijuana-strains/variety/indica");
+    expect(calls[1]).toContain("page=2");
+  });
+
+  test("deduplicates strains that appear on multiple pages", async () => {
+    const fetchMock = mock(async (url: string) => {
+      const u = new URL(url);
+      const page = Number(u.searchParams.get("page") ?? "1");
+      const names =
+        page === 1
+          ? ["Blue Dream", "Green Crack"]
+          : page === 2
+            ? ["Blue Dream", "Sour Diesel"] // Blue Dream overlap
+            : [];
+      return new Response(directoryHtml("hybrid", names), { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const { fetchAllbudSpeciesDirectory } = await import("./allbud");
+    const entries = await fetchAllbudSpeciesDirectory("hybrid");
+    expect(entries.map((e) => e.name).sort()).toEqual([
+      "Blue Dream",
+      "Green Crack",
+      "Sour Diesel",
+    ]);
+  });
+});
+
+describe("fetchAllbudStrains", () => {
+  beforeEach(() => {
+    const mod = require("./allbud") as typeof import("./allbud");
+    mod.clearAllbudDirectoryCacheForTest();
+  });
+
+  test("merges species directories and dedupes across them", async () => {
+    const fetchMock = mock(async (url: string) => {
+      if (url.includes("/sativa")) {
+        return new Response(
+          `<html><body><a href="/marijuana-strains/sativa/durban-poison">Durban Poison</a></body></html>`,
+          { status: 200 },
+        );
+      }
+      if (url.includes("/indica")) {
+        return new Response(
+          `<html><body><a href="/marijuana-strains/indica/bubba-kush">Bubba Kush</a></body></html>`,
+          { status: 200 },
+        );
+      }
+      if (url.includes("/hybrid")) {
+        return new Response(
+          `<html><body><a href="/marijuana-strains/hybrid/blue-dream">Blue Dream</a></body></html>`,
+          { status: 200 },
+        );
+      }
+      // cbd: same strain as hybrid (overlap)
+      if (url.includes("/cbd")) {
+        return new Response(
+          `<html><body><a href="/marijuana-strains/cbd/blue-dream">Blue Dream</a></body></html>`,
+          { status: 200 },
+        );
+      }
+      return new Response("", { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const { fetchAllbudStrains } = await import("./allbud");
+    const profiles = await fetchAllbudStrains();
+    expect(profiles.map((p) => p.name).sort()).toEqual([
+      "Blue Dream",
+      "Bubba Kush",
+      "Durban Poison",
+    ]);
+    expect(profiles.find((p) => p.name === "Durban Poison")?.type).toBe(
+      "sativa",
+    );
+    expect(profiles.find((p) => p.name === "Bubba Kush")?.type).toBe(
+      "indica",
+    );
+    expect(profiles.find((p) => p.name === "Blue Dream")?.type).toBe(
+      "hybrid",
+    );
+  });
+});
