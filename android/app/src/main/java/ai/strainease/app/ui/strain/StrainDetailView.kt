@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -72,8 +73,9 @@ import ai.strainease.app.ui.components.SWChip
 import ai.strainease.app.ui.components.SWErrorBanner
 import ai.strainease.app.ui.components.SWFlowRow
 import ai.strainease.app.ui.components.SectionLabel
-import ai.strainease.app.ui.theme.PageTopInset
 import ai.strainease.app.ui.components.StrainPhoto
+import ai.strainease.app.ui.components.TopGradientOverlay
+import ai.strainease.app.ui.theme.PageTopInset
 import ai.strainease.app.ui.components.TypeBadge
 import ai.strainease.app.ui.theme.StrainEaseTypography
 import ai.strainease.app.util.toTitleCase
@@ -112,6 +114,7 @@ fun StrainDetailView(
     savedStrains: SavedStrainsStore,
     compareStore: CompareSelectionStore,
     modifier: Modifier = Modifier,
+    onBack: () -> Unit = {},
 ) {
     var current by remember(profile.slug) { mutableStateOf(profile) }
     var isHydrating by remember(profile.slug) { mutableStateOf(profile.pendingHydrationSections.isNotEmpty()) }
@@ -283,6 +286,45 @@ fun StrainDetailView(
             RedditThreadsView(sources = redditThreads)
             SharedNotesView(strainSlug = profile.slug)
             error?.let { SWErrorBanner(message = it) }
+        }
+        // Top gradient overlay — fades the page background down to
+        // transparent so the mint mesh behind the status-bar strip
+        // (painted by `MainTabView`) blends smoothly into the mesh
+        // where the strip ends. Without this the eye sees a hard
+        // line at the bottom of the strip in dark mode where the
+        // mesh's green channel suddenly becomes visible. Matches the
+        // Home / Find / Discover / Doctors pattern.
+        TopGradientOverlay()
+        // Floating back chevron — mirrors the iOS navigation bar's
+        // back button. Anchored OUTSIDE the Column (a sibling of
+        // the gradient in this Box) so it paints on top of the
+        // gradient and remains tappable. Inset below the status bar
+        // so it sits at the same Y as the other primary tabs'
+        // chrome buttons. The button is always rendered; tapping it
+        // just invokes the supplied callback (which the host
+        // provides from `MainTabView`'s `closeStrain`).
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding(),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                modifier = Modifier
+                    .padding(start = 12.dp, top = 12.dp)
+                    .size(40.dp)
+                    .clickable { onBack() },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
     }
 

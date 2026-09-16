@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -241,36 +240,14 @@ fun MainTabView() {
                         savedStrains = savedStrains,
                         compareStore = compareStore,
                         modifier = Modifier.fillMaxSize(),
+                        // Back chevron now lives inside StrainDetailView
+                        // so it can paint above its own
+                        // `TopGradientOverlay` (the overlay sits
+                        // between the scrollable Column and any
+                        // floating chrome). System back gesture still
+                        // works via the BackHandler above.
+                        onBack = { closeStrain() },
                     )
-                    // Floating back chevron — mirrors the iOS navigation
-                    // bar's back button so the user has a visible
-                    // affordance to return to the previous tab. The
-                    // system back gesture already works via the
-                    // BackHandler above. Inset below the status bar so
-                    // it's neither hidden behind it nor unclickable.
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .statusBarsPadding(),
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                            modifier = Modifier
-                                .padding(start = 12.dp, top = 12.dp)
-                                .size(40.dp)
-                                .clickable { closeStrain() },
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Filled.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
