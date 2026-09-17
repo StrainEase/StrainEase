@@ -72,7 +72,9 @@ const QUICK_AILMENTS = ["Insomnia", "Chronic pain", "Anxiety", "Migraine"];
 const RESEARCH_STEPS = [
   "Reading your symptoms…",
   "Pulling strain profiles…",
+  "Looking up THC & CBD…",
   "Collecting Reddit quotes…",
+  "Checking terpene profiles…",
   "Ranking with Dr. Kaya…",
 ];
 
