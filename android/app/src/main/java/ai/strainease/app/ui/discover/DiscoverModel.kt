@@ -27,7 +27,9 @@ import kotlinx.coroutines.launch
 enum class ResearchStep(val message: String) {
     Reading("Reading your symptoms…"),
     Pulling("Pulling strain profiles…"),
+    Thc("Looking up THC & CBD…"),
     Quoting("Collecting Reddit quotes…"),
+    Terpenes("Checking terpene profiles…"),
     Ranking("Ranking with Dr. Kaya…");
 
     companion object {

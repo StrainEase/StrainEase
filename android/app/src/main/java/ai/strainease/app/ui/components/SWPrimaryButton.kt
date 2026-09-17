@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +47,7 @@ fun SWPrimaryButton(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.AutoMirrored.Filled.ArrowForward,
+    icon: ImageVector = Icons.Filled.AutoAwesome,
     isBusy: Boolean = false,
     enabled: Boolean = true,
 ) {

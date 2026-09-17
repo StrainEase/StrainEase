@@ -291,7 +291,7 @@ fun DiscoverView(
             }
 
             SWPrimaryButton(
-                title = if (isRunning) step.message else "Find recommendations",
+                title = if (isRunning) step.message else "Find best strains",
                 isBusy = isRunning,
                 enabled = !isRunning && ailments.isNotEmpty(),
                 onClick = {
