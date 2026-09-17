@@ -3,7 +3,9 @@ import Foundation
 enum ResearchStep: String, CaseIterable, Equatable {
     case reading = "Reading your symptoms…"
     case pulling = "Pulling strain profiles…"
+    case thc = "Looking up THC & CBD…"
     case quoting = "Collecting Reddit quotes…"
+    case terpenes = "Checking terpene profiles…"
     case ranking = "Ranking with Dr. Kaya…"
 }
 

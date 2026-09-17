@@ -514,7 +514,7 @@ struct DiscoverView: View {
             SWPrimaryButton(
                 title: model.isRunning
                     ? model.step.rawValue
-                    : (model.canFind ? "Find strains" : "Pick a symptom first"),
+                    : (model.canFind ? "Find best strains" : "Pick a symptom first"),
                 systemImage: "sparkles",
                 isBusy: model.isRunning
             ) {
