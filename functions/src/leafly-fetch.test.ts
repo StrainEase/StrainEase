@@ -7,6 +7,7 @@ import {
   clearLeaflyHtmlCacheForTest,
   fetchProfile,
   isThinProfile,
+  mergeDirectoryStrains,
 } from "./leafly";
 import type { StrainProfile } from "./types";
 
@@ -177,5 +178,70 @@ describe("fetchProfile — thin pre-defined description upgrade", () => {
     expect(fetchCalls).toBe(0);
     expect(out?.medicalUses).toEqual(["ADHD", "Fatigue"]);
     expect(out?.type).toBe("sativa");
+  });
+});
+
+
+describe("mergeDirectoryStrains", () => {
+  test("Allbud adds strains not present in the Leafly directory", () => {
+    const leafly: StrainProfile[] = [
+      { name: "Blue Dream", inKnowledgeBase: true, type: "hybrid", thcRange: "17–24%" },
+      { name: "OG Kush", inKnowledgeBase: true, type: "hybrid" },
+    ];
+    const allbud: StrainProfile[] = [
+      { name: "Rare Cheese", inKnowledgeBase: true, type: "indica" },
+      { name: "Blue Dream", inKnowledgeBase: true, type: "hybrid" }, // dup
+    ];
+    const merged = mergeDirectoryStrains(leafly, allbud);
+    expect(merged.map((p) => p.name).sort()).toEqual([
+      "Blue Dream",
+      "OG Kush",
+      "Rare Cheese",
+    ]);
+  });
+
+  test("Leafly fields are never overwritten by Allbud", () => {
+    const leafly: StrainProfile[] = [
+      {
+        name: "Gorilla Glue",
+        inKnowledgeBase: true,
+        type: "hybrid",
+        thcRange: "25–28%",
+        effects: [{ name: "Relaxed", intensity: 4 }],
+        leaflyRating: 4.6,
+      },
+    ];
+    const allbud: StrainProfile[] = [
+      { name: "Gorilla Glue", inKnowledgeBase: true, type: "indica" }, // mismatched type
+    ];
+    const merged = mergeDirectoryStrains(leafly, allbud);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].thcRange).toBe("25–28%");
+    expect(merged[0].leaflyRating).toBe(4.6);
+    expect(merged[0].type).toBe("hybrid"); // Leafly wins
+  });
+
+  test("Allbud fills in type when Leafly's entry is missing it", () => {
+    const leafly: StrainProfile[] = [
+      { name: "Mystery Strain", inKnowledgeBase: true /* no type */ },
+    ];
+    const allbud: StrainProfile[] = [
+      { name: "Mystery Strain", inKnowledgeBase: true, type: "sativa" },
+    ];
+    const merged = mergeDirectoryStrains(leafly, allbud);
+    expect(merged[0].type).toBe("sativa");
+  });
+
+  test("normalizes name casing/whitespace for deduplication", () => {
+    const leafly: StrainProfile[] = [
+      { name: "Blue Dream", inKnowledgeBase: true },
+    ];
+    const allbud: StrainProfile[] = [
+      { name: "  blue dream  ", inKnowledgeBase: true, type: "hybrid" },
+    ];
+    const merged = mergeDirectoryStrains(leafly, allbud);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].name).toBe("Blue Dream");
+    expect(merged[0].type).toBe("hybrid");
   });
 });
