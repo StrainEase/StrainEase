@@ -18,7 +18,7 @@ const path = require('path');
 const { colors, fonts } = require('./_design.js');
 
 // Inlined as data URI so render works without network.
-const LOGO_SVG = fs.readFileSync(path.join(__dirname, '..', 'strainease-logo.svg'), 'utf8');
+const LOGO_SVG = fs.readFileSync(path.join(__dirname, '..', 'icons', 'dark.svg'), 'utf8');
 const LOGO_DATA_URI = 'data:image/svg+xml;utf8,' + encodeURIComponent(LOGO_SVG);
 
 // Self-hosted Google Fonts CSS (Figtree + IBM Plex Mono + Lora).
@@ -487,7 +487,7 @@ function carouselSlide({ big, italic = false, sub, sources, slide, total }) {
 const CAROUSEL = [
   {
     big: 'Every patient is<br/>running their<br/><span class="em italic">own experiment.</span>',
-    italic: true,
+    italic: false,
     sub: 'Cannabis affects everyone differently. The most useful data is what other patients with your symptoms keep coming back to, not what a product page says.',
   },
   {
@@ -497,7 +497,7 @@ const CAROUSEL = [
   },
   {
     big: 'Symptoms in.<br/><span class="em italic">Shortlist out.</span>',
-    italic: true,
+    italic: false,
     sub: 'Tell us what you are treating. We cover pain, sleep, anxiety, ADHD, focus, and more. Get a ranked shortlist of strains patients most often report for those exact symptoms.',
   },
   {
