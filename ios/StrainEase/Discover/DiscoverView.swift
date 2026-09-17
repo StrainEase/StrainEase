@@ -56,9 +56,6 @@ struct DiscoverView: View {
                         if let error = model.errorMessage {
                             errorBanner(error)
                         }
-                        if model.isRunning {
-                            running
-                        }
                         if let result = model.result {
                             results(result)
                                 .id(result.headline)
@@ -515,7 +512,9 @@ struct DiscoverView: View {
             }
 
             SWPrimaryButton(
-                title: model.canFind || model.isRunning ? "Find strains" : "Pick a symptom first",
+                title: model.isRunning
+                    ? model.step.rawValue
+                    : (model.canFind ? "Find best strains" : "Pick a symptom first"),
                 systemImage: "sparkles",
                 isBusy: model.isRunning
             ) {
@@ -534,24 +533,6 @@ struct DiscoverView: View {
             .disabled(!model.canFind)
             .opacity(model.canFind || model.isRunning ? 1 : 0.55)
             .sensoryFeedback(.impact(weight: .medium), trigger: model.isRunning)
-        }
-    }
-
-    private var running: some View {
-        SWCard {
-            HStack(alignment: .top, spacing: 12) {
-                ProgressView()
-                    .tint(Palette.primary)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Researching")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Palette.foreground)
-                    Text(model.step.rawValue)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.mutedForeground)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
         }
     }
 
