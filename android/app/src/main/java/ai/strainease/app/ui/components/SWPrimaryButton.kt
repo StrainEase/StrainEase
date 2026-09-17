@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ai.strainease.app.ui.theme.StrainEaseTypography
@@ -36,19 +38,17 @@ import ai.strainease.app.ui.theme.StrainEaseTypography
  *  - Background: linear gradient primary → primary @ 0.82 (top-left
  *    to bottom-right)
  *  - Shape: pill
- *  - Default size: stretches to fill the parent width so it lines up
- *    with the surrounding form fields. Callers that need a custom width
- *    can pass `modifier =` and override the default.
- *  - Layout: title on the left, circular icon disc on the right
- *  - Busy state: swaps the title for a small spinner, keeps the icon
- *    disc visible
+ *  - Layout: spinner (when busy) + title on the left, circular icon
+ *    disc on the right. Title is shown in both idle and busy states
+ *    so callers can swap the visible label (e.g. the current research
+ *    step) while research is in flight.
  */
 @Composable
 fun SWPrimaryButton(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.AutoMirrored.Filled.ArrowForward,
+    icon: ImageVector = Icons.Filled.AutoAwesome,
     isBusy: Boolean = false,
     enabled: Boolean = true,
 ) {
@@ -76,13 +76,17 @@ fun SWPrimaryButton(
                 color = onPrimary,
                 strokeWidth = 2.dp,
             )
-        } else {
-            Text(
-                text = title,
-                style = StrainEaseTypography.titleSmall.copy(fontSize = 16.sp),
-                color = onPrimary,
-            )
         }
+        Text(
+            text = title,
+            style = StrainEaseTypography.titleSmall.copy(
+                fontSize = if (isBusy) 14.sp else 16.sp,
+            ),
+            color = onPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
         Spacer(Modifier.weight(1f))
         Icon(
             imageVector = icon,
