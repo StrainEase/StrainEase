@@ -43,6 +43,12 @@ class StrainEaseApplication : Application() {
         // per type instead of the full directory (~115 hybrid, etc).
         StrainCatalog.init(this)
         strainAPI = LiveStrainAPI()
+        // Wire the bundled directory JSON so `StrainCatalog.all`
+        // can read assets, not just the curated list. The
+        // `RecentlyViewedStore` migration relies on this for the
+        // older "Strain" / no-THC entries from before type + THC
+        // persistence landed.
+        StrainCatalog.init(this)
         authSession.start()
     }
 

@@ -1,9 +1,12 @@
 import Foundation
 
 enum ResearchStep: String, CaseIterable, Equatable {
-    case leafly = "Pulling full Leafly & Weedmaps profiles…"
-    case reddit = "Collecting Reddit quotes for your symptoms…"
-    case ranking = "Ranking the best strains with Dr. Kaya…"
+    case reading = "Reading your symptoms…"
+    case pulling = "Pulling strain profiles…"
+    case thc = "Looking up THC & CBD…"
+    case quoting = "Collecting Reddit quotes…"
+    case terpenes = "Checking terpene profiles…"
+    case ranking = "Ranking with Dr. Kaya…"
 }
 
 @Observable
@@ -16,7 +19,7 @@ final class DiscoverModel {
     var result: RecommendationResult?
     var searched: [String] = []
     var isRunning = false
-    var step: ResearchStep = .leafly
+    var step: ResearchStep = .reading
     var errorMessage: String?
 
     @ObservationIgnored private let api: any StrainServicing
@@ -143,7 +146,7 @@ final class DiscoverModel {
     }
 
     private func startSteps() {
-        step = .leafly
+        step = .reading
         stepTask?.cancel()
         stepTask = Task { [weak self] in
             let order = ResearchStep.allCases

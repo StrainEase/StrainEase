@@ -38,6 +38,9 @@ import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.ui.compare.CompareSelectionStore
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
+import ai.strainease.app.ui.components.TopGradientOverlay
+import ai.strainease.app.ui.theme.PageBottomInset
+import ai.strainease.app.ui.theme.PageTopInset
 import ai.strainease.app.ui.theme.StrainEaseTypography
 
 /**
@@ -90,7 +93,7 @@ fun HomeView(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(start = 20.dp, end = 20.dp, top = PageTopInset, bottom = PageBottomInset),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             hero()
@@ -152,6 +155,7 @@ fun HomeView(
                 onSelect = onOpenProfile,
             )
         }
+        TopGradientOverlay()
     }
     if (showCheckInSheet) {
         ModalBottomSheet(onDismissRequest = { showCheckInSheet = false }) {
