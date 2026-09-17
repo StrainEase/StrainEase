@@ -70,9 +70,10 @@ const POTENCY_OPTIONS: { value: Potency; label: string; hint: string }[] =
 const QUICK_AILMENTS = ["Insomnia", "Chronic pain", "Anxiety", "Migraine"];
 
 const RESEARCH_STEPS = [
-  "Pulling full Leafly & Weedmaps profiles…",
-  "Collecting Reddit quotes for your symptoms…",
-  "Ranking the best strains with Dr. Kaya…",
+  "Reading your symptoms…",
+  "Pulling strain profiles…",
+  "Collecting Reddit quotes…",
+  "Ranking with Dr. Kaya…",
 ];
 
 /**
