@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -332,6 +333,7 @@ private fun form(
         Spacer(Modifier.height(6.dp))
         SWPrimaryButton(
             title = mode.submit,
+            icon = Icons.AutoMirrored.Filled.Login,
             isBusy = isBusy,
             onClick = onSubmit,
             enabled = !isBusy,
