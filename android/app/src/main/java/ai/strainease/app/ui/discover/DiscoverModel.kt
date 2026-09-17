@@ -25,9 +25,10 @@ import kotlinx.coroutines.launch
  * label to the Find button so the spinner has a meaningful caption.
  */
 enum class ResearchStep(val message: String) {
-    Leafly("Pulling full Leafly & Weedmaps profiles…"),
-    Reddit("Collecting Reddit quotes for your symptoms…"),
-    Ranking("Ranking the best strains with Dr. Kaya…");
+    Reading("Reading your symptoms…"),
+    Pulling("Pulling strain profiles…"),
+    Quoting("Collecting Reddit quotes…"),
+    Ranking("Ranking with Dr. Kaya…");
 
     companion object {
         /** Same cadence as iOS / web — advance every 1.6s while busy. */
@@ -82,7 +83,7 @@ class DiscoverModel(
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
 
-    private val _step = MutableStateFlow(ResearchStep.Leafly)
+    private val _step = MutableStateFlow(ResearchStep.Reading)
     val step: StateFlow<ResearchStep> = _step.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -201,13 +202,13 @@ class DiscoverModel(
     }
 
     /**
-     * Reset the step ticker to [ResearchStep.Leafly] and start
+     * Reset the step ticker to [ResearchStep.Reading] and start
      * a coroutine that advances through the steps every
      * [ResearchStep.STEP_INTERVAL_MS]. Replaces any in-flight ticker.
      */
     private fun startStepTicker() {
         stepJob?.cancel()
-        _step.value = ResearchStep.Leafly
+        _step.value = ResearchStep.Reading
         stepJob = stepScope.launch {
             val order = ResearchStep.entries
             for (index in 0 until order.size - 1) {
