@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Wrapper around the 1024x1024 foreground PNG that gives the leaf +
-  caduceus composite a little padding inside the 108dp adaptive icon
-  canvas. The source PNG itself still fills its frame edge-to-edge, so
-  the same artwork can also be used un-inset (e.g. in the SignInView
-  box, which applies its own 8dp padding inside a 104dp tile).
+  Wrapper around the launcher foreground PNG. The source artwork
+  (`light.png` from public/android-icon) already includes the full
+  green tile plus the white leaf + caduceus with its own safe-zone
+  padding, so we apply a 0% inset here and let the foreground fill
+  the 108dp adaptive-icon canvas edge-to-edge. The launcher still
+  applies the user's chosen icon-shape mask (squircle, circle,
+  teardrop, ...) on top of the composite, which is exactly the
+  behaviour the launcher-icon spec asks for.
 
-  10% inset on each side = ~10.8dp on a 108dp canvas. The leaf
-  currently occupies ~88% of the PNG; with this inset it ends up
-  filling ~70% of the canvas, with roughly 16dp of clearance on each
-  side so launcher masks (circle, squircle, teardrop) don't crop the
-  tips. Same wrapper is used for the monochrome layer so themed icons
-  on Android 13+ stay visually consistent.
+  The same wrapper is reused for the monochrome layer on Android
+  13+ themed icons: themed launchers tint the entire foreground,
+  so the green tile + white artwork become a single-color silhouette
+  of the brand mark.
 -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/ic_launcher_foreground"
-    android:inset="10%" />
+    android:inset="0%" />
