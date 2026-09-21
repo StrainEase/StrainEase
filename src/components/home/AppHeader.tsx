@@ -1,6 +1,7 @@
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { JournalPanel } from "@/components/saved/JournalPanel";
 import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
 import {
   Dialog,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/app-nav";
 import { cn } from "@/lib/utils";
 import {
+  BarChart3,
   Heart,
   Home,
   Library,
@@ -75,6 +77,7 @@ export function AppHeader({
 }) {
   const { user } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
   const [localFavoritesOpen, setLocalFavoritesOpen] = useState(false);
   const favoritesOpen = controlledFavoritesOpen ?? localFavoritesOpen;
   const setFavoritesOpen = onFavoritesOpenChange ?? setLocalFavoritesOpen;
@@ -99,6 +102,30 @@ export function AppHeader({
           >
             <Heart className="size-4" strokeWidth={favoritesOpen ? 2.4 : 2} />
           </button>
+
+          {/* Insights button — opens the Journal dialog (session
+              patterns + history). Sits between Favorites and
+              Library so the data the patient wrote lives next
+              to the data the patient saved. Mirrored on the iOS
+              top toolbar and the Android action bar. */}
+          {user ? (
+            <button
+              type="button"
+              aria-label="Insights"
+              aria-expanded={journalOpen}
+              onClick={() => setJournalOpen(true)}
+              className={cn(
+                "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary",
+                journalOpen && "border-primary/40 bg-primary/10 text-primary",
+              )}
+            >
+              <BarChart3
+                className="size-4"
+                strokeWidth={journalOpen ? 2.4 : 2}
+              />
+            </button>
+          ) : null}
+
           <Link
             to={FIND_HREF}
             aria-label="Open strain library"
@@ -155,6 +182,21 @@ export function AppHeader({
               </DialogDescription>
             </DialogHeader>
             <SavedStrainsPanel />
+          </DialogContent>
+        </Dialog>
+        <Dialog open={journalOpen} onOpenChange={setJournalOpen}>
+          <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto border-border/70">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="size-4 text-primary" />
+                Insights
+              </DialogTitle>
+              <DialogDescription>
+                Your relief patterns and full session journal. Logged privately
+                on your account — no one else sees this.
+              </DialogDescription>
+            </DialogHeader>
+            <JournalPanel />
           </DialogContent>
         </Dialog>
       </div>

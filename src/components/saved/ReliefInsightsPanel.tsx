@@ -1,17 +1,20 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity,
   CheckCircle2,
   Gauge,
+  ListChecks,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import type { ReliefLog } from "@/lib/relief-log";
 import { analyzeReliefLogs } from "@/lib/relief-insights";
+import { SessionHistoryDialog } from "@/components/saved/SessionHistoryDialog";
 import { cn } from "@/lib/utils";
 
 export function ReliefInsightsPanel({ logs }: { logs: ReliefLog[] }) {
   const analysis = useMemo(() => analyzeReliefLogs(logs), [logs]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const TrendIcon =
     analysis.trend === "declining"
       ? TrendingDown
@@ -108,6 +111,21 @@ export function ReliefInsightsPanel({ logs }: { logs: ReliefLog[] }) {
           </div>
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={() => setHistoryOpen(true)}
+        className="mt-5 inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+      >
+        <ListChecks className="size-3.5" />
+        View all {analysis.totalEntries} sessions
+      </button>
+
+      <SessionHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        logs={logs}
+      />
     </section>
   );
 }

@@ -5,6 +5,7 @@ import { RedditThreads } from "@/components/compare/RedditThreads";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
+import { StrainPersonalInsight } from "@/components/saved/StrainPersonalInsight";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
@@ -78,6 +79,7 @@ export default function Strain() {
   const { isAuthenticated, user } = useAuth();
   const compare = useCompareSelection();
   const { logs } = useReliefSummary();
+  const savedAilments = useSavedAilments();
   const { popular, isLoading: popularLoading } = usePopularStrains();
   const [profile, setProfile] = useState<StrainProfile | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "missing">(
@@ -450,6 +452,17 @@ export default function Strain() {
           {/* Auth-gated compare suggestions + log + notes. */}
           {isAuthenticated && others.length > 0 && profile ? (
             <CompareSuggestions profileName={profile.name} others={others} />
+          ) : null}
+
+          {/* Personal "what worked for you" chip — only renders once the
+              patient has logged this strain at least 3 times. Quiet
+              otherwise. */}
+          {isAuthenticated && profile ? (
+            <StrainPersonalInsight
+              strainName={profile.name}
+              logs={logs}
+              conditions={savedAilments}
+            />
           ) : null}
 
           {isAuthenticated && profile ? (
