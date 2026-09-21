@@ -45,12 +45,34 @@ enum StrainCatalog {
     static let all: [StrainProfile] = unique(curated + directory).map(applyKnownPhoto)
 
     static func merge(_ live: [StrainProfile], preferringType type: StrainType? = nil) -> [StrainProfile] {
-        let extras = all.filter { catalog in
-            if let type, catalog.type != type { return false }
+        // Resolve the type-specific directory: the Firestore per-type cache
+        // (populated by the daily `warmStrainDirectory` Cloud Function) wins
+        // when loaded with data for that type; the bundled JSON + curated
+        // catalog is the fallback. This keeps the type rails rendering the
+        // full Leafly partition (~660 hybrids etc.) once Firestore returns,
+        // and the bundled snapshot (~115 hybrids) until then.
+        let directorySource = resolveDirectory(for: type)
+        let extras = directorySource.filter { catalog in
             return !live.contains { $0.slug == catalog.slug }
         }
         let head = type == nil ? live : live.filter { $0.type == type }
         return applyingCatalogPhotos(unique(head + extras))
+    }
+
+    /// Pick the per-type StrainProfile list to merge. The Firestore per-type
+    /// cache (loaded by `StrainDirectoryCache.warm`) wins when populated for
+    /// the requested type; otherwise we fall back to the bundled `all`
+    /// filtered by type. Mirrors the web client's `resolveDirectoryFor`
+    /// helper in `src/lib/strain-catalog.ts`.
+    private static func resolveDirectory(for type: StrainType?) -> [StrainProfile] {
+        if let type, let fromFirestore = StrainDirectoryCache.profiles(for: type),
+           !fromFirestore.isEmpty {
+            return fromFirestore
+        }
+        if let type {
+            return all.filter { $0.type == type }
+        }
+        return all
     }
 
     static func matching(ailment: String, live: [StrainProfile]) -> [StrainProfile] {
