@@ -18,6 +18,7 @@ struct StrainEaseApp: App {
     init() {
         FirebaseBootstrap.configure()
         StrainImageCache.configure()
+        StrainDirectoryCache.warm()
     }
 
     var body: some Scene {

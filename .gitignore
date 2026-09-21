@@ -66,9 +66,6 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
-# iOS-specific (StrainEase companion)
-ios/StrainEase/GoogleService-Info.plist
-
 # Local scratch / smoke-test scripts left over from manual verification.
 trash-*.ts
 .trash/
