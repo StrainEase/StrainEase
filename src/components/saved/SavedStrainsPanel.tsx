@@ -4,10 +4,8 @@ import {
   removeSavedStrain,
   type SavedStrain,
 } from "@/lib/saved-strains";
-import { listenToReliefLogs, type ReliefLog } from "@/lib/relief-log";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { ComparableStrainPoster } from "@/components/strain/ComparableStrainPoster";
-import { ReliefInsightsPanel } from "@/components/saved/ReliefInsightsPanel";
 import { Bookmark, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -21,11 +19,15 @@ import { useEffect, useState } from "react";
  * `<SavedStrainNotes />` in `src/pages/Strain.tsx`) — the
  * modal is just the favorites grid so the heart button
  * surfaces a clean cross-platform view.
+ *
+ * The relief-log insights panel used to live here too. It
+ * moved to its own header dialog (`JournalPanel` opened from
+ * `AppHeader`'s Insights button) so patients don't have to
+ * open Favorites to read their patterns.
  */
 export function SavedStrainsPanel() {
   const { user } = useAuth();
   const [saved, setSaved] = useState<SavedStrain[] | null>(null);
-  const [logs, setLogs] = useState<ReliefLog[]>([]);
 
   useEffect(() => {
     if (!db || !user) {
@@ -33,14 +35,6 @@ export function SavedStrainsPanel() {
       return;
     }
     return listenToSavedStrains(user.uid, setSaved);
-  }, [user?.uid]);
-
-  useEffect(() => {
-    if (!db || !user) {
-      setLogs([]);
-      return;
-    }
-    return listenToReliefLogs(user.uid, setLogs);
   }, [user?.uid]);
 
   if (!isFirebaseConfigured) {
@@ -51,9 +45,9 @@ export function SavedStrainsPanel() {
           Saving needs Firebase
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-          Add your Firebase keys in the Keys/API keys tab (VITE_FIREBASE_API_KEY,
-          VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID) to save strains
-          and write notes.
+          Add your Firebase keys in the Keys/API keys tab
+          (VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN,
+          VITE_FIREBASE_PROJECT_ID) to save strains and write notes.
         </p>
       </div>
     );
@@ -84,7 +78,6 @@ export function SavedStrainsPanel() {
 
   return (
     <div className="space-y-4">
-      <ReliefInsightsPanel logs={logs} />
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         <Bookmark className="size-3.5 text-primary" />
         {saved.length} saved {saved.length === 1 ? "strain" : "strains"}
