@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mood
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
@@ -235,6 +236,12 @@ fun AccountView(
                         nav.openAccountDestination(AccountDestination.ReliefHistory)
                     },
                 )
+                // PR-A1 follow-up: Insights moved out of Account and
+                // into the Home header bar (mirrors web AppHeader +
+                // iOS top toolbar), so the Account card was redundant
+                // and has been removed. AccountDestination.Insights is
+                // still routable via `nav.openAccountDestination(...)`
+                // from anywhere if a deep-link ever needs it.
                 NavRowCard(
                     title = "Daily check-in",
                     subtitle = "Mood, sleep, pain, and anxiety over time",

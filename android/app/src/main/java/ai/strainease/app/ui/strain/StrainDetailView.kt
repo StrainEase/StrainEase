@@ -185,7 +185,7 @@ fun StrainDetailView(
         isHydrating = false
     }
 
-    val triedNotes = relief.forStrain(profile.name)
+    val triedNotes = relief.logsForName(profile.name)
 
     // Active hydration slots — empty once the search() call has
     // settled (success or failure) so placeholders collapse on
@@ -269,6 +269,12 @@ fun StrainDetailView(
                 )
             }
             triedNotesSection(triedNotes)
+            // PR-A1: per-strain insight chip above the log form
+            // (>=3 logs threshold, matches web's StrainPersonalInsight).
+            StrainPersonalInsight(
+                logs = relief.logsForName(profile.name),
+                savedConditions = ailments,
+            )
             ReliefLogForm(
                 strainName = profile.name,
                 strainSlug = profile.slug,

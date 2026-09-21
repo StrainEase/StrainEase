@@ -369,6 +369,17 @@ fun MainTabView() {
                             onBack = { nav.consumeAccountDestination() },
                         )
                     }
+                    AccountDestination.Insights -> {
+                        ai.strainease.app.ui.account.InsightsScreen(
+                            relief = relief,
+                            savedStrains = savedStrains,
+                            ailments = savedAilments,
+                            onBack = { nav.consumeAccountDestination() },
+                            onViewAll = {
+                                nav.openAccountDestination(ai.strainease.app.app.AccountDestination.ReliefHistory)
+                            },
+                        )
+                    }
                     AccountDestination.DailyCheckIn -> {
                         ai.strainease.app.ui.account.DailyCheckInScreen(
                             store = checkIns,
