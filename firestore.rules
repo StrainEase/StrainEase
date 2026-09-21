@@ -54,6 +54,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Per-session journal entries. Each doc is one logged session
+    // for one strain (optional conditions, fit, relief 1-5, optional
+    // note + rating). Session-journal fields (form, doseMg, timeOfDay,
+    // onsetMinutes, sideEffects, wouldRepeat) are all optional — newer
+    // clients write them, older ones don't. Field-level rules let the
+    // form accept each new field without breaking existing writes.
     match /users/{uid}/reliefLogs/{id} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null
@@ -65,7 +71,51 @@ service cloud.firestore {
         && request.resource.data.relief >= 1
         && request.resource.data.relief <= 5
         && request.resource.data.createdAt is number
-        && request.resource.data.createdAt > 0;
+        && request.resource.data.createdAt > 0
+        && (
+          !('note' in request.resource.data)
+          || (request.resource.data.note is string
+              && request.resource.data.note.size() <= 400)
+        )
+        && (
+          !('rating' in request.resource.data)
+          || (request.resource.data.rating is number
+              && request.resource.data.rating >= 1
+              && request.resource.data.rating <= 5)
+        )
+        && (
+          !('form' in request.resource.data)
+          || request.resource.data.form in ['flower', 'cart', 'edible', 'tincture']
+        )
+        && (
+          !('doseMg' in request.resource.data)
+          || (request.resource.data.doseMg is number
+              && request.resource.data.doseMg >= 1
+              && request.resource.data.doseMg <= 500)
+        )
+        && (
+          !('timeOfDay' in request.resource.data)
+          || request.resource.data.timeOfDay in ['morning', 'afternoon', 'evening', 'night']
+        )
+        && (
+          !('onsetMinutes' in request.resource.data)
+          || (request.resource.data.onsetMinutes is number
+              && request.resource.data.onsetMinutes >= 1
+              && request.resource.data.onsetMinutes <= 240)
+        )
+        && (
+          !('sideEffects' in request.resource.data)
+          || (request.resource.data.sideEffects is list
+              && request.resource.data.sideEffects.size() <= 6
+              && request.resource.data.sideEffects.hasOnly([
+                'anxiety', 'paranoia', 'dry-mouth', 'drowsiness',
+                'racing-heart', 'nausea', 'headache',
+              ]))
+        )
+        && (
+          !('wouldRepeat' in request.resource.data)
+          || request.resource.data.wouldRepeat is bool
+        );
       allow update: if false;
     }
 
