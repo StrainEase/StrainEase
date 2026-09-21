@@ -113,6 +113,7 @@ fun DiscoverView(
     val customAilment by model.customAilment.collectAsState()
     val result by model.result.collectAsState()
     val isRunning by model.isRunning.collectAsState()
+    val step by model.step.collectAsState()
     val error by model.errorMessage.collectAsState()
     val comparison by compareStore.comparison.collectAsState()
     val scope = rememberCoroutineScope()
@@ -293,7 +294,7 @@ fun DiscoverView(
             }
 
             SWPrimaryButton(
-                title = "Find recommendations",
+                title = if (isRunning) step.message else "Find best strains",
                 isBusy = isRunning,
                 enabled = !isRunning && ailments.isNotEmpty(),
                 onClick = {
