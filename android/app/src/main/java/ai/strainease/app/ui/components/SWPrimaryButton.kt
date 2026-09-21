@@ -3,8 +3,8 @@ package ai.strainease.app.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -42,6 +42,9 @@ import ai.strainease.app.ui.theme.StrainEaseTypography
  *    disc on the right. Title is shown in both idle and busy states
  *    so callers can swap the visible label (e.g. the current research
  *    step) while research is in flight.
+ *  - Horizontal padding is symmetric (start == end == 22dp) so the
+ *    title sits the same distance from the left edge as the disc sits
+ *    from the right edge.
  */
 @Composable
 fun SWPrimaryButton(
@@ -66,7 +69,7 @@ fun SWPrimaryButton(
                 ),
             )
             .clickable(enabled = enabled && !isBusy, onClick = onClick)
-            .padding(start = 22.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            .padding(start = 18.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -77,26 +80,41 @@ fun SWPrimaryButton(
                 strokeWidth = 2.dp,
             )
         }
-        Text(
-            text = title,
-            style = StrainEaseTypography.titleSmall.copy(
-                fontSize = if (isBusy) 14.sp else 16.sp,
-            ),
-            color = onPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        Spacer(Modifier.weight(1f))
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = onPrimary,
+        // Wrap the title in a Box with an explicit linebox height so the
+        // visible glyph is optically centered within the row (the
+        // titleSmall lineHeight reserves descender space below the
+        // baseline, which would otherwise float the text toward the top).
+        Box(
+            modifier = Modifier.height(if (isBusy) 20.dp else 22.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = title,
+                style = StrainEaseTypography.titleSmall.copy(
+                    fontSize = if (isBusy) 14.sp else 16.sp,
+                    lineHeight = if (isBusy) 20.sp else 22.sp,
+                ),
+                color = onPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // Spacer holds the same horizontal weight as the disc so the
+        // title sits flush left and the disc hugs the right curve.
+        Box(modifier = Modifier.weight(1f))
+        Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(36.dp)
                 .clip(CircleShape)
-                .background(onPrimary.copy(alpha = 0.16f))
-                .padding(7.dp),
-        )
+                .background(onPrimary.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = onPrimary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
     }
 }
