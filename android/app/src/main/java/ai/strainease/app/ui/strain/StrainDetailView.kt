@@ -269,6 +269,12 @@ fun StrainDetailView(
                 )
             }
             triedNotesSection(triedNotes)
+            // PR-A1: per-strain insight chip above the log form
+            // (>=3 logs threshold, matches web's StrainPersonalInsight).
+            StrainPersonalInsight(
+                logs = relief.logsForName(profile.name),
+                savedConditions = ailments,
+            )
             ReliefLogForm(
                 strainName = profile.name,
                 strainSlug = profile.slug,

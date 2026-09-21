@@ -13,6 +13,36 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+/** Closed list matching web `SessionForm`. */
+@Serializable
+enum class ConsumeForm {
+    flower,
+    cart,
+    edible,
+    tincture,
+}
+
+@Serializable
+enum class SessionTimeOfDay {
+    morning,
+    afternoon,
+    evening,
+    night,
+}
+
+/** Mirrors web `SIDE_EFFECT_OPTIONS`. Closed list so malformed writes
+ *  can't sneak into the prompt context. */
+@Serializable
+enum class SessionSideEffect {
+    anxiety,
+    paranoia,
+    `dry-mouth`,
+    drowsiness,
+    `racing-heart`,
+    nausea,
+    headache,
+}
+
 @Serializable
 data class ReliefLog(
     val strainName: String,
@@ -21,6 +51,13 @@ data class ReliefLog(
     val rating: Int, // 0..5 — how well it worked
     val intensity: Int = 0, // 0..5 — how strong it felt
     val loggedAt: Long,
+    // Session-journal fields (PR-W1 parity, see web `src/lib/relief-log.ts`).
+    val form: ConsumeForm? = null,
+    val doseMg: Int? = null,
+    val timeOfDay: SessionTimeOfDay? = null,
+    val onsetMinutes: Int? = null,
+    val sideEffects: List<SessionSideEffect> = emptyList(),
+    val wouldRepeat: Boolean? = null,
 )
 
 private val Context.reliefDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -99,18 +136,26 @@ class ReliefLogStore(private val context: Context) {
         }
     }
 
-    fun forStrain(name: String): List<ReliefLog> =
-        log.filter { it.strainName.equals(name, ignoreCase = true) }
-
-    private fun decode(raw: String): List<ReliefLog> = try {
-        json.decodeFromString<List<ReliefLog>>(raw)
-    } catch (t: Throwable) {
-        android.util.Log.w("ReliefLogStore", "decode failed: ${t.message}")
-        emptyList()
+    suspend fun delete(strainSlug: String, loggedAt: Long) {
+        val next = this.cached.filterNot { it.strainSlug == strainSlug && it.loggedAt == loggedAt }
+        cached = next
+        context.reliefDataStore.edit { prefs ->
+            prefs[LOG_KEY] = json.encodeToString(next)
+        }
     }
 
-    // Stub no-ops so the AuthBound wiring in PR #190 compiles. See
-    // SavedAilmentsStore for the parallel note.
-    fun start(uid: String) { /* TODO: Firestore listener */ }
-    fun stop() { /* TODO: Firestore listener */ }
+    fun logsForSlug(slug: String): List<ReliefLog> =
+        cached.filter { it.strainSlug == slug }.sortedByDescending { it.loggedAt }
+
+    fun logsForName(name: String): List<ReliefLog> {
+        val key = name.trim().lowercase()
+        return cached.filter { it.strainName.trim().lowercase() == key }
+            .sortedByDescending { it.loggedAt }
+    }
+
+    private fun decode(serialized: String): List<ReliefLog> = try {
+        json.decodeFromString<List<ReliefLog>>(serialized)
+    } catch (_: Throwable) {
+        emptyList()
+    }
 }

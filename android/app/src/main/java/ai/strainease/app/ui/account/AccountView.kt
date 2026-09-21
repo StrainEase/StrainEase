@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mood
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
@@ -233,6 +234,18 @@ fun AccountView(
                     icon = Icons.Filled.Refresh,
                     onClick = {
                         nav.openAccountDestination(AccountDestination.ReliefHistory)
+                    },
+                )
+                // PR-A1: Insights entry. Mirrors the web AppHeader
+                // circular button between Favorites and Library — on
+                // Android the same surface lives as a sub-page from
+                // Account (no equivalent top header in the same spot).
+                NavRowCard(
+                    title = "Insights",
+                    subtitle = "What's working across your saved strains",
+                    icon = Icons.Filled.QueryStats,
+                    onClick = {
+                        nav.openAccountDestination(AccountDestination.Insights)
                     },
                 )
                 NavRowCard(

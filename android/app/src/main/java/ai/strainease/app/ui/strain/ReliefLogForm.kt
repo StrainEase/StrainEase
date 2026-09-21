@@ -53,6 +53,13 @@ fun ReliefLogForm(
 ) {
     var rating by remember { mutableStateOf(0) }
     var notes by remember { mutableStateOf("") }
+    // Session-journal state — kept empty unless the disclosure is opened.
+    var form by remember { mutableStateOf<ai.strainease.app.data.ConsumeForm?>(null) }
+    var doseText by remember { mutableStateOf("") }
+    var timeOfDay by remember { mutableStateOf<ai.strainease.app.data.SessionTimeOfDay?>(null) }
+    var onsetText by remember { mutableStateOf("") }
+    var selectedEffects by remember { mutableStateOf<Set<ai.strainease.app.data.SessionSideEffect>>(emptySet()) }
+    var wouldRepeat by remember { mutableStateOf<Boolean?>(null) }
     val scope = rememberCoroutineScope()
 
     SWCard(modifier = modifier) {
@@ -91,6 +98,27 @@ fun ReliefLogForm(
                 label = "Notes",
                 multiLine = true,
             )
+            // Session-journal disclosure (PR-W1 parity).
+            ReliefSessionDetails(
+                form = form,
+                onFormChange = { form = it },
+                doseText = doseText,
+                onDoseChange = { doseText = it },
+                timeOfDay = timeOfDay,
+                onTimeOfDayChange = { timeOfDay = it },
+                onsetText = onsetText,
+                onOnsetChange = { onsetText = it },
+                selectedEffects = selectedEffects,
+                onToggleEffect = { e ->
+                    selectedEffects = if (selectedEffects.contains(e)) {
+                        selectedEffects - e
+                    } else {
+                        selectedEffects + e
+                    }
+                },
+                wouldRepeat = wouldRepeat,
+                onWouldRepeatChange = { wouldRepeat = it },
+            )
             SWPrimaryButton(
                 title = "Save",
                 enabled = rating > 0 && notes.isNotBlank(),
@@ -103,10 +131,22 @@ fun ReliefLogForm(
                                 notes = notes,
                                 rating = rating,
                                 loggedAt = System.currentTimeMillis(),
+                                form = form,
+                                doseMg = doseText.toIntOrNull()?.coerceIn(0, 500),
+                                timeOfDay = timeOfDay,
+                                onsetMinutes = onsetText.toIntOrNull()?.coerceIn(0, 720),
+                                sideEffects = selectedEffects.toList(),
+                                wouldRepeat = wouldRepeat,
                             ),
                         )
                         notes = ""
                         rating = 0
+                        form = null
+                        doseText = ""
+                        timeOfDay = null
+                        onsetText = ""
+                        selectedEffects = emptySet()
+                        wouldRepeat = null
                     }
                 },
             )

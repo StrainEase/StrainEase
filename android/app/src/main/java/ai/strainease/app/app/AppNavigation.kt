@@ -53,6 +53,7 @@ sealed class RestoredResearch {
 enum class AccountDestination {
     PastResearch,
     ReliefHistory,
+    Insights,
     DailyCheckIn,
 }
 
