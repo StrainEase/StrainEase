@@ -2,7 +2,6 @@ import { slugify } from "./slug";
 import type { StrainProfile, StrainType } from "./strain-profile";
 import { matchesCondition } from "./strain-ui";
 import { readStrainDirectoryByType } from "./strain-cache";
-import { db } from "./firebase";
 
 /** Cap used by Home rails — mirrored from `home-sections.ts` to avoid
  *  a circular import between the two files. */
@@ -366,6 +365,11 @@ let directoryByTypeLoaded = false;
 
 const directoryByTypeReady: Promise<void> = (async () => {
   try {
+    // Lazy-load firebase so importing this module from
+    // vite.config.ts → vite-plugin-seo.ts → seo.ts doesn't
+    // pull in `import.meta.env.VITE_FIREBASE_*` references
+    // that aren't defined in the node-side config bundle.
+    const { db } = await import("./firebase");
     if (!db) return; // No Firestore SDK configured — keep bundled fallback.
     const results = await Promise.all(
       TYPE_BUCKETS.map(async (type) => {

@@ -44,12 +44,34 @@ object StrainCatalog {
         live: List<StrainProfile>,
         preferringType: StrainType? = null,
     ): List<StrainProfile> {
-        val extras = all.filter { catalog ->
-            if (preferringType != null && catalog.type != preferringType) return@filter false
+        // Resolve the type-specific directory: the Firestore per-type
+        // cache (populated by the daily `warmStrainDirectory` Cloud
+        // Function) wins when loaded with data for that type; the
+        // bundled JSON + curated catalog is the fallback. This keeps
+        // the type rails rendering the full Leafly partition (~660
+        // hybrids etc.) once Firestore returns, and the bundled
+        // snapshot (~115 hybrids) until then. Mirrors the iOS
+        // `resolveDirectory(for:)` helper and the web client's
+        // `resolveDirectoryFor`.
+        val directorySource = resolveDirectory(preferringType)
+        val extras = directorySource.filter { catalog ->
             live.none { it.slug == catalog.slug }
         }
         val head = if (preferringType == null) live else live.filter { it.type == preferringType }
         return applyingCatalogPhotos(unique(head + extras))
+    }
+
+    /** Pick the per-type StrainProfile list to merge. The Firestore
+     *  per-type cache (loaded by [StrainDirectoryCache.warm]) wins when
+     *  populated for the requested type; otherwise we fall back to
+     *  `all` filtered by type. */
+    private fun resolveDirectory(type: StrainType?): List<StrainProfile> {
+        if (type != null) {
+            val fromFirestore = StrainDirectoryCache.profilesFor(type)
+            if (fromFirestore.isNotEmpty()) return fromFirestore
+            return all.filter { it.type == type }
+        }
+        return all
     }
 
     /** Strains from the catalog + live list that match an ailment. */
@@ -301,5 +323,11 @@ object StrainCatalog {
 
     fun init(context: Context) {
         appContext = context.applicationContext
+        // Kick off the Firestore per-type cache fetch in parallel with
+        // the bundled-directory read. Once it lands, `merge()` prefers
+        // the Firestore bucket (e.g. ~144 indicas) over the bundled
+        // JSON (~17 indicas). Mirrors the iOS `StrainEaseApp.init`
+        // call to `StrainDirectoryCache.warm()`.
+        StrainDirectoryCache.warm()
     }
 }
