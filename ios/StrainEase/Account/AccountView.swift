@@ -5,6 +5,7 @@ struct AccountView: View {
     @Environment(AgeVerificationStore.self) private var ageVerification
     @Environment(\.dismiss) private var dismiss
     @Environment(AppNavigation.self) private var nav
+    @Environment(SavedStrainsStore.self) private var saved
     @State private var showSignOut = false
     @State private var showResetAge = false
     @State private var draftName = ""
@@ -44,6 +45,13 @@ struct AccountView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        // PR-i1 follow-up: Insights now lives in the
+                        // Home top-bar header button (mirrors the web
+                        // `<AppHeader />` chart-bar button), so the
+                        // Account card was redundant and has been
+                        // removed. The Insights surface is still
+                        // reachable from Account via the matching
+                        // dialog from the toolbar entry when on Home.
                         NavigationLink {
                             ReliefHistoryView()
                         } label: {
