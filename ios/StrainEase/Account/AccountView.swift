@@ -45,32 +45,13 @@ struct AccountView: View {
                             }
                         }
                         .buttonStyle(.plain)
-                        // PR-i1 Insights entry — mirrors the web
-                        // `<JournalPanel />` so the surface is reachable
-                        // without first opening the saved-strains modal.
-                        // iOS has no top header in the same spot as web's
-                        // `AppHeader`, so the link lives in Account.
-                        NavigationLink {
-                            InsightsPanel()
-                        } label: {
-                            SWCard {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("Insights")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundStyle(Palette.foreground)
-                                        Text("What's working across your saved strains")
-                                            .font(.system(size: 13))
-                                            .foregroundStyle(Palette.mutedForeground)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundStyle(Palette.mutedForeground)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
+                        // PR-i1 follow-up: Insights now lives in the
+                        // Home top-bar header button (mirrors the web
+                        // `<AppHeader />` chart-bar button), so the
+                        // Account card was redundant and has been
+                        // removed. The Insights surface is still
+                        // reachable from Account via the matching
+                        // dialog from the toolbar entry when on Home.
                         NavigationLink {
                             ReliefHistoryView()
                         } label: {

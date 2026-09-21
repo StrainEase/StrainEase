@@ -31,6 +31,13 @@ struct MainTabView: View {
                 }
                 .tint(Palette.primary)
             }
+            .sheet(isPresented: $nav.showJournal) {
+                NavigationStack {
+                    InsightsPanel()
+                        .environment(nav)
+                }
+                .tint(Palette.primary)
+            }
             // Applied last so the tray (safeAreaInset) and tab content
             // both see the same store. Inset content is a sibling of
             // earlier modifiers, not a descendant.

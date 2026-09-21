@@ -31,6 +31,10 @@ final class AppNavigation {
     var tab: AppTab = .home
     var showAccount = false
     var showSaved = false
+    /// Session-journal sheet on Home — mirrors the web
+    /// `<JournalPanel />` that opens from the AppHeader
+    /// Insights button (PR-i1 parity).
+    var showJournal = false
     /// Pending strain profile the Home tab should push onto its
     /// NavigationStack. The HomeView observes this and pops to it once,
     /// then clears it. Lets the terpene drill-down sheet jump to a
@@ -47,6 +51,10 @@ final class AppNavigation {
 
     func openProfile() {
         showAccount = true
+    }
+
+    func openJournal() {
+        showJournal = true
     }
 
     func openFind(ailments: [String]) {
@@ -114,6 +122,31 @@ private struct AppChromeModifier: ViewModifier {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Favorites")
                 .accessibilityHint("Opens saved strains")
+            }
+            // PR-i1 Insights header button — mirrors the web
+            // AppHeader's BarChart3 button between Favorites and
+            // Profile. Visible only on the Home tab when signed in
+            // so the journal surface is discoverable without
+            // opening settings.
+            if nav.tab == .home, session.user != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: nav.openJournal) {
+                        Image(systemName: "chart.bar.xaxis")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(nav.showJournal ? Palette.primary : Palette.mutedForeground)
+                            .frame(width: 32, height: 32)
+                            .background(Palette.card, in: Circle())
+                            .overlay(
+                                Circle().strokeBorder(
+                                    nav.showJournal ? Palette.primary.opacity(0.4) : Palette.border,
+                                    lineWidth: 1
+                                )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Insights")
+                    .accessibilityHint("Opens the session-journal insights")
+                }
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: nav.openProfile) {
