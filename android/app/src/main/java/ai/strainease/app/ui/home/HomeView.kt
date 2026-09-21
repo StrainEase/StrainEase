@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +29,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ai.strainease.app.data.CheckInStore
@@ -36,12 +38,17 @@ import ai.strainease.app.data.RecentlyViewedStore
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.models.StrainProfile
 import ai.strainease.app.ui.compare.CompareSelectionStore
+import ai.strainease.app.app.LocalAppNavigation
+import ai.strainease.app.app.AccountDestination
+import ai.strainease.app.auth.LocalAuthSession
 import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
 import ai.strainease.app.ui.components.TopGradientOverlay
 import ai.strainease.app.ui.theme.PageBottomInset
 import ai.strainease.app.ui.theme.PageTopInset
 import ai.strainease.app.ui.theme.StrainEaseTypography
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.CircleShape
 
 /**
  * The Home tab. 1:1 port of the iOS `HomeView`. Composes the
@@ -72,6 +79,12 @@ fun HomeView(
     val checkInsFlow = checkIns.checkInsFlow.collectAsState(initial = checkIns.checkIns)
     val hasTodayCheckIn = checkInsFlow.value.any { it.date == CheckInStore.todayKey() }
     var showCheckInSheet by remember { mutableStateOf(false) }
+    // PR-A1 follow-up: header-bar entry on Home that mirrors the
+    // web AppHeader chart-bar button. Auth-gated so signed-out
+    // visitors don't see it.
+    val session = LocalAuthSession.current
+    val nav = LocalAppNavigation.current
+    val isSignedIn = session.user != null
 
     LaunchedEffect(Unit) {
         model.load()
@@ -96,6 +109,36 @@ fun HomeView(
                 .padding(start = 20.dp, end = 20.dp, top = PageTopInset, bottom = PageBottomInset),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
+            // PR-A1 follow-up: Home top-bar with the Insights button
+            // on the right (web AppHeader parity). Auth-gated; pill
+            // shape mirrors the iOS/web circular buttons so the
+            // surface is the same everywhere.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                if (isSignedIn) {
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .clickable {
+                                nav.openAccountDestination(AccountDestination.Insights)
+                            },
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.QueryStats,
+                                contentDescription = "Insights",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                }
+            }
             hero()
             if (!hasTodayCheckIn) {
                 DailyCheckInCard(onClick = { showCheckInSheet = true })

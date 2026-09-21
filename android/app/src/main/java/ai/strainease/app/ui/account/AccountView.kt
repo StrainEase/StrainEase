@@ -236,18 +236,12 @@ fun AccountView(
                         nav.openAccountDestination(AccountDestination.ReliefHistory)
                     },
                 )
-                // PR-A1: Insights entry. Mirrors the web AppHeader
-                // circular button between Favorites and Library — on
-                // Android the same surface lives as a sub-page from
-                // Account (no equivalent top header in the same spot).
-                NavRowCard(
-                    title = "Insights",
-                    subtitle = "What's working across your saved strains",
-                    icon = Icons.Filled.QueryStats,
-                    onClick = {
-                        nav.openAccountDestination(AccountDestination.Insights)
-                    },
-                )
+                // PR-A1 follow-up: Insights moved out of Account and
+                // into the Home header bar (mirrors web AppHeader +
+                // iOS top toolbar), so the Account card was redundant
+                // and has been removed. AccountDestination.Insights is
+                // still routable via `nav.openAccountDestination(...)`
+                // from anywhere if a deep-link ever needs it.
                 NavRowCard(
                     title = "Daily check-in",
                     subtitle = "Mood, sleep, pain, and anxiety over time",
