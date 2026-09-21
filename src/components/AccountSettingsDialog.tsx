@@ -219,7 +219,7 @@ export function AccountSettingsDialog({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-5">
+        <div className="space-y-5 px-4 pb-2">
           <div>
             <label
               htmlFor="account-name"
