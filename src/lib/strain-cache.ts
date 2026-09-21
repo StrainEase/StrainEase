@@ -24,7 +24,7 @@ import {
   type Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import type { StrainProfile } from "./strain-profile";
+import type { StrainProfile, StrainType } from "./strain-profile";
 
 const COLLECTION = "clientCache";
 const DOC_ID = "popularStrains";
@@ -154,4 +154,67 @@ export async function readStrainCacheBatch(
     // Partial results are fine — callers merge what they get.
   }
   return result;
+}
+
+/* ── Per-type strain directory cache ────────────────────────────────── */
+
+const STRAIN_DIRECTORY_COLLECTION = "strainDirectory";
+const STRAIN_DIRECTORY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+type StrainDirectoryPreview = {
+  name: string;
+  slug: string;
+  type?: string;
+  thcRange?: string;
+  imageUrl?: string;
+  leaflyRating?: number;
+  weedmapsRating?: number;
+  effects?: StrainProfile["effects"];
+  medicalUses?: StrainProfile["medicalUses"];
+};
+
+type StrainDirectoryDoc = {
+  previews: StrainDirectoryPreview[];
+  fetchedAt: number;
+  totalCount: number;
+};
+
+/**
+ * Read one per-type strain-directory document from Firestore. Lives at
+ * `strainDirectory/byType/{type}/current` and is written by the daily
+ * `warmStrainDirectory` Cloud Function. Returns `null` on miss, stale
+ * data, or any Firestore error — callers fall back to the bundled JSON.
+ */
+export async function readStrainDirectoryByType(
+  type: StrainType,
+): Promise<StrainDirectoryDoc | null> {
+  if (!db) return null;
+  try {
+    const snap = await getDoc(
+      doc(
+        db,
+        STRAIN_DIRECTORY_COLLECTION,
+        "byType",
+        type,
+        "current",
+      ),
+    );
+    if (!snap.exists()) return null;
+    const data = snap.data() as Partial<StrainDirectoryDoc>;
+    if (!Array.isArray(data.previews) || typeof data.fetchedAt !== "number") {
+      return null;
+    }
+    if (Date.now() - data.fetchedAt > STRAIN_DIRECTORY_TTL_MS) return null;
+    return {
+      previews: data.previews,
+      fetchedAt: data.fetchedAt,
+      totalCount:
+        typeof data.totalCount === "number"
+          ? data.totalCount
+          : data.previews.length,
+    };
+  } catch {
+    // Firestore unavailable or permission denied — fall through.
+    return null;
+  }
 }
