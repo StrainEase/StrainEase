@@ -5,6 +5,7 @@ struct AccountView: View {
     @Environment(AgeVerificationStore.self) private var ageVerification
     @Environment(\.dismiss) private var dismiss
     @Environment(AppNavigation.self) private var nav
+    @Environment(SavedStrainsStore.self) private var saved
     @State private var showSignOut = false
     @State private var showResetAge = false
     @State private var draftName = ""
@@ -33,6 +34,32 @@ struct AccountView: View {
                                             .font(.system(size: 16, weight: .semibold))
                                             .foregroundStyle(Palette.foreground)
                                         Text("Reopen a find or comparison")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Palette.mutedForeground)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Palette.mutedForeground)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        // PR-i1 Insights entry — mirrors the web
+                        // `<JournalPanel />` so the surface is reachable
+                        // without first opening the saved-strains modal.
+                        // iOS has no top header in the same spot as web's
+                        // `AppHeader`, so the link lives in Account.
+                        NavigationLink {
+                            InsightsPanel()
+                        } label: {
+                            SWCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Insights")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Palette.foreground)
+                                        Text("What's working across your saved strains")
                                             .font(.system(size: 13))
                                             .foregroundStyle(Palette.mutedForeground)
                                     }

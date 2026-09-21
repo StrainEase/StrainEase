@@ -74,6 +74,13 @@ struct StrainDetailView: View {
                         hydratingSection(.sideEffects)
                     }
                     TriedNotesView(profile: profile)
+                    // PR-i1: surface the per-strain insight chip above
+                    // the log form. Renders nothing when there aren't
+                    // ≥3 logs, matching web's `<StrainPersonalInsight />`.
+                    StrainPersonalInsight(
+                        logs: relief.logs(for: profile.name),
+                        savedConditions: ailments.ailments
+                    )
                     ReliefLogForm(strainName: profile.name, conditions: ailments.ailments)
                     ReliefHistoryList(logs: relief.logs(for: profile.name))
                     SharedNotesView(strainKey: profile.slug)

@@ -18,6 +18,69 @@ enum ReliefFit: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+// ── Session-journal enums (mirror PR-W1 on web) ─────────────────
+
+enum ConsumeForm: String, CaseIterable, Identifiable, Sendable {
+    case flower
+    case cart
+    case edible
+    case tincture
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .flower: "Flower"
+        case .cart: "Cart"
+        case .edible: "Edible"
+        case .tincture: "Tincture"
+        }
+    }
+}
+
+enum SessionTimeOfDay: String, CaseIterable, Identifiable, Sendable {
+    case morning
+    case afternoon
+    case evening
+    case night
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .morning: "Morning"
+        case .afternoon: "Afternoon"
+        case .evening: "Evening"
+        case .night: "Night"
+        }
+    }
+}
+
+/// Mirrors the web `SideEffect` union (`src/lib/relief-log.ts`).
+enum SessionSideEffect: String, CaseIterable, Identifiable, Sendable {
+    case anxiety
+    case paranoia
+    case dryMouth = "dry-mouth"
+    case drowsiness
+    case racingHeart = "racing-heart"
+    case nausea
+    case headache
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .anxiety: "Anxiety"
+        case .paranoia: "Paranoia"
+        case .dryMouth: "Dry mouth"
+        case .drowsiness: "Drowsiness"
+        case .racingHeart: "Racing heart"
+        case .nausea: "Nausea"
+        case .headache: "Headache"
+        }
+    }
+}
+
 struct ReliefLog: Identifiable, Hashable, Sendable {
     var id: String
     var strainName: String
@@ -30,6 +93,13 @@ struct ReliefLog: Identifiable, Hashable, Sendable {
     var relief: Int
     var note: String
     var createdAt: Int
+    // ── Session-journal fields (PR-W1 / PR-i1 parity) ───────────
+    var form: ConsumeForm?
+    var doseMg: Int?
+    var timeOfDay: SessionTimeOfDay?
+    var onsetMinutes: Int?
+    var sideEffects: [SessionSideEffect]?
+    var wouldRepeat: Bool?
 }
 
 /// Same `users/{uid}/reliefLogs/{id}` docs as the web app.
@@ -95,9 +165,17 @@ final class ReliefLogStore {
         fit: ReliefFit,
         rating: Int,
         relief: Int,
-        note: String
+        note: String,
+        form: ConsumeForm? = nil,
+        doseMg: Int? = nil,
+        timeOfDay: SessionTimeOfDay? = nil,
+        onsetMinutes: Int? = nil,
+        sideEffects: [SessionSideEffect]? = nil,
+        wouldRepeat: Bool? = nil
     ) async {
         let createdAt = Int(Date().timeIntervalSince1970 * 1000)
+        let clampedDose = doseMg.map { min(500, max(0, $0)) }
+        let clampedOnset = onsetMinutes.map { min(720, max(0, $0)) }
         let log = ReliefLog(
             id: "preview-\(createdAt)",
             strainName: String(strainName.prefix(79)),
@@ -106,7 +184,13 @@ final class ReliefLogStore {
             rating: min(5, max(0, rating)),
             relief: min(5, max(1, relief)),
             note: String(note.trimmingCharacters(in: .whitespacesAndNewlines).prefix(400)),
-            createdAt: createdAt
+            createdAt: createdAt,
+            form: form,
+            doseMg: clampedDose,
+            timeOfDay: timeOfDay,
+            onsetMinutes: clampedOnset,
+            sideEffects: sideEffects,
+            wouldRepeat: wouldRepeat
         )
         logs.insert(log, at: 0)
         errorMessage = nil
@@ -169,6 +253,26 @@ final class ReliefLogStore {
         if log.rating > 0 {
             doc["rating"] = log.rating
         }
+        // Session-journal fields — all optional, all written only when
+        // set, mirroring PR-W1's `reliefLogCreateData` shaping.
+        if let form = log.form {
+            doc["form"] = form.rawValue
+        }
+        if let dose = log.doseMg {
+            doc["doseMg"] = dose
+        }
+        if let time = log.timeOfDay {
+            doc["timeOfDay"] = time.rawValue
+        }
+        if let onset = log.onsetMinutes {
+            doc["onsetMinutes"] = onset
+        }
+        if let effects = log.sideEffects, !effects.isEmpty {
+            doc["sideEffects"] = effects.map { $0.rawValue }
+        }
+        if let repeat_ = log.wouldRepeat {
+            doc["wouldRepeat"] = repeat_
+        }
         return doc
     }
 
@@ -194,6 +298,15 @@ final class ReliefLogStore {
         } else {
             rating = 0
         }
+        // Session-journal fields — read leniently so older clients'
+        // writes (no form/dose/etc.) still load.
+        let form: ConsumeForm? = (data["form"] as? String).flatMap { ConsumeForm(rawValue: $0) }
+        let doseMg: Int? = (data["doseMg"] as? Int) ?? (data["doseMg"] as? Double).map(Int.init)
+        let time: SessionTimeOfDay? = (data["timeOfDay"] as? String).flatMap { SessionTimeOfDay(rawValue: $0) }
+        let onset: Int? = (data["onsetMinutes"] as? Int) ?? (data["onsetMinutes"] as? Double).map(Int.init)
+        let sideEffects: [SessionSideEffect]? = (data["sideEffects"] as? [String])?
+            .compactMap { SessionSideEffect(rawValue: $0) }
+        let wouldRepeat: Bool? = data["wouldRepeat"] as? Bool
         return ReliefLog(
             id: doc.documentID,
             strainName: name,
@@ -202,7 +315,13 @@ final class ReliefLogStore {
             rating: rating,
             relief: relief,
             note: data["note"] as? String ?? "",
-            createdAt: data["createdAt"] as? Int ?? 0
+            createdAt: data["createdAt"] as? Int ?? 0,
+            form: form,
+            doseMg: doseMg,
+            timeOfDay: time,
+            onsetMinutes: onset,
+            sideEffects: sideEffects,
+            wouldRepeat: wouldRepeat
         )
     }
 
@@ -223,6 +342,12 @@ extension ReliefLog {
         rating: 5,
         relief: 5,
         note: "Slept through the night.",
-        createdAt: 1_700_000_000_000
+        createdAt: 1_700_000_000_000,
+        form: .flower,
+        doseMg: 12,
+        timeOfDay: .night,
+        onsetMinutes: 8,
+        sideEffects: [.dryMouth],
+        wouldRepeat: true
     )
 }
