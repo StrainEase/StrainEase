@@ -14,12 +14,11 @@
 # against the current project.yml before the build, and any drift
 # between the pbxproj and project.yml fails loudly.
 #
-# GoogleService-Info.plist is gitignored (it lives in each developer's
-# local clone). FirebaseBootstrap.swift already no-ops when the plist
-# is missing, but xcodebuild's resources phase still fails if the
-# referenced file is absent. We write a stub plist at build time so
-# the archive / test bundle can be linked; Firebase calls at runtime
-# will fail safely because the stub IDs are obviously not real.
+# GoogleService-Info.plist is now committed to the repo (no secrets;
+# just Firebase project identifiers constrained by Security Rules). The
+# stub-write below stays as a fallback for anyone who deletes the file
+# locally; Xcode Cloud and CI use the committed version directly so
+# FirebaseAuth + Firestore initialise with real values at archive time.
 
 name: StrainEase iOS
 

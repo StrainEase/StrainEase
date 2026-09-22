@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>89734321536-oh77ksa24vpbd3ut6o93hfm753cplts9.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.89734321536-oh77ksa24vpbd3ut6o93hfm753cplts9</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAVeoQkXYi3eMRaINsvDBNvbKX2XrTatBM</string>
+	<key>GCM_SENDER_ID</key>
+	<string>89734321536</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>ai.strainease.ios</string>
+	<key>PROJECT_ID</key>
+	<string>strainfinder-84a9b</string>
+	<key>STORAGE_BUCKET</key>
+	<string>strainfinder-84a9b.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:89734321536:ios:4f5ff72c1d458f1de31d65</string>
+</dict>
+</plist>
