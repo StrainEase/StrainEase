@@ -29,6 +29,7 @@
 		4D866D88C1EF8C772EC1BA25 /* ThcSensitivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F755BD7ED4FB46A6A725EB3 /* ThcSensitivityStore.swift */; };
 		4DA010E98DCB40DB10413B6A /* ResearchHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40CA2FBB0AC1AA8BB87FD3B9 /* ResearchHistoryStore.swift */; };
 		4DCAF1ABD8695FB588743763 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C19AE37513363125582CB69B /* Palette.swift */; };
+		4E969273A77E6138183E7A01 /* StrainPersonalInsight.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4214A2B0073917FE7A93E58 /* StrainPersonalInsight.swift */; };
 		518E52AF5D6C47DDE5C38D4F /* SavedMedicationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B595382A36875E3B58A93BF7 /* SavedMedicationsStore.swift */; };
 		53245EDF4EFA59E577A6A2C5 /* StrainDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D098106AAA5573A2FF065B5 /* StrainDetailView.swift */; };
 		57CE374D4C206D84FBD2683A /* SavedMedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */; };
@@ -73,6 +74,7 @@
 		B4420F253D641CC17E6A7301 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4340CAFEFBB8F469A7BBE142 /* HomeView.swift */; };
 		B7890C9AB5534D13D624C6E4 /* StrainMeaning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7819115AFCD2DD9763440358 /* StrainMeaning.swift */; };
 		B9F1AFFCE4FBD63D548C1478 /* StrainPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1B0426629D56FCDD5AB455F /* StrainPoster.swift */; };
+		BBC989527FD3CD64B6672919 /* InsightsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EB3AF8BB9F1CD8593F5368 /* InsightsPanel.swift */; };
 		C0033EAE6EF91871F9227374 /* ReliefLogForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B20BA017AD7D61E5E149923 /* ReliefLogForm.swift */; };
 		C1BD9E03A802EF81212B5527 /* CompareSelectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5B020FE53FDE8A2FB99CDFB /* CompareSelectionStore.swift */; };
 		C493DBE22FB7744912D4ED0C /* SharedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFA17F0F1A175C4E58C3A58 /* SharedNotesView.swift */; };
@@ -140,6 +142,7 @@
 		5F755BD7ED4FB46A6A725EB3 /* ThcSensitivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThcSensitivityStore.swift; sourceTree = "<group>"; };
 		60200884971058678D018248 /* SavedAilmentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAilmentsStore.swift; sourceTree = "<group>"; };
 		61875CB7A206EE1BB3B5C792 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
+		62EB3AF8BB9F1CD8593F5368 /* InsightsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsPanel.swift; sourceTree = "<group>"; };
 		65979D7D0365186077E51DD4 /* RedditThreadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedditThreadsView.swift; sourceTree = "<group>"; };
 		68AF745E3B717B5F7A641D86 /* StrainAutocomplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainAutocomplete.swift; sourceTree = "<group>"; };
 		6B1BA91D2E7438F55F48388D /* SavedStrainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStrainsView.swift; sourceTree = "<group>"; };
@@ -181,6 +184,7 @@
 		C809CF642413F3D53A622162 /* StrainHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainHydration.swift; sourceTree = "<group>"; };
 		CE2940F6680CF248045D5473 /* PublicNotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicNotesStore.swift; sourceTree = "<group>"; };
 		CE93586BFFA074DBB0966BEC /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
+		D4214A2B0073917FE7A93E58 /* StrainPersonalInsight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrainPersonalInsight.swift; sourceTree = "<group>"; };
 		D668CCEBCE155C0EEC7D2278 /* AgeVerificationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeVerificationStoreTests.swift; sourceTree = "<group>"; };
 		DD7AD2FF51D63E84AD896344 /* SavedMedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMedicationsCard.swift; sourceTree = "<group>"; };
 		DF98E803F69C77F3170B2697 /* CompareResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareResultsView.swift; sourceTree = "<group>"; };
@@ -296,6 +300,7 @@
 				244F136BA7CC969F81448B0D /* CheckInPanel.swift */,
 				514BC84EF1B12EA765CA1C84 /* CheckInSparkline.swift */,
 				571A0DFDD74705698C15D1AF /* ClinicianReportView.swift */,
+				62EB3AF8BB9F1CD8593F5368 /* InsightsPanel.swift */,
 				A8E19C7E33E227D0EF7E49F2 /* ReliefHistoryView.swift */,
 				053157392C5DFFE9E6D0B84D /* ResearchHistoryView.swift */,
 				2FBA9F2DA24E3238FC0120D8 /* SavedAilmentsCard.swift */,
@@ -355,6 +360,7 @@
 				5D098106AAA5573A2FF065B5 /* StrainDetailView.swift */,
 				C809CF642413F3D53A622162 /* StrainHydration.swift */,
 				7819115AFCD2DD9763440358 /* StrainMeaning.swift */,
+				D4214A2B0073917FE7A93E58 /* StrainPersonalInsight.swift */,
 				1B081DF2959AB0E179292722 /* TerpeneDetailView.swift */,
 				8BF071D01B0F4841408D9AEE /* TerpeneProfile.swift */,
 				800987791E1F518D554E62E9 /* TriedNotesView.swift */,
@@ -566,6 +572,7 @@
 				C57B04AC793C259F99E52E30 /* HomeHeadline.swift in Sources */,
 				E44B53DC77F5FC62D2A195D4 /* HomeModel.swift in Sources */,
 				B4420F253D641CC17E6A7301 /* HomeView.swift in Sources */,
+				BBC989527FD3CD64B6672919 /* InsightsPanel.swift in Sources */,
 				CACD61394A1D12B8E66DD4F9 /* LocationProvider.swift in Sources */,
 				3F0381DB4D6020781EA68899 /* MainTabView.swift in Sources */,
 				76CCE987125A081FC2EDC563 /* MedicationAutocomplete.swift in Sources */,
@@ -604,6 +611,7 @@
 				798AC0D7B44AEDD84F79CC04 /* StrainImageCache.swift in Sources */,
 				B7890C9AB5534D13D624C6E4 /* StrainMeaning.swift in Sources */,
 				5C92B2D277E6C8FE7B1F452F /* StrainModels.swift in Sources */,
+				4E969273A77E6138183E7A01 /* StrainPersonalInsight.swift in Sources */,
 				B9F1AFFCE4FBD63D548C1478 /* StrainPoster.swift in Sources */,
 				9CDBE29279D53E725FD1B821 /* TerpeneDetailView.swift in Sources */,
 				C79044ADF49937D5F8AA7ED7 /* TerpeneProfile.swift in Sources */,
