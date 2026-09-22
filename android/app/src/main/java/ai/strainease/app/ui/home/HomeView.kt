@@ -110,36 +110,6 @@ fun HomeView(
                 .padding(start = 20.dp, end = 20.dp, top = PageTopInset, bottom = PageBottomInset),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
-            // PR-A1 follow-up: Home top-bar with the Insights button
-            // on the left (web AppHeader parity). Auth-gated; pill
-            // shape mirrors the iOS/web circular buttons so the
-            // surface is the same everywhere.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
-            ) {
-                if (isSignedIn) {
-                    Surface(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .clickable {
-                                nav.openAccountDestination(AccountDestination.Insights)
-                            },
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Filled.QueryStats,
-                                contentDescription = "Insights",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-                }
-            }
             hero()
             if (!hasTodayCheckIn) {
                 DailyCheckInCard(onClick = { showCheckInSheet = true })

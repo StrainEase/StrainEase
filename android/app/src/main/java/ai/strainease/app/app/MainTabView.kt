@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -223,6 +224,9 @@ fun MainTabView() {
                         showSaved = showSaved,
                         onOpenSaved = { showSaved = true },
                         onOpenAccount = { showAccount = true },
+                        onOpenInsights = {
+                            nav.openAccountDestination(AccountDestination.Insights)
+                        },
                         modifier = Modifier.padding(top = 12.dp, end = 12.dp),
                     )
                 }
@@ -352,7 +356,7 @@ fun MainTabView() {
         // shell. Tapping Back clears the destination and the
         // Account sheet stays open.
         val destination = nav.accountDestination
-        if (showAccount && destination != null) {
+        if (destination != null) {
             ModalBottomSheet(
                 onDismissRequest = { nav.consumeAccountDestination() },
             ) {
@@ -434,6 +438,7 @@ private fun AppChromeButtons(
     showSaved: Boolean,
     onOpenSaved: () -> Unit,
     onOpenAccount: () -> Unit,
+    onOpenInsights: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val session = ai.strainease.app.auth.LocalAuthSession.current
@@ -489,6 +494,31 @@ private fun AppChromeButtons(
                     tint = if (showSaved) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+        // Insights → Journal sheet (PR-A1 follow-up). Auth-gated so
+        // signed-out users don't see an entry that takes them to a
+        // private surface. Mirrors web AppHeader BarChart3 and iOS
+        // chart.bar.xaxis — sits between Favorites and Profile so the
+        // journal surface lives next to the data sources it reads.
+        if (user != null) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable { onOpenInsights() },
+            ) {
+                androidx.compose.foundation.layout.Box(
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.QueryStats,
+                        contentDescription = "Insights",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         // Initials → Account sheet.
