@@ -46,6 +46,10 @@ import {
   toPreview,
   type StrainPreview,
 } from "./leafly";
+import {
+  partitionByType,
+  writeStrainDirectoryByType,
+} from "./strain-directory-cache";
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { extractJsonObject } from "./ai-json";
 import { callOpenRouter, OPENROUTER_MODEL } from "./openrouter";
@@ -301,8 +305,21 @@ export const warmStrainDirectory = onSchedule(
     const all = await fetchAllStrains();
     const previews = all.map(toPreview);
     await writePopularListCache(previews);
+    const fetchedAt = Date.now();
+    // Per-type breakdown so web/iOS/Android Browse rails render every strain
+    // of a given type (e.g. ~3,500 hybrids) without shipping the bundled
+    // `strain-directory.json` snapshot. Best-effort — popularListCache stays
+    // authoritative; per-type docs are read-through optimisations.
+    const byType = partitionByType(previews);
+    await Promise.all([
+      writeStrainDirectoryByType("indica", byType.indica, fetchedAt),
+      writeStrainDirectoryByType("sativa", byType.sativa, fetchedAt),
+      writeStrainDirectoryByType("hybrid", byType.hybrid, fetchedAt),
+    ]);
     console.log(
-      `[warmStrainDirectory] Cached ${previews.length} strain previews.`,
+      `[warmStrainDirectory] Cached ${previews.length} strain previews ` +
+        `(indica=${byType.indica.length} sativa=${byType.sativa.length} ` +
+        `hybrid=${byType.hybrid.length}).`,
     );
   },
 );

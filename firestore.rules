@@ -32,6 +32,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Per-type strain directory breakdown. Same Leafly source as the
+    // popularListCache above, but partitioned into indica / sativa / hybrid
+    // documents so web/iOS/Android Browse rails can render every strain of
+    // a given type without shipping the bundled `strain-directory.json`
+    // snapshot. Written by warmStrainDirectory (admin SDK only); clients
+    // read directly so the read path is one Firestore hop.
+    // Document path: strainDirectory/byType/{indica|sativa|hybrid}/current
+    match /strainDirectory/byType/{type}/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Saved strains + notes are private to each user.
     match /users/{uid}/savedStrains/{slug} {
       allow read, write: if request.auth != null && request.auth.uid == uid;

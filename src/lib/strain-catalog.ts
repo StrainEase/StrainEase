@@ -1,6 +1,7 @@
 import { slugify } from "./slug";
 import type { StrainProfile, StrainType } from "./strain-profile";
 import { matchesCondition } from "./strain-ui";
+import { readStrainDirectoryByType } from "./strain-cache";
 
 /** Cap used by Home rails — mirrored from `home-sections.ts` to avoid
  *  a circular import between the two files. */
@@ -329,11 +330,138 @@ export function getStrainDirectory(): readonly StrainProfile[] {
   return directoryProfiles;
 }
 
-/** Resolves once the bundled directory has finished loading. Awaiting
- *  this on the Browse page guarantees the rail shows every strain
- *  of the selected type on first render. */
+/** Resolves once both the bundled directory and the Firestore per-type
+ *  cache have finished loading (or failed). Awaiting this on the Browse
+ *  page guarantees the rail shows the largest available snapshot of
+ *  the selected type on first render — Firestore (~3,500 strains per
+ *  type) when available, bundled JSON (~150 entries) as the cold-start
+ *  fallback. */
 export function strainDirectoryReady(): Promise<void> {
-  return directoryReady;
+  return Promise.all([directoryReady, directoryByTypeReady]).then(() => undefined);
+}
+
+/* ── Per-type strain directory cache (Firestore) ──────────────────────
+ *
+ * The daily `warmStrainDirectory` Cloud Function writes three documents
+ * (`strainDirectory/byType/{indica,sativa,hybrid}/current`) holding the
+ * full Leafly partition by type. Browsing on web/iOS/Android reads those
+ * documents directly and uses them in `mergeCatalog` instead of the
+ * bundled JSON snapshot.
+ *
+ * The bundled JSON stays as the cold-start fallback. If the Firestore
+ * fetch fails (offline, permissions, etc.) we fall through to the JSON
+ * and the Browse rail still renders — just with the smaller snapshot. */
+
+const TYPE_BUCKETS: readonly StrainType[] = ["indica", "sativa", "hybrid"];
+
+/** Per-type directory profiles loaded from Firestore. Empty until the
+ *  module-level fetch resolves (or fails — empty bucket = use bundled). */
+const directoryByType: Record<StrainType, readonly StrainProfile[]> = {
+  indica: [],
+  sativa: [],
+  hybrid: [],
+};
+let directoryByTypeLoaded = false;
+
+const directoryByTypeReady: Promise<void> = (async () => {
+  try {
+    // Lazy-load firebase so importing this module from
+    // vite.config.ts → vite-plugin-seo.ts → seo.ts doesn't
+    // pull in `import.meta.env.VITE_FIREBASE_*` references
+    // that aren't defined in the node-side config bundle.
+    const { db } = await import("./firebase");
+    if (!db) return; // No Firestore SDK configured — keep bundled fallback.
+    const results = await Promise.all(
+      TYPE_BUCKETS.map(async (type) => {
+        const doc = await readStrainDirectoryByType(type);
+        if (!doc) return [type, [] as StrainProfile[]] as const;
+        const mapped = doc.previews
+          .map(toFirestorePreviewProfile)
+          .filter((profile): profile is StrainProfile => profile !== null);
+        return [type, mapped] as const;
+      }),
+    );
+    for (const [type, profiles] of results) {
+      directoryByType[type] = profiles;
+    }
+    directoryByTypeLoaded = results.some(
+      ([, profiles]) => profiles.length > 0,
+    );
+  } catch {
+    // Firestore SDK threw at module load — fall back to bundled JSON.
+    directoryByTypeLoaded = false;
+  }
+})();
+
+/** Map a Firestore per-type preview into the minimal StrainProfile shape
+ *  `mergeCatalog` consumes. The Cloud Function only writes previews whose
+ *  `type` is one of the three tracked buckets, so the cast is safe; any
+ *  unparseable row is dropped instead of leaking `undefined` into the
+ *  typed `StrainType` slot. */
+function toFirestorePreviewProfile(
+  preview: {
+    name: string;
+    type?: string;
+    thcRange?: string;
+    imageUrl?: string;
+    leaflyRating?: number;
+    weedmapsRating?: number;
+    effects?: StrainProfile["effects"];
+    medicalUses?: StrainProfile["medicalUses"];
+  },
+): StrainProfile | null {
+  if (
+    preview.type !== "indica" &&
+    preview.type !== "sativa" &&
+    preview.type !== "hybrid"
+  ) {
+    return null;
+  }
+  return {
+    name: preview.name,
+    inKnowledgeBase: true,
+    type: preview.type,
+    thcRange: preview.thcRange,
+    imageUrl: preview.imageUrl,
+    leaflyRating: preview.leaflyRating,
+    weedmapsRating: preview.weedmapsRating,
+    effects: preview.effects,
+    medicalUses: preview.medicalUses,
+  };
+}
+
+/** Snapshot of the currently loaded Firestore per-type directory, by type.
+ *  Returns an empty bucket for any type whose Firestore doc was missing. */
+export function getStrainDirectoryByType(
+  type: StrainType,
+): readonly StrainProfile[] {
+  return directoryByType[type];
+}
+
+/** Whether the Firestore per-type cache has finished loading (or failed).
+ *  Callers can ignore the boolean and rely on `directoryByType` returning
+ *  either the Firestore data or an empty bucket for fall-through. */
+export function strainDirectoryByTypeLoaded(): boolean {
+  return directoryByTypeLoaded;
+}
+
+/* ── Test-only state injection ──────────────────────────────────────── */
+
+/**
+ * Replace the in-memory Firestore per-type cache so tests can pin the
+ * merge logic without spinning up Firestore. The bundled JSON path stays
+ * the fallback when `loaded = false` or the bucket for the requested type
+ * is empty. Mirrors the `_resetCatalogForTests` pattern in
+ * `canonical-strain-name.test.ts`.
+ */
+export function _setStrainDirectoryByTypeForTests(
+  loaded: boolean,
+  buckets: Partial<Record<StrainType, readonly StrainProfile[]>> = {},
+): void {
+  directoryByTypeLoaded = loaded;
+  for (const type of TYPE_BUCKETS) {
+    directoryByType[type] = buckets[type] ?? [];
+  }
 }
 
 /** Six strains pinned to the homescreen rail. Pulled from `CATALOG` so the
@@ -484,12 +612,21 @@ export function applyCatalogPhotos(profiles: StrainProfile[]): StrainProfile[] {
 export function mergeCatalog(
   live: StrainProfile[],
   preferringType?: StrainType,
-  directory: readonly StrainProfile[] = directoryProfiles,
+  directory?: readonly StrainProfile[],
 ): StrainProfile[] {
-  // Curated wins on photo / uses; the bundled directory fills in the
+  // Resolve the type-specific directory: Firestore per-type cache wins
+  // when it has loaded; otherwise fall back to the bundled JSON, then to
+  // the caller-supplied directory. This keeps the rail rendering the
+  // full Leafly partition (~3,500 hybrids etc.) once Firestore returns,
+  // and the bundled snapshot (~150 entries) until then.
+  const directorySource = resolveDirectoryFor(
+    preferringType,
+    directory,
+  );
+  // Curated wins on photo / uses; the directory fills in the
   // long tail so type rails reach every Leafly / Weedmaps entry, not
   // just the 24 curated names.
-  const source = [...CATALOG, ...directory];
+  const source = [...CATALOG, ...directorySource];
   const extras = source.filter((catalog) => {
     if (preferringType && catalog.type !== preferringType) return false;
     return !live.some((item) => profileSlug(item) === profileSlug(catalog));
@@ -498,6 +635,32 @@ export function mergeCatalog(
     ? live.filter((item) => item.type === preferringType)
     : live;
   return applyCatalogPhotos(uniqueProfiles([...head, ...extras]));
+}
+
+/**
+ * Pick the directory profile list to merge for a given type. The
+ * Firestore per-type cache (populated by the daily `warmStrainDirectory`
+ * Cloud Function) wins when it has loaded with data for that type; the
+ * bundled JSON is the fallback when Firestore is missing, offline, or
+ * hasn't loaded yet. Callers that pass an explicit `directory` argument
+ * still take precedence so unit tests can pin the input.
+ */
+function resolveDirectoryFor(
+  preferringType: StrainType | undefined,
+  directory: readonly StrainProfile[] | undefined,
+): readonly StrainProfile[] {
+  if (directory) return directory;
+  if (preferringType && directoryByTypeLoaded) {
+    const fromFirestore = directoryByType[preferringType];
+    if (fromFirestore.length > 0) return fromFirestore;
+  }
+  // Fallback: filter the bundled JSON by type so callers that pass
+  // `preferringType` still get type-specific extras even before
+  // Firestore loads.
+  if (preferringType) {
+    return directoryProfiles.filter((profile) => profile.type === preferringType);
+  }
+  return directoryProfiles;
 }
 
 export function matchingAilment(

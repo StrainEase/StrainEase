@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { CATALOG, getPhotoURL } from "./strain-catalog";
 import {
+  _setStrainDirectoryByTypeForTests,
   applyCatalogPhotos,
   matchAilments,
   matchingAilment,
   mergeCatalog,
 } from "./strain-catalog";
+import type { StrainProfile } from "./strain-profile";
 
 describe("matchingAilment", () => {
   test("keeps a popular strain when live data has no medicalUses", () => {
@@ -170,6 +172,47 @@ describe("applyCatalogPhotos", () => {
     const indica = mergeCatalog([], "indica", directory);
     expect(indica.some((p) => p.name === "Velvet Punch")).toBe(true);
     expect(indica.every((p) => p.type === "indica")).toBe(true);
+  });
+
+  test("mergeCatalog prefers the Firestore per-type cache over the bundled JSON when loaded", () => {
+    const firestoreIndica: StrainProfile[] = [
+      {
+        name: "Lavender Dusk",
+        inKnowledgeBase: true,
+        type: "indica",
+        thcRange: "~19%",
+        imageUrl: "https://images.leafly.com/flower-images/lavender-dusk.png",
+        medicalUses: ["Insomnia"],
+      },
+      {
+        name: "Midnight Plum",
+        inKnowledgeBase: true,
+        type: "indica",
+        thcRange: "~22%",
+        imageUrl: "https://images.leafly.com/flower-images/midnight-plum.png",
+        medicalUses: ["Stress"],
+      },
+    ];
+    _setStrainDirectoryByTypeForTests(true, { indica: firestoreIndica });
+    try {
+      const merged = mergeCatalog([], "indica");
+      const names = new Set(merged.map((p) => p.name));
+      expect(names.has("Lavender Dusk")).toBe(true);
+      expect(names.has("Midnight Plum")).toBe(true);
+      // The bundled JSON's 17 indicas should be absent — Firestore replaces
+      // them, not appends to them.
+      expect(names.has("Blackberry Kush")).toBe(false);
+      expect(merged.every((p) => p.type === "indica")).toBe(true);
+    } finally {
+      _setStrainDirectoryByTypeForTests(false);
+    }
+  });
+
+  test("mergeCatalog falls back to bundled JSON when the Firestore cache is not loaded", () => {
+    // No explicit directory arg, no Firestore cache → uses bundled.
+    const merged = mergeCatalog([], "indica");
+    expect(merged.some((p) => p.name === "Granddaddy Purple")).toBe(true);
+    expect(merged.some((p) => p.name === "Bubba Kush")).toBe(true);
   });
 
   test("matchingAilment falls back to the directory when the curated catalog has no hits", () => {

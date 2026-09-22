@@ -23,8 +23,7 @@ import {
   where,
   type Timestamp,
 } from "firebase/firestore";
-import { db } from "./firebase";
-import type { StrainProfile } from "./strain-profile";
+import type { StrainProfile, StrainType } from "./strain-profile";
 
 const COLLECTION = "clientCache";
 const DOC_ID = "popularStrains";
@@ -41,6 +40,7 @@ type CachedDoc = {
  * treat a null return as "go fetch from the API".
  */
 export async function readPopularCache(): Promise<StrainProfile[] | null> {
+  const { db } = await import("./firebase");
   if (!db) return null;
   try {
     const snap = await getDoc(doc(db, COLLECTION, DOC_ID));
@@ -70,6 +70,7 @@ export async function readPopularCache(): Promise<StrainProfile[] | null> {
 export async function writePopularCache(
   strains: StrainProfile[],
 ): Promise<void> {
+  const { db } = await import("./firebase");
   if (!db || strains.length === 0) return;
   try {
     await setDoc(doc(db, COLLECTION, DOC_ID), {
@@ -97,6 +98,7 @@ const STRAIN_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 export async function readStrainCache(
   slug: string,
 ): Promise<StrainProfile | null> {
+  const { db } = await import("./firebase");
   if (!db || !slug) return null;
   try {
     const snap = await getDoc(doc(db, STRAIN_CACHE_COLLECTION, slug));
@@ -122,6 +124,7 @@ export async function readStrainCache(
 export async function readStrainCacheBatch(
   slugs: string[],
 ): Promise<Map<string, StrainProfile>> {
+  const { db } = await import("./firebase");
   if (!db || slugs.length === 0) return new Map();
   const result = new Map<string, StrainProfile>();
   // Firestore `in` queries support up to 30 items per call.
@@ -154,4 +157,68 @@ export async function readStrainCacheBatch(
     // Partial results are fine — callers merge what they get.
   }
   return result;
+}
+
+/* ── Per-type strain directory cache ────────────────────────────────── */
+
+const STRAIN_DIRECTORY_COLLECTION = "strainDirectory";
+const STRAIN_DIRECTORY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+type StrainDirectoryPreview = {
+  name: string;
+  slug: string;
+  type?: string;
+  thcRange?: string;
+  imageUrl?: string;
+  leaflyRating?: number;
+  weedmapsRating?: number;
+  effects?: StrainProfile["effects"];
+  medicalUses?: StrainProfile["medicalUses"];
+};
+
+type StrainDirectoryDoc = {
+  previews: StrainDirectoryPreview[];
+  fetchedAt: number;
+  totalCount: number;
+};
+
+/**
+ * Read one per-type strain-directory document from Firestore. Lives at
+ * `strainDirectory/byType/{type}/current` and is written by the daily
+ * `warmStrainDirectory` Cloud Function. Returns `null` on miss, stale
+ * data, or any Firestore error — callers fall back to the bundled JSON.
+ */
+export async function readStrainDirectoryByType(
+  type: StrainType,
+): Promise<StrainDirectoryDoc | null> {
+  const { db } = await import("./firebase");
+  if (!db) return null;
+  try {
+    const snap = await getDoc(
+      doc(
+        db,
+        STRAIN_DIRECTORY_COLLECTION,
+        "byType",
+        type,
+        "current",
+      ),
+    );
+    if (!snap.exists()) return null;
+    const data = snap.data() as Partial<StrainDirectoryDoc>;
+    if (!Array.isArray(data.previews) || typeof data.fetchedAt !== "number") {
+      return null;
+    }
+    if (Date.now() - data.fetchedAt > STRAIN_DIRECTORY_TTL_MS) return null;
+    return {
+      previews: data.previews,
+      fetchedAt: data.fetchedAt,
+      totalCount:
+        typeof data.totalCount === "number"
+          ? data.totalCount
+          : data.previews.length,
+    };
+  } catch {
+    // Firestore unavailable or permission denied — fall through.
+    return null;
+  }
 }
