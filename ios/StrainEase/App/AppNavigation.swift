@@ -125,18 +125,18 @@ private struct AppChromeModifier: ViewModifier {
             }
             // PR-i1 Insights header button — mirrors the web
             // AppHeader's BarChart3 button between Favorites and
-            // Profile. Visible only on the Home tab when signed in
-            // so the journal surface is discoverable without
-            // opening settings.
+            // the page nav (top-leading on iOS). Visible only on
+            // the Home tab when signed in so the journal surface
+            // is discoverable without opening settings.
             if nav.tab == .home, session.user != nil {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: nav.openJournal) {
                         Image(systemName: "chart.bar.xaxis")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(nav.showJournal ? Palette.primary : Palette.mutedForeground)
                             .frame(width: 32, height: 32)
                             .background(Palette.card, in: Circle())
-                            .overlay(
+                        .overlay(
                                 Circle().strokeBorder(
                                     nav.showJournal ? Palette.primary.opacity(0.4) : Palette.border,
                                     lineWidth: 1
