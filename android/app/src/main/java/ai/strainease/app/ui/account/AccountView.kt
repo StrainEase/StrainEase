@@ -138,7 +138,7 @@ fun AccountView(
             // sits above this row, so "Account settings" stays visible
             // as the user scrolls through the cards below, mirroring
             // the iOS sheet title that is always pinned at the top.
-            AccountSheetTopBar(onDismiss = onDismiss)
+            AccountSheetTopBar(title = "Account settings", onDismiss = onDismiss)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -331,73 +331,6 @@ private fun headerRow(userName: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Start,
             modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-/**
- * Pinned top bar for the Account sheet. Renders the iOS-style
- * "Close" pill on the left and the centered "Account settings"
- * "Close" pill on the left and the centered "Account settings"
- * title. Sits above the scrollable column so the title stays
- * visible while the cards scroll, matching the iOS sheet header.
- *
- * The title is centered between the Close pill (left) and a
- * matching-width Spacer (right) so the title is visually
- * centered on the sheet, not the Row's midpoint.
- */
-@Composable
-private fun AccountSheetTopBar(onDismiss: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        // Title sits in the Box's true center; the Close pill
-        // overlays at the start. The Close pill has its own
-        // transparent padding around it, so it does not visually
-        // collide with the title even when the title is short.
-        Text(
-            text = "Account settings",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Box(
-            modifier = Modifier.align(Alignment.CenterStart),
-        ) {
-            ClosePillButton(onClick = onDismiss)
-        }
-    }
-}
-
-@Composable
-private fun ClosePillButton(onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Close,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(14.dp),
-        )
-        Text(
-            text = "Close",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
         )
     }
 }

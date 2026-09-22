@@ -4,6 +4,7 @@ import ai.strainease.app.data.ReliefLog
 import ai.strainease.app.data.ReliefLogStore
 import ai.strainease.app.data.SavedAilmentsStore
 import ai.strainease.app.data.SavedStrainsStore
+import ai.strainease.app.ui.components.Eyebrow
 import ai.strainease.app.ui.components.MeshBackground
 import ai.strainease.app.ui.components.SWCard
 import ai.strainease.app.ui.components.SectionLabel
@@ -23,7 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -32,13 +32,17 @@ import androidx.compose.ui.unit.dp
  * `InsightsPanel.swift` (PR-i1). PR-W1 puts the Insights entry as a
  * top-header circular button between Favorites and Library; iOS /
  * Android put the same surface as a sub-page from Account.
+ *
+ * The sheet chrome ([AccountSheetTopBar] + [MeshBackground] +
+ * [Eyebrow]) matches the Account / Settings sheet so the user
+ * experiences all Account destinations as one family.
  */
 @Composable
 fun InsightsScreen(
     relief: ReliefLogStore,
     savedStrains: SavedStrainsStore,
     ailments: SavedAilmentsStore,
-    onBack: () -> Unit,
+    onDismiss: () -> Unit,
     onViewAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -50,13 +54,14 @@ fun InsightsScreen(
     Box(modifier = modifier.fillMaxSize()) {
         MeshBackground()
         Column(modifier = Modifier.fillMaxSize()) {
-            subPageHeader(title = "Insights", onBack = onBack)
+            AccountSheetTopBar(title = "Insights", onDismiss = onDismiss)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                Eyebrow(text = "Insights")
                 Text(
                     text = if (log.isEmpty()) {
                         "Log a strain after you try it and we'll surface what's working for you."

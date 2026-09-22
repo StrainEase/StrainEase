@@ -71,6 +71,7 @@ fun MainTabView() {
     var showAccount by remember { mutableStateOf(false) }
     var showSaved by remember { mutableStateOf(false) }
     var showReport by remember { mutableStateOf(false) }
+    var showInsights by remember { mutableStateOf(false) }
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext
         as ai.strainease.app.StrainEaseApplication
     val homeModel = remember { ai.strainease.app.ui.home.HomeModel() }
@@ -109,6 +110,7 @@ fun MainTabView() {
     val closeStrain: () -> Unit = { openProfile = null }
     val closeAccount: () -> Unit = { showAccount = false }
     val closeSaved: () -> Unit = { showSaved = false }
+    val closeInsights: () -> Unit = { showInsights = false }
     val closeReport: () -> Unit = { showReport = false }
     // Hardware / gesture back closes the deepest open surface so
     // the user is never trapped behind a sheet / overlay.
@@ -225,7 +227,7 @@ fun MainTabView() {
                         onOpenSaved = { showSaved = true },
                         onOpenAccount = { showAccount = true },
                         onOpenInsights = {
-                            nav.openAccountDestination(AccountDestination.Insights)
+                            showInsights = true
                         },
                         modifier = Modifier.padding(top = 12.dp, end = 12.dp),
                     )
@@ -338,6 +340,34 @@ fun MainTabView() {
             }
         }
 
+        if (showInsights) {
+            // Insights lives next to the Account sheet in
+            // `AppChrome`, so it gets the same styled
+            // `ModalBottomSheet` chrome: no drag handle, transparent
+            // container, and zero window insets so the
+            // `MeshBackground` inside `InsightsScreen` paints a
+            // continuous frosted sheet under the pinned top bar.
+            // See the AccountView's ModalBottomSheet above for the
+            // matching rationale.
+            ModalBottomSheet(
+                onDismissRequest = closeInsights,
+                dragHandle = null,
+                containerColor = Color.Transparent,
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+            ) {
+                ai.strainease.app.ui.account.InsightsScreen(
+                    relief = relief,
+                    savedStrains = savedStrains,
+                    ailments = savedAilments,
+                    onDismiss = closeInsights,
+                    onViewAll = {
+                        showInsights = false
+                        nav.openAccountDestination(ai.strainease.app.app.AccountDestination.ReliefHistory)
+                    },
+                )
+            }
+        }
+
         if (showReport) {
             ModalBottomSheet(
                 onDismissRequest = closeReport,
@@ -373,17 +403,17 @@ fun MainTabView() {
                             onBack = { nav.consumeAccountDestination() },
                         )
                     }
-                    AccountDestination.Insights -> {
-                        ai.strainease.app.ui.account.InsightsScreen(
-                            relief = relief,
-                            savedStrains = savedStrains,
-                            ailments = savedAilments,
-                            onBack = { nav.consumeAccountDestination() },
-                            onViewAll = {
-                                nav.openAccountDestination(ai.strainease.app.app.AccountDestination.ReliefHistory)
-                            },
-                        )
-                    }
+                    // Insights is no longer routed through
+                    // `accountDestination` — it now has its own
+                    // dedicated `ModalBottomSheet` below so it can
+                    // adopt the Account / Settings chrome
+                    // (centered Close pill + MeshBackground) without
+                    // dragging the other destinations along. The
+                    // enum value stays in place for any future
+                    // deep-link that needs it; rendering it here
+                    // would just open the un-styled fallback sheet
+                    // and hide the styled one already on screen.
+                    AccountDestination.Insights -> Unit
                     AccountDestination.DailyCheckIn -> {
                         ai.strainease.app.ui.account.DailyCheckInScreen(
                             store = checkIns,
