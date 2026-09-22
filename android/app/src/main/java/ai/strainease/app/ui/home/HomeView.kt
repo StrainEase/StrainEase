@@ -111,12 +111,12 @@ fun HomeView(
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             // PR-A1 follow-up: Home top-bar with the Insights button
-            // on the right (web AppHeader parity). Auth-gated; pill
+            // on the left (web AppHeader parity). Auth-gated; pill
             // shape mirrors the iOS/web circular buttons so the
             // surface is the same everywhere.
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.Start,
             ) {
                 if (isSignedIn) {
                     Surface(
