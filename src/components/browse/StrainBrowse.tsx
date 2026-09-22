@@ -1,4 +1,5 @@
 import { recommendStrains as recommendStrainsCall } from "@/lib/strain-api";
+import { InteractionFlag } from "@/components/browse/InteractionFlag";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import {
@@ -74,6 +75,36 @@ const RESEARCH_STEPS = [
   "Collecting Reddit quotes for your symptoms…",
   "Ranking the best strains with Dr. Kaya…",
 ];
+
+/**
+ * Split the `prefs.medications` prose string into a normalized list
+ * the backend can look up in `interactionLibrary`. The Find page
+ * shows a free-text medications input, so the patient can type
+ * "sertraline 50mg, xanax" and still want a flag for sertraline.
+ *
+ * The interaction library uses slug-style drug names (sertraline,
+ * alprazolam), so we strip common dosage suffixes, trim, drop
+ * empties, and dedupe case-insensitively. Anything that doesn't
+ * resolve to a known slug is silently ignored server-side.
+ */
+function parseMedicationNames(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const tokens = raw
+    .split(/[,;\n]/)
+    .map((t) => t.trim())
+    .filter((t) => t !== "")
+    .map((t) => t.replace(/\s+\d+\s*(?:mg|mcg|ml|iu)\b.*$/i, "").trim())
+    .filter((t) => t !== "");
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of tokens) {
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
+}
 
 /**
  * Single recommendation card with the "press and hold to add to compare"
@@ -203,6 +234,11 @@ function ComparableRecommendation({
       <p className="mt-3 text-sm leading-6 text-muted-foreground">
         {recommendation.reason}
       </p>
+      {recommendation.interactionFlag && (
+        <div className="mt-3">
+          <InteractionFlag flag={recommendation.interactionFlag} />
+        </div>
+      )}
       <div className="mt-4 flex flex-wrap gap-1.5">
         {recommendation.bestFor && (
           <span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">
@@ -348,6 +384,17 @@ function StrainCardsSection({
                 <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
                   <span className="font-medium text-primary">Best for:</span> {rec.bestFor}
                 </p>
+              )}
+
+              {/* Drug-interaction flag. The backend only stamps this
+                  when the patient has medications on the library AND
+                  the strain's THC midpoint clears the high-THC
+                  threshold, so an absence here means the heuristic
+                  found nothing — not that the patient is med-free. */}
+              {rec.interactionFlag && (
+                <div className="mt-2">
+                  <InteractionFlag flag={rec.interactionFlag} />
+                </div>
               )}
 
               {/* Caution */}
@@ -591,6 +638,17 @@ export function StrainBrowse({
         conditions: targets,
         potency: pref === "" ? undefined : pref,
         prefs: compactPrefs({ ...prefs, reliefSummary }),
+        // Thread the patient's saved medications through so the
+        // backend can stamp an `interactionFlag` on each
+        // recommendation. Falls back to the prose `prefs.medications`
+        // string when the saved list is empty (e.g. a guest filling
+        // the field in by hand) so a typed drug name still has a
+        // chance to match a library entry.
+        medications:
+          medications.names.length > 0
+            ? medications.names
+            : parseMedicationNames(prefs.medications),
+        flagInteractions: true,
       };
       const res = await cachedRun(cacheKey("recommend", args), () =>
         recommendStrainsCall(args),

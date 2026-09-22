@@ -159,6 +159,39 @@ export type StrainRecommendation = {
    * emit the field — the UI hides the trace block when it's missing.
    */
   reasoning?: ReasoningEvidence;
+  /**
+   * Drug-interaction badge populated by the backend when one of the
+   * patient's reported medications has a known interaction with the
+   * strain's profile. Carries the patient's drug class (so the UI
+   * doesn't have to round-trip back to the library), the severity
+   * pulled from `interactionLibrary`, and a one-line summary the
+   * patient can scan in the card.
+   *
+   * Only attached when (a) the patient passed medications, (b) at
+   * least one drug has a matching library record, and (c) the strain's
+   * THC midpoint meets the conservative high-THC threshold that
+   * triggers SSRI / sedative / cardiovascular caution. Absent for
+   * low-THC strains even on flagged drug classes — the heuristic
+   * intentionally errs on fewer false positives.
+   */
+  interactionFlag?: InteractionFlag;
+};
+
+/**
+ * The minimal drug-interaction surface the recommendation card needs
+ * to render its badge. Mirrors `InteractionRecord.drugClass` and
+ * `InteractionRecord.cannabisInteraction` from `reference-library.ts`
+ * so the UI never has to call back into Firestore to label a flag.
+ *
+ * `drugClass` is the patient's drug class (e.g. "SSRI"), `severity`
+ * is the library record's severity, and `summary` is the library
+ * record's `commonGuidance` truncated to one line so the badge stays
+ * scannable on a phone-sized card.
+ */
+export type InteractionFlag = {
+  drugClass: string;
+  severity: "low" | "moderate" | "high" | "theoretical";
+  summary: string;
 };
 
 /**

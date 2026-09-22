@@ -70,6 +70,7 @@ import {
   getCachedAiResult,
   putCachedAiResult,
 } from "./ai-cache";
+import { flagInteractionForStrain, HIGH_THC_THRESHOLD } from "./interaction-flag";
 import type {
   Citation,
   RecommendationResult,
@@ -1761,6 +1762,8 @@ export const recommendStrainsForConditions = onCall(
       potency?: unknown;
       prefs?: unknown;
       language?: unknown;
+      medications?: unknown;
+      flagInteractions?: unknown;
     };
     const conditions = asStringArray(data.conditions);
     if (conditions.length === 0) {
@@ -1778,6 +1781,16 @@ export const recommendStrainsForConditions = onCall(
         : undefined;
     const prefs = parsePrefs(data.prefs);
     const language = parseOutputLanguage(data.language);
+    // Top-level `medications` is the canonical source for the
+    // interaction-flag pass — `prefs.medications` is the prose the
+    // model sees, but the flag stamping needs a normalized drug
+    // list to look up records in `interactionLibrary`. Defaults to
+    // off so a guest or older client never gets a stale flag.
+    const medications = asStringArray(data.medications)
+      .map((m) => m.trim())
+      .filter((m) => m !== "")
+      .slice(0, 32);
+    const flagInteractions = data.flagInteractions !== false;
 
     // Rank against full Leafly detail profiles (not the popular-list
     // summaries) so medical uses, CBD, lineage and side effects are present.
@@ -1868,6 +1881,40 @@ export const recommendStrainsForConditions = onCall(
       OPENROUTER_API_KEY.value(),
     );
 
+    // Drug-interaction flag pass. Runs after enrichment so each
+    // recommendation has the consolidated THC range to score against.
+    // `flagInteractions` defaults to true; callers can opt out (the
+    // /compare path doesn't need it, and guests with no saved
+    // medications never hit the library anyway). Failures here are
+    // swallowed — a missing flag is preferable to a failed
+    // recommendation call.
+    if (flagInteractions && medications.length > 0) {
+      try {
+        const interactionRecords = await loadInteractionRecords();
+        if (interactionRecords.length > 0) {
+          const patientInteractions = lookupInteractions(
+            interactionRecords,
+            medications,
+          );
+          const strainsByName = new Map(
+            strains.map((s) => [s.name.toLowerCase(), s]),
+          );
+          for (const rec of recommendations) {
+            const strain = strainsByName.get(rec.strainName.toLowerCase());
+            if (!strain) continue;
+            const flag = flagInteractionForStrain(
+              strain,
+              patientInteractions,
+            );
+            if (flag) rec.interactionFlag = flag;
+          }
+        }
+      } catch {
+        // Best-effort: never fail the recommendation because the
+        // interaction library lookup blew up.
+      }
+    }
+
     const payload: import("./types").RecommendationResult = {
       headline:
         typeof p.headline === "string" && p.headline.trim()
@@ -1902,6 +1949,31 @@ export const recommendStrainsForConditions = onCall(
     return { ...payload, resultId };
   },
 );
+
+/**
+ * Read every interaction record from the curated library. Cached in
+ * the function instance for the duration of a cold start so the
+ * recommendation path doesn't re-read the collection once per
+ * request. Returns [] on any failure — the recommendation call
+ * stays usable without a library, it just won't emit flags.
+ */
+async function loadInteractionRecords(): Promise<InteractionRecord[]> {
+  if (INTERACTION_RECORDS_CACHE) return INTERACTION_RECORDS_CACHE;
+  const promise = (async () => {
+    try {
+      const snap = await getFirestore()
+        .collection("interactionLibrary")
+        .get();
+      return snap.docs.map((d) => d.data() as InteractionRecord);
+    } catch {
+      return [];
+    }
+  })();
+  INTERACTION_RECORDS_CACHE = promise;
+  return promise;
+}
+
+let INTERACTION_RECORDS_CACHE: Promise<InteractionRecord[]> | null = null;
 
 /* ── Image proxy (public, no auth) ────────────────────────────────────── */
 
@@ -2715,4 +2787,6 @@ export const __testing = {
   parseOutputLanguage,
   parseElaboration,
   withLanguageClause,
+  flagInteractionForStrain,
+  HIGH_THC_THRESHOLD,
 };

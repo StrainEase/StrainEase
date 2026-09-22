@@ -61,6 +61,20 @@ export type ReasoningEvidence = {
   considerations: string[];
 };
 
+/**
+ * Drug-interaction badge surface emitted by `recommendStrainsForConditions`
+ * when the patient has medications on the interaction library AND the
+ * strain's THC midpoint crosses the high-THC threshold. The shape is
+ * the minimum the UI needs to render a badge without a second Firestore
+ * round-trip — the patient's drug class, the library severity, and a
+ * one-line summary clipped from the library's `commonGuidance`.
+ */
+export type InteractionFlag = {
+  drugClass: string;
+  severity: "low" | "moderate" | "high" | "theoretical";
+  summary: string;
+};
+
 export type StrainRecommendation = {
   strainName: string;
   reason: string;
@@ -72,6 +86,12 @@ export type StrainRecommendation = {
    * `ReasoningTrace` component hides itself when this is undefined.
    */
   reasoning?: ReasoningEvidence;
+  /**
+   * Backend-stamped drug-interaction flag. Absent when the patient
+   * passed no `medications`, opted out via `flagInteractions: false`,
+   * or the strain's profile didn't cross the high-THC threshold.
+   */
+  interactionFlag?: InteractionFlag;
 };
 
 export type RecommendationResult = {
@@ -198,6 +218,20 @@ export function recommendStrains(args: {
   prefs?: ResearchPrefs;
   /** Human-readable language name, e.g. "English". Defaults to English. */
   language?: string;
+  /**
+   * Patient's saved medication names (typically pulled from
+   * `useMedications().names`). Used by the backend to stamp an
+   * `interactionFlag` on each recommendation. Capped at 32 entries
+   * server-side. Ignored when `flagInteractions === false`.
+   */
+  medications?: string[];
+  /**
+   * When false, the backend skips the interaction-library lookup
+   * and never stamps `interactionFlag` on the response. Defaults to
+   * true. Useful for the /compare path where the patient is picking
+   * strains manually and a flag would be out of context.
+   */
+  flagInteractions?: boolean;
 }): Promise<RecommendationResult> {
   return call<typeof args, RecommendationResult>(
     "recommendStrainsForConditions",
