@@ -7,6 +7,7 @@ import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 /**
@@ -19,10 +20,19 @@ export function StrainPoster({
   profile,
   compact = false,
   className,
+  imageOverlay,
 }: {
   profile: StrainProfile;
   compact?: boolean;
   className?: string;
+  /**
+   * Optional content rendered inside the image bounds (anchored to the
+   * image's bottom-left corner). Used by `ComparableStrainPoster` to
+   * surface the "Hold to compare" hint without overlapping the strain
+   * name below the image. Keep `pointer-events-none` on overlays so they
+   * never swallow the card's tap-to-open gesture.
+   */
+  imageOverlay?: ReactNode;
 }) {
   const href = `/strain/${slugify(profile.name)}`;
   const type = profile.type;
@@ -33,14 +43,17 @@ export function StrainPoster({
       onClick={() => recordRecentlyViewed(profile)}
       className={cn("group flex min-w-0 flex-col gap-2 text-left", className)}
     >
-      <StrainImage
-        src={profile.imageUrl}
-        fallbackSrc={getPhotoURL(profile.name)}
-        alt={`${profile.name} flower`}
-        type={type}
-        className="aspect-[4/3] w-full rounded-2xl border border-border/70"
-        iconClassName={compact ? "size-6" : "size-7"}
-      />
+      <div className="relative">
+        <StrainImage
+          src={profile.imageUrl}
+          fallbackSrc={getPhotoURL(profile.name)}
+          alt={`${profile.name} flower`}
+          type={type}
+          className="aspect-[4/3] w-full rounded-2xl border border-border/70"
+          iconClassName={compact ? "size-6" : "size-7"}
+        />
+        {imageOverlay}
+      </div>
       {type && (
         <Badge className={cn(typeBadgeClass(type), "self-start capitalize")}>
           {TYPE_LABEL[type] ?? type}

@@ -62,13 +62,18 @@ export const ComparableStrainPoster = memo(function ComparableStrainPoster({
           <Check className="size-3.5" strokeWidth={2.75} />
         </span>
       )}
-      <StrainPoster profile={profile} compact={compact} />
-      {!inCompare && (
-        <span className="pointer-events-none absolute bottom-[3.75rem] left-1/2 z-10 hidden -translate-x-1/2 rounded-full border border-border/70 bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:block">
-          <GitCompareArrows className="mr-1 inline size-3 align-[-2px]" />
-          Hold to compare
-        </span>
-      )}
+      <StrainPoster
+        profile={profile}
+        compact={compact}
+        imageOverlay={
+          !inCompare ? (
+            <span className="pointer-events-none absolute bottom-1.5 left-1/2 z-10 hidden -translate-x-1/2 rounded-full border border-border/70 bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:block">
+              <GitCompareArrows className="mr-1 inline size-3 align-[-2px]" />
+              Hold to compare
+            </span>
+          ) : null
+        }
+      />
     </span>
   );
 });
