@@ -5,6 +5,9 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import ai.strainease.app.models.RecommendationResult
 import ai.strainease.app.models.StrainComparison
@@ -78,7 +81,7 @@ class AppNavigation {
     var tab: AppTab = AppTab.Home
     var showAccount: Boolean = false
     var showSaved: Boolean = false
-    var accountDestination: AccountDestination? = null
+    var accountDestination: AccountDestination? by mutableStateOf(null)
     var pendingStrain: StrainProfile? = null
     var pendingFindAilments: List<String> = emptyList()
     var pendingResearch: RestoredResearch? = null
