@@ -328,8 +328,18 @@ fun MainTabView() {
         }
 
         if (showSaved) {
+            // Saved strains uses the same styled
+            // `ModalBottomSheet` chrome as Account / Insights: no
+            // drag handle, transparent container, zero window
+            // insets so the `MeshBackground` inside the sheet
+            // paints a continuous frosted sheet under the pinned
+            // top bar. See the AccountView's ModalBottomSheet above
+            // for the matching rationale.
             ModalBottomSheet(
                 onDismissRequest = closeSaved,
+                dragHandle = null,
+                containerColor = Color.Transparent,
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
             ) {
                 ai.strainease.app.ui.account.SavedStrainsSheet(
                     savedStrains = savedStrains,

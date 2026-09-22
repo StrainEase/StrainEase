@@ -477,34 +477,25 @@ fun SavedStrainsSheet(
     val saved by savedStrains.savedFlow.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { savedStrains.refresh() }
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Saved strains",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f),
-            )
-            androidx.compose.material3.IconButton(onClick = onDismiss) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurface,
+    Box(modifier = modifier.fillMaxSize()) {
+        MeshBackground()
+        Column(modifier = Modifier.fillMaxSize()) {
+            AccountSheetTopBar(title = "Saved strains", onDismiss = onDismiss)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                SavedStrainsList(
+                    saved = saved,
+                    onOpen = onOpen,
+                    onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
+                    compareStore = compareStore,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
-        SavedStrainsList(
-            saved = saved,
-            onOpen = onOpen,
-            onRemove = { slug -> scope.launch { savedStrains.remove(slug) } },
-            compareStore = compareStore,
-            modifier = Modifier.weight(1f),
-        )
     }
 }
 
