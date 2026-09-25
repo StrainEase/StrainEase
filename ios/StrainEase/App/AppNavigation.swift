@@ -9,8 +9,8 @@ enum AppTab: String, Hashable, CaseIterable {
     var title: String {
         switch self {
         case .home: "Home"
-        case .find: "Browse"
-        case .discover: "Find"
+        case .find: "Find"
+        case .discover: "Discover"
         case .doctors: "Doctors"
         }
     }
