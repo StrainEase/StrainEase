@@ -10,7 +10,7 @@ enum AppTab: String, Hashable, CaseIterable {
         switch self {
         case .home: "Home"
         case .find: "Browse"
-        case .browse: "Find"
+        case .discover: "Find"
         case .doctors: "Doctors"
         }
     }
@@ -19,7 +19,7 @@ enum AppTab: String, Hashable, CaseIterable {
         switch self {
         case .home: "house.fill"
         case .find: "book.closed.fill"
-        case .browse: "magnifyingglass"
+        case .discover: "magnifyingglass"
         case .doctors: "stethoscope"
         }
     }

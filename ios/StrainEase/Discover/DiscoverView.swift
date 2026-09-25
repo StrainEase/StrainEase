@@ -618,12 +618,16 @@ struct DiscoverView: View {
             ForEach(Array(result.recommendations.enumerated()), id: \.element.id) { index, rec in
                 let profile = result.profile(named: rec.strainName)
                     ?? StrainProfile(name: rec.strainName, inKnowledgeBase: false)
-                Button {
-                    path.append(profile)
-                } label: {
-                    recommendationCard(rec, rank: index + 1, profile: profile)
-                        .compareHoldable(rec.strainName)
-                }
+                StrainRecommendationCard(
+                    recommendation: rec,
+                    profile: profile,
+                    rank: index + 1,
+                    isAdded: model.isInCompare(rec.strainName),
+                    disabled: !model.isInCompare(rec.strainName) && model.compareAtCap,
+                    onAddToCompare: { model.addToCompare(rec.strainName) },
+                    onTap: { path.append(profile) }
+                )
+                .compareHoldable(rec.strainName)
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
