@@ -42,7 +42,7 @@ struct FindView: View {
                 }
                 .refreshable { await model.load() }
             }
-            .navigationTitle("Find")
+            .navigationTitle("Browse")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .appChrome()
