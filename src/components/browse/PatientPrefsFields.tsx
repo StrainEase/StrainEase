@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { MedicationAutocomplete } from "@/components/ui/MedicationAutocomplete";
 import { StrainAutocomplete } from "@/components/ui/StrainAutocomplete";
+import { Pill, Sparkles } from "lucide-react";
 import {
   FORM_OPTIONS,
   SENSITIVITY_OPTIONS,
@@ -12,6 +13,19 @@ import {
 } from "@/lib/research-prefs";
 import { cn } from "@/lib/utils";
 
+/**
+ * Optional context cards. When set, render inside their matching
+ * section (yellow gradient inside the THC sensitivity section,
+ * blue gradient inside the Medications section) so the user can see
+ * what's coming from their saved profile.
+ */
+type ProfileChipContext = {
+  /** Saved-on-profile THC sensitivity (label rendered amber/yellow). */
+  sensitivity?: { value: ThcSensitivity; label: string } | null;
+  /** Names of medications saved on the user's profile (rendered blue). */
+  medications?: string[];
+};
+
 export function PatientPrefsFields({
   prefs,
   onChange,
@@ -20,6 +34,7 @@ export function PatientPrefsFields({
   defaultMedications = [],
   onTriedStrainsChange,
   onMedicationsChange,
+  profileContext,
 }: {
   prefs: ResearchPrefs;
   onChange: (next: ResearchPrefs) => void;
@@ -28,6 +43,7 @@ export function PatientPrefsFields({
   defaultMedications?: string[];
   onTriedStrainsChange?: (items: { name: string; type: string; thc: string }[]) => void;
   onMedicationsChange?: (items: string[]) => void;
+  profileContext?: ProfileChipContext;
 }) {
   const set = (patch: Partial<ResearchPrefs>) =>
     onChange({ ...prefs, ...patch });
@@ -73,6 +89,18 @@ export function PatientPrefsFields({
             }
           </p>
         )}
+        {profileContext?.sensitivity &&
+          prefs.thcSensitivity === profileContext.sensitivity.value && (
+            <div className="mt-2 flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500/10 via-yellow-400/10 to-amber-500/10 px-3 py-2 text-xs">
+              <Sparkles className="size-3 text-amber-600" />
+              <span className="text-muted-foreground">
+                Using your saved sensitivity:{" "}
+                <span className="font-medium text-amber-700">
+                  {profileContext.sensitivity.label}
+                </span>
+              </span>
+            </div>
+          )}
       </div>
 
       <div>
@@ -103,8 +131,23 @@ export function PatientPrefsFields({
 
       <div>
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {startAt + 5} · Other medications
+          {startAt + 5} · Medications
         </p>
+        {profileContext?.medications &&
+          profileContext.medications.length > 0 &&
+          prefs.medications && (
+            <div className="mb-2 flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-3 py-2 text-xs">
+              <Pill className="size-3 text-blue-600" />
+              <span className="text-muted-foreground">
+                Using your saved medications:{" "}
+                <span className="font-medium text-blue-700">
+                  {profileContext.medications.slice(0, 3).join(", ")}
+                  {profileContext.medications.length > 3 &&
+                    ` +${profileContext.medications.length - 3} more`}
+                </span>
+              </span>
+            </div>
+          )}
         <MedicationAutocomplete
           value={defaultMedications}
           onChange={onMedicationsChange ?? (() => {})}

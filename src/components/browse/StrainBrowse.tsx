@@ -37,7 +37,6 @@ import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
 import { compactPrefs, type ResearchPrefs, type ThcSensitivity } from "@/lib/research-prefs";
 import { CONDITIONS, TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
 import { thcSensitivityLabel } from "@/lib/thc-sensitivity";
-import { THC_BANDS, type ThcBand } from "@/lib/thc-bands";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
@@ -53,19 +52,6 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router";
-
-type Potency = "" | Exclude<ThcBand, "any">;
-
-const POTENCY_OPTIONS: { value: Potency; label: string; hint: string }[] =
-  THC_BANDS.map((band) => ({
-    // Keep the historical `""` sentinel for "Any THC" so the rest of
-    // this file (and the API contract) doesn't need to special-case
-    // a new string. Bands live in lib/thc-bands so a tweak there
-    // propagates here automatically.
-    value: band.value === "any" ? "" : band.value,
-    label: band.label,
-    hint: band.hint,
-  }));
 
 const QUICK_AILMENTS = ["Insomnia", "Chronic pain", "Anxiety", "Migraine"];
 
@@ -475,7 +461,6 @@ export function StrainBrowse({
   const [ailments, setAilments] = useState<string[]>([]);
   const [searched, setSearched] = useState<string[]>([]);
   const [customAilment, setCustomAilment] = useState("");
-  const [potency, setPotency] = useState<Potency>("");
   const [prefs, setPrefs] = useState<ResearchPrefs>({});
   const seededMedsRef = useRef(false);
   const seededAilmentsRef = useRef(false);
@@ -580,7 +565,6 @@ export function StrainBrowse({
 
   const handleFind = async (
     targets: string[] = ailments,
-    pref: Potency = potency,
   ) => {
     if (targets.length === 0 || isRunning) return;
     setIsRunning(true);
@@ -589,7 +573,6 @@ export function StrainBrowse({
     try {
       const args = {
         conditions: targets,
-        potency: pref === "" ? undefined : pref,
         prefs: compactPrefs({ ...prefs, reliefSummary }),
       };
       const res = await cachedRun(cacheKey("recommend", args), () =>
@@ -622,7 +605,6 @@ export function StrainBrowse({
     setError(null);
     setAilments([]);
     setSearched([]);
-    setPotency("");
     setPrefs({});
   };
 
@@ -753,35 +735,6 @@ export function StrainBrowse({
               )}
             </div>
 
-            {/* Potency */}
-            <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                2 · THC (optional)
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {POTENCY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setPotency(opt.value)}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                      potency === opt.value
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              {potency !== "" && (
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  {POTENCY_OPTIONS.find((o) => o.value === potency)?.hint}
-                </p>
-              )}
-            </div>
-
             {reliefHint && (
               <div className="flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
                 <Moon className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -791,34 +744,24 @@ export function StrainBrowse({
               </div>
             )}
 
-            {/* Show imported sensitivity indicator */}
-            {thcSensitivity.value && (
-              <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500/10 via-yellow-400/10 to-amber-500/10 px-3 py-2 text-xs">
-                <Sparkles className="size-3 text-amber-600" />
-                <span className="text-muted-foreground">
-                  Sensitivity from profile:{" "}
-                  <span className="font-medium text-amber-700">
-                    {thcSensitivityLabel(thcSensitivity.value)}
-                  </span>
-                </span>
-              </div>
-            )}
-
-            {/* Show imported medications indicator */}
-            {medications.names.length > 0 && prefs.medications && (
-              <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-3 py-2 text-xs">
-                <Pill className="size-3 text-blue-600" />
-                <span className="text-muted-foreground">
-                  Medications from profile:{" "}
-                  <span className="font-medium text-blue-700">
-                    {medications.names.slice(0, 3).join(", ")}
-                    {medications.names.length > 3 && ` +${medications.names.length - 3} more`}
-                  </span>
-                </span>
-              </div>
-            )}
-
-            <PatientPrefsFields prefs={prefs} onChange={setPrefs} startAt={3} />
+            <PatientPrefsFields
+              prefs={prefs}
+              onChange={setPrefs}
+              startAt={3}
+              profileContext={{
+                sensitivity:
+                  thcSensitivity.value &&
+                  thcSensitivityLabel(thcSensitivity.value)
+                    ? {
+                        value: thcSensitivity.value as ThcSensitivity,
+                        label: thcSensitivityLabel(
+                          thcSensitivity.value,
+                        ) as string,
+                      }
+                    : null,
+                medications: medications.names,
+              }}
+            />
 
             {/* Run */}
             <div className="space-y-2 pt-1">
@@ -880,12 +823,9 @@ export function StrainBrowse({
                 </p>
                 <h1 className="mt-1 text-2xl font-semibold tracking-tight">
                   Best strains for {searched.join(", ")}
-                  {(potency !== "" || prefs.timeOfDay) && (
+                  {prefs.timeOfDay && prefs.timeOfDay !== "anytime" && (
                     <span className="text-muted-foreground">
-                      {potency !== "" ? ` · ${potency} potency` : ""}
-                      {prefs.timeOfDay && prefs.timeOfDay !== "anytime"
-                        ? ` · ${prefs.timeOfDay}`
-                        : ""}
+                      {` · ${prefs.timeOfDay}`}
                     </span>
                   )}
                 </h1>
