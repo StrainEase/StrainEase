@@ -13,7 +13,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { MedicationAutocomplete } from "@/components/ui/MedicationAutocomplete";
 import { StrainAutocomplete } from "@/components/ui/StrainAutocomplete";
 import { DISCOVER_HREF, HISTORY_HREF } from "@/lib/app-nav";
 import { ailmentsEqual } from "@/lib/ailments";
@@ -436,24 +435,6 @@ export function AccountSettingsDialog({
               value={draftTriedStrains}
               onChange={setDraftTriedStrains}
               placeholder="Search strains you&apos;ve tried…"
-            />
-          </div>
-
-          {/* Medications */}
-          <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <Sparkles className="size-3 text-primary" />
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Other medications
-              </p>
-            </div>
-            <p className="mb-2.5 text-xs text-muted-foreground">
-              List prescription or OTC meds so Kaya can note interactions.
-            </p>
-            <MedicationAutocomplete
-              value={draftMedications}
-              onChange={setDraftMedications}
-              placeholder="Add a medication…"
             />
           </div>
 
