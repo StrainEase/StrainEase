@@ -13,19 +13,12 @@
 //   - EU (Germany, Netherlands, Malta, etc.)    — 18+
 //   - UK (medicinal only, prescription)         — 18+
 //   - Australia (medicinal, ACT 18+ recreat.)   — 18+
-//   - Other                                    — 18+ (conservative default)
+//   - Other                                    — 21+ (conservative default)
 //
 // We deliberately default to 21+ when the user picks a country we don't list,
 // which is the safest choice under California's advertising-to-minors rules.
 
-export type RegionCode =
-  | "US"
-  | "CA"
-  | "CA-AB"
-  | "EU"
-  | "UK"
-  | "AU"
-  | "OTHER";
+export type RegionCode = "US" | "CA" | "CA-AB" | "EU" | "UK" | "AU" | "OTHER";
 
 export type Region = {
   code: RegionCode;
@@ -88,8 +81,7 @@ export const REGIONS: Region[] = [
 
 export function isRegionCode(value: unknown): value is RegionCode {
   return (
-    typeof value === "string" &&
-    REGIONS.some((region) => region.code === value)
+    typeof value === "string" && REGIONS.some((region) => region.code === value)
   );
 }
 

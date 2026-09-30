@@ -2,23 +2,26 @@
   "name": "functions",
   "version": "1.0.0",
   "private": true,
-  "description": "StrainEase backend — Leafly strain data + Groq GPT-OSS AI, exposed as auth-gated callable functions",
+  "description": "StrainEase backend — Leafly strain data + OpenRouter (Llama 3.3 70B) AI, exposed as auth-gated callable functions",
   "main": "lib/index.js",
   "engines": {
     "node": "22"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-assets.mjs",
     "build:watch": "tsc --watch",
     "test": "bun test --serial",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
-    "deploy": "firebase deploy --only functions",
+    "deploy": "firebase deploy --only functions && node scripts/ensure-invoker.mjs",
+    "ensure:invoker": "node scripts/ensure-invoker.mjs",
     "logs": "firebase functions:log"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^131.0.0",
     "firebase-admin": "^14.2.0",
-    "firebase-functions": "^7.3.2"
+    "firebase-functions": "^7.3.2",
+    "puppeteer-core": "^23.10.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

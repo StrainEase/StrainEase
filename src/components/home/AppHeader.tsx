@@ -1,22 +1,31 @@
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { CompareTray } from "@/components/compare/CompareTray";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { JournalPanel } from "@/components/saved/JournalPanel";
+import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import {
   APP_NAV,
-  DIRECTORY_HREF,
+  DISCOVER_HREF,
   FIND_HREF,
-  SAVED_HREF,
   type AppNavId,
 } from "@/lib/app-nav";
 import { cn } from "@/lib/utils";
 import {
-  BookOpen,
+  BarChart3,
   Heart,
   Home,
   Library,
   Search,
+  Sparkles,
   Stethoscope,
 } from "lucide-react";
 import { useState } from "react";
@@ -25,7 +34,7 @@ import { Link, useNavigate } from "react-router";
 const ICONS: Record<AppNavId, typeof Home> = {
   home: Home,
   find: Search,
-  directory: BookOpen,
+  discover: Sparkles,
   doctors: Stethoscope,
 };
 
@@ -43,10 +52,7 @@ export function AppCompareTray({
   return (
     <CompareTray
       selection={selection}
-      onCompare={
-        onCompare ??
-        (() => navigate(`${FIND_HREF}?mode=compare`))
-      }
+      onCompare={onCompare ?? (() => navigate(`${DISCOVER_HREF}?mode=compare`))}
       isRunning={isRunning}
       className="bottom-[4.75rem] pb-3 sm:bottom-0 sm:pb-[env(safe-area-inset-bottom)]"
     />
@@ -55,35 +61,73 @@ export function AppCompareTray({
 
 export function AppHeader({
   active,
-  favorites = false,
+  favoritesOpen: controlledFavoritesOpen,
+  onFavoritesOpenChange,
   onCompare,
   isComparing = false,
 }: {
   active?: AppNavId;
-  favorites?: boolean;
+  /** Controlled state for the favorites modal. When omitted
+   *  the header falls back to local state so it can be
+   *  embedded anywhere. */
+  favoritesOpen?: boolean;
+  onFavoritesOpenChange?: (open: boolean) => void;
   onCompare?: () => void;
   isComparing?: boolean;
 }) {
   const { user } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [localFavoritesOpen, setLocalFavoritesOpen] = useState(false);
+  const favoritesOpen = controlledFavoritesOpen ?? localFavoritesOpen;
+  const setFavoritesOpen = onFavoritesOpenChange ?? setLocalFavoritesOpen;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
         <div className="flex items-center gap-2">
-          <Link
-            to={SAVED_HREF}
+          {/* Heart button — opens the Favorites modal instead
+              of navigating to /dashboard?mode=saved so the
+              surface is a self-contained 2x3 grid on every
+              platform (iOS / Android / web). */}
+          <button
+            type="button"
             aria-label="Favorites"
-            aria-current={favorites ? "page" : undefined}
+            aria-expanded={favoritesOpen}
+            onClick={() => setFavoritesOpen(true)}
             className={cn(
               "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary",
-              favorites && "border-primary/40 bg-primary/10 text-primary",
+              favoritesOpen && "border-primary/40 bg-primary/10 text-primary",
             )}
           >
-            <Heart className="size-4" strokeWidth={favorites ? 2.4 : 2} />
-          </Link>
+            <Heart className="size-4" strokeWidth={favoritesOpen ? 2.4 : 2} />
+          </button>
+
+          {/* Insights button — opens the Journal dialog (session
+              patterns + history). Sits between Favorites and
+              Library so the data the patient wrote lives next
+              to the data the patient saved. Mirrored on the iOS
+              top toolbar and the Android action bar. */}
+          {user ? (
+            <button
+              type="button"
+              aria-label="Insights"
+              aria-expanded={journalOpen}
+              onClick={() => setJournalOpen(true)}
+              className={cn(
+                "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary",
+                journalOpen && "border-primary/40 bg-primary/10 text-primary",
+              )}
+            >
+              <BarChart3
+                className="size-4"
+                strokeWidth={journalOpen ? 2.4 : 2}
+              />
+            </button>
+          ) : null}
+
           <Link
-            to={DIRECTORY_HREF}
+            to={FIND_HREF}
             aria-label="Open strain library"
             className="hidden shrink-0 cursor-pointer items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary sm:inline-flex"
           >
@@ -92,10 +136,7 @@ export function AppHeader({
           </Link>
         </div>
 
-        <nav
-          className="hidden items-center gap-1 sm:flex"
-          aria-label="App"
-        >
+        <nav className="hidden items-center gap-1 sm:flex" aria-label="App">
           {APP_NAV.map((item) => (
             <Link
               key={item.id}
@@ -118,7 +159,7 @@ export function AppHeader({
           ) : (
             <Link
               to="/auth"
-              className="rounded-full border border-border/70 px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="signin-glow rounded-full border px-3.5 py-1.5 text-sm font-medium transition-shadow duration-500 hover:text-foreground"
             >
               Sign in
             </Link>
@@ -128,6 +169,36 @@ export function AppHeader({
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
         />
+        <Dialog open={favoritesOpen} onOpenChange={setFavoritesOpen}>
+          <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto border-border/70">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <Heart className="size-4 text-primary" />
+                Favorites
+              </DialogTitle>
+              <DialogDescription>
+                Saved strains. Tap any card to open the strain page; tap the
+                close icon to drop it from the list.
+              </DialogDescription>
+            </DialogHeader>
+            <SavedStrainsPanel />
+          </DialogContent>
+        </Dialog>
+        <Dialog open={journalOpen} onOpenChange={setJournalOpen}>
+          <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto border-border/70">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="size-4 text-primary" />
+                Insights
+              </DialogTitle>
+              <DialogDescription>
+                Your relief patterns and full session journal. Logged privately
+                on your account — no one else sees this.
+              </DialogDescription>
+            </DialogHeader>
+            <JournalPanel />
+          </DialogContent>
+        </Dialog>
       </div>
       <AppCompareTray onCompare={onCompare} isRunning={isComparing} />
     </header>

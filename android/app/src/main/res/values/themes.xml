@@ -3,14 +3,14 @@
     <!--
       The XML theme only paints the splash screen (the `windowSplashScreenBackground`
       and `windowSplashScreenAnimatedIcon`). The actual app theme lives
-      in code (`StrainWiseTheme.kt`) so it can use the full Material 3
+      in code (`StrainEaseTheme.kt`) so it can use the full Material 3
       dynamic color system and the same `Palette` tokens as the iOS
       client.
     -->
-    <style name="Theme.StrainWise.Splash" parent="Theme.SplashScreen">
+    <style name="Theme.StrainEase.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/palette_background_light</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_dark</item>
-        <item name="postSplashScreenTheme">@style/Theme.StrainWise</item>
+        <item name="postSplashScreenTheme">@style/Theme.StrainEase</item>
     </style>
 
     <!--
@@ -19,12 +19,12 @@
       Dismissal is instant — the branded icon shows inside the app
       content instead. The release theme keeps the animated icon.
     -->
-    <style name="Theme.StrainWise.Splash.Debug" parent="Theme.SplashScreen">
+    <style name="Theme.StrainEase.Splash.Debug" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/palette_background_light</item>
-        <item name="postSplashScreenTheme">@style/Theme.StrainWise</item>
+        <item name="postSplashScreenTheme">@style/Theme.StrainEase</item>
     </style>
 
-    <style name="Theme.StrainWise" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.StrainEase" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>

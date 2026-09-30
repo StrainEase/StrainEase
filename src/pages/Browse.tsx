@@ -6,27 +6,49 @@ import { Button } from "@/components/ui/button";
 import { useAilments } from "@/hooks/use-ailments";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
-import { CATALOG } from "@/lib/strain-catalog";
-import { parseBrowseParams, sectionTitle, strainsFor } from "@/lib/home-sections";
+import { CATALOG, strainDirectoryReady } from "@/lib/strain-catalog";
+import {
+  parseBrowseParams,
+  sectionTitle,
+  strainsFor,
+} from "@/lib/home-sections";
 import { documentTitle } from "@/lib/site";
-import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router";
 
 export default function Browse() {
+  const reduce = useReducedMotion();
   const { section, ailment } = useParams();
   const parsed = parseBrowseParams(section, ailment);
-  const { popular: apiPopular, isLoading } = usePopularStrains();
+  const { popular: apiPopular } = usePopularStrains();
   // Start with the curated catalog so the grid renders instantly while the
   // Leafly scrape finishes in the background.
   const popular = apiPopular.length > 0 ? apiPopular : CATALOG;
   const recents = useRecentlyViewed();
   const { names: ailments } = useAilments();
 
+  // Wait for the bundled directory before computing the section so the
+  // "see more" grid shows every strain of that type (e.g. ~115 hybrid)
+  // on first paint instead of only the 8 curated entries.
+  const [directoryReady, setDirectoryReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void strainDirectoryReady().then(() => {
+      if (!cancelled) setDirectoryReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!parsed) return <Navigate to="/" replace />;
 
-  const strains = strainsFor(parsed, popular, recents, ailments);
   const title = sectionTitle(parsed);
+  const strains = directoryReady
+    ? strainsFor(parsed, popular, recents, ailments)
+    : [];
 
   return (
     <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
@@ -65,12 +87,28 @@ export default function Browse() {
           </div>
         ) : (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={reduce ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+            transition={
+              reduce
+                ? { duration: 0 }
+                : { duration: 0.45, ease: [0.32, 0.72, 0, 1] }
+            }
             className="mt-8"
           >
-            <StrainGrid strains={strains} />
+            {!directoryReady ? (
+              <div
+                className="flex items-center justify-center py-16 text-muted-foreground"
+                aria-live="polite"
+              >
+                <Loader2
+                  className="size-5 animate-spin"
+                  aria-label="Loading the strain directory"
+                />
+              </div>
+            ) : (
+              <StrainGrid strains={strains} />
+            )}
           </motion.div>
         )}
       </div>

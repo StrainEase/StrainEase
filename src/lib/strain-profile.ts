@@ -51,6 +51,10 @@ export type StrainProfile = {
   leaflyRating?: number;
   /** Leafly published review count for the star rating. */
   leaflyReviewCount?: number;
+  /** Weedmaps aggregate rating (0–5). Not a patient quote. */
+  weedmapsRating?: number;
+  /** Weedmaps published review count for the star rating. */
+  weedmapsReviewCount?: number;
   /** Allbud aggregate rating (0–5). Not a patient quote. */
   allbudRating?: number;
   /** Allbud published review count for the star rating. */

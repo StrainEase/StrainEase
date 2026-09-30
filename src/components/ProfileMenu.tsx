@@ -8,8 +8,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HISTORY_HREF } from "@/lib/app-nav";
-import { Clock, LogOut, Settings, User } from "lucide-react";
+import { HISTORY_HREF, REPORT_HREF } from "@/lib/app-nav";
+import { Clock, FileText, LogOut, Settings, User } from "lucide-react";
 import { Link } from "react-router";
 
 function initials(name: string): string {
@@ -83,6 +83,12 @@ export function ProfileMenu({
           <Link to={HISTORY_HREF}>
             <Clock className="size-4" />
             History
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link to={REPORT_HREF}>
+            <FileText className="size-4" />
+            Clinician report
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

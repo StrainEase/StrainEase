@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { compareStrainPayload } from "./index";
+import { compareStrainPayload, normalizeCitations, __testing } from "./index";
 
 describe("compareStrainPayload", () => {
   test("sends researched fields even when inKnowledgeBase is false", () => {
@@ -9,7 +9,9 @@ describe("compareStrainPayload", () => {
       type: "hybrid",
       thcRange: "~20%",
       description: "Commonly reported as evening-leaning.",
-      communityNotes: [{ source: "Reddit · r/trees", text: "Helped me sleep." }],
+      communityNotes: [
+        { source: "Reddit · r/trees", text: "Helped me sleep." },
+      ],
     });
     expect(payload).toMatchObject({
       name: "Unknown Kush",
@@ -22,13 +24,15 @@ describe("compareStrainPayload", () => {
   });
 
   test("keeps a true stub as name-only", () => {
-    expect(compareStrainPayload({ name: "Mystery", inKnowledgeBase: false })).toEqual({
+    expect(
+      compareStrainPayload({ name: "Mystery", inKnowledgeBase: false }),
+    ).toEqual({
       name: "Mystery",
       noCuratedProfile: true,
     });
   });
 
-  test("caps long descriptions, terpenes, effects, medicalUses, and communityNotes so the LLM payload stays under Groq's free-tier 8K TPM", () => {
+  test("caps long descriptions, terpenes, effects, medicalUses, and communityNotes so the LLM payload stays small for OpenRouter's per-token meter", () => {
     const longText = "x".repeat(5000);
     const payload = compareStrainPayload({
       name: "Verbose",
@@ -65,5 +69,68 @@ describe("compareStrainPayload", () => {
         (n) => n.text.length <= 281,
       ),
     ).toBe(true);
+  });
+});
+
+describe("normalizeCitations", () => {
+  test("accepts the closed citation shape and drops malformed entries", () => {
+    expect(
+      normalizeCitations([
+        {
+          id: "leafly-gdp",
+          source: "https://www.leafly.com/strains/granddaddy-purple",
+          label: "Granddaddy Purple profile",
+          kind: "leafly",
+        },
+        {
+          id: "bad-kind",
+          source: "https://example.com/source",
+          label: "Unsupported",
+          kind: "blog",
+        },
+        {
+          id: "bad-url",
+          source: "not-a-url",
+          label: "Not a source",
+          kind: "review",
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "leafly-gdp",
+        source: "https://www.leafly.com/strains/granddaddy-purple",
+        label: "Granddaddy Purple profile",
+        kind: "leafly",
+      },
+    ]);
+  });
+
+  test("dedupes identical citation id/source pairs and caps output", () => {
+    const source = {
+      id: "source-1",
+      source: "https://pubmed.ncbi.nlm.nih.gov/12345/",
+      label: "A review",
+      kind: "pubmed",
+    };
+    expect(normalizeCitations([source, source])).toHaveLength(1);
+    expect(
+      normalizeCitations(
+        Array.from({ length: 25 }, (_, i) => ({
+          id: `source-${i}`,
+          source: `https://example.com/${i}`,
+          label: `Source ${i}`,
+          kind: "review",
+        })),
+      ),
+    ).toHaveLength(20);
+  });
+});
+
+describe("citation-aware prompts", () => {
+  test("shared prompt guardrail and compare contract mention citations", () => {
+    expect(__testing.COMPARE_SYSTEM_PROMPT).toContain('"citations"');
+    expect(__testing.COMPARE_SYSTEM_PROMPT).toContain("Never invent a PMID");
+    expect(__testing.RECOMMEND_SYSTEM_PROMPT).toContain('"citations"');
+    expect(__testing.DESCRIBE_SYSTEM_PROMPT).toContain('"citations"');
   });
 });

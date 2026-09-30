@@ -9,7 +9,9 @@ describe("redditNotesFor", () => {
   });
 
   test("still matches when the profile name is the map key", () => {
-    const notes = [{ source: "Reddit · r/trees", text: "Blue Dream is daytime." }];
+    const notes = [
+      { source: "Reddit · r/trees", text: "Blue Dream is daytime." },
+    ];
     const map = new Map([["blue dream", notes]]);
     expect(redditNotesFor(map, "Blue Dream", "Blue Dream")).toEqual(notes);
   });

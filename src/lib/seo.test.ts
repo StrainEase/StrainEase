@@ -2,7 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { CATALOG } from "./strain-catalog";
 import { TERPENE_PROFILES, terpeneSlug } from "./terpenes";
 import { slugify } from "./slug";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_ORIGIN, documentTitle } from "./site";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_ORIGIN,
+  documentTitle,
+} from "./site";
 import {
   clipMeta,
   escapeHtml,
@@ -116,7 +121,9 @@ describe("llms.txt", () => {
 describe("JSON-LD", () => {
   test("home graph includes Organization, WebSite, SoftwareApplication, FAQPage", () => {
     const graph = homeJsonLd();
-    const types = (graph["@graph"] as { "@type": string }[]).map((node) => node["@type"]);
+    const types = (graph["@graph"] as { "@type": string }[]).map(
+      (node) => node["@type"],
+    );
     expect(types).toEqual(
       expect.arrayContaining([
         "Organization",
@@ -130,9 +137,9 @@ describe("JSON-LD", () => {
   test("FAQ answers stay in the schema", () => {
     const node = faqJsonLd();
     const entities = node.mainEntity as { name: string }[];
-    expect(entities.some((item) => item.name === "Is StrainEase medical advice?")).toBe(
-      true,
-    );
+    expect(
+      entities.some((item) => item.name === "Is StrainEase medical advice?"),
+    ).toBe(true);
   });
 
   test("strain graph is a MedicalWebPage about a Drug", () => {
@@ -165,8 +172,12 @@ describe("injectSeoIntoHtml", () => {
     const dream = pages.find((page) => page.path === "/strain/blue-dream");
     expect(dream).toBeDefined();
     const html = injectSeoIntoHtml(shell, dream!);
-    expect(html).toContain(`<title>${escapeHtml(documentTitle("Blue Dream"))}</title>`);
-    expect(html).toContain(`<link rel="canonical" href="${SITE_ORIGIN}/strain/blue-dream" />`);
+    expect(html).toContain(
+      `<title>${escapeHtml(documentTitle("Blue Dream"))}</title>`,
+    );
+    expect(html).toContain(
+      `<link rel="canonical" href="${SITE_ORIGIN}/strain/blue-dream" />`,
+    );
     expect(html).toContain('type="application/ld+json"');
     expect(html).toContain("MedicalWebPage");
     expect(html).toContain("<noscript>");

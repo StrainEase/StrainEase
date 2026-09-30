@@ -3,6 +3,17 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
+/* Sonner toast description color — sonner hardcodes the description color
+ * (#3f3f3f in light, hsl(0, 0%, 91%) in dark) based on its own
+ * `data-sonner-theme` attribute, which can desync from the project's `.dark`
+ * class on `<html>`. Force it to follow the project's theme variables so the
+ * description stays readable in both modes. Selector intentionally matches
+ * sonner's `[data-sonner-toast][data-styled='true'] [data-description]`
+ * specificity so the override wins without !important. */
+[data-sonner-toast][data-styled="true"] [data-description] {
+  color: var(--muted-foreground);
+}
+
 /* DO NOT CHANGE */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -48,9 +59,10 @@
    * headers, and strain names on posters/grids. System serifs stay in
    * the fallback chain so Apple/Win/Linux users still get a serif
    * while Lora loads. */
-  --font-display: "Lora", "Iowan Old Style", "Palatino Linotype", Palatino,
-    Georgia, serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-display:
+    "Lora", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono:
+    "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 /* CHANGE VALUES FOR THEME — StrainEase “Modern” theme: quiet neutrals with a
@@ -68,7 +80,7 @@
   --secondary: oklch(0.955 0.012 158);
   --secondary-foreground: oklch(0.3 0.03 160);
   --muted: oklch(0.955 0.012 158);
-  --muted-foreground: oklch(0.5 0.025 160);
+  --muted-foreground: oklch(0.42 0.025 160);
   --accent: oklch(0.945 0.03 158);
   --accent-foreground: oklch(0.3 0.04 158);
   --destructive: oklch(0.577 0.245 27.325);
@@ -102,7 +114,7 @@
   --secondary: oklch(0.27 0.018 160);
   --secondary-foreground: oklch(0.94 0.008 158);
   --muted: oklch(0.27 0.018 160);
-  --muted-foreground: oklch(0.68 0.02 158);
+  --muted-foreground: oklch(0.76 0.02 158);
   --accent: oklch(0.3 0.035 158);
   --accent-foreground: oklch(0.94 0.008 158);
   --destructive: oklch(0.704 0.191 22.216);
@@ -127,6 +139,23 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* Global keyboard-focus indicator. The Tailwind v4 utility `outline-ring/50`
+   * on the catch-all `*` rule only sets an outline color — it doesn't actually
+   * show a ring on focus because the matching `outline-none` utility that
+   * shadcn applies to interactive elements makes the outline transparent.
+   * This rule paints a visible 2px ring with offset for every focusable
+   * element when it receives keyboard focus, layered on top of whatever
+   * component-level focus style exists. Mouse clicks do not trigger it. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Main landmark is focused programmatically on route change (see
+   * main.tsx RouteSyncer). Suppress the focus ring there — the visible
+   * position jump is the only signal the user needs. */
+  [tabindex="-1"]:focus-visible {
+    outline: none;
   }
   html {
     scroll-behavior: smooth;
@@ -180,12 +209,13 @@
     width: 16px;
     border-radius: 9999px;
     background: currentColor;
-    transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    transition:
+      transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
       opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   /* Two-orb mesh used across the app. Mirrors
-   * ios/StrainWise/Theme/MeshBackground.swift: a soft mint glow from the
+   * ios/StrainEase/Theme/MeshBackground.swift: a soft mint glow from the
    * top-right (glowMint) and a deep forest glow from the bottom-left
    * (glowDeep), painted over the theme's --background. Dark mode adds a
    * bottom fade for legibility, matching the iOS overlay.
@@ -211,11 +241,7 @@
   }
   .dark .mesh-bg {
     background-image:
-      linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(11, 17, 14, 0.55) 100%
-      ),
+      linear-gradient(to bottom, transparent 0%, rgba(11, 17, 14, 0.55) 100%),
       radial-gradient(
         120% 90% at 100% 0%,
         rgba(71, 158, 112, 0.28),
@@ -230,6 +256,48 @@
   }
 }
 
+/* Green glow pulse for the Sign-in button — matches the BrandLogo's
+ * radial-gradient glow in the hero (oklch hue 158). Two-layer box-shadow
+ * gives a tight inner halo plus a softer outer bloom that breathes. */
+@keyframes signin-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px oklch(0.43 0.1 158 / 0.25),
+      0 0 24px oklch(0.43 0.1 158 / 0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 14px oklch(0.43 0.1 158 / 0.45),
+      0 0 36px oklch(0.43 0.1 158 / 0.22);
+  }
+}
+.dark .signin-glow {
+  animation-name: signin-glow-dark;
+}
+@keyframes signin-glow-dark {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px oklch(0.74 0.1 158 / 0.25),
+      0 0 24px oklch(0.74 0.1 158 / 0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 14px oklch(0.74 0.1 158 / 0.45),
+      0 0 36px oklch(0.74 0.1 158 / 0.22);
+  }
+}
+.signin-glow {
+  border-color: oklch(0.43 0.1 158 / 0.35) !important;
+  color: oklch(0.43 0.1 158) !important;
+  animation: signin-glow 3s ease-in-out infinite;
+}
+.dark .signin-glow {
+  border-color: oklch(0.74 0.1 158 / 0.35) !important;
+  color: oklch(0.74 0.1 158) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -239,7 +307,8 @@
     transition: none !important;
   }
   .skeleton-line,
-  .shimmer-text {
+  .shimmer-text,
+  .signin-glow {
     animation-duration: 0s !important;
   }
 }
@@ -307,4 +376,56 @@
   color: transparent;
   -webkit-text-fill-color: transparent;
   animation: shimmer-text-sweep 1.6s linear infinite;
+}
+
+/* ── Print stylesheet for the clinician report ──────────────────────
+ * The .print-root article is the only block rendered when the patient
+ * hits "Print / Save as PDF". Everything else (header, nav, toasts,
+ * on-screen control bar) is hidden via .no-print.
+ */
+@media print {
+  @page {
+    size: Letter;
+    margin: 0.6in;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .no-print,
+  header,
+  nav,
+  [data-sonner-toaster],
+  [data-sonner-toast] {
+    display: none !important;
+  }
+
+  .print-root {
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-root section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-root h1,
+  .print-root h2 {
+    color: #000000 !important;
+  }
+
+  .print-root .rounded-2xl,
+  .print-root .rounded-xl {
+    border-color: #cccccc !important;
+  }
+
+  .print-root a {
+    color: #000000 !important;
+    text-decoration: none !important;
+  }
 }

@@ -16,7 +16,9 @@ describe("CompareToggleButton", () => {
         onToggle={() => {}}
       />,
     );
-    const button = screen.getByRole("button", { name: /add to compare/i }) as HTMLButtonElement;
+    const button = screen.getByRole("button", {
+      name: /add to compare/i,
+    }) as HTMLButtonElement;
     expect(button.disabled).toBe(false);
     expect(button.getAttribute("aria-pressed")).toBe("false");
   });
@@ -29,7 +31,9 @@ describe("CompareToggleButton", () => {
         onToggle={() => {}}
       />,
     );
-    const button = screen.getByRole("button", { name: /remove from compare/i }) as HTMLButtonElement;
+    const button = screen.getByRole("button", {
+      name: /remove from compare/i,
+    }) as HTMLButtonElement;
     expect(button.disabled).toBe(false);
     expect(button.getAttribute("aria-pressed")).toBe("true");
   });

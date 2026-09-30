@@ -54,6 +54,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Per-session journal entries. Each doc is one logged session
+    // for one strain (optional conditions, fit, relief 1-5, optional
+    // note + rating). Session-journal fields (form, doseMg, timeOfDay,
+    // onsetMinutes, sideEffects, wouldRepeat) are all optional — newer
+    // clients write them, older ones don't. Field-level rules let the
+    // form accept each new field without breaking existing writes.
     match /users/{uid}/reliefLogs/{id} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null
@@ -65,7 +71,51 @@ service cloud.firestore {
         && request.resource.data.relief >= 1
         && request.resource.data.relief <= 5
         && request.resource.data.createdAt is number
-        && request.resource.data.createdAt > 0;
+        && request.resource.data.createdAt > 0
+        && (
+          !('note' in request.resource.data)
+          || (request.resource.data.note is string
+              && request.resource.data.note.size() <= 400)
+        )
+        && (
+          !('rating' in request.resource.data)
+          || (request.resource.data.rating is number
+              && request.resource.data.rating >= 1
+              && request.resource.data.rating <= 5)
+        )
+        && (
+          !('form' in request.resource.data)
+          || request.resource.data.form in ['flower', 'cart', 'edible', 'tincture']
+        )
+        && (
+          !('doseMg' in request.resource.data)
+          || (request.resource.data.doseMg is number
+              && request.resource.data.doseMg >= 1
+              && request.resource.data.doseMg <= 500)
+        )
+        && (
+          !('timeOfDay' in request.resource.data)
+          || request.resource.data.timeOfDay in ['morning', 'afternoon', 'evening', 'night']
+        )
+        && (
+          !('onsetMinutes' in request.resource.data)
+          || (request.resource.data.onsetMinutes is number
+              && request.resource.data.onsetMinutes >= 1
+              && request.resource.data.onsetMinutes <= 240)
+        )
+        && (
+          !('sideEffects' in request.resource.data)
+          || (request.resource.data.sideEffects is list
+              && request.resource.data.sideEffects.size() <= 6
+              && request.resource.data.sideEffects.hasOnly([
+                'anxiety', 'paranoia', 'dry-mouth', 'drowsiness',
+                'racing-heart', 'nausea', 'headache',
+              ]))
+        )
+        && (
+          !('wouldRepeat' in request.resource.data)
+          || request.resource.data.wouldRepeat is bool
+        );
       allow update: if false;
     }
 
@@ -82,7 +132,9 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // Saved ailments live on the user doc (same fields iOS already writes).
+    // Saved ailments and THC sensitivity live on the user doc (same
+    // fields iOS already writes). THC sensitivity is a closed enum so
+    // a bad payload can't sneak in extra context for Kaya.
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
 
@@ -94,16 +146,35 @@ service cloud.firestore {
           && request.resource.data.ailmentsUpdatedAt > 0;
       }
 
+      function thcSensitivityPayload() {
+        return !('thcSensitivity' in request.resource.data)
+          || (
+            request.resource.data.thcSensitivity is string
+            && (
+              request.resource.data.thcSensitivity == 'anxious-high-thc'
+              || request.resource.data.thcSensitivity == 'experienced'
+            )
+          );
+      }
+
       allow create: if request.auth != null
         && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['ailments', 'ailmentsUpdatedAt'])
-        && ailmentsPayload();
+        && request.resource.data.keys().hasOnly([
+          'ailments', 'ailmentsUpdatedAt',
+          'thcSensitivity', 'thcSensitivityUpdatedAt',
+        ])
+        && ailmentsPayload()
+        && thcSensitivityPayload();
 
       allow update: if request.auth != null
         && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['ailments', 'ailmentsUpdatedAt'])
-        && ailmentsPayload();
+          .hasOnly([
+            'ailments', 'ailmentsUpdatedAt',
+            'thcSensitivity', 'thcSensitivityUpdatedAt',
+          ])
+        && ailmentsPayload()
+        && thcSensitivityPayload();
 
       allow delete: if false;
     }
@@ -119,6 +190,72 @@ service cloud.firestore {
         && request.resource.data.addedAt is number
         && request.resource.data.addedAt > 0;
       allow update: if false;
+    }
+
+    // Persistent "tried strains" list per user — private, list/add/remove only.
+    // Mirrors the medications shape plus a `type` and `thc` chip metadata field
+    // so the Find autocomplete can render suggestion chips without re-fetching.
+    match /users/{uid}/triedStrains/{id} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'type', 'thc', 'addedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() < 80
+        && request.resource.data.type is string
+        && request.resource.data.type.size() <= 16
+        && request.resource.data.thc is string
+        && request.resource.data.thc.size() <= 16
+        && request.resource.data.addedAt is number
+        && request.resource.data.addedAt > 0;
+      allow update: if false;
+    }
+
+    // Daily symptom check-ins: one document per day, keyed by `YYYY-MM-DD`
+    // (the lib uses `todayKey()` to build the id). The four tracked metrics
+    // (mood, sleep, pain, anxiety) are all 1–5 integer scales. A free-form
+    // `note` is optional and capped at 1000 chars. Patients may update the
+    // same day (revise) and delete (wipe a day).
+    match /users/{uid}/checkIns/{dateId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+      function checkInPayload() {
+        return request.resource.data.keys().hasOnly([
+          'date', 'mood', 'sleep', 'pain', 'anxiety', 'note', 'createdAt', 'updatedAt',
+        ])
+          && request.resource.data.date is string
+          && request.resource.data.date.size() <= 10
+          && request.resource.data.mood is int
+          && request.resource.data.mood >= 1
+          && request.resource.data.mood <= 5
+          && request.resource.data.sleep is int
+          && request.resource.data.sleep >= 1
+          && request.resource.data.sleep <= 5
+          && request.resource.data.pain is int
+          && request.resource.data.pain >= 1
+          && request.resource.data.pain <= 5
+          && request.resource.data.anxiety is int
+          && request.resource.data.anxiety >= 1
+          && request.resource.data.anxiety <= 5
+          && request.resource.data.note is string
+          && request.resource.data.note.size() <= 1000
+          && request.resource.data.createdAt is number
+          && request.resource.data.createdAt > 0
+          && request.resource.data.updatedAt is number
+          && request.resource.data.updatedAt > 0;
+      }
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && dateId.size() > 0
+        && dateId.size() <= 10
+        && checkInPayload();
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['mood', 'sleep', 'pain', 'anxiety', 'note', 'updatedAt'])
+        && checkInPayload();
     }
 
     // Age-verification audit log. Each user can write at most one doc per
@@ -170,6 +307,53 @@ service cloud.firestore {
     match /strainRatings/{strainSlug} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // Vetted Reddit pool. Public clients may read only records that
+    // have been approved by an operator; all writes go through the
+    // Admin SDK-backed vetting callables.
+    match /redditThreads/{threadId} {
+      allow read: if resource.data.vettedAt != null
+        && resource.data.vettedBy is string
+        && resource.data.vettedBy.size() > 0;
+      allow write: if false;
+    }
+
+    // Reference library: curated terpene + cannabinoid records.
+    // Public read (this is informational content, not user data);
+    // admin-SDK-only writes via the seedReferenceLibrary callable.
+    // Each document is a single record keyed by slug.
+    match /terpeneLibrary/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /cannabinoidLibrary/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Drug interaction library: curated cannabis-drug interaction
+    // records. Public read (informational content); admin-SDK-only
+    // writes via the seedInteractionLibrary callable. Each document
+    // is a single record keyed by slug.
+    match /interactionLibrary/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // AI callable result caches. Keyed by SHA-256 of the canonicalized
+    // request inputs (strain name + ailments + meds + prefs + language
+    // for descriptions; strain names + condition + prefs + language
+    // for comparisons). Admin-SDK-only writes via the Groq-routed
+    // callables; clients never read these directly — the cache exists
+    // only so repeat strain-page views don't blow past the Groq free
+    // tier's 8000 TPM limit. Document body shape is opaque; admin SDK
+    // has no client-visible schema to enforce.
+    match /descriptionCache/{hash} {
+      allow read, write: if false;
+    }
+    match /compareCache/{hash} {
+      allow read, write: if false;
     }
   }
 }

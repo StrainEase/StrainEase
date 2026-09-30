@@ -7,7 +7,7 @@ import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { documentTitle } from "@/lib/site";
 import { findDoctors, type Doctor, type DoctorResult } from "@/lib/strain-api";
 import { ArrowLeft, Loader2, MapPin, Navigation, Star } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -49,10 +49,13 @@ function saveLocation(loc: SavedLocation) {
 }
 
 export default function Doctors() {
+  const reduce = useReducedMotion();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DoctorResult | null>(null);
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
+    null,
+  );
   const [manualCity, setManualCity] = useState("");
   const [manualState, setManualState] = useState("");
   const [radius, setRadius] = useState(DEFAULT_RADIUS_MI);
@@ -283,6 +286,7 @@ function DoctorResults({
   radius: number;
   coords: { lat: number; lon: number } | null;
 }) {
+  const reduce = useReducedMotion();
   if (result.doctors.length === 0) {
     return (
       <div className="rounded-2xl border border-border/70 bg-card p-6 text-sm text-muted-foreground">
@@ -317,7 +321,10 @@ function DoctorResults({
       <header className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
         <span>{headerLine}</span>
         {coords && (
-          <Badge variant="outline" className="gap-1 border-primary/30 text-primary">
+          <Badge
+            variant="outline"
+            className="gap-1 border-primary/30 text-primary"
+          >
             <MapPin className="size-3" />
             Sorted from your location
           </Badge>
@@ -327,9 +334,13 @@ function DoctorResults({
         {result.doctors.map((doctor, index) => (
           <motion.li
             key={doctor.id}
-            initial={{ opacity: 0, y: 12 }}
+            initial={reduce ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.4 }}
+            transition={
+              reduce
+                ? { duration: 0 }
+                : { delay: Math.min(index * 0.04, 0.4), duration: 0.4 }
+            }
             className="rounded-2xl border border-border/70 bg-card p-5"
           >
             <DoctorCard doctor={doctor} />
@@ -365,7 +376,9 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <h3 className="text-base font-semibold tracking-tight">{doctor.name}</h3>
+          <h3 className="text-base font-semibold tracking-tight">
+            {doctor.name}
+          </h3>
           <p className="text-sm text-muted-foreground">
             {[doctor.street, doctor.city, doctor.state, doctor.zip]
               .filter((part) => Boolean(part) && part !== "")
@@ -383,7 +396,10 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           {rating && (
             <span className="inline-flex items-center gap-1 font-medium text-foreground">
-              <Star className="size-3.5 fill-current text-primary" strokeWidth={0} />
+              <Star
+                className="size-3.5 fill-current text-primary"
+                strokeWidth={0}
+              />
               {rating}
               {reviews !== null && (
                 <span className="text-muted-foreground"> ({reviews})</span>
@@ -398,11 +414,7 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          asChild
-          size="sm"
-          className="cursor-pointer rounded-full"
-        >
+        <Button asChild size="sm" className="cursor-pointer rounded-full">
           <a href={doctor.url} target="_blank" rel="noopener noreferrer">
             View on Leafly
           </a>

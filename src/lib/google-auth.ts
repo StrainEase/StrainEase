@@ -56,7 +56,9 @@ let scriptPromise: Promise<void> | null = null;
  */
 function loadGisScript(): Promise<void> {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("Google Identity Services requires a browser environment."));
+    return Promise.reject(
+      new Error("Google Identity Services requires a browser environment."),
+    );
   }
   if (window.google?.accounts?.oauth2) {
     return Promise.resolve();
@@ -132,9 +134,7 @@ export async function signInWithGoogle(): Promise<UserCredential> {
       scope: GIS_SCOPE,
       callback: (response) => {
         if (response.error) {
-          reject(
-            new Error(response.error_description ?? response.error),
-          );
+          reject(new Error(response.error_description ?? response.error));
           return;
         }
         if (response.access_token) {
@@ -147,11 +147,15 @@ export async function signInWithGoogle(): Promise<UserCredential> {
         // GIS rejects via callback rather than throwing — surface a useful
         // message for the auth UI.
         if (err.type === "popup_closed") {
-          reject(new Error("Google sign-in popup was closed before completing."));
+          reject(
+            new Error("Google sign-in popup was closed before completing."),
+          );
         } else if (err.type === "popup_failed_to_open") {
           reject(new Error("Google sign-in popup could not be opened."));
         } else {
-          reject(new Error(`Google sign-in failed: ${err.message ?? err.type}`));
+          reject(
+            new Error(`Google sign-in failed: ${err.message ?? err.type}`),
+          );
         }
       },
     });

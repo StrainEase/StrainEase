@@ -8,7 +8,11 @@ export type StoredKind = "find" | "compare";
 
 const hits = new Map<string, { n: number; t: number }>();
 
-export function guestRateLimit(ip: string, max = 10, windowMs = 15 * 60 * 1000) {
+export function guestRateLimit(
+  ip: string,
+  max = 10,
+  windowMs = 15 * 60 * 1000,
+) {
   const now = Date.now();
   const row = hits.get(ip);
   if (!row || now - row.t > windowMs) {
@@ -16,7 +20,9 @@ export function guestRateLimit(ip: string, max = 10, windowMs = 15 * 60 * 1000) 
     return;
   }
   if (row.n >= max) {
-    const err = new Error("Too many guest searches. Sign in or try again later.");
+    const err = new Error(
+      "Too many guest searches. Sign in or try again later.",
+    );
     (err as Error & { code: string }).code = "resource-exhausted";
     throw err;
   }
@@ -30,23 +36,21 @@ export async function persistResult(input: {
   uid: string | null;
 }): Promise<string> {
   const id = randomUUID().replace(/-/g, "").slice(0, 16);
-  await getFirestore()
-    .collection("researchResults")
-    .doc(id)
-    .set({
-      kind: input.kind,
-      args: input.args,
-      result: input.result,
-      uid: input.uid,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+  await getFirestore().collection("researchResults").doc(id).set({
+    kind: input.kind,
+    args: input.args,
+    result: input.result,
+    uid: input.uid,
+    createdAt: FieldValue.serverTimestamp(),
+  });
   return id;
 }
 
-export function clientIp(req: { rawRequest?: { ip?: string; headers?: Record<string, unknown> } }): string {
-  const forwarded = req.rawRequest?.headers?.["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.length > 0) {
-    return forwarded.split(",")[0].trim();
-  }
+export function clientIp(req: { rawRequest?: { ip?: string } }): string {
+  // Cloud Functions v2 sits behind Google's load balancer, which sets
+  // `request.rawRequest.ip` from the actual client connection. We
+  // deliberately do NOT trust the X-Forwarded-For header — a malicious
+  // caller could otherwise rotate IPs in the header to bypass any
+  // per-IP rate limit applied via `guestRateLimit(clientIp(request))`.
   return req.rawRequest?.ip || "unknown";
 }

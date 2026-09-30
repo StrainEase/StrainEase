@@ -1,10 +1,10 @@
-// StrainWise Android app module. The Compose UI, Firebase services,
+// StrainEase Android app module. The Compose UI, Firebase services,
 // Coil image loading, and Serialization / DataStore helpers all hang
 // off this module. Versions are pinned in `gradle/libs.versions.toml`.
 //
 // iOS parity note: this app talks to the same Firebase project
 // (`strainfinder-84a9b`) as the web client and the iOS client, with
-// the same bundle identifier `com.strainwise.app`.
+// the same bundle identifier `ai.strainease.app`.
 
 plugins {
     alias(libs.plugins.android.application)
@@ -13,11 +13,11 @@ plugins {
 }
 
 android {
-    namespace = "com.strainwise.app"
+    namespace = "ai.strainease.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.strainwise.app"
+        applicationId = "ai.strainease.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

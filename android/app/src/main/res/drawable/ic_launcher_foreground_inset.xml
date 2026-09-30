@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Wrapper around the launcher foreground PNG. The source artwork
+  (`light.png` from public/android-icon) already includes the full
+  green tile plus the white leaf + caduceus with its own safe-zone
+  padding, so we apply a 0% inset here and let the foreground fill
+  the 108dp adaptive-icon canvas edge-to-edge. The launcher still
+  applies the user's chosen icon-shape mask (squircle, circle,
+  teardrop, ...) on top of the composite, which is exactly the
+  behaviour the launcher-icon spec asks for.
+
+  The same wrapper is reused for the monochrome layer on Android
+  13+ themed icons: themed launchers tint the entire foreground,
+  so the green tile + white artwork become a single-color silhouette
+  of the brand mark.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_foreground"
+    android:inset="0%" />

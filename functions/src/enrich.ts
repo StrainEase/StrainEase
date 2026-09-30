@@ -1,21 +1,14 @@
 // Consolidate per-source strain profiles (Leafly + Weedmaps + Allbud),
-// attach Reddit quotes for the patient's ailments, and ask Groq to
-// fill any fields still missing — the same shape the old curated
+// attach Reddit quotes for the patient's ailments, and ask OpenRouter
+// to fill any fields still missing — the same shape the old curated
 // knowledge base carried. The consolidator does the per-source
 // caching, the numeric averaging, and the source attribution in
-// one pass; this file adds Reddit quotes and the AI fallback on top.
-import { fetchProfile } from "./leafly";
-import { callGroq, extractJsonObject } from "./groq";
+// one pass; this file adds Reddit quotes and the AI fill-in on top.
+import { extractJsonObject } from "./ai-json";
+import { callOpenRouter, OPENROUTER_MODEL } from "./openrouter";
 import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
-import type {
-  CommunityNote,
-  CommunityNoteKind,
-  StrainProfile,
-  StrainType,
-} from "./types";
+import type { CommunityNote, CommunityNoteKind, StrainProfile } from "./types";
 import { consolidateStrain } from "./consolidate";
-import { fetchWeedmapsProfile } from "./weedmaps";
-import { fetchAllbudProfile } from "./allbud";
 
 const AILMENT_ALIASES: Record<string, string[]> = {
   insomnia: ["insomnia", "sleep", "asleep", "sleeping"],
@@ -182,7 +175,9 @@ export function mergeProfiles(
   );
   const primary = sources[0]!;
   const rest = sources.slice(1);
-  const fallback = <K extends keyof StrainProfile>(key: K): StrainProfile[K] | undefined => {
+  const fallback = <K extends keyof StrainProfile>(
+    key: K,
+  ): StrainProfile[K] | undefined => {
     if (primary[key] !== undefined && primary[key] !== null) {
       return primary[key] as StrainProfile[K];
     }
@@ -193,8 +188,9 @@ export function mergeProfiles(
     }
     return undefined;
   };
-  const union = <K extends "medicalUses" | "sideEffects">(key: K): string[] | undefined =>
-    unionStrings(...sources.map((s) => s[key]));
+  const union = <K extends "medicalUses" | "sideEffects">(
+    key: K,
+  ): string[] | undefined => unionStrings(...sources.map((s) => s[key]));
   return {
     name,
     inKnowledgeBase: true,
@@ -251,7 +247,11 @@ function asEffects(
       typeof rec.intensity === "number" && Number.isFinite(rec.intensity)
         ? Math.max(1, Math.min(5, Math.round(rec.intensity)))
         : 3;
-    if (name) out.push({ name, intensity });
+    if (name)
+      out.push({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        intensity,
+      });
   }
   return out.length > 0 ? out.slice(0, 5) : undefined;
 }
@@ -272,7 +272,7 @@ function asNotes(value: unknown): CommunityNote[] | undefined {
 async function researchMissing(
   profiles: StrainProfile[],
   conditions: string[],
-  apiKey: string,
+  openRouterApiKey: string,
 ): Promise<Map<string, Partial<StrainProfile>>> {
   const missing = profiles.filter(needsResearch);
   if (missing.length === 0) return new Map();
@@ -290,20 +290,20 @@ Patient conditions: ${conditions.length ? conditions.join(", ") : "(none given)"
 
 Strains needing research:
 ${JSON.stringify(
-    missing.map((p) => ({
-      name: p.name,
-      type: p.type,
-      thcRange: p.thcRange,
-      cbdRange: p.cbdRange,
-      lineage: p.lineage,
-      medicalUses: p.medicalUses,
-      effects: p.effects,
-      description: p.description,
-      communityNotes: p.communityNotes,
-    })),
-    null,
-    2,
-  )}
+  missing.map((p) => ({
+    name: p.name,
+    type: p.type,
+    thcRange: p.thcRange,
+    cbdRange: p.cbdRange,
+    lineage: p.lineage,
+    medicalUses: p.medicalUses,
+    effects: p.effects,
+    description: p.description,
+    communityNotes: p.communityNotes,
+  })),
+  null,
+  2,
+)}
 
 Return ONLY a JSON object of the form:
 {
@@ -318,7 +318,11 @@ Return ONLY a JSON object of the form:
   }
 }`;
 
-  const raw = await callGroq(apiKey, [{ role: "user", content: prompt }]);
+  const raw = await callOpenRouter(
+    openRouterApiKey,
+    [{ role: "user", content: prompt }],
+    OPENROUTER_MODEL,
+  );
   const obj = extractJsonObject(raw);
   const map = new Map<string, Partial<StrainProfile>>();
   if (!obj || typeof obj !== "object") return map;
@@ -327,7 +331,8 @@ Return ONLY a JSON object of the form:
     if (!value || typeof value !== "object") continue;
     const r = value as Record<string, unknown>;
     map.set(name.toLowerCase(), {
-      description: typeof r.description === "string" ? r.description : undefined,
+      description:
+        typeof r.description === "string" ? r.description : undefined,
       medicalUses: asStringArray(r.medicalUses),
       effects: asEffects(r.effects),
       communityNotes: asNotes(r.communityNotes),
@@ -368,7 +373,7 @@ function applyResearch(
 export async function enrichProfiles(
   names: string[],
   conditions: string[] = [],
-  apiKey?: string,
+  openRouterApiKey?: string,
 ): Promise<StrainProfile[]> {
   const unique = [
     ...new Set(names.map((n) => n.trim()).filter((n) => n !== "")),
@@ -381,7 +386,7 @@ export async function enrichProfiles(
   // across sources and the per-source values are attached as
   // `sourceAttribution` so Dr. Kaya can audit the merge.
   const [consolidatedList, redditMap] = await Promise.all([
-    Promise.all(unique.map(consolidateStrain)),
+    Promise.all(unique.map((name) => consolidateStrain(name, conditions))),
     fetchRedditQuotesFor(unique, conditions),
   ]);
 
@@ -389,9 +394,13 @@ export async function enrichProfiles(
     .filter((c): c is NonNullable<typeof c> => c !== null)
     .map((c) => c as StrainProfile);
 
-  if (apiKey && merged.some(needsResearch)) {
+  if (openRouterApiKey && merged.some(needsResearch)) {
     try {
-      const researched = await researchMissing(merged, conditions, apiKey);
+      const researched = await researchMissing(
+        merged,
+        conditions,
+        openRouterApiKey,
+      );
       merged = merged.map((p) =>
         applyResearch(p, researched.get(p.name.toLowerCase())),
       );
@@ -437,7 +446,7 @@ export async function lookupProfile(
     .filter((c) => c !== "")
     .slice(0, 16);
   const [consolidated, reddit] = await Promise.all([
-    consolidateStrain(trimmed),
+    consolidateStrain(trimmed, focus),
     fetchRedditQuotes(trimmed, focus),
   ]);
   if (!consolidated) return null;

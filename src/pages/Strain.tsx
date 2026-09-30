@@ -1,29 +1,27 @@
-import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
-import { CompareToggleButton } from "@/components/compare/CompareToggleButton";
-import {
-  HYDRATING_SECTION_LABEL,
-  HydratingLine,
-  HydratingSection,
-  type StrainHydrationSection,
-} from "@/components/compare/HydratingSection";
+import { AppTabBar } from "@/components/home/AppHeader";
+import { HydratingSection } from "@/components/compare/HydratingSection";
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
+import { RedditThreads } from "@/components/compare/RedditThreads";
 import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SavedStrainNotes } from "@/components/saved/SavedStrainNotes";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
+import { StrainPersonalInsight } from "@/components/saved/StrainPersonalInsight";
 import { Seo } from "@/components/Seo";
 import { ShopLinks } from "@/components/strain/ShopLinks";
-import { ReviewSection } from "@/components/strain/ReviewSection";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
+import { StrainPageHeader } from "@/components/strain/StrainPageHeader";
 import { TailoredDescriptionLoading } from "@/components/strain/TailoredDescriptionLoading";
+import { TerpeneDetailDialog } from "@/components/strain/TerpeneDetailDialog";
 import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Badge } from "@/components/ui/badge";
-import { WriteReviewDialog } from "@/components/strain/WriteReviewDialog";
 import { Button } from "@/components/ui/button";
 import { SWCard } from "@/components/ui/sw-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useMedications } from "@/hooks/use-medications";
+import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
 import { useSavedAilments } from "@/hooks/use-saved-ailments";
 import { useTailoredDescription } from "@/hooks/use-tailored-description";
@@ -34,14 +32,14 @@ import {
   slugify,
   type PublicNote,
 } from "@/lib/saved-strains";
-import {
-  strainDescription,
-  strainDisplayName,
-  strainJsonLd,
-} from "@/lib/seo";
+import { strainDescription, strainDisplayName, strainJsonLd } from "@/lib/seo";
 import { documentTitle } from "@/lib/site";
-import { searchStrain, type StrainReview } from "@/lib/strain-api";
+import {
+  redditThreads as fetchRedditThreads,
+  searchStrain,
+} from "@/lib/strain-api";
 import { applyCatalogPhotos, CATALOG } from "@/lib/strain-catalog";
+import type { RedditSource } from "@/lib/strain-profile";
 import { getFeaturedStrainProfile } from "@/lib/featured-strain-details";
 import {
   dayNightLabel,
@@ -51,48 +49,48 @@ import {
 import type { ReliefLog } from "@/lib/relief-log";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { TYPE_LABEL, typeBadgeClass } from "@/lib/strain-ui";
-import { terpeneProfile, terpeneSlug } from "@/lib/terpenes";
-import { toTitleCase } from "@/lib/title-case";
+import { terpeneProfile } from "@/lib/terpenes";
 import {
   Activity,
-  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
   Droplets,
   GitCompareArrows,
   HeartPulse,
-  MessageCircle,
   Moon,
-  NotebookPen,
-  Pencil,
   Search,
   Sparkles,
   Sun,
+  ZoomIn,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  query,
-  where,
-  type Unsubscribe,
-} from "firebase/firestore";
-import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useStrainImage } from "@/hooks/use-strain-image";
 import { cn } from "@/lib/utils";
 
 export default function Strain() {
+  const reduce = useReducedMotion();
   const { slug = "" } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const compare = useCompareSelection();
   const { logs } = useReliefSummary();
+  const savedAilments = useSavedAilments();
+  const { popular, isLoading: popularLoading } = usePopularStrains();
   const [profile, setProfile] = useState<StrainProfile | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "missing">(
     "loading",
   );
   const [savedNames, setSavedNames] = useState<string[]>([]);
   const [patientNotes, setPatientNotes] = useState<PublicNote[]>([]);
+  const [reddit, setReddit] = useState<RedditSource[]>([]);
+  const [photoZoomOpen, setPhotoZoomOpen] = useState(false);
+  const [redditLoading, setRedditLoading] = useState(true);
+  const [activeTerpene, setActiveTerpene] = useState<string | null>(null);
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
   const featuredProfile = getFeaturedStrainProfile(slug);
@@ -136,9 +134,7 @@ export default function Strain() {
           setStatus("ready");
           return;
         }
-        const [filled] = applyCatalogPhotos([
-          { name, inKnowledgeBase: false },
-        ]);
+        const [filled] = applyCatalogPhotos([{ name, inKnowledgeBase: false }]);
         setProfile(filled ?? { name, inKnowledgeBase: false });
         setStatus("missing");
       });
@@ -174,23 +170,29 @@ export default function Strain() {
     return listenToPublicNotes(slug, setPatientNotes);
   }, [slug]);
 
-  // Review dialog state
-  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [myReview, setMyReview] = useState<StrainReview | null>(null);
-
+  // Curated Reddit threads for the strain. Mirrors the iOS call so the
+  // web and iOS strain detail show the same outbound links. Failures
+  // are silent — the section simply doesn't render.
   useEffect(() => {
-    if (!db || !user || status !== "ready" || !profile) return;
-    const reviewId = `${user.uid}_${slug}`;
-    const reviewRef = doc(db, "strainReviews", reviewId);
-    const unsub: Unsubscribe = onSnapshot(reviewRef, (snap) => {
-      if (snap.exists()) {
-        setMyReview({ id: snap.id, ...snap.data() } as StrainReview);
-      } else {
-        setMyReview(null);
-      }
-    });
-    return unsub;
-  }, [user, slug, status, profile]);
+    let cancelled = false;
+    const name = catalogHit?.name ?? slug.replace(/-/g, " ");
+    void fetchRedditThreads({ name, conditions: [] })
+      .then((list) => {
+        if (!cancelled) {
+          setReddit(list);
+          setRedditLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setReddit([]);
+          setRedditLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, catalogHit]);
 
   const score = profile ? dayNightScore(profile) : 50;
   const others = savedNames.filter(
@@ -202,9 +204,7 @@ export default function Strain() {
     return savedNames.some((n) => n.trim().toLowerCase() === target);
   }, [profile, savedNames]);
 
-  const isInCompareSelection = profile
-    ? compare.isIn(profile.name)
-    : false;
+  const isInCompareSelection = profile ? compare.isIn(profile.name) : false;
   const compareAtCap = compare.atCap;
 
   // Used for the description loading state: when the profile is loaded
@@ -215,73 +215,28 @@ export default function Strain() {
 
   // Always show the strain name right away — derive it from the slug
   // while the profile is still hydrating so the header never blanks.
-  // Names are normalised to title case so AI-researched and lowercase
-  // catalog entries render the same way as curated ones, matching iOS.
+  // `strainDisplayName` returns the canonical name from the profile
+  // when present (canonicalised server-side via canonicalProfileName
+  // in functions/src/canonical-strain-name.ts) and a sensible
+  // title-cased fallback from the slug otherwise.
   const displayName = useMemo(
-    () => toTitleCase(strainDisplayName(profile, slug)),
+    () => strainDisplayName(profile, slug),
     [profile, slug],
   );
 
-  // Sections that still need the live lookup before they have content.
-  // Mirrors iOS `StrainProfile.pendingHydrationSections` so both surfaces
-  // hydrate in the same order and the user always sees the full layout
-  // with the right placeholder message.
-  //
-  // Once the profile is `ready`, sections whose data is missing are no
-  // longer "pending" — they render nothing instead of a stuck spinner.
-  // (The Cloud Function returns the full profile in one shot, so there's
-  // no separate fetch for terpenes or side effects to wait for.)
-  const pending: Set<StrainHydrationSection> = useMemo(() => {
-    if (!profile) {
-      // Cold start with no profile yet — every section is still hydrating.
-      return new Set<StrainHydrationSection>([
-        "lineage",
-        "description",
-        "dayNight",
-        "uses",
-        "effects",
-        "terpenes",
-        "sideEffects",
-        "community",
-      ]);
-    }
-    // Cold profile (still hydrating) shows every section as pending so
-    // the user sees the full layout with placeholders.
-    if (status !== "ready") {
-      return new Set<StrainHydrationSection>([
-        "description",
-        "lineage",
-        "uses",
-        "effects",
-        "dayNight",
-        "terpenes",
-        "sideEffects",
-        "community",
-      ]);
-    }
-    // Profile is ready. Only flag a section as pending if its data is
-    // expected to arrive separately (e.g. tailored description while the
-    // AI call is still in flight). For terpenes / side effects, the
-    // Cloud Function returns them in the same payload as the rest of
-    // the profile, so a missing value means "we don't have it" — drop
-    // the section from pending so the page doesn't sit on a spinner.
-    const p = new Set<StrainHydrationSection>();
-    if (tailoredLoading && isAuthenticated) {
-      // TailoredDescription is fetched by useTailoredDescription on its
-      // own schedule; keep the description slot pending while that's
-      // still in flight.
-      p.add("description");
-    }
-    if (
-      (!profile.communityNotes || profile.communityNotes.length === 0) &&
-      !profile.leaflyRating
-    ) {
-      // Community has its own Firestore subscription; mark it pending
-      // only until the listener delivers the first snapshot.
-      p.add("community");
-    }
-    return p;
-  }, [profile, status, tailoredLoading, isAuthenticated]);
+  // Community has its own Firestore subscription (App Reviews + reddit
+  // threads). Hydration is brief, but we keep a single HydratingSection
+  // affordance so the slot does not blank out and then pop into the
+  // full block. Profile-driven sections below the description do not
+  // need their own loading state — the whole profile comes back in
+  // one Cloud Function call, so a per-section "Researching this
+  // strain…" placeholder flashed for a fraction of a second and then
+  // disappeared, which read as flicker. The single TailoredDescriptionLoading
+  // card above covers the whole wait now.
+  const communityPending =
+    !!profile &&
+    (!profile.communityNotes || profile.communityNotes.length === 0) &&
+    !profile.leaflyRating;
 
   return (
     <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-0">
@@ -299,50 +254,70 @@ export default function Strain() {
         }
       />
       <MeshBackground />
-      <AppHeader active="home" />
 
-      <div className="mx-auto w-full max-w-3xl px-6 py-10">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back
-          </button>
-          {profile ? (
-            <CompareToggleButton
-              isInSelection={isInCompareSelection}
-              isFull={compareAtCap}
-              onToggle={() => compare.toggle(profile.name)}
-            />
-          ) : (
-            // Match the visible button footprint so the top bar doesn't
-            // reflow when the profile lands.
-            <span aria-hidden className="h-8 w-[7.5rem] rounded-full" />
-          )}
-        </div>
+      <div className="mx-auto w-full max-w-3xl px-6 pb-10 pt-20">
+        <StrainPageHeader
+          profile={profile}
+          isInCompare={isInCompareSelection}
+          compareAtCap={compareAtCap}
+          onToggleCompare={() => profile && compare.toggle(profile.name)}
+          onBack={() => navigate(-1)}
+        />
 
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+          transition={
+            reduce
+              ? { duration: 0 }
+              : { duration: 0.4, ease: [0.32, 0.72, 0, 1] }
+          }
           className="space-y-6"
         >
           {/* Header — image, name, subtitle, lineage. The name is always
               rendered (sourced from the slug while the profile is still
               loading) so the page never opens to a blank title. */}
           <header className="space-y-4">
-            <StrainImage
+            <button
+              type="button"
+              onClick={() => setPhotoZoomOpen(true)}
+              className="group relative h-72 w-full cursor-zoom-in overflow-hidden rounded-2xl border border-border/70 bg-white sm:h-80"
+              aria-label="View full-size photo"
+            >
+              <StrainImage
+                src={profile?.imageUrl}
+                fallbackSrc={getPhotoURL(profile?.name ?? "")}
+                alt={`${displayName} flower`}
+                type={profile?.type}
+                className="h-full w-full"
+              />
+              <span
+                aria-hidden
+                className="absolute bottom-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white opacity-70 transition-opacity group-hover:opacity-100"
+              >
+                <ZoomIn className="size-4" />
+              </span>
+            </button>
+            <PhotoZoomDialog
               src={profile?.imageUrl}
               alt={`${displayName} flower`}
-              type={profile?.type}
-              className="h-72 w-full rounded-2xl border border-border/70 bg-white sm:h-80"
+              open={photoZoomOpen}
+              onOpenChange={setPhotoZoomOpen}
+            />
+            <TerpeneDetailDialog
+              terpeneName={activeTerpene}
+              popularStrains={popular}
+              familyLoading={popularLoading}
+              open={activeTerpene !== null}
+              onOpenChange={(next) => {
+                if (!next) setActiveTerpene(null);
+              }}
             />
             <div className="flex flex-wrap items-center gap-2">
               {profile?.type ? (
-                <Badge className={cn(typeBadgeClass(profile.type), "capitalize")}>
+                <Badge
+                  className={cn(typeBadgeClass(profile.type), "capitalize")}
+                >
                   {TYPE_LABEL[profile.type] ?? profile.type}
                 </Badge>
               ) : null}
@@ -365,9 +340,13 @@ export default function Strain() {
             {profile ? (
               <p className="text-sm font-medium text-muted-foreground sm:text-base">
                 {[
-                  profile.type ? TYPE_LABEL[profile.type] ?? profile.type : null,
+                  profile.type
+                    ? (TYPE_LABEL[profile.type] ?? profile.type)
+                    : null,
                   profile.thcRange ? `THC ${profile.thcRange}` : null,
-                  profile.thcRange && profile.cbdRange && profile.cbdRange !== "<1%"
+                  profile.thcRange &&
+                  profile.cbdRange &&
+                  profile.cbdRange !== "<1%"
                     ? `CBD ${profile.cbdRange}`
                     : null,
                 ]
@@ -375,80 +354,87 @@ export default function Strain() {
                   .join(" · ")}
               </p>
             ) : null}
-            {pending.has("lineage") ? (
-              <HydratingLine section="lineage" />
-            ) : profile?.lineage ? (
+            {profile?.lineage ? (
               <p className="text-sm text-muted-foreground">{profile.lineage}</p>
             ) : null}
           </header>
 
-          {/* Description — generic placeholder while the profile is still
-              hydrating, dedicated tailored-loading card for signed-in users
-              waiting on the AI rewrite, then the real cards once content
-              lands. */}
-          {pending.has("description") ? (
-            tailoredLoading && isAuthenticated ? (
-              <TailoredDescriptionLoading />
-            ) : (
-              <HydratingSection section="description" />
-            )
+          {/* Description — single loading card while the profile hydrates
+              and while the AI rewrite is in flight, then the broken-down
+              cards once content lands. Skipping the per-section skeletons
+              here because the Cloud Function returns the whole profile in
+              one shot: there is no separate fetch for terpenes or side
+              effects to wait for, so the per-section "Researching this
+              strain…" placeholders flashed for a fraction of a second and
+              then disappeared, which read as flicker. The single card
+              keeps the loading affordance stable through the whole wait. */}
+          {!profile || (tailoredLoading && isAuthenticated) ? (
+            <TailoredDescriptionLoading />
           ) : profile ? (
             <DescriptionCards profile={profile} />
           ) : null}
 
           {/* Day to night */}
-          {pending.has("dayNight") ? (
-            <HydratingSection section="dayNight" />
-          ) : profile ? (
-            <DayNightCard score={score} />
-          ) : null}
+          {profile ? <DayNightCard score={score} /> : null}
 
           {/* Reported uses */}
-          {pending.has("uses") ? (
-            <HydratingSection section="uses" />
-          ) : profile?.medicalUses && profile.medicalUses.length > 0 ? (
+          {profile?.medicalUses && profile.medicalUses.length > 0 ? (
             <CommonlyUsedForSection items={profile.medicalUses} />
           ) : null}
 
           {/* Effects */}
-          {pending.has("effects") ? (
-            <HydratingSection section="effects" />
-          ) : profile?.effects && profile.effects.length > 0 ? (
+          {profile?.effects && profile.effects.length > 0 ? (
             <EffectsSection effects={profile.effects} />
           ) : null}
 
           {/* Terpenes */}
-          {pending.has("terpenes") ? (
-            <HydratingSection section="terpenes" />
-          ) : profile?.terpenes && profile.terpenes.length > 0 ? (
-            <TerpenesSection terpenes={profile.terpenes} />
+          {profile?.terpenes && profile.terpenes.length > 0 ? (
+            <TerpenesSection
+              terpenes={profile.terpenes}
+              onSelect={(name) => setActiveTerpene(name)}
+            />
           ) : null}
 
           {/* Watch for */}
-          {pending.has("sideEffects") ? (
-            <HydratingSection section="sideEffects" />
-          ) : profile?.sideEffects && profile.sideEffects.length > 0 ? (
+          {profile?.sideEffects && profile.sideEffects.length > 0 ? (
             <WatchForSection items={profile.sideEffects} />
           ) : null}
 
           {/* Shop links — only meaningful once we have a real profile. */}
           {profile ? <ShopLinks strain={profile} /> : null}
 
-          {/* Community voices */}
-          {pending.has("community") ? (
-            <HydratingSection section="community" />
+          {/* Community voices. Hydration here is brief (Firestore subscription
+              delivers the first snapshot fast), so we keep the existing
+              HydratingSection affordance — but only after profile lands,
+              so the page is not full of skeletons during the initial load. */}
+          {communityPending ? (
+            <HydratingSection />
           ) : profile &&
             (profile.communityNotes?.length ||
               profile.leaflyRating ||
+              profile.weedmapsRating ||
+              profile.allbudRating ||
               patientNotes.length > 0) ? (
             <CommunityVoices
               notes={profile.communityNotes}
               strainName={profile.name}
               leaflyRating={profile.leaflyRating}
               leaflyReviewCount={profile.leaflyReviewCount}
+              weedmapsRating={profile.weedmapsRating}
+              weedmapsReviewCount={profile.weedmapsReviewCount}
+              allbudRating={profile.allbudRating}
+              allbudReviewCount={profile.allbudReviewCount}
               appReviews={patientNotes}
             />
           ) : null}
+
+          {/* Reddit threads for this strain — curated list, no live scrape. */}
+          <RedditThreads
+            sources={reddit}
+            loading={redditLoading}
+            title="Reddit threads for this strain"
+            description="Public threads mentioning this strain — pulled from a curated list, not live-scraped."
+          />
 
           {/* AI-researched missing-state callout. Only shown once the
               lookup has settled so it doesn't flash on every page. */}
@@ -456,18 +442,26 @@ export default function Strain() {
             <div className="flex items-start gap-2.5 rounded-2xl border border-primary/25 bg-primary/5 p-5">
               <Search className="mt-0.5 size-4 shrink-0 text-primary" />
               <p className="text-xs leading-5 text-muted-foreground">
-                Not listed on Leafly or Weedmaps — this profile is researched
-                by the AI from public sources. Reddit quotes appear below
-                when patients mention your symptoms.
+                Not listed on Leafly or Weedmaps — this profile is researched by
+                the AI from public sources. Reddit quotes appear below when
+                patients mention your symptoms.
               </p>
             </div>
           ) : null}
 
           {/* Auth-gated compare suggestions + log + notes. */}
           {isAuthenticated && others.length > 0 && profile ? (
-            <CompareSuggestions
-              profileName={profile.name}
-              others={others}
+            <CompareSuggestions profileName={profile.name} others={others} />
+          ) : null}
+
+          {/* Personal "what worked for you" chip — only renders once the
+              patient has logged this strain at least 3 times. Quiet
+              otherwise. */}
+          {isAuthenticated && profile ? (
+            <StrainPersonalInsight
+              strainName={profile.name}
+              logs={logs}
+              conditions={savedAilments}
             />
           ) : null}
 
@@ -482,53 +476,14 @@ export default function Strain() {
             />
           ) : null}
 
-            {isAuthenticated && profile && (
-              <>
-                <SavedStrainNotes
-                  slug={slugify(profile.name)}
-                  strainName={profile.name}
-                  isSaved={isSaved}
-                />
-
-                {/* Community reviews */}
-                <SWCard innerClassName="p-6">
-                  <ReviewSection
-                    strainSlug={slug}
-                    strainName={profile.name}
-                    currentUid={user?.uid}
-                  />
-                  <div className="mt-4">
-                    <Button
-                      variant={myReview ? "outline" : "default"}
-                      size="sm"
-                      onClick={() => setReviewDialogOpen(true)}
-                      className="gap-1.5"
-                    >
-                      {myReview ? (
-                        <>
-                          <Pencil className="size-3.5" />
-                          Edit your review
-                        </>
-                      ) : (
-                        <>
-                          <MessageCircle className="size-3.5" />
-                          Write a review
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </SWCard>
-
-                <WriteReviewDialog
-                  open={reviewDialogOpen}
-                  onOpenChange={setReviewDialogOpen}
-                  strainSlug={slug}
-                  strainName={profile.name}
-                  existingReview={myReview}
-                />
-              </>
-            )}
-          </motion.div>
+          {isAuthenticated && profile ? (
+            <SavedStrainNotes
+              slug={slugify(profile.name)}
+              strainName={profile.name}
+              isSaved={isSaved}
+            />
+          ) : null}
+        </motion.div>
       </div>
       <AppTabBar active="home" />
     </main>
@@ -541,29 +496,60 @@ function DescriptionCards({ profile }: { profile: StrainProfile }) {
   const { names: medications } = useMedications();
   const { summary: reliefHistory } = useReliefSummary();
   const { description: tailored } = useTailoredDescription(profile);
+  const hasFullDescription =
+    !!profile.description && profile.description.trim().length > 0;
+  // The full description is collapsed to two lines by default; tap
+  // Show more / Show less to expand (matches iOS + Android).
+  const [fullOpen, setFullOpen] = useState(false);
 
-  if (tailored) {
-    return (
-      <StrainDescriptionView
-        description={tailored}
-        strain={profile}
-        ailments={ailments}
-        medications={medications}
-        reliefHistory={reliefHistory}
-        isAuthenticated={isAuthenticated}
-      />
-    );
-  }
-  if (profile.description && profile.description.trim().length > 0) {
-    return (
-      <SWCard innerClassName="p-5">
-        <p className="text-sm leading-6 text-foreground/85">
-          {profile.description}
-        </p>
-      </SWCard>
-    );
-  }
-  return null;
+  return (
+    <>
+      {tailored && (
+        <StrainDescriptionView
+          description={tailored}
+          strain={profile}
+          ailments={ailments}
+          medications={medications}
+          reliefHistory={reliefHistory}
+          isAuthenticated={isAuthenticated}
+        />
+      )}
+      {hasFullDescription && (
+        <SWCard innerClassName="p-5">
+          {/* Header inside the card, matching the tailored description
+              section cards' bold heading. */}
+          <h3 className="text-base font-bold tracking-tight text-foreground">
+            Full Description
+          </h3>
+          <p
+            className={cn(
+              "mt-3 text-sm leading-6 text-foreground/85",
+              !fullOpen && "line-clamp-2",
+            )}
+          >
+            {profile.description}
+          </p>
+          <button
+            type="button"
+            onClick={() => setFullOpen((v) => !v)}
+            className="mt-2 flex cursor-pointer items-center gap-1 text-xs font-semibold text-primary"
+          >
+            {fullOpen ? (
+              <>
+                Show less
+                <ChevronUp className="size-3.5" />
+              </>
+            ) : (
+              <>
+                Show more
+                <ChevronDown className="size-3.5" />
+              </>
+            )}
+          </button>
+        </SWCard>
+      )}
+    </>
+  );
 }
 
 function DayNightCard({ score }: { score: number }) {
@@ -668,7 +654,7 @@ function EffectsSection({
             key={effect.name}
             className="flex items-center justify-between gap-3"
           >
-            <span className="text-sm">{effect.name}</span>
+            <span className="text-sm capitalize">{effect.name}</span>
             <IntensityBar value={effect.intensity} />
           </div>
         ))}
@@ -684,8 +670,10 @@ function IntensityBar({ value }: { value: number }) {
         <span
           key={i}
           className={cn(
-            "h-1.5 w-2.5 rounded-full",
-            i < value ? "bg-primary/80" : "bg-border",
+            "size-2 rounded-full border",
+            i < value
+              ? "border-primary/80 bg-primary/80"
+              : "border-border bg-card",
           )}
         />
       ))}
@@ -695,40 +683,65 @@ function IntensityBar({ value }: { value: number }) {
 
 function TerpenesSection({
   terpenes,
+  onSelect,
 }: {
   terpenes: NonNullable<StrainProfile["terpenes"]>;
+  onSelect: (terpeneName: string) => void;
 }) {
   return (
-    <SWCard innerClassName="p-5">
+    <div className="space-y-3">
       <SectionEyebrow icon={Droplets} label="Terpenes" />
-      <ul className="mt-3 space-y-3">
+      <ul className="space-y-3">
         {terpenes.map((t) => {
           const curated = terpeneProfile(t.name);
+          const meaning =
+            terpeneMeaning(t.name) ??
+            (t.profile
+              ? t.profile
+              : "Commonly listed on this strain; meaning varies by patient.");
+          // Uncurated terpenes still render a row so the user sees the
+          // full list, but they're not tappable — the dialog has nothing
+          // curated to show. The dedicated /terpene/:slug route stays
+          // reachable for the curated ones if a user prefers a full page.
+          const interactive = !!curated;
           return (
             <li key={t.name}>
-              <p className="text-sm font-medium">
-                {curated ? (
-                  <Link
-                    to={`/terpene/${terpeneSlug(t.name)}`}
-                    className="text-foreground transition-colors hover:text-primary"
+              <SWCard innerClassName="p-0">
+                {interactive ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelect(t.name)}
+                    className="group flex w-full flex-col gap-1.5 p-4 text-left transition-colors hover:bg-muted/40"
                   >
-                    {t.name}
-                  </Link>
+                    <span className="flex w-full items-center justify-between gap-3">
+                      <span className="text-sm font-semibold tracking-tight">
+                        {t.name}
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-primary">
+                        Details
+                        <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </span>
+                    <span className="text-sm leading-6 text-muted-foreground">
+                      {meaning}
+                    </span>
+                  </button>
                 ) : (
-                  t.name
+                  <div className="flex flex-col gap-1.5 p-4">
+                    <span className="text-sm font-semibold tracking-tight">
+                      {t.name}
+                    </span>
+                    <span className="text-sm leading-6 text-muted-foreground">
+                      {meaning}
+                    </span>
+                  </div>
                 )}
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                {terpeneMeaning(t.name) ??
-                  (t.profile
-                    ? t.profile
-                    : "Commonly listed on this strain; meaning varies by patient.")}
-              </p>
+              </SWCard>
             </li>
           );
         })}
       </ul>
-    </SWCard>
+    </div>
   );
 }
 
@@ -745,25 +758,43 @@ function ReliefLogCard({
 }) {
   return (
     <SWCard innerClassName="p-5">
-      <SectionEyebrow icon={NotebookPen} label="Relief log" />
+      <SectionEyebrow icon={Sparkles} label="How'd this work for you?" />
       <ReliefLogButton strainName={strainName} variant="button" />
       {logs.length > 0 && (
         <ul className="mt-4 space-y-2">
           {logs.slice(0, 6).map((log) => (
-            <li key={log.id}>
-              <SWCard innerClassName="px-4 py-3">
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="font-medium capitalize">
-                    {log.fit.replace("-", " ")}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {log.relief}/5 relief
-                  </span>
-                </div>
-                {log.note ? (
-                  <p className="mt-1.5 text-sm leading-6">{log.note}</p>
-                ) : null}
-              </SWCard>
+            // Plain bordered row — AGENTS.md forbids nested
+            // SWCards, and an SWCard inside the outer "How'd
+            // this work for you?" tray was producing a four-
+            // layer (outer tray → outer surface → inner tray →
+            // inner surface) effect that read as a "double
+            // card" once the user had a saved log.
+            <li
+              key={log.id}
+              className="rounded-xl border border-border/60 px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="flex items-center gap-1.5 font-medium capitalize">
+                  {log.rating ? (
+                    <span
+                      className="text-primary"
+                      aria-label={`Rated ${log.rating} of 5`}
+                    >
+                      {"★".repeat(log.rating)}
+                      <span className="text-muted-foreground/35">
+                        {"★".repeat(5 - log.rating)}
+                      </span>
+                    </span>
+                  ) : null}
+                  {log.fit.replace("-", " ")}
+                </span>
+                <span className="text-muted-foreground">
+                  Intensity {log.relief}/5
+                </span>
+              </div>
+              {log.note ? (
+                <p className="mt-1.5 text-sm leading-6">{log.note}</p>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -781,7 +812,10 @@ function CompareSuggestions({
 }) {
   return (
     <SWCard innerClassName="p-5">
-      <SectionEyebrow icon={GitCompareArrows} label="Compare with what you saved" />
+      <SectionEyebrow
+        icon={GitCompareArrows}
+        label="Compare with what you saved"
+      />
       <div className="mt-1 flex flex-wrap items-center gap-2">
         <span
           className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-semibold text-foreground"
@@ -807,5 +841,44 @@ function CompareSuggestions({
         ))}
       </div>
     </SWCard>
+  );
+}
+
+function PhotoZoomDialog({
+  src,
+  alt,
+  type: _type,
+  open,
+  onOpenChange,
+}: {
+  src?: string;
+  alt: string;
+  type?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { url } = useStrainImage(src);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-3xl border-none bg-transparent p-0 shadow-none"
+        showCloseButton
+      >
+        {url ? (
+          <img
+            src={url}
+            alt={alt}
+            className="max-h-[85vh] w-full rounded-2xl object-contain"
+          />
+        ) : (
+          <div className="flex h-72 w-full items-center justify-center rounded-2xl bg-muted">
+            <span className="text-sm text-muted-foreground">
+              No photo available
+            </span>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -8,6 +8,7 @@ import {
   putCachedStrainProfile,
 } from "./strain-info-cache";
 import type { CommunityNote, StrainProfile, StrainType } from "./types";
+import { fetchAllbudStrains } from "./allbud";
 
 const BASE = "https://www.leafly.com";
 const UA =
@@ -79,9 +80,7 @@ function topScored(
   const entries = Object.values(obj as RawRecord)
     .filter(
       (v): v is Scored =>
-        !!v &&
-        typeof v === "object" &&
-        typeof (v as Scored).score === "number",
+        !!v && typeof v === "object" && typeof (v as Scored).score === "number",
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -312,7 +311,14 @@ const MEDICAL_KEYWORDS: readonly string[] = [
  * they stay close to the rest of the medical-language vocabulary.
  */
 const AILMENT_ALIASES: Record<string, string[]> = {
-  insomnia: ["insomnia", "sleep", "asleep", "sleeping", "sleepless", "restless"],
+  insomnia: [
+    "insomnia",
+    "sleep",
+    "asleep",
+    "sleeping",
+    "sleepless",
+    "restless",
+  ],
   anxiety: ["anxiety", "anxious", "panic", "stress", "stressed", "tension"],
   ocd: ["ocd", "obsessive", "anxious"],
   adhd: ["adhd", "add", "focus"],
@@ -400,7 +406,10 @@ export function medicalScore(
   let hits = 0;
   for (const kw of MEDICAL_KEYWORDS) {
     if (!kw) continue;
-    const re = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "g");
+    const re = new RegExp(
+      `\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+      "g",
+    );
     const matches = lower.match(re);
     if (matches) hits += matches.length;
   }
@@ -576,8 +585,6 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-const POPULAR_SLUG = "__popular__";
-
 /** Pause for `ms` milliseconds. Used between Leafly page fetches to stay polite. */
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -595,6 +602,26 @@ function delay(ms: number): Promise<void> {
  * the strainCache collection, then serve from there instead of scraping live.
  */
 export async function fetchAllStrains(): Promise<StrainProfile[]> {
+  const leafly = await fetchAllLeaflyDirectoryStrains();
+  // Allbud adds strains Leafly doesn't list and (when a strain is shared)
+  // a free species tag if Leafly's listing was missing one. Failures from
+  // Allbud's scraper never abort the warm — we still serve the Leafly
+  // directory in that case.
+  let allbud: StrainProfile[] = [];
+  try {
+    allbud = await fetchAllbudStrains();
+  } catch (err) {
+    console.error("[fetchAllStrains] Allbud scrape failed:", err);
+  }
+  return mergeDirectoryStrains(leafly, allbud);
+}
+
+/**
+ * Internal: scrape Leafly's strain directory only. Exposed so callers that
+ * want a single-source view (or want to test the merge in isolation) can
+ * reach it directly.
+ */
+async function fetchAllLeaflyDirectoryStrains(): Promise<StrainProfile[]> {
   const seen = new Set<string>();
   const out: StrainProfile[] = [];
   const MAX_PAGES = 50;
@@ -635,8 +662,42 @@ export async function fetchAllStrains(): Promise<StrainProfile[]> {
 }
 
 /**
+ * Merge two scraped directories into a single list. Leafly is the primary
+ * source — it carries the rich preview fields (thc, effects, image, ratings).
+ * Allbud fills in any strains Leafly didn't list and supplies a type when
+ * Leafly left it undefined. Existing fields on a Leafly entry are never
+ * overwritten by an Allbud entry (we trust the source that had more detail).
+ */
+export function mergeDirectoryStrains(
+  leafly: StrainProfile[],
+  allbud: StrainProfile[],
+): StrainProfile[] {
+  const byKey = new Map<string, StrainProfile>();
+  for (const p of leafly) {
+    const key = p.name.trim().toLowerCase();
+    if (!key || !p.name) continue;
+    byKey.set(key, p);
+  }
+  for (const p of allbud) {
+    const key = p.name.trim().toLowerCase();
+    if (!key || !p.name) continue;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, p);
+      continue;
+    }
+    if (!existing.type && p.type) {
+      byKey.set(key, { ...existing, type: p.type });
+    }
+  }
+  return Array.from(byKey.values());
+}
+
+/**
  * Lightweight strain preview stored in Firestore for the directory listing.
  * Omits large fields (description, communityNotes) to keep doc size small.
+ * `effects` and `medicalUses` are kept so the browse-page filters can
+ * match against them without a per-row profile fetch.
  */
 export type StrainPreview = {
   name: string;
@@ -645,6 +706,9 @@ export type StrainPreview = {
   thcRange?: string;
   imageUrl?: string;
   leaflyRating?: number;
+  weedmapsRating?: number;
+  effects?: StrainProfile["effects"];
+  medicalUses?: StrainProfile["medicalUses"];
 };
 
 export function toPreview(p: StrainProfile): StrainPreview {
@@ -655,6 +719,9 @@ export function toPreview(p: StrainProfile): StrainPreview {
     thcRange: p.thcRange,
     imageUrl: p.imageUrl,
     leaflyRating: p.leaflyRating,
+    weedmapsRating: p.weedmapsRating,
+    effects: p.effects,
+    medicalUses: p.medicalUses,
   };
 }
 
@@ -779,7 +846,6 @@ export async function fetchProfiles(names: string[]): Promise<StrainProfile[]> {
   ];
   const results = await Promise.all(unique.map((name) => fetchProfile(name)));
   return unique.map(
-    (name, i): StrainProfile =>
-      results[i] ?? { name, inKnowledgeBase: false },
+    (name, i): StrainProfile => results[i] ?? { name, inKnowledgeBase: false },
   );
 }

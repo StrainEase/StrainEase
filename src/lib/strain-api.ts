@@ -3,6 +3,22 @@ import { functions } from "./firebase";
 import type { ResearchPrefs } from "./research-prefs";
 import type { RedditSource, StrainProfile } from "./strain-profile";
 
+export type CitationKind =
+  | "pubmed"
+  | "review"
+  | "nor.org"
+  | "leafly"
+  | "weedmaps"
+  | "allbud"
+  | "reddit";
+
+export type Citation = {
+  id: string;
+  source: string;
+  label: string;
+  kind: CitationKind;
+};
+
 // Response shapes returned by the Firebase Functions backend (functions/src).
 export type StrainAnalysis = {
   headline: string;
@@ -16,6 +32,7 @@ export type StrainAnalysis = {
   commonGround: string[];
   cautions: string[];
   redditSources?: RedditSource[];
+  citations?: Citation[];
 };
 
 export type StrainComparison = {
@@ -24,11 +41,37 @@ export type StrainComparison = {
   resultId?: string;
 };
 
+export type ReasoningSource =
+  | "Leafly"
+  | "Weedmaps"
+  | "Allbud"
+  | "Reddit"
+  | "Aggregated"
+  | "Patient history";
+
+export type ReasoningEvidenceItem = {
+  source: ReasoningSource;
+  quote: string;
+};
+
+export type ReasoningEvidence = {
+  matchedConditions: string[];
+  preferencesApplied: string[];
+  evidence: ReasoningEvidenceItem[];
+  considerations: string[];
+};
+
 export type StrainRecommendation = {
   strainName: string;
   reason: string;
   bestFor: string;
   caution: string;
+  /**
+   * Auditable evidence ledger. Present for every recommendation emitted
+   * by the updated prompt; older model responses may omit it. The
+   * `ReasoningTrace` component hides itself when this is undefined.
+   */
+  reasoning?: ReasoningEvidence;
 };
 
 export type RecommendationResult = {
@@ -37,6 +80,7 @@ export type RecommendationResult = {
   recommendations: StrainRecommendation[];
   strains: StrainProfile[];
   redditSources?: RedditSource[];
+  citations?: Citation[];
   resultId?: string;
 };
 
@@ -48,9 +92,10 @@ function call<TArgs, TResult>(name: string, args: TArgs): Promise<TResult> {
       ),
     );
   }
-  return httpsCallable<TArgs, TResult>(functions, name)(args).then(
-    (res) => res.data,
-  );
+  return httpsCallable<TArgs, TResult>(
+    functions,
+    name,
+  )(args).then((res) => res.data);
 }
 
 /** Popular strains on Leafly right now (public callable). */
@@ -63,6 +108,76 @@ export function searchStrain(name: string): Promise<StrainProfile | null> {
   return call<{ name: string }, StrainProfile | null>("searchStrain", {
     name,
   });
+}
+
+/**
+ * Curated Reddit threads relevant to a single strain, drawn from the
+ * Firestore-backed vetted pool with a static seed fallback. Returns up
+ * to 5 threads; empty when nothing matches. Public callable, so the
+ * strain detail can prefetch it before the user signs in.
+ */
+export function redditThreads(args: {
+  name: string;
+  conditions?: string[];
+}): Promise<RedditSource[]> {
+  return call<{ name: string; conditions?: string[] }, RedditSource[]>(
+    "redditThreadsForStrain",
+    args,
+  );
+}
+
+/** Vet a Reddit candidate (operator callable; use src/lib/reddit-admin.ts). */
+export function vetRedditThread(args: {
+  threadId?: string;
+  url: string;
+  permalink?: string;
+  subreddit: string;
+  title: string;
+  snippet?: string;
+  selftext?: string;
+  score?: number;
+  applicableConditions: string[];
+  applicableStrains: string[];
+  vettedNotes?: string;
+}): Promise<{ ok: true; threadId: string; vettedAt: number }> {
+  return call<typeof args, { ok: true; threadId: string; vettedAt: number }>(
+    "vetRedditThread",
+    args,
+  );
+}
+
+export type PendingRedditThread = {
+  threadId: string;
+  url: string;
+  subreddit: string;
+  title: string;
+  snippet?: string;
+  score?: number;
+  applicableConditions: string[];
+  applicableStrains: string[];
+  vettedAt: null;
+  vettedBy: null;
+  addedAt: number;
+};
+
+/** List Reddit candidates awaiting operator review. */
+export function listPendingRedditThreads(): Promise<{
+  threads: PendingRedditThread[];
+}> {
+  return call<Record<string, never>, { threads: PendingRedditThread[] }>(
+    "listPendingRedditThreads",
+    {},
+  );
+}
+
+/** Remove a thread's approval and return it to the review queue. */
+export function unvetRedditThread(
+  threadId: string,
+): Promise<{ ok: true; threadId: string; existed: boolean }> {
+  return call<
+    { threadId: string },
+    { ok: true; threadId: string; existed: boolean }
+  >("unvetRedditThread", { threadId });
 }
 
 /** Side-by-side comparison (auth-gated callable). */
@@ -103,7 +218,12 @@ export type StrainDescriptionSection = {
  *   - "What to expect"
  */
 export type StrainDescription = {
-  sections: [StrainDescriptionSection, StrainDescriptionSection, StrainDescriptionSection];
+  sections: [
+    StrainDescriptionSection,
+    StrainDescriptionSection,
+    StrainDescriptionSection,
+  ];
+  citations?: Citation[];
 };
 
 /**
@@ -121,6 +241,12 @@ export function describeStrainForUser(args: {
   medications?: string[];
   /** Pre-summarized relief log prose, newest first. Backend caps at 800 chars. */
   reliefHistory?: string;
+  /**
+   * Patient's THC sensitivity, drawn from the closed enum in
+   * `lib/thc-sensitivity.ts`. Forwarded to the Kaya system prompt
+   * so the "What to expect" section calibrates the potency call-out.
+   */
+  thcSensitivity?: "anxious-high-thc" | "moderate-tolerance" | "experienced";
   /** Human-readable language name, e.g. "English". Defaults to English. */
   language?: string;
 }): Promise<StrainDescription> {
@@ -136,6 +262,70 @@ export type CachedStrainImage = {
 };
 
 /**
+ * Dr. Kaya's prose section of the clinician report. Auth-gated; the
+ * client composes the structured snapshot locally and ships it to the
+ * callable so the model only writes the prose and never invents
+ * patient data.
+ */
+export type ClinicianReportSummary = {
+  /** 2-3 short paragraphs of prose, separated by blank lines. */
+  summary: string;
+  /** 3-5 short clinical-style considerations (one per line). */
+  considerations: string[];
+};
+
+/**
+ * Generate the prose section of the clinician report. The page composes
+ * the structured snapshot locally (see `buildClinicianReport`) and only
+ * ships it here for the AI to write the prose. The callable is auth-gated
+ * because the snapshot includes the patient's saved ailments, medications,
+ * and relief log.
+ */
+export function clinicianReportSummary(args: {
+  snapshot: unknown;
+  language?: string;
+}): Promise<ClinicianReportSummary> {
+  return call<typeof args, ClinicianReportSummary>(
+    "clinicianReportSummary",
+    args,
+  );
+}
+
+/**
+ * Result of a `generateClinicianReportPdf` call. The PDF comes back
+ * as base64 because a single patient report is 100KB-2MB, which fits
+ * well inside the callable response size limit and lets the client
+ * trigger a download with a data URL or `Blob` round-trip.
+ */
+export type ClinicianReportPdf = {
+  pdfBase64: string;
+  filename: string;
+  contentType: "application/pdf";
+  byteLength: number;
+  kayaIncluded: boolean;
+};
+
+/**
+ * Server-side Clinician Report PDF. Reads the patient snapshot,
+ * calls Groq for Dr. Kaya's prose, renders the HTML to a PDF via
+ * Puppeteer + @sparticuz/chromium, and returns the bytes. Auth-gated.
+ *
+ * This is the canonical "generate report" path used by the web
+ * `/report` page and the iOS / Android report screens — every
+ * platform downloads the same PDF.
+ */
+export function generateClinicianReportPdf(args?: {
+  language?: string;
+  /** When false, skip the LLM call and ship a structured-only PDF. */
+  includeKayaSummary?: boolean;
+}): Promise<ClinicianReportPdf> {
+  return call<typeof args, ClinicianReportPdf>(
+    "generateClinicianReportPdf",
+    args ?? {},
+  );
+}
+
+/**
  * Cache a strain image and return a signed URL the browser can fetch
  * directly. Repeated calls for the same URL hit the Storage copy
  * instead of re-downloading from Leafly, so images load much faster
@@ -147,7 +337,9 @@ export function cachedStrainImage(url: string): Promise<CachedStrainImage> {
   });
 }
 
-/** Lightweight strain preview used for directory listings and browse pagination. */
+/** Lightweight strain preview used for directory listings and browse pagination.
+ *  `effects` and `medicalUses` travel with the preview so the browse-page
+ *  filter chips can match against them without a per-row profile fetch. */
 export type StrainPreview = {
   name: string;
   slug: string;
@@ -155,6 +347,9 @@ export type StrainPreview = {
   thcRange?: string;
   imageUrl?: string;
   leaflyRating?: number;
+  weedmapsRating?: number;
+  effects?: { name: string; count?: number; pct?: number }[];
+  medicalUses?: { name: string; count?: number; pct?: number }[];
 };
 
 /** A page of catalog previews from browseStrains. */
@@ -208,7 +403,12 @@ export type DoctorQuery = {
 
 export type DoctorResult = {
   doctors: Doctor[];
-  resolvedLocation: { city: string; state: string; lat: number; lon: number } | null;
+  resolvedLocation: {
+    city: string;
+    state: string;
+    lat: number;
+    lon: number;
+  } | null;
   source: string;
 };
 
@@ -237,7 +437,7 @@ export type ElaboratedSection = {
 
 /**
  * Ask the AI to expand a single section of the tailored strain
- * description. The web client surfaces this behind the ✨ Ask Maya
+ * description. The web client surfaces this behind the ✨ Ask Kaya
  * button on each section header. Same age-verification + rate-limit
  * contract as `describeStrainForUser`.
  */
@@ -285,9 +485,14 @@ export function submitStrainReview(args: {
   starRating: number;
   reviewText?: string;
   consumptionForm?: "flower" | "cart" | "edible" | "tincture";
-}): Promise<{ ok: true; reviewId: string; avgRating: number; reviewCount: number }> {
-  return call<typeof args, { ok: true; reviewId: string; avgRating: number; reviewCount: number }>(
-    "submitStrainReview",
-    args,
-  );
+}): Promise<{
+  ok: true;
+  reviewId: string;
+  avgRating: number;
+  reviewCount: number;
+}> {
+  return call<
+    typeof args,
+    { ok: true; reviewId: string; avgRating: number; reviewCount: number }
+  >("submitStrainReview", args);
 }

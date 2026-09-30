@@ -2,6 +2,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCompareSelection } from "@/hooks/use-compare-selection";
 import { useAilments } from "@/hooks/use-ailments";
 import { useMedications } from "@/hooks/use-medications";
+import { useThcSensitivity } from "@/hooks/use-thc-sensitivity";
+import type { ThcSensitivity } from "@/lib/research-prefs";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { Seo } from "@/components/Seo";
@@ -27,12 +29,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { AnalysisPanel } from "@/components/compare/AnalysisPanel";
 import { StrainDetailCard } from "@/components/compare/StrainDetailCard";
-import { StrainDirectory } from "@/components/directory/StrainDirectory";
+import { StrainFind } from "@/components/find/StrainFind";
 import { StrainImage } from "@/components/strain/StrainImage";
-import { PatientPrefsFields } from "@/components/finder/PatientPrefsFields";
-import { StrainFinder } from "@/components/finder/StrainFinder";
+import { getPhotoURL } from "@/lib/strain-catalog";
+import { PatientPrefsFields } from "@/components/browse/PatientPrefsFields";
+import { StrainBrowse } from "@/components/browse/StrainBrowse";
 import { HistoryPanel } from "@/components/saved/HistoryPanel";
-import { SavedStrainsPanel } from "@/components/saved/SavedStrainsPanel";
+import { CheckInPanel } from "@/components/check-ins/CheckInPanel";
 import { cacheKey, cachedRun } from "@/lib/ai-cache";
 import { pullQuotesFromStrains } from "@/lib/quotes";
 import { useReliefSummary } from "@/hooks/use-relief-summary";
@@ -41,10 +44,7 @@ import {
   rememberCloud,
   rememberLocal,
 } from "@/lib/research-history";
-import {
-  compactPrefs,
-  type ResearchPrefs,
-} from "@/lib/research-prefs";
+import { compactPrefs, type ResearchPrefs } from "@/lib/research-prefs";
 import {
   dashboardModeFromSearch,
   dashboardTab,
@@ -52,21 +52,19 @@ import {
 } from "@/lib/app-nav";
 import { documentTitle } from "@/lib/site";
 import { CONDITIONS, typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
+import { thcSensitivityLabel } from "@/lib/thc-sensitivity";
 import { cn } from "@/lib/utils";
 import type { StrainProfile } from "@/lib/strain-profile";
 import {
   ArrowRight,
-  Bookmark,
-  BookOpen,
   Check,
-  Clock,
   FlaskConical,
-  GitCompareArrows,
-  HeartPulse,
   Loader2,
+  Pill,
   Plus,
   Search,
   Sparkles,
+  Star,
   X,
 } from "lucide-react";
 
@@ -109,6 +107,7 @@ export default function Dashboard() {
   const { summary: reliefSummary } = useReliefSummary();
   const { names: savedMedications } = useMedications();
   const { names: savedAilments } = useAilments();
+  const thcSensitivity = useThcSensitivity();
   const { rid } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -198,6 +197,24 @@ export default function Dashboard() {
     resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result]);
 
+  // Seed THC sensitivity from user's saved profile on first mount.
+  // Always import the saved sensitivity by default.
+  useEffect(() => {
+    if (!thcSensitivity.value) return;
+    setPrefs((p) =>
+      p.thcSensitivity ? p : { ...p, thcSensitivity: thcSensitivity.value as ThcSensitivity },
+    );
+  }, [thcSensitivity.value]);
+
+  // Seed medications from user's saved profile on first mount.
+  // Always import the saved medications by default.
+  useEffect(() => {
+    if (!savedMedications || savedMedications.length === 0) return;
+    setPrefs((p) =>
+      p.medications ? p : { ...p, medications: savedMedications.join(", ") },
+    );
+  }, [savedMedications]);
+
   const toggleStrainName = (name: string) => {
     selection.toggle(name);
   };
@@ -244,9 +261,8 @@ export default function Dashboard() {
         condition: focus.length > 0 ? focus : undefined,
         prefs: compactPrefs({ ...prefs, reliefSummary }),
       };
-      const comparison = await cachedRun(
-        cacheKey("compare", args),
-        () => compareStrainsCall(args),
+      const comparison = await cachedRun(cacheKey("compare", args), () =>
+        compareStrainsCall(args),
       );
       setResult(comparison);
       if (comparison.resultId) {
@@ -307,9 +323,7 @@ export default function Dashboard() {
   const instantMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (q === "") return [];
-    return popular
-      .filter((p) => p.name.toLowerCase().includes(q))
-      .slice(0, 5);
+    return popular.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 5);
   }, [query, popular]);
 
   return (
@@ -323,92 +337,16 @@ export default function Dashboard() {
       <MeshBackground />
       <AppHeader
         active={dashboardTab(mode)}
-        favorites={mode === "saved"}
         onCompare={() => void handleCompare()}
         isComparing={isRunning}
       />
 
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
         <MedicalDisclaimer className="mb-6" />
-        {/* Desktop keeps the full mode strip. Mobile uses the iOS-style
-            bottom tabs for Find/Browse and the header heart for Saved. */}
-        <div className="mb-8 hidden justify-center sm:flex">
-          <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-border/70 bg-card p-1">
-            <button
-              type="button"
-              onClick={() => applyMode("find")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "find"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <HeartPulse className="size-4" />
-              <span className="sm:hidden">Find</span>
-              <span className="hidden sm:inline">Find for ailments</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => applyMode("directory")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "directory"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <BookOpen className="size-4" />
-              <span className="sm:hidden">Browse</span>
-              <span className="hidden sm:inline">Strain directory</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => applyMode("compare")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "compare"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <GitCompareArrows className="size-4" />
-              <span className="sm:hidden">Compare</span>
-              <span className="hidden sm:inline">Compare strains</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => applyMode("saved")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "saved"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Bookmark className="size-4" />
-              <span className="sm:hidden">Saved</span>
-              <span className="hidden sm:inline">Saved strains</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => applyMode("history")}
-              className={cn(
-                "flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4",
-                mode === "history"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Clock className="size-4" />
-              History
-            </button>
-          </div>
-        </div>
 
         {/* ── Strain finder (main focus) ────────────────────── */}
         <div className={cn(mode !== "find" && "hidden")}>
-          <StrainFinder
+          <StrainBrowse
             onCompare={startCompareFromFinder}
             onAddToCompare={selection.toggle}
             inCompareSelection={selection.isIn}
@@ -421,17 +359,17 @@ export default function Dashboard() {
 
         {/* ── Strain directory ───────────────────────────── */}
         <div className={cn(mode !== "directory" && "hidden")}>
-          <StrainDirectory />
-        </div>
-
-        {/* ── Saved strains ────────────────────────────────── */}
-        <div className={cn(mode !== "saved" && "hidden")}>
-          <SavedStrainsPanel />
+          <StrainFind />
         </div>
 
         {/* ── History (reopen shareable results) ────────────── */}
         <div className={cn(mode !== "history" && "hidden")}>
           <HistoryPanel />
+        </div>
+
+        {/* ── Daily check-ins (mood / sleep / pain / anxiety) ── */}
+        <div className={cn(mode !== "checkins" && "hidden")}>
+          <CheckInPanel />
         </div>
 
         {/* ── Compare workspace (secondary) ─────────────────── */}
@@ -642,9 +580,33 @@ export default function Dashboard() {
                 {/* Condition focus */}
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    2 · Condition focus (optional — pick several)
+                    2 · Commonly used for (optional — pick several)
                   </p>
                   <div className="flex flex-wrap gap-1.5">
+                    {/* My Ailments chip with gold gradient - always first */}
+                    {savedAilments.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Import all saved ailments
+                          setCondition((prev) => {
+                            const merged = [...new Set([...prev, ...savedAilments])];
+                            return merged;
+                          });
+                        }}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                          "bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500",
+                          "border-amber-400/50 text-amber-900",
+                          "hover:from-amber-400 hover:via-yellow-300 hover:to-amber-400",
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Star className="size-3" />
+                          My Ailments ({savedAilments.length})
+                        </span>
+                      </button>
+                    )}
                     {CONDITIONS.map((c) => (
                       <button
                         key={c}
@@ -662,6 +624,33 @@ export default function Dashboard() {
                     ))}
                   </div>
                 </div>
+
+                {/* Show imported sensitivity indicator */}
+                {thcSensitivity.value && (
+                  <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500/10 via-yellow-400/10 to-amber-500/10 px-3 py-2 text-xs">
+                    <Sparkles className="size-3 text-amber-600" />
+                    <span className="text-muted-foreground">
+                      Sensitivity from profile:{" "}
+                      <span className="font-medium text-amber-700">
+                        {thcSensitivityLabel(thcSensitivity.value)}
+                      </span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Show imported medications indicator */}
+                {savedMedications.length > 0 && prefs.medications && (
+                  <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-3 py-2 text-xs">
+                    <Pill className="size-3 text-blue-600" />
+                    <span className="text-muted-foreground">
+                      Medications from profile:{" "}
+                      <span className="font-medium text-blue-700">
+                        {savedMedications.slice(0, 3).join(", ")}
+                        {savedMedications.length > 3 && ` +${savedMedications.length - 3} more`}
+                      </span>
+                    </span>
+                  </div>
+                )}
 
                 <PatientPrefsFields
                   prefs={prefs}
@@ -788,8 +777,8 @@ export default function Dashboard() {
                 <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
                   <Sparkles className="size-3.5 shrink-0 text-primary" />
                   Comparison by Dr. Kaya, our AI cannabis care assistant.
-                  Synthesized from live Leafly data. Not medical advice.
-                  Consult your healthcare provider.
+                  Synthesized from live Leafly data. Not medical advice. Consult
+                  your healthcare provider.
                 </p>
               </div>
             ) : (
@@ -804,8 +793,8 @@ export default function Dashboard() {
                   </h1>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                     Search any strain by name — profiles are pulled live from
-                    Leafly. Save your favorites and keep private notes, or
-                    share them with other patients.
+                    Leafly. Save your favorites and keep private notes, or share
+                    them with other patients.
                   </p>
                 </div>
 
@@ -881,6 +870,7 @@ function StrainRow({
     >
       <StrainImage
         src={imageUrl}
+        fallbackSrc={getPhotoURL(name ?? "")}
         alt=""
         className="size-10 shrink-0 rounded-lg border border-border/70"
         iconClassName="size-4"
@@ -906,4 +896,3 @@ function StrainRow({
     </button>
   );
 }
-

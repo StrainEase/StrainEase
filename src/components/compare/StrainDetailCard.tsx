@@ -1,5 +1,6 @@
 import { CommunityVoices } from "@/components/compare/CommunityVoices";
 import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
 import { StrainDescriptionView } from "@/components/strain/StrainDescription";
 import { useTailoredDescription } from "@/hooks/use-tailored-description";
 import type { StrainProfile } from "@/lib/strain-profile";
@@ -8,13 +9,13 @@ import { ReliefLogButton } from "@/components/saved/ReliefLogButton";
 import { SaveStrainButton } from "@/components/saved/SaveStrainButton";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { typeBadgeClass, TYPE_LABEL } from "@/lib/strain-ui";
-import { toTitleCase } from "@/lib/title-case";
 import {
   listenToPublicNotes,
   slugify,
   type PublicNote,
 } from "@/lib/saved-strains";
 import { db } from "@/lib/firebase";
+import { SWCard } from "@/components/ui/sw-card";
 import {
   Activity,
   Award,
@@ -35,8 +36,10 @@ function IntensityBar({ value }: { value: number }) {
         <span
           key={i}
           className={cn(
-            "h-1.5 w-2.5 rounded-full",
-            i < value ? "bg-primary/80" : "bg-border",
+            "size-2 rounded-full border",
+            i < value
+              ? "border-primary/80 bg-primary/80"
+              : "border-border bg-card",
           )}
         />
       ))}
@@ -77,7 +80,7 @@ export function StrainDetailCard({
   }, [strain.name]);
 
   const subtitle = [
-    strain.type ? TYPE_LABEL[strain.type] ?? strain.type : null,
+    strain.type ? (TYPE_LABEL[strain.type] ?? strain.type) : null,
     strain.thcRange ? `THC ${strain.thcRange}` : null,
     strain.thcRange && strain.cbdRange && strain.cbdRange !== "<1%"
       ? `CBD ${strain.cbdRange}`
@@ -90,26 +93,20 @@ export function StrainDetailCard({
   // card itself is just a content surface — no need to keep the white
   // photo-background, the standard card surface is fine.
   const showInlineHero = !!strain.imageUrl && !hideHero;
-  const surface = showInlineHero
-    ? "bg-white"
-    : "bg-card";
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-col gap-5 rounded-2xl border p-6",
-        surface,
-        badge === "best"
-          ? "border-primary/50 ring-1 ring-primary/20"
-          : "border-border/70",
-      )}
+    <SWCard
+      emphasized={badge === "best"}
+      className="flex min-w-0 flex-col gap-5"
+      innerClassName="flex flex-col gap-5 p-6"
     >
       {/* Header */}
       <div>
         {showInlineHero && (
           <StrainImage
             src={strain.imageUrl}
-            alt={`${toTitleCase(strain.name)} flower`}
+            fallbackSrc={getPhotoURL(strain.name)}
+            alt={`${strain.name} flower`}
             className="mb-4 h-72 w-full rounded-xl border border-border/70"
           />
         )}
@@ -121,7 +118,7 @@ export function StrainDetailCard({
                   to={`/strain/${slugify(strain.name)}`}
                   className="hover:text-primary"
                 >
-                  {toTitleCase(strain.name)}
+                  {strain.name}
                 </Link>
                 <StrainNoteIndicator strainName={strain.name} />
               </Heading>
@@ -153,10 +150,7 @@ export function StrainDetailCard({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <SaveStrainButton profile={strain} />
-            <ReliefLogButton
-              strainName={strain.name}
-              conditions={conditions}
-            />
+            <ReliefLogButton strainName={strain.name} conditions={conditions} />
             {strain.type && (
               <Badge className={typeBadgeClass(strain.type)}>
                 {TYPE_LABEL[strain.type] ?? strain.type}
@@ -169,8 +163,8 @@ export function StrainDetailCard({
           <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
             <Search className="mt-0.5 size-4 shrink-0 text-primary" />
             <p className="text-xs leading-5 text-muted-foreground">
-              Not listed on Leafly or Weedmaps — this profile is researched
-              by the AI from public sources. Reddit quotes appear below when
+              Not listed on Leafly or Weedmaps — this profile is researched by
+              the AI from public sources. Reddit quotes appear below when
               patients mention your symptoms.
             </p>
           </div>
@@ -255,7 +249,7 @@ export function StrainDetailCard({
                 key={effect.name}
                 className="flex items-center justify-between gap-3"
               >
-                <span className="text-sm">{effect.name}</span>
+                <span className="text-sm capitalize">{effect.name}</span>
                 <IntensityBar value={effect.intensity} />
               </div>
             ))}
@@ -290,6 +284,6 @@ export function StrainDetailCard({
         redditSources={strain.redditSources}
         appReviews={patientNotes}
       />
-    </div>
+    </SWCard>
   );
 }

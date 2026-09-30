@@ -271,7 +271,7 @@ const SOUR_DIESEL: FeaturedDetail = {
     sections: [
       {
         heading: "Overview",
-        body: "Sour Diesel (or \"Sour D\") is a sativa that defines what people mean when they say \"head high.\" The Limonene-dominant terpene profile gives it a sharp citrus-diesel smell that most patients either love or find overwhelming.\n\nEffects come on within minutes — this is one of the faster-onset sativas on the market. The high is cerebral, energetic, and lasts longer than most sativas (often 3+ hours).",
+        body: 'Sour Diesel (or "Sour D") is a sativa that defines what people mean when they say "head high." The Limonene-dominant terpene profile gives it a sharp citrus-diesel smell that most patients either love or find overwhelming.\n\nEffects come on within minutes — this is one of the faster-onset sativas on the market. The high is cerebral, energetic, and lasts longer than most sativas (often 3+ hours).',
       },
       {
         heading: "What it might do for you",
@@ -307,8 +307,19 @@ const JACK_HERER: FeaturedDetail = {
       { name: "Happy", intensity: 3 },
       { name: "Energetic", intensity: 3 },
     ],
-    sideEffects: ["Dry mouth", "Dry eyes", "Mild anxiety in sensitive patients"],
-    medicalUses: ["ADHD", "Fatigue", "Depression", "Stress", "Inflammation", "Migraine"],
+    sideEffects: [
+      "Dry mouth",
+      "Dry eyes",
+      "Mild anxiety in sensitive patients",
+    ],
+    medicalUses: [
+      "ADHD",
+      "Fatigue",
+      "Depression",
+      "Stress",
+      "Inflammation",
+      "Migraine",
+    ],
     leaflyRating: 4.5,
     leaflyReviewCount: 7_320,
     communityNotes: [
@@ -374,12 +385,14 @@ const GELATO: FeaturedDetail = {
       { name: "Uplifted", intensity: 3 },
       { name: "Creative", intensity: 2 },
     ],
-    sideEffects: [
-      "Dry mouth",
-      "Dry eyes",
-      "Couch-lock at higher doses",
+    sideEffects: ["Dry mouth", "Dry eyes", "Couch-lock at higher doses"],
+    medicalUses: [
+      "Stress",
+      "Anxiety",
+      "Depression",
+      "PTSD",
+      "Nausea & appetite",
     ],
-    medicalUses: ["Stress", "Anxiety", "Depression", "PTSD", "Nausea & appetite"],
     leaflyRating: 4.6,
     leaflyReviewCount: 8_140,
     communityNotes: [
@@ -413,7 +426,7 @@ const GELATO: FeaturedDetail = {
       },
       {
         heading: "What it might do for you",
-        body: "Stress, anxiety, and PTSD are the symptoms where Gelato consistently outperforms in patient reviews. The high is mood-lifting and body-relaxing without crossing into full sedation at normal doses.\n\nFor pain it's useful but not as targeted as a pure indica. Think more \"I want to feel less wound up\" than \"I need pain control to function.\"\n\nIf appetite is part of your picture, expect a gentle hunger effect about 90 minutes in — useful, not overwhelming.",
+        body: 'Stress, anxiety, and PTSD are the symptoms where Gelato consistently outperforms in patient reviews. The high is mood-lifting and body-relaxing without crossing into full sedation at normal doses.\n\nFor pain it\'s useful but not as targeted as a pure indica. Think more "I want to feel less wound up" than "I need pain control to function."\n\nIf appetite is part of your picture, expect a gentle hunger effect about 90 minutes in — useful, not overwhelming.',
       },
       {
         heading: "What to expect",
@@ -514,7 +527,9 @@ export function isFeaturedStrainSlug(slug: string): boolean {
 }
 
 /** Full mock profile for the strain page. Undefined for non-featured slugs. */
-export function getFeaturedStrainProfile(slug: string): StrainProfile | undefined {
+export function getFeaturedStrainProfile(
+  slug: string,
+): StrainProfile | undefined {
   return DETAILS[slug]?.profile;
 }
 

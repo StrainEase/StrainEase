@@ -39,7 +39,10 @@ describe("parseStrains", () => {
 
   test("drops empty segments (trailing comma, double comma, etc.)", () => {
     expect(parseStrains("Blue Dream,")).toEqual(["Blue Dream"]);
-    expect(parseStrains("Blue Dream,,OG Kush")).toEqual(["Blue Dream", "OG Kush"]);
+    expect(parseStrains("Blue Dream,,OG Kush")).toEqual([
+      "Blue Dream",
+      "OG Kush",
+    ]);
     expect(parseStrains(",")).toEqual([]);
   });
 

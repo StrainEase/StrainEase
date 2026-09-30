@@ -30,10 +30,7 @@ export function clipMedicationName(text: string): string {
   return text.trim().slice(0, MEDICATION_NAME_MAX);
 }
 
-export async function addMedication(
-  uid: string,
-  name: string,
-): Promise<void> {
+export async function addMedication(uid: string, name: string): Promise<void> {
   const trimmed = clipMedicationName(name);
   if (trimmed === "") throw new Error("Medication name can't be empty.");
   // Reject exact-name duplicates (case-insensitive) so the list stays clean.

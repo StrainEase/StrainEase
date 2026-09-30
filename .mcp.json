@@ -2,11 +2,7 @@
   "mcpServers": {
     "repository-files": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "."
-      ]
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
     }
   }
 }

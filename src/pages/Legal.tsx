@@ -3,7 +3,13 @@ import { Seo } from "@/components/Seo";
 import { VerificationBadge } from "@/components/compliance/VerificationBadge";
 import { Card } from "@/components/ui/card";
 import { REGIONS } from "@/lib/age-policy";
-import { ArrowRight, Scale, ScrollText, ShieldCheck, Stethoscope } from "lucide-react";
+import {
+  ArrowRight,
+  Scale,
+  ScrollText,
+  ShieldCheck,
+  Stethoscope,
+} from "lucide-react";
 import { Link } from "react-router";
 
 const LAST_UPDATED = "August 17, 2026";
@@ -40,8 +46,8 @@ export default function Legal() {
           </h1>
           <p className="mt-3 text-sm text-muted-foreground sm:text-base">
             Last updated {LAST_UPDATED}. This page is the entry point for our
-            age-verification policy, medical disclaimer, terms of service,
-            and privacy policy.
+            age-verification policy, medical disclaimer, terms of service, and
+            privacy policy.
           </p>
         </section>
 
@@ -76,10 +82,10 @@ export default function Legal() {
           </ul>
           <p className="mt-4 text-sm leading-relaxed text-foreground/80">
             We don't capture identity documents. The age-gate is a
-            self-attestation backed by your device's local storage. If
-            cannabis is illegal where you live, please don't continue.
-            Verification expires after 30 days so shared devices don't stay
-            signed in indefinitely.
+            self-attestation backed by your device's local storage. If cannabis
+            is illegal where you live, please don't continue. Verification
+            expires after 30 days so shared devices don't stay signed in
+            indefinitely.
           </p>
         </Card>
 

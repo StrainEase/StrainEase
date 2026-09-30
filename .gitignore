@@ -25,6 +25,7 @@ dist-ssr
 
 # Firebase Functions build output
 functions/lib
+functions-report/lib
 
 # Wrangler (Cloudflare)
 .wrangler/
@@ -32,10 +33,14 @@ functions/lib
 # Git worktrees (created by orchestration tooling)
 .worktrees/
 
+# Worktree pool managed by freebuff (not source, not deployable)
+.freebuff/worktrees/
+
 # Local env (Vite reads .env; secrets stay off git)
 .env
 .env.*
 !.env.example
+!.env.production
 
 # Generated AI context (task briefs remain shareable)
 .ai/context.md
@@ -62,7 +67,7 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 
 # iOS-specific (StrainEase companion)
-ios/StrainWise/GoogleService-Info.plist
+ios/StrainEase/GoogleService-Info.plist
 
 # Local scratch / smoke-test scripts left over from manual verification.
 trash-*.ts

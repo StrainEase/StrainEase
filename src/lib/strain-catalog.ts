@@ -6,6 +6,17 @@ import { matchesCondition } from "./strain-ui";
  *  a circular import between the two files. */
 const HOME_PREVIEW_LIMIT = 6;
 
+/** Bundled Leafly / Weedmaps directory row. Mirrors the shape shipped
+ *  with iOS (`ios/StrainEase/Resources/strain-directory.json`) and
+ *  Android (`android/app/src/main/assets/strain-directory.json`). */
+type DirectoryEntry = {
+  name: string;
+  type: StrainType;
+  thc?: string;
+  uses?: string[];
+  imageUrl?: string;
+};
+
 type CatalogEntry = {
   name: string;
   type: StrainType;
@@ -15,7 +26,7 @@ type CatalogEntry = {
 
 // Curated browse set so Home rails always have 6+ strains per type and
 // ailment, even when the live popular list is short or missing a phenotype.
-// Keep in sync with ios/StrainWise/Models/StrainCatalog.swift.
+// Keep in sync with ios/StrainEase/Models/StrainCatalog.swift.
 const ENTRIES: CatalogEntry[] = [
   {
     name: "Blue Dream",
@@ -60,7 +71,14 @@ const ENTRIES: CatalogEntry[] = [
     name: "Jack Herer",
     type: "sativa",
     thc: "18–23%",
-    uses: ["ADHD", "Fatigue", "Depression", "Stress", "Inflammation", "Migraine"],
+    uses: [
+      "ADHD",
+      "Fatigue",
+      "Depression",
+      "Stress",
+      "Inflammation",
+      "Migraine",
+    ],
   },
   {
     name: "Gelato",
@@ -267,6 +285,57 @@ function toProfile(entry: CatalogEntry): StrainProfile {
 
 export const CATALOG: StrainProfile[] = ENTRIES.map(toProfile);
 
+/**
+ * Bundled strain directory (Leafly + Weedmaps dump). Mirrors the
+ * iOS and Android apps so the home "see more" rails show every
+ * strain of that type, not just the 24 curated entries.
+ *
+ * Loaded lazily off `/strain-directory.json` on first access and
+ * merged into `CATALOG` whenever `mergeCatalog` /
+ * `matchingAilment` / `matchAilments` runs. The fetch starts
+ * as soon as this module is imported so the directory is usually
+ * ready by the time the user clicks "see more" on a home rail.
+ */
+let directoryProfiles: StrainProfile[] = [];
+const directoryReady: Promise<void> = (async () => {
+  try {
+    const res = await fetch("/strain-directory.json");
+    if (!res.ok) return;
+    const entries = (await res.json()) as DirectoryEntry[];
+    directoryProfiles = entries.map(toDirectoryProfile);
+  } catch {
+    // No-op: directory stays empty, callers fall back to curated.
+  }
+})();
+
+/** Convert a directory row into the shared StrainProfile shape so it
+ *  composes cleanly with `mergeCatalog` / `matchingAilment`. The
+ *  fields Leafly omits (cbd, lineage, effects, etc.) are left
+ *  undefined — the strain page fills them on demand. */
+function toDirectoryProfile(entry: DirectoryEntry): StrainProfile {
+  return {
+    name: entry.name,
+    inKnowledgeBase: true,
+    type: entry.type,
+    thcRange: entry.thc,
+    imageUrl: entry.imageUrl,
+    medicalUses: entry.uses,
+  };
+}
+
+/** Snapshot of the currently loaded bundled directory. Empty until
+ *  the module-level fetch resolves. Read-only for callers. */
+export function getStrainDirectory(): readonly StrainProfile[] {
+  return directoryProfiles;
+}
+
+/** Resolves once the bundled directory has finished loading. Awaiting
+ *  this on the Browse page guarantees the rail shows every strain
+ *  of the selected type on first render. */
+export function strainDirectoryReady(): Promise<void> {
+  return directoryReady;
+}
+
 /** Six strains pinned to the homescreen rail. Pulled from `CATALOG` so the
  *  photos, types, THC ranges, and medical uses stay in sync with the curated
  *  set. Picking by name (not index) keeps the list stable even if `CATALOG`
@@ -280,9 +349,10 @@ const HOME_FEATURED_NAMES = [
   "Northern Lights",
 ] as const;
 
-export const HOME_FEATURED_STRAINS: StrainProfile[] = HOME_FEATURED_NAMES.flatMap(
-  (name) => CATALOG.filter((profile) => profile.name === name),
-);
+export const HOME_FEATURED_STRAINS: StrainProfile[] =
+  HOME_FEATURED_NAMES.flatMap((name) =>
+    CATALOG.filter((profile) => profile.name === name),
+  );
 
 // Leafly popular-list names that don't match our catalog slugs, plus a few
 // current popular strains we don't keep in the browse set. Used so homepage
@@ -307,6 +377,32 @@ export function profileSlug(profile: Pick<StrainProfile, "name">): string {
   return slugify(profile.name);
 }
 
+/**
+ * Direct Leafly / Weedmaps URL for a known catalog photo, or undefined
+ * if the slug has no curated photo. Mirrors the iOS
+ * `StrainCatalog.photoURL(for:)` and the Android equivalent — the
+ * resilient image view uses this as a fallback tier when the
+ * backend's Firebase Storage URL fails to load, so a dead Storage
+ * URL falls back to the catalog photo instead of leaving the user
+ * with a leaf placeholder.
+ *
+ * Accepts either a strain name (e.g. "Blue Dream") or a pre-slugified
+ * key (e.g. "blue-dream"). The slug is normalized to lowercase, then
+ * routed through `SLUG_ALIASES` (so callers can pass either the
+ * canonical slug `"girl-scout-cookies"` or the popular alias `"gsc"`),
+ * and finally looked up in `PHOTOS`.
+ */
+export function getPhotoURL(nameOrSlug: string): string | undefined {
+  const normalized = nameOrSlug.trim().toLowerCase();
+  if (!normalized) return undefined;
+  // If the input looks like a name with whitespace, slugify it first so
+  // callers can pass `strain.name` directly. Pre-slugified inputs go
+  // through unchanged.
+  const slug = normalized.includes(" ") ? slugify(normalized) : normalized;
+  const key = SLUG_ALIASES[slug] ?? slug;
+  return PHOTOS[key] ?? PHOTOS[slug];
+}
+
 function catalogKey(name: string): string {
   const slug = slugify(name);
   return SLUG_ALIASES[slug] ?? slug;
@@ -318,7 +414,8 @@ function catalogDefaults(
   const slug = slugify(name);
   const key = catalogKey(name);
   const fromCatalog = CATALOG.find((profile) => profileSlug(profile) === key);
-  const medicalUses = fromCatalog?.medicalUses ?? EXTRA_USES[slug] ?? EXTRA_USES[key];
+  const medicalUses =
+    fromCatalog?.medicalUses ?? EXTRA_USES[slug] ?? EXTRA_USES[key];
   const imageUrl = fromCatalog?.imageUrl ?? PHOTOS[key] ?? PHOTOS[slug];
   if (!medicalUses && !imageUrl) return undefined;
   return { imageUrl, medicalUses };
@@ -387,8 +484,13 @@ export function applyCatalogPhotos(profiles: StrainProfile[]): StrainProfile[] {
 export function mergeCatalog(
   live: StrainProfile[],
   preferringType?: StrainType,
+  directory: readonly StrainProfile[] = directoryProfiles,
 ): StrainProfile[] {
-  const extras = CATALOG.filter((catalog) => {
+  // Curated wins on photo / uses; the bundled directory fills in the
+  // long tail so type rails reach every Leafly / Weedmaps entry, not
+  // just the 24 curated names.
+  const source = [...CATALOG, ...directory];
+  const extras = source.filter((catalog) => {
     if (preferringType && catalog.type !== preferringType) return false;
     return !live.some((item) => profileSlug(item) === profileSlug(catalog));
   });
@@ -401,8 +503,11 @@ export function mergeCatalog(
 export function matchingAilment(
   ailment: string,
   live: StrainProfile[],
+  directory: readonly StrainProfile[] = directoryProfiles,
 ): StrainProfile[] {
-  const combined = applyCatalogPhotos(uniqueProfiles([...live, ...CATALOG]));
+  const combined = applyCatalogPhotos(
+    uniqueProfiles([...live, ...CATALOG, ...directory]),
+  );
   const key = ailment.trim().toLowerCase();
   const hits = combined.filter((profile) =>
     matchesCondition(profile.medicalUses, key),
@@ -425,13 +530,14 @@ export function matchAilments(
   ailments: string[],
   live: StrainProfile[],
   limit = HOME_PREVIEW_LIMIT,
+  directory: readonly StrainProfile[] = directoryProfiles,
 ): StrainProfile[] {
-  const cleaned = ailments
-    .map((a) => a.trim())
-    .filter((a) => a !== "");
+  const cleaned = ailments.map((a) => a.trim()).filter((a) => a !== "");
   if (cleaned.length === 0) return [];
 
-  const combined = applyCatalogPhotos(uniqueProfiles([...live, ...CATALOG]));
+  const combined = applyCatalogPhotos(
+    uniqueProfiles([...live, ...CATALOG, ...directory]),
+  );
 
   type Scored = { profile: StrainProfile; score: number };
   const scored: Scored[] = [];

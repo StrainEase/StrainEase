@@ -10,7 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
-const LOCAL_KEY = "strainwise:history:v1";
+const LOCAL_KEY = "strainease:history:v1";
 
 export type HistoryKind = "find" | "compare";
 
@@ -72,7 +72,10 @@ export function historyCloudData(entry: HistoryEntry) {
 
 export async function rememberCloud(uid: string, entry: HistoryEntry) {
   if (!db) return;
-  await setDoc(doc(db, "users", uid, "history", entry.id), historyCloudData(entry));
+  await setDoc(
+    doc(db, "users", uid, "history", entry.id),
+    historyCloudData(entry),
+  );
 }
 
 export function listenToHistory(

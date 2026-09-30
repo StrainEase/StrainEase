@@ -132,9 +132,7 @@ function readCannabinoids(html: string): {
     const raw = thcMatch[1].replace(/\s+/g, "").trim();
     // Allbud formats ranges as "17%-24%" (percent on each side) or
     // single values as "26%". Both shapes after whitespace stripping.
-    const range = raw.match(
-      /^(\d+(?:\.\d+)?)%?[-–](\d+(?:\.\d+)?)%$/,
-    );
+    const range = raw.match(/^(\d+(?:\.\d+)?)%?[-–](\d+(?:\.\d+)?)%$/);
     if (range) {
       out.thc = `${range[1]}–${range[2]}%`;
     } else {
@@ -157,7 +155,9 @@ function readLineage(text: string): string | undefined {
     /cross\s+between\s+(?:the\s+)?(?:hugely\s+popular\s+)?([^.,]{2,80}?)\s+(?:X|×|x|and)\s+([^.,]{2,80}?)(?:\s+strains?)?(?:[.,]|$)/i,
   );
   if (cross) {
-    const a = cross[1].trim().replace(/^(?:the\s+)?(?:hugely\s+)?popular\s+/i, "");
+    const a = cross[1]
+      .trim()
+      .replace(/^(?:the\s+)?(?:hugely\s+)?popular\s+/i, "");
     const b = cross[2].trim().replace(/\s+strains?$/i, "");
     return `${a} × ${b}`;
   }
@@ -190,18 +190,21 @@ function communityFrom(
     notes.push({
       source: "Allbud",
       text: `Patients most often report: ${effects.slice(0, 4).join(", ")}.`,
+      kind: "allbud",
     });
   }
   if (medical.length > 0) {
     notes.push({
       source: "Allbud",
       text: `Commonly used for ${medical.slice(0, 4).join(", ")}.`,
+      kind: "allbud",
     });
   }
   if (flavors.length > 0) {
     notes.push({
       source: "Allbud",
       text: `Flavor profile: ${flavors.slice(0, 4).join(", ")}.`,
+      kind: "allbud",
     });
   }
   return notes;
@@ -285,7 +288,10 @@ function clipReview(text: string, max = 280): string {
  * usable body text are dropped; everything else becomes a first-person
  * patient note attributed to the reviewer.
  */
-function reviewNotesFrom(html: string): CommunityNote[] {
+function reviewNotesFrom(
+  html: string,
+  conditions: readonly string[] = [],
+): CommunityNote[] {
   const out: CommunityNote[] = [];
   const articleRe = /<article class="infopanel review[\s\S]*?<\/article>/gi;
   let m: RegExpExecArray | null;
@@ -302,29 +308,40 @@ function reviewNotesFrom(html: string): CommunityNote[] {
     const author = compressWhitespace(
       stripTags(
         htmlDecode(
-          block.match(
-            /<span class="author"[^>]*>([\s\S]*?)<\/span>/i,
-          )?.[1] ?? "",
+          block.match(/<span class="author"[^>]*>([\s\S]*?)<\/span>/i)?.[1] ??
+            "",
         ),
       ),
     );
+    // Keep the source useful for medical research: prefer reviews that
+    // mention a symptom or relief experience, while retaining a fallback
+    // pool when Allbud has no medically-worded reviews.
+    const lower = text.toLowerCase();
+    const medical =
+      /\b(pain|anxiety|stress|sleep|insomnia|depression|migraine|nausea|arthritis|ptsd|relief|relieve|helps?|treat|manage|chronic|dose|thc|cbd)\b/i.test(
+        text,
+      );
+    const conditionMatch = conditions.some((condition) =>
+      lower.includes(condition.toLowerCase()),
+    );
     out.push({
-      source: author ? `Allbud review · ${author}` : "a Allbud reviewer",
+      source: author ? `Allbud review · ${author}` : "an Allbud reviewer",
       text: clipReview(text),
+      kind: "allbud",
+      ...(medical || conditionMatch ? {} : { kind: "allbud" }),
     });
   }
   return out;
 }
 
-function toProfile(html: string): StrainProfile | null {
+function toProfile(
+  html: string,
+  conditions: readonly string[] = [],
+): StrainProfile | null {
   // Real Allbud pages render the strain's name into the <title> tag;
   // a 404 / wrong species path returns a generic page with no panels.
   const title = compressWhitespace(
-    stripTags(
-      htmlDecode(
-        html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? "",
-      ),
-    ),
+    stripTags(htmlDecode(html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? "")),
   );
   if (!title || title.toLowerCase().includes("404")) return null;
   if (!html.includes('data-label="positive_effects"')) return null;
@@ -359,13 +376,14 @@ function toProfile(html: string): StrainProfile | null {
     cbdRange: cbd,
     lineage,
     medicalUses: medical.length > 0 ? medical : undefined,
-    effects: effects.length > 0
-      ? effects.slice(0, 5).map((name) => ({ name, intensity: 3 }))
-      : undefined,
+    effects:
+      effects.length > 0
+        ? effects.slice(0, 5).map((name) => ({ name, intensity: 3 }))
+        : undefined,
     description: leadPlain ? firstSentences(leadPlain) : undefined,
     communityNotes: [
       ...communityFrom(effects, medical, flavors),
-      ...reviewNotesFrom(html),
+      ...reviewNotesFrom(html, conditions),
     ],
     allbudRating: reviewSummary.allbudRating,
     allbudReviewCount: reviewSummary.allbudReviewCount,
@@ -391,6 +409,7 @@ async function fetchHtml(path: string): Promise<string | null> {
 
 export async function fetchAllbudProfile(
   name: string,
+  conditions: readonly string[] = [],
 ): Promise<StrainProfile | null> {
   const key = name.trim().toLowerCase();
   if (!key) return null;
@@ -415,7 +434,7 @@ export async function fetchAllbudProfile(
   let profile: StrainProfile | null = null;
   for (const html of results) {
     if (!html) continue;
-    const candidate = toProfile(html);
+    const candidate = toProfile(html, conditions);
     if (candidate) {
       profile = candidate;
       break;
@@ -429,5 +448,118 @@ export async function fetchAllbudProfile(
 export async function fetchAllbudProfiles(
   names: string[],
 ): Promise<(StrainProfile | null)[]> {
-  return Promise.all(names.map(fetchAllbudProfile));
+  return Promise.all(names.map((name) => fetchAllbudProfile(name)));
+}
+
+/** Pause for `ms` milliseconds. Used between Allbud page fetches to stay polite. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Directory scrape (per-strain lookup union)
+// ---------------------------------------------------------------------------
+//
+// Allbud's strain directory lives at /marijuana-strains/variety/{species} with
+// ?page=N pagination. Each listing page renders the strain slug list as
+// <a href="/marijuana-strains/{species}/{slug}">Name</a>. We walk the
+// per-species indexes in parallel and merge, deduplicating by lowercase
+// strain name. The full detail page is NOT fetched here — the popular-list
+// scrape stays cheap. `fetchAllbudProfile()` (above) handles detail fetches
+// on demand.
+//
+// Allbud doesn't expose a "total" count in the listing HTML, so we stop
+// paginating when a page returns zero new names. The 24h in-memory TTL
+// keeps the daily warmStrainDirectory run polite to Allbud's servers.
+
+const DIRECTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_DIRECTORY_PAGES = 60;
+const DIRECTORY_BASE = "/marijuana-strains/variety";
+
+type DirectoryEntry = { name: string; slug: string; type?: StrainType };
+
+const directoryCache = new Map<
+  string,
+  { at: number; entries: DirectoryEntry[] }
+>();
+
+/** Reset the in-memory directory cache (tests only). */
+export function clearAllbudDirectoryCacheForTest(): void {
+  directoryCache.clear();
+}
+
+/**
+ * Pull every strain listed under one species (sativa | indica | hybrid | cbd).
+ * Pure directory scrape — no detail-page fetches. Stops when a page yields
+ * zero new strain names.
+ */
+export async function fetchAllbudSpeciesDirectory(
+  species: "sativa" | "indica" | "hybrid" | "cbd",
+): Promise<DirectoryEntry[]> {
+  const hit = directoryCache.get(species);
+  if (hit && Date.now() - hit.at < DIRECTORY_CACHE_TTL_MS) return hit.entries;
+
+  const seen = new Set<string>();
+  const out: DirectoryEntry[] = [];
+  const type = species === "cbd" ? undefined : (species as StrainType);
+
+  for (let page = 1; page <= MAX_DIRECTORY_PAGES; page++) {
+    if (page > 1) await delay(200);
+    const path =
+      page === 1
+        ? `${DIRECTORY_BASE}/${species}`
+        : `${DIRECTORY_BASE}/${species}?page=${page}`;
+    const html = await fetchHtml(path);
+    if (!html) break;
+
+    let newCount = 0;
+    // Allbud lists strains as anchors under each variety. Match the
+    // species-specific anchor href shape so we don't pick up unrelated
+    // links (e.g. nav, related-strain widgets).
+    const anchorRe = new RegExp(
+      `<a[^>]+href="/marijuana-strains/${species}/([a-z0-9][a-z0-9-]*)"[^>]*>([^<]+)</a>`,
+      "gi",
+    );
+    let m: RegExpExecArray | null;
+    while ((m = anchorRe.exec(html)) !== null) {
+      const slug = m[1];
+      const name = compressWhitespace(stripTags(htmlDecode(m[2])));
+      if (!slug || !name || name.length > 80) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ name, slug, type });
+      newCount++;
+    }
+    if (newCount === 0) break;
+  }
+
+  directoryCache.set(species, { at: Date.now(), entries: out });
+  return out;
+}
+
+/**
+ * Pull Allbud's full directory across all species. Returns thin profile
+ * entries (just name + type) — enough to dedupe against Leafly and seed
+ * the strainCache for per-strain detail fetches.
+ */
+export async function fetchAllbudStrains(): Promise<StrainProfile[]> {
+  const lists = await Promise.all(
+    SPECIES_PATHS.map((species) => fetchAllbudSpeciesDirectory(species)),
+  );
+  const seen = new Set<string>();
+  const out: StrainProfile[] = [];
+  for (const list of lists) {
+    for (const entry of list) {
+      const key = entry.name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        name: entry.name,
+        inKnowledgeBase: true,
+        type: entry.type,
+      });
+    }
+  }
+  return out;
 }

@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { __resetDoctorsCacheForTest, findDoctors, type Doctor } from "./doctors";
+import {
+  __resetDoctorsCacheForTest,
+  findDoctors,
+  type Doctor,
+} from "./doctors";
 
-type FetchMock = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> | Response;
+type FetchMock = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Response> | Response;
 
 const originalFetch = globalThis.fetch;
 
@@ -126,7 +133,9 @@ describe("findDoctors with city+state", () => {
 
     expect(result.doctors).toHaveLength(2);
     expect(result.doctors[0]?.name).toBe("Doc Morrison");
-    expect(result.doctors[0]?.url).toBe("https://www.leafly.com/doctors/doc-morrison");
+    expect(result.doctors[0]?.url).toBe(
+      "https://www.leafly.com/doctors/doc-morrison",
+    );
     expect(result.resolvedLocation?.city).toBe("Arvada");
     expect(result.resolvedLocation?.state).toBe("Colorado");
   });

@@ -15,7 +15,7 @@
 //   fields plus an optional `sourceAttribution` block. The block is
 //   only included on fields where the sources actually disagreed or
 //   where averaging produced a value distinct from the raw input —
-//   this keeps Maya's prompt small (token budget) while still
+//   this keeps Kaya's prompt small (token budget) while still
 //   letting her audit any number she second-guesses.
 //
 // - Cross-platform: the consolidator only emits string / number /
@@ -27,6 +27,10 @@ import { fetchProfile, isThinProfile, slugify } from "./leafly";
 import { fetchWeedmapsProfile } from "./weedmaps";
 import { fetchAllbudProfile } from "./allbud";
 import { getSourceCache, putSourceCache, type SourceId } from "./source-cache";
+import {
+  canonicalProfileName,
+  registerCatalogName,
+} from "./canonical-strain-name";
 import {
   averagePercent,
   formatPercent,
@@ -44,7 +48,7 @@ const SOURCE_ORDER: SourceId[] = ["leafly", "weedmaps", "allbud"];
 
 /**
  * What each source said for a single numeric field. Carried into
- * Maya's prompt only when the answer came from multiple sources or
+ * Kaya's prompt only when the answer came from multiple sources or
  * the averaged value differs from any single raw value.
  */
 export type FieldAttribution = {
@@ -120,9 +124,8 @@ function buildPercentAttribution(
   const distinctRaw = new Set(collected.map((c) => c.raw));
   // Only attribute when the averaged value differs from at least one
   // raw value (i.e. averaging actually changed the answer) OR when
-  // the sources disagreed. Otherwise Maya's prompt can stay slim.
-  const averagedSomething =
-    distinctRaw.size > 1 || !distinctRaw.has(value);
+  // the sources disagreed. Otherwise Kaya's prompt can stay slim.
+  const averagedSomething = distinctRaw.size > 1 || !distinctRaw.has(value);
   if (!averagedSomething) return undefined;
   return {
     value,
@@ -146,7 +149,7 @@ function buildTypeAttribution(
   const distinct = new Set(sources.map((s) => s.raw));
   if (distinct.size <= 1) return undefined;
   // Sources disagree on the species — pick the dominant one (most
-  // common) and surface the conflict so Maya can decide.
+  // common) and surface the conflict so Kaya can decide.
   const counts = new Map<StrainType, number>();
   for (const s of sources) counts.set(s.raw, (counts.get(s.raw) ?? 0) + 1);
   const winner = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
@@ -194,12 +197,12 @@ function buildDescriptionAttribution(
 function buildRatingAttribution(
   cache: Partial<Record<SourceId, StrainProfile | null>>,
 ): FieldAttribution | undefined {
-  // Ratings stay source-attributed rather than averaged: Leafly's
-  // aggregate lives in `leaflyRating`, Allbud's in `allbudRating`,
-  // and blending them into a single "leaflyRating" would mislabel
-  // the number. This helper only fires when multiple sources happen
-  // to publish into the same field (none do today), so the
-  // attribution block is ready if a source is ever merged.
+  // Ratings stay source-attributed rather than averaged: each catalog
+  // publishes into its own field (leaflyRating, weedmapsRating,
+  // allbudRating) and blending them would mislabel the number. This
+  // helper only fires when multiple sources happen to publish into
+  // the same field (none do today), so the attribution block is
+  // ready if a source is ever merged.
   const sources: { source: SourceId; raw: number }[] = [];
   for (const s of SOURCE_ORDER) {
     const r = s === "leafly" ? cache[s]?.leaflyRating : undefined;
@@ -210,8 +213,7 @@ function buildRatingAttribution(
   if (sources.length < 2) return undefined;
   const distinct = new Set(sources.map((s) => s.raw));
   if (distinct.size <= 1) return undefined;
-  const avg =
-    sources.reduce((a, b) => a + b.raw, 0) / sources.length;
+  const avg = sources.reduce((a, b) => a + b.raw, 0) / sources.length;
   const value = Math.round(avg * 10) / 10;
   return {
     value,
@@ -219,6 +221,10 @@ function buildRatingAttribution(
     averaged: true,
   };
 }
+
+/**
+ * Per-source cap on patient community notes. Keeps the strain detail
+ */
 
 function unionNotes(
   cache: Partial<Record<SourceId, StrainProfile | null>>,
@@ -248,6 +254,11 @@ function effectsFrom(
   return profile.effects ?? [];
 }
 
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function unionEffects(
   cache: Partial<Record<SourceId, StrainProfile | null>>,
 ): StrainProfile["effects"] {
@@ -258,7 +269,7 @@ function unionEffects(
     if (!profile) continue;
     for (const e of effectsFrom(profile)) {
       const k = e.name.toLowerCase();
-      if (!counts.has(k)) order.push(e.name);
+      if (!counts.has(k)) order.push(capitalize(e.name));
       counts.set(k, (counts.get(k) ?? 0) + 1);
     }
   }
@@ -307,6 +318,7 @@ function pickFirst<T>(
  */
 export async function consolidateStrain(
   name: string,
+  conditions: readonly string[] = [],
 ): Promise<ConsolidatedStrain | null> {
   const trimmed = name.trim();
   if (!trimmed) return null;
@@ -336,7 +348,7 @@ export async function consolidateStrain(
   if (missing.length > 0) {
     const fetched = await Promise.all(
       missing.map(async (source) => {
-        const profile = await fetchOne(source, trimmed);
+        const profile = await fetchOne(source, trimmed, conditions);
         if (profile) {
           const existing = profiles[source];
           if (shouldPersistRefetch(existing, profile)) {
@@ -372,28 +384,47 @@ export async function consolidateStrain(
     descriptionAttribution ||
     ratingAttribution;
 
+  // Seed the canonical-name catalog with whatever authoritative names
+  // we have on hand (Leafly/Weedmaps/Allbud scrape results). The
+  // catalog table is consulted first by `canonicalProfileName`, so a
+  // user search for "mac 1" returns "Mac 1" (the strain name) rather
+  // than "MAC 1" (which is what pure title-casing would produce for
+  // an acronym-looking token).
+  for (const s of SOURCE_ORDER) {
+    const sourceProfile = profiles[s];
+    if (sourceProfile?.name) registerCatalogName(slug, sourceProfile.name);
+  }
+
   const profile: ConsolidatedStrain = {
-    name: trimmed,
+    name: canonicalProfileName(trimmed, trimmed),
     inKnowledgeBase: true,
-    type: typeAttribution?.value as StrainType | undefined ??
+    type:
+      (typeAttribution?.value as StrainType | undefined) ??
       pickFirst(profiles, (p) => p.type),
-    thcRange: thcAttribution?.value as string | undefined ??
+    thcRange:
+      (thcAttribution?.value as string | undefined) ??
       pickFirst(profiles, (p) => p.thcRange),
-    cbdRange: cbdAttribution?.value as string | undefined ??
+    cbdRange:
+      (cbdAttribution?.value as string | undefined) ??
       pickFirst(profiles, (p) => p.cbdRange),
-    lineage: lineageAttribution?.value as string | undefined ??
+    lineage:
+      (lineageAttribution?.value as string | undefined) ??
       pickFirst(profiles, (p) => p.lineage),
     terpenes: pickFirst(profiles, (p) => p.terpenes),
     medicalUses: unionMedicalUses(profiles),
     effects: unionEffects(profiles),
     sideEffects: pickFirst(profiles, (p) => p.sideEffects),
-    description: descriptionAttribution?.value as string | undefined ??
+    description:
+      (descriptionAttribution?.value as string | undefined) ??
       pickFirst(profiles, (p) => p.description),
     communityNotes: unionNotes(profiles),
     imageUrl: pickFirst(profiles, (p) => p.imageUrl),
-    leaflyRating: ratingAttribution?.value as number | undefined ??
+    leaflyRating:
+      (ratingAttribution?.value as number | undefined) ??
       pickFirst(profiles, (p) => p.leaflyRating),
     leaflyReviewCount: pickFirst(profiles, (p) => p.leaflyReviewCount),
+    weedmapsRating: pickFirst(profiles, (p) => p.weedmapsRating),
+    weedmapsReviewCount: pickFirst(profiles, (p) => p.weedmapsReviewCount),
     allbudRating: pickFirst(profiles, (p) => p.allbudRating),
     allbudReviewCount: pickFirst(profiles, (p) => p.allbudReviewCount),
     sources: present,
@@ -415,6 +446,7 @@ export async function consolidateStrain(
 async function fetchOne(
   source: SourceId,
   name: string,
+  conditions: readonly string[] = [],
 ): Promise<StrainProfile | null> {
   switch (source) {
     case "leafly":
@@ -422,7 +454,7 @@ async function fetchOne(
     case "weedmaps":
       return await fetchWeedmapsProfile(name);
     case "allbud":
-      return await fetchAllbudProfile(name);
+      return await fetchAllbudProfile(name, conditions);
   }
 }
 

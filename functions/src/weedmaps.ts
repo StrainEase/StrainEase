@@ -71,7 +71,51 @@ function rangeFrom(min?: unknown, max?: unknown): string | undefined {
   return undefined;
 }
 
-function tagged(list: unknown, limit: number): { name: string; votes: number }[] {
+/**
+ * Pull the aggregate rating + review count from a Weedmaps detail
+ * payload. The endpoint has no public schema; we read defensively
+ * across the field names the response has shipped under in the past
+ * (`average_rating`, `reviews_average`, `rating`, `averageRating`).
+ * Counts come from `reviews_count` / `review_count` / `reviewsCount`.
+ * Anything that isn't a finite number is dropped — the iOS UI shows
+ * the card only when both fields are present.
+ */
+function readRating(raw: RawRecord): {
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
+} {
+  const out: { weedmapsRating?: number; weedmapsReviewCount?: number } = {};
+  const ratingCandidates = [
+    raw.average_rating,
+    raw.reviews_average,
+    raw.averageRating,
+    raw.rating,
+  ];
+  for (const candidate of ratingCandidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate)) {
+      out.weedmapsRating = Math.round(candidate * 10) / 10;
+      break;
+    }
+  }
+  const countCandidates = [
+    raw.reviews_count,
+    raw.review_count,
+    raw.reviewsCount,
+    raw.reviewCount,
+  ];
+  for (const candidate of countCandidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate)) {
+      out.weedmapsReviewCount = Math.round(candidate);
+      break;
+    }
+  }
+  return out;
+}
+
+function tagged(
+  list: unknown,
+  limit: number,
+): { name: string; votes: number }[] {
   if (!Array.isArray(list)) return [];
   return list
     .filter(
@@ -105,6 +149,7 @@ function communityFrom(raw: RawRecord, uses: string[]): CommunityNote[] {
     notes.push({
       source: "Weedmaps",
       text: `Patients most often tag it for ${uses.slice(0, 3).join(", ")}.`,
+      kind: "weedmaps",
     });
   }
   const desc = htmlToText(
@@ -114,6 +159,7 @@ function communityFrom(raw: RawRecord, uses: string[]): CommunityNote[] {
     notes.push({
       source: "Weedmaps listing",
       text: firstSentences(desc, 280),
+      kind: "weedmaps",
     });
   }
   return notes;
@@ -148,6 +194,7 @@ function toProfile(raw: RawRecord): StrainProfile | null {
     description: desc ? firstSentences(desc) : undefined,
     communityNotes: communityFrom(raw, uses),
     imageUrl: imageFrom(raw),
+    ...readRating(raw),
   };
 }
 
@@ -156,10 +203,10 @@ function imageFrom(raw: RawRecord): string | undefined {
   const image = raw.image;
   const candidates = [
     typeof avatar === "object" && avatar
-      ? (avatar as RawRecord).original_url ?? (avatar as RawRecord).url
+      ? ((avatar as RawRecord).original_url ?? (avatar as RawRecord).url)
       : undefined,
     typeof image === "object" && image
-      ? (image as RawRecord).url ?? (image as RawRecord).original_url
+      ? ((image as RawRecord).url ?? (image as RawRecord).original_url)
       : undefined,
     raw.image_url,
     raw.photo_url,
@@ -214,10 +261,7 @@ async function fetchBySlug(slug: string): Promise<StrainProfile | null> {
 }
 
 /** Exact name match only — never the first search hit. */
-export function pickWeedmapsSlug(
-  list: unknown,
-  name: string,
-): string | null {
+export function pickWeedmapsSlug(list: unknown, name: string): string | null {
   if (!Array.isArray(list)) return null;
   const wanted = name.trim().toLowerCase();
   const match = list.find((item: RawRecord) => {

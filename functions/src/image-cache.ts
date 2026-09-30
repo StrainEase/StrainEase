@@ -64,9 +64,7 @@ async function fetchFromNetwork(
   return { bytes: Buffer.from(arrayBuffer), contentType };
 }
 
-async function readFromStorage(
-  key: string,
-): Promise<CacheEntry | null> {
+async function readFromStorage(key: string): Promise<CacheEntry | null> {
   try {
     const file = getStorage().bucket().file(`strain-images/${key}`);
     const [exists] = await file.exists();

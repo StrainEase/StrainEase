@@ -56,7 +56,9 @@ export function listenToSavedAilments(
     doc(db, "users", uid),
     (snap) => {
       const data = snap.data() as { ailments?: unknown } | undefined;
-      const raw = Array.isArray(data?.ailments) ? (data!.ailments as unknown[]) : [];
+      const raw = Array.isArray(data?.ailments)
+        ? (data!.ailments as unknown[])
+        : [];
       const list = raw.filter((x): x is string => typeof x === "string");
       cb(normalizeAilments(list));
     },

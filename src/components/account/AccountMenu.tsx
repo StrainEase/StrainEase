@@ -111,9 +111,7 @@ export function AccountMenu({
               Medications
             </p>
             <span className="text-[11px] text-muted-foreground">
-              {list.length === 0
-                ? "None saved"
-                : `${list.length} saved`}
+              {list.length === 0 ? "None saved" : `${list.length} saved`}
             </span>
           </div>
 
@@ -123,8 +121,8 @@ export function AccountMenu({
             </p>
           ) : list.length === 0 ? (
             <p className="text-xs leading-5 text-muted-foreground">
-              Add anything you take — prescriptions, OTC, supplements. We&apos;ll
-              keep this in mind every time you research strains.
+              Add anything you take — prescriptions, OTC, supplements.
+              We&apos;ll keep this in mind every time you research strains.
             </p>
           ) : (
             <ul className="flex flex-wrap gap-1.5">

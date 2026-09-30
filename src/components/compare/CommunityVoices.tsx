@@ -8,12 +8,7 @@ import {
   type SentimentTone,
 } from "@/lib/quotes";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -24,7 +19,7 @@ import {
 import { SWCard } from "@/components/ui/sw-card";
 import type { PublicNote } from "@/lib/saved-strains";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowDownUp,
   Leaf,
@@ -36,14 +31,12 @@ import {
 import { useState } from "react";
 
 const TONE_BADGE: Record<SentimentTone, string> = {
-  positive:
-    "border-primary/30 bg-primary/10 text-primary",
+  positive: "border-primary/30 bg-primary/10 text-primary",
   mixed:
     "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200",
   cautious:
     "border-orange-500/30 bg-orange-500/10 text-orange-800 dark:text-orange-200",
-  insufficient:
-    "border-border/70 bg-secondary text-muted-foreground",
+  insufficient: "border-border/70 bg-secondary text-muted-foreground",
 };
 
 type ReviewSort = "relevance" | "date";
@@ -83,10 +76,7 @@ function SentimentBar({
         aria-valuemax={100}
         aria-valuenow={support}
       >
-        <span
-          className="h-full bg-primary"
-          style={{ width: `${support}%` }}
-        />
+        <span className="h-full bg-primary" style={{ width: `${support}%` }} />
         <span
           className="h-full bg-amber-500/70"
           style={{ width: `${100 - support}%` }}
@@ -123,83 +113,172 @@ function StarStrip({ value }: { value: number }) {
   );
 }
 
-function SourceRatingCard({
-  label,
-  stars,
-  reviewCount,
+/** Sort cannabis-channel notes by source kind for consistent ordering. */
+function sortCannabisBySource(notes: QuoteNote[]): QuoteNote[] {
+  const buckets: Record<string, QuoteNote[]> = {
+    leafly: [],
+    weedmaps: [],
+    allbud: [],
+    other: [],
+  };
+  for (const note of notes) {
+    const key = note.kind ?? "other";
+    (buckets[key] ?? buckets.other).push(note);
+  }
+  const out: QuoteNote[] = [];
+  for (const key of ["leafly", "weedmaps", "allbud", "other"] as const) {
+    out.push(...buckets[key]);
+  }
+  return out;
+}
+
+/**
+ * Leafly and Allbud star ratings merged into a single two-column
+ * card. The title "LEAFLY / ALLBUD" sits on top; each column shows
+ * the star strip, the numeric rating, a divider, and the published
+ * review count. Weedmaps keeps its own card since it doesn't pair
+ * with another source the same way.
+ */
+function LeaflyAllbudRatingCard({
+  leaflyStars,
+  leaflyCount,
+  allbudStars,
+  allbudCount,
 }: {
-  label: string;
-  stars: number;
-  reviewCount: number | null;
+  leaflyStars: number;
+  leaflyCount: number | null;
+  allbudStars: number;
+  allbudCount: number | null;
 }) {
   return (
-    <SWCard innerClassName="flex items-center gap-4 px-4 py-3.5">
-      <StarStrip value={stars} />
-      <div className="min-w-0">
-        <p className="text-xl font-semibold tabular-nums tracking-tight">
-          {stars.toFixed(1)}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {reviewCount !== null
-            ? `${reviewCount.toLocaleString("en-US")} ${label} reviews`
-            : `Average ${label} rating`}
-        </p>
+    <SWCard innerClassName="px-4 py-3.5">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+            Leafly
+          </span>
+          <StarStrip value={leaflyStars} />
+          <span className="text-sm font-semibold tabular-nums">
+            {leaflyStars.toFixed(1)}
+          </span>
+          <div className="w-full border-t border-border" />
+          <span className="text-[11px] text-muted-foreground">
+            {leaflyCount !== null
+              ? `${leaflyCount.toLocaleString("en-US")} reviews`
+              : "Rating only"}
+          </span>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+            Allbud
+          </span>
+          <StarStrip value={allbudStars} />
+          <span className="text-sm font-semibold tabular-nums">
+            {allbudStars.toFixed(1)}
+          </span>
+          <div className="w-full border-t border-border" />
+          <span className="text-[11px] text-muted-foreground">
+            {allbudCount !== null
+              ? `${allbudCount.toLocaleString("en-US")} reviews`
+              : "Rating only"}
+          </span>
+        </div>
       </div>
     </SWCard>
   );
 }
 
 /**
- * One rating card that blends the sources that actually published a
- * rating. With a single source (Leafly or Allbud alone) it shows that
- * source verbatim with its review count; when both publish, it shows
- * the average of the two. The average has no single review count, so
- * the card drops it rather than presenting a misleading sum.
+ * One rating card per source that published a star rating, in
+ * SOURCE_ORDER (Leafly → Weedmaps → Allbud). Leafly and Allbud are
+ * merged into a single two-column card; Weedmaps keeps its own card.
  */
+/**
+ * Single-source card that matches the LeaflyAllbudRatingCard design
+ * (source label, stars, numeric rating, divider, review count) but with
+ * a single centered column instead of a two-column grid.
+ */
+function SingleSourceRatingCard({
+  source,
+  stars,
+  reviewCount,
+}: {
+  source: string;
+  stars: number;
+  reviewCount: number | null;
+}) {
+  return (
+    <SWCard innerClassName="flex justify-center px-4 py-3.5">
+      <div className="flex max-w-[140px] flex-col items-center gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+          {source}
+        </span>
+        <StarStrip value={stars} />
+        <span className="text-sm font-semibold tabular-nums">
+          {stars.toFixed(1)}
+        </span>
+        <div className="w-full border-t border-border" />
+        <span className="text-[11px] text-muted-foreground">
+          {reviewCount !== null
+            ? `${reviewCount.toLocaleString("en-US")} reviews`
+            : "Rating only"}
+        </span>
+      </div>
+    </SWCard>
+  );
+}
+
 function RatingCards({
   leaflyRating,
   leaflyReviewCount,
+  weedmapsRating,
+  weedmapsReviewCount,
   allbudRating,
   allbudReviewCount,
 }: {
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
   allbudRating?: number;
   allbudReviewCount?: number;
 }) {
-  const ratings: { label: string; stars: number; count: number | null }[] =
-    [];
-  if (typeof leaflyRating === "number") {
-    ratings.push({
-      label: "Leafly",
-      stars: leaflyRating,
-      count: leaflyReviewCount ?? null,
-    });
-  }
-  if (typeof allbudRating === "number") {
-    ratings.push({
-      label: "Allbud",
-      stars: allbudRating,
-      count: allbudReviewCount ?? null,
-    });
-  }
-  if (ratings.length === 0) return null;
-  if (ratings.length === 1) {
-    const single = ratings[0];
-    return (
-      <SourceRatingCard
-        label={single.label}
-        stars={single.stars}
-        reviewCount={single.count}
-      />
-    );
-  }
-  const avg =
-    Math.round(
-      (ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length) * 10,
-    ) / 10;
+  const hasLeafly = typeof leaflyRating === "number";
+  const hasAllbud = typeof allbudRating === "number";
+  const hasWeedmaps = typeof weedmapsRating === "number";
+
+  if (!hasLeafly && !hasAllbud && !hasWeedmaps) return null;
+
   return (
-    <SourceRatingCard label="Leafly & Allbud" stars={avg} reviewCount={null} />
+    <div className="space-y-2">
+      {hasLeafly && hasAllbud ? (
+        <LeaflyAllbudRatingCard
+          leaflyStars={leaflyRating!}
+          leaflyCount={leaflyReviewCount ?? null}
+          allbudStars={allbudRating!}
+          allbudCount={allbudReviewCount ?? null}
+        />
+      ) : hasLeafly ? (
+        <SingleSourceRatingCard
+          source="Leafly"
+          stars={leaflyRating!}
+          reviewCount={leaflyReviewCount ?? null}
+        />
+      ) : hasAllbud ? (
+        <SingleSourceRatingCard
+          source="Allbud"
+          stars={allbudRating!}
+          reviewCount={allbudReviewCount ?? null}
+        />
+      ) : null}
+      {hasWeedmaps && (
+        <SingleSourceRatingCard
+          source="Weedmaps"
+          stars={weedmapsRating!}
+          reviewCount={weedmapsReviewCount ?? null}
+        />
+      )}
+    </div>
   );
 }
 
@@ -233,6 +312,8 @@ function AllPanel({
   appNotes,
   leaflyRating,
   leaflyReviewCount,
+  weedmapsRating,
+  weedmapsReviewCount,
   allbudRating,
   allbudReviewCount,
   conditions,
@@ -244,6 +325,8 @@ function AllPanel({
   conditions: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
   allbudRating?: number;
   allbudReviewCount?: number;
 }) {
@@ -261,6 +344,8 @@ function AllPanel({
       <RatingCards
         leaflyRating={leaflyRating}
         leaflyReviewCount={leaflyReviewCount}
+        weedmapsRating={weedmapsRating}
+        weedmapsReviewCount={weedmapsReviewCount}
         allbudRating={allbudRating}
         allbudReviewCount={allbudReviewCount}
       />
@@ -294,8 +379,8 @@ function AppReviewsPanel({ appNotes }: { appNotes: QuoteNote[] }) {
   if (appNotes.length === 0) {
     return (
       <p className="text-xs leading-5 text-muted-foreground">
-        No public notes have been shared for this strain yet. Sign in to
-        leave one from the strain page.
+        No public notes have been shared for this strain yet. Sign in to leave
+        one from the strain page.
       </p>
     );
   }
@@ -320,6 +405,8 @@ function ChannelPanel({
   conditions,
   leaflyRating,
   leaflyReviewCount,
+  weedmapsRating,
+  weedmapsReviewCount,
   allbudRating,
   allbudReviewCount,
   sort,
@@ -331,6 +418,8 @@ function ChannelPanel({
   conditions: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
   allbudRating?: number;
   allbudReviewCount?: number;
   sort: ReviewSort;
@@ -340,11 +429,7 @@ function ChannelPanel({
     leaflyRating,
     leaflyReviewCount,
   });
-  const reviews = sortReviews(
-    individualReviews(notes),
-    conditions,
-    sort,
-  );
+  const reviews = sortReviews(individualReviews(notes), conditions, sort);
 
   return (
     <div className="space-y-4">
@@ -352,6 +437,8 @@ function ChannelPanel({
         <RatingCards
           leaflyRating={leaflyRating}
           leaflyReviewCount={leaflyReviewCount}
+          weedmapsRating={weedmapsRating}
+          weedmapsReviewCount={weedmapsReviewCount}
           allbudRating={allbudRating}
           allbudReviewCount={allbudReviewCount}
         />
@@ -430,10 +517,7 @@ function SortPicker({
   onChange: (next: ReviewSort) => void;
 }) {
   return (
-    <Select
-      value={sort}
-      onValueChange={(v) => onChange(v as ReviewSort)}
-    >
+    <Select value={sort} onValueChange={(v) => onChange(v as ReviewSort)}>
       <SelectTrigger
         aria-label="Sort reviews"
         className="h-7 w-auto min-w-[120px] gap-1.5 rounded-full border-border/70 bg-background px-2.5 text-[11px] font-medium"
@@ -458,6 +542,8 @@ export function CommunityVoices({
   conditions = [],
   leaflyRating,
   leaflyReviewCount,
+  weedmapsRating,
+  weedmapsReviewCount,
   allbudRating,
   allbudReviewCount,
   redditSources,
@@ -468,6 +554,8 @@ export function CommunityVoices({
   conditions?: string[];
   leaflyRating?: number;
   leaflyReviewCount?: number;
+  weedmapsRating?: number;
+  weedmapsReviewCount?: number;
   allbudRating?: number;
   allbudReviewCount?: number;
   redditSources?: {
@@ -482,6 +570,7 @@ export function CommunityVoices({
    */
   appReviews?: PublicNote[];
 }) {
+  const reduce = useReducedMotion();
   const mergedNotes: QuoteNote[] = (() => {
     const base = (notes ?? []).slice();
     const seen = new Set(
@@ -510,15 +599,19 @@ export function CommunityVoices({
     kind: "other",
   }));
 
-  const cannabis = notesForChannel(mergedNotes, "cannabis");
+  const cannabis = sortCannabisBySource(
+    notesForChannel(mergedNotes, "cannabis"),
+  );
   const reddit = notesForChannel(mergedNotes, "reddit");
   const hasRating = typeof leaflyRating === "number";
+  const hasWeedmapsRating = typeof weedmapsRating === "number";
   const hasAllbudRating = typeof allbudRating === "number";
   const hasAny =
     cannabis.length > 0 ||
     reddit.length > 0 ||
     appNotes.length > 0 ||
     hasRating ||
+    hasWeedmapsRating ||
     hasAllbudRating;
 
   // "All" combines every channel so a reader landing on the page can scan
@@ -584,54 +677,58 @@ export function CommunityVoices({
         className="gap-3"
       >
         {visibleChannels.length > 0 ? (
-        <TabsList className={cn("grid h-auto w-full p-1", tabCols)}>
-          {showAll && (
-          <TabsTrigger
-            value="all"
-            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
-          >
-            <Quote className="size-3.5 shrink-0" />
-            <span className="leading-tight">All</span>
-            <span className="tabular-nums text-[10px] font-medium text-muted-foreground sm:text-xs">
-              {allCount}
-            </span>
-          </TabsTrigger>
-          )}
-          {showCannabis && (
-          <TabsTrigger
-            value="cannabis"
-            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
-          >
-            <Leaf className="size-3.5 shrink-0" />
-            <span className="leading-tight">Cannabis Sites</span>
-          </TabsTrigger>
-          )}
-          {showReddit && (
-          <TabsTrigger
-            value="reddit"
-            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
-          >
-            <MessageCircle className="size-3.5 shrink-0" />
-            <span className="leading-tight">Reddit</span>
-          </TabsTrigger>
-          )}
-          {showApp && (
-          <TabsTrigger
-            value="app"
-            className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
-          >
-            <NotebookPen className="size-3.5 shrink-0" />
-            <span className="leading-tight">App Reviews</span>
-          </TabsTrigger>
-          )}
-        </TabsList>
+          <TabsList className={cn("grid h-auto w-full p-1", tabCols)}>
+            {showAll && (
+              <TabsTrigger
+                value="all"
+                className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+              >
+                <Quote className="size-3.5 shrink-0" />
+                <span className="leading-tight">All</span>
+                <span className="tabular-nums text-[10px] font-medium text-muted-foreground sm:text-xs">
+                  {allCount}
+                </span>
+              </TabsTrigger>
+            )}
+            {showCannabis && (
+              <TabsTrigger
+                value="cannabis"
+                className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+              >
+                <Leaf className="size-3.5 shrink-0" />
+                <span className="leading-tight">Cannabis Sites</span>
+              </TabsTrigger>
+            )}
+            {showReddit && (
+              <TabsTrigger
+                value="reddit"
+                className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+              >
+                <MessageCircle className="size-3.5 shrink-0" />
+                <span className="leading-tight">Reddit</span>
+              </TabsTrigger>
+            )}
+            {showApp && (
+              <TabsTrigger
+                value="app"
+                className="min-h-9 gap-1.5 px-2 py-2 text-sm shadow-none data-[state=active]:shadow-none"
+              >
+                <NotebookPen className="size-3.5 shrink-0" />
+                <span className="leading-tight">App Reviews</span>
+              </TabsTrigger>
+            )}
+          </TabsList>
         ) : null}
 
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+          transition={
+            reduce
+              ? { duration: 0 }
+              : { duration: 0.28, ease: [0.32, 0.72, 0, 1] }
+          }
         >
           {/* No forceMount: force-mounted Radix tabs stay VISIBLE when
               inactive, which stacked every panel on the page — two Leafly
@@ -646,6 +743,8 @@ export function CommunityVoices({
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+              weedmapsRating={weedmapsRating}
+              weedmapsReviewCount={weedmapsReviewCount}
               allbudRating={allbudRating}
               allbudReviewCount={allbudReviewCount}
             />
@@ -658,6 +757,8 @@ export function CommunityVoices({
               conditions={conditions}
               leaflyRating={leaflyRating}
               leaflyReviewCount={leaflyReviewCount}
+              weedmapsRating={weedmapsRating}
+              weedmapsReviewCount={weedmapsReviewCount}
               allbudRating={allbudRating}
               allbudReviewCount={allbudReviewCount}
               sort={sort}

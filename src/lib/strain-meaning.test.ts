@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { StrainProfile } from "./strain-profile";
-import {
-  dayNightLabel,
-  dayNightScore,
-  terpeneMeaning,
-} from "./strain-meaning";
+import { dayNightLabel, dayNightScore, terpeneMeaning } from "./strain-meaning";
 
 describe("dayNightScore", () => {
   test("returns 50 for an empty profile", () => {

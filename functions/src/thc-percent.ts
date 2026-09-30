@@ -27,7 +27,9 @@ export type PercentSource = {
  * discarded. "<1%" becomes 0.5 (half-step below the ceiling, same
  * convention as the directory bucketing).
  */
-export function parsePercentMidpoint(raw: string | undefined | null): number | null {
+export function parsePercentMidpoint(
+  raw: string | undefined | null,
+): number | null {
   if (!raw) return null;
   // Strip prefix markers and surrounding whitespace.
   const cleaned = raw.replace(/[%~\s<>]/g, "").trim();
@@ -63,13 +65,15 @@ export function formatPercent(mid: number): string {
  * Average the parsed midpoints across sources. Sources with null
  * midpoints (unparseable) are dropped; if all sources are null we
  * return null so the caller can leave the field empty. The returned
- * `sources` list preserves the original raw values so Maya can
+ * `sources` list preserves the original raw values so Kaya can
  * inspect what each catalog said.
  */
 export function averagePercent(
   values: PercentSource[],
 ): { mid: number; sources: PercentSource[] } | null {
-  const usable = values.filter((v): v is PercentSource & { mid: number } => v.mid !== null);
+  const usable = values.filter(
+    (v): v is PercentSource & { mid: number } => v.mid !== null,
+  );
   if (usable.length === 0) return null;
   const sum = usable.reduce((a, b) => a + b.mid, 0);
   return { mid: sum / usable.length, sources: values };

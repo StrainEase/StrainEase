@@ -1,9 +1,4 @@
-import {
-  doc,
-  onSnapshot,
-  setDoc,
-  type Unsubscribe,
-} from "firebase/firestore";
+import { doc, onSnapshot, setDoc, type Unsubscribe } from "firebase/firestore";
 import { db } from "./firebase";
 
 /** Matches iOS `SavedAilmentsStore` — `users/{uid}.ailments`. */
@@ -59,5 +54,7 @@ export function listenToAilments(
 export function ailmentsEqual(a: string[], b: string[]): boolean {
   const left = a.map((name) => name.toLowerCase()).sort();
   const right = b.map((name) => name.toLowerCase()).sort();
-  return left.length === right.length && left.every((name, i) => name === right[i]);
+  return (
+    left.length === right.length && left.every((name, i) => name === right[i])
+  );
 }

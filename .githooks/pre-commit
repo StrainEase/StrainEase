@@ -1,4 +1,8 @@
 #!/bin/sh
+# Runs on `git commit`. Order matters: refresh the AI context snapshot
+# first (so reviewers see the latest ground truth), then run lint-staged
+# on the staged files only. Full-repo checks (tsc, prettier --check)
+# live in pre-push.
 set -eu
 
 if [ "${AI_SKIP_HOOKS:-}" = "1" ]; then
@@ -6,4 +10,4 @@ if [ "${AI_SKIP_HOOKS:-}" = "1" ]; then
 fi
 
 node scripts/ai-context.mjs --quiet
-bun run lint
+bunx --no-install lint-staged

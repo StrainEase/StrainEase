@@ -8,14 +8,18 @@ describe("medicalScore", () => {
 
   test("counts keyword occurrences, not just presence", () => {
     // "pain" appears twice; should outrank a single-occurrence review.
-    const twoHits = medicalScore("The pain went away and the chronic pain stopped.");
+    const twoHits = medicalScore(
+      "The pain went away and the chronic pain stopped.",
+    );
     const oneHit = medicalScore("Helps with my anxiety.");
     expect(twoHits).toBeGreaterThan(oneHit);
   });
 
   test("ignores substrings inside other words", () => {
     // 'mg' would otherwise match 'imagine'; 'pain' would match 'painting'.
-    expect(medicalScore("I painted the trim this weekend, imagine that.")).toBe(0);
+    expect(medicalScore("I painted the trim this weekend, imagine that.")).toBe(
+      0,
+    );
   });
 
   test("boosts reviews in the 80-400 char sweet spot", () => {
@@ -49,7 +53,8 @@ describe("medicalScore", () => {
   test("unknown ailment names still get a small boost when mentioned", () => {
     // A condition we don't have aliases for should still match its own
     // exact phrase, so a custom-saved ailment isn't invisible.
-    const review = "This one works for my vestibular migraines like nothing else.";
+    const review =
+      "This one works for my vestibular migraines like nothing else.";
     const base = medicalScore(review);
     const withCondition = medicalScore(review, ["vestibular migraines"]);
     expect(withCondition).toBeGreaterThan(base);
@@ -97,9 +102,10 @@ describe("reviewNotesFrom", () => {
     const onlyRecreational = reviews.map((r) => ({
       username: r.username,
       rating: r.rating,
-      text: r.username === "patient_one" || r.username === "patient_two"
-        ? "Tasty and smooth, great for weekends with friends."
-        : r.text,
+      text:
+        r.username === "patient_one" || r.username === "patient_two"
+          ? "Tasty and smooth, great for weekends with friends."
+          : r.text,
     }));
     const notes = reviewNotesFrom(onlyRecreational);
     // No medical hits → return what's available, still capped at 6.

@@ -1,0 +1,350 @@
+{
+  "kind": "interaction",
+  "entries": [
+    {
+      "slug": "sertraline",
+      "drugName": "Sertraline",
+      "drugClass": "SSRI",
+      "cannabisInteraction": {
+        "severity": "low",
+        "mechanism": "Case series and surveys suggest most patients on SSRIs tolerate cannabis without major interaction, though anxiety, jitteriness, or tachycardia can be amplified — especially with high-THC products. No consistent change in sertraline serum levels has been demonstrated.",
+        "commonGuidance": "If combining, start with a low-THC or CBD-dominant product and watch for increased anxiety, racing heart, or new jitteriness. Tell your prescriber about any new mood symptoms.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis and Mental Health: It's Complicated (NIDA Research Report)",
+          "url": "https://nida.nih.gov/publications/research-reports/marijuana/there-link-between-marijuana-use-psychiatric-disorders",
+          "kind": "nor.org"
+        },
+        {
+          "label": "Cannabis pharmacokinetics and interactions (British Journal of Clinical Pharmacology, 2018)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6232352/",
+          "kind": "pubmed"
+        }
+      ]
+    },
+    {
+      "slug": "fluoxetine",
+      "drugName": "Fluoxetine",
+      "drugClass": "SSRI",
+      "cannabisInteraction": {
+        "severity": "low",
+        "mechanism": "Both fluoxetine and THC are metabolized by CYP enzymes (fluoxetine inhibits CYP2D6 and CYP2C19). A clinically significant interaction is rarely reported, but additive effects on mood and rare reports of increased anxiety or tachycardia are documented.",
+        "commonGuidance": "Observe for new or worsening anxiety, restlessness, or palpitations, particularly with high-THC products. Discuss any change in mood with your prescriber before adjusting your dose.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis pharmacokinetics and interactions (British Journal of Clinical Pharmacology, 2018)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6232352/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Medical cannabis and neuropsychiatric drug interactions (Journal of Clinical Pharmacy and Therapeutics, 2022)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/35638490/",
+          "kind": "pubmed"
+        }
+      ]
+    },
+    {
+      "slug": "escitalopram",
+      "drugName": "Escitalopram",
+      "drugClass": "SSRI",
+      "cannabisInteraction": {
+        "severity": "low",
+        "mechanism": "Surveys and case reports indicate most patients on escitalopram tolerate cannabis, with infrequent reports of amplified anxiety, jitteriness, or tachycardia — more often with high-THC products. No consistent effect on escitalopram serum levels is documented.",
+        "commonGuidance": "Start low with THC and watch for increased anxiety, restlessness, or racing heart. Tell your prescriber about any new mood symptoms before changing your dose.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis pharmacokinetics and interactions (British Journal of Clinical Pharmacology, 2018)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6232352/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Medical cannabis and neuropsychiatric drug interactions (Journal of Clinical Pharmacy and Therapeutics, 2022)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/35638490/",
+          "kind": "pubmed"
+        }
+      ]
+    },
+    {
+      "slug": "citalopram",
+      "drugName": "Citalopram",
+      "drugClass": "SSRI",
+      "cannabisInteraction": {
+        "severity": "low",
+        "mechanism": "Citalopram is largely CYP2C19 metabolized; THC and CBD share these pathways. Reported interactions are uncommon and typically mild (anxiety, jitteriness), but QT-interval caution with citalopram means patients with cardiac risk factors warrant care.",
+        "commonGuidance": "If you have a known cardiac condition or take other QT-prolonging drugs, be especially careful and talk to your prescriber before combining with cannabis.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis pharmacokinetics and interactions (British Journal of Clinical Pharmacology, 2018)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6232352/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Medical cannabis and neuropsychiatric drug interactions (Journal of Clinical Pharmacy and Therapeutics, 2022)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/35638490/",
+          "kind": "pubmed"
+        }
+      ]
+    },
+    {
+      "slug": "alprazolam",
+      "drugName": "Alprazolam",
+      "drugClass": "benzodiazepine",
+      "cannabisInteraction": {
+        "severity": "moderate",
+        "mechanism": "Both alprazolam and cannabis (especially THC) produce central-nervous-system depression. Reports describe amplified sedation, dizziness, reduced motor coordination, and rare excess impairment. The risk scales with THC dose and is not a predictable serum-level change.",
+        "commonGuidance": "Expect additive sedation and impaired coordination — do not drive. Start with a low-THC product, avoid sudden dose increases, and tell your prescriber before changing either medication.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "The pharmacological and physiological interactions between cannabis and benzodiazepines (CNS Drugs, 2019)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/30391887/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Drug interactions with cannabis and cannabinoids (Brown University Therapeutic Advances in Drug Safety, 2022)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9340426/",
+          "kind": "review"
+        }
+      ]
+    },
+    {
+      "slug": "lorazepam",
+      "drugName": "Lorazepam",
+      "drugClass": "benzodiazepine",
+      "cannabisInteraction": {
+        "severity": "moderate",
+        "mechanism": "Lorazepam and cannabis share sedative effects on the central nervous system. Reports describe additive drowsiness, ataxia, and impaired reaction time. The risk rises with THC dose; CBD-dominant products appear less problematic in surveys but are not risk-free.",
+        "commonGuidance": "Do not drive or operate machinery. Start with a low-THC product and keep the dose stable. Tell your prescriber if you feel overly sedated.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "The pharmacological and physiological interactions between cannabis and benzodiazepines (CNS Drugs, 2019)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/30391887/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Drug interactions with cannabis and cannabinoids (Therapeutic Advances in Drug Safety, 2022)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9340426/",
+          "kind": "review"
+        }
+      ]
+    },
+    {
+      "slug": "clonazepam",
+      "drugName": "Clonazepam",
+      "drugClass": "benzodiazepine",
+      "cannabisInteraction": {
+        "severity": "moderate",
+        "mechanism": "Clonazepam and THC both depress the central nervous system. Additive sedation, dizziness, and impaired motor coordination are reported; seizure-threshold effects in patients taking clonazepam for epilepsy warrant individualized review.",
+        "commonGuidance": "Avoid driving and keep the THC dose low and stable. If clonazepam is for seizures, do not stop or change it without your prescriber.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "The pharmacological and physiological interactions between cannabis and benzodiazepines (CNS Drugs, 2019)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/30391887/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Drug interactions with cannabis and cannabinoids (Therapeutic Advances in Drug Safety, 2022)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9340426/",
+          "kind": "review"
+        }
+      ]
+    },
+    {
+      "slug": "oxycodone",
+      "drugName": "Oxycodone",
+      "drugClass": "opioid",
+      "cannabisInteraction": {
+        "severity": "moderate",
+        "mechanism": "Oxycodone and cannabis both depress respiration and alertness; observational studies of chronic-pain patients often show opioid-sparing effects but also amplified sedation and rare reports of excess somnolence. CYP3A4 interactions are possible but not reliably clinically significant.",
+        "commonGuidance": "Start low with THC, avoid sudden opioid dose changes, and watch for unusual drowsiness or slow breathing. Tell your prescriber before combining; some patients use cannabis to reduce opioid dose, but never adjust on your own.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis and opioids: pharmacologic parallels and interactions (Journal of Clinical Pharmacology, 2021)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/33779659/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Drug interactions with cannabis and cannabinoids (Therapeutic Advances in Drug Safety, 2022)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9340426/",
+          "kind": "review"
+        }
+      ]
+    },
+    {
+      "slug": "hydrocodone",
+      "drugName": "Hydrocodone",
+      "drugClass": "opioid",
+      "cannabisInteraction": {
+        "severity": "moderate",
+        "mechanism": "Hydrocodone and cannabis share sedative and respiratory-depressant effects. Reports describe additive drowsiness and dizziness; CYP3A4-mediated clearance changes are possible but inconsistent. Patients with hepatic impairment warrant closer monitoring.",
+        "commonGuidance": "Keep THC low and avoid driving. Watch for excess sedation and tell your prescriber before combining.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis and opioids: pharmacologic parallels and interactions (Journal of Clinical Pharmacology, 2021)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/33779659/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Drug interactions with cannabis and cannabinoids (Therapeutic Advances in Drug Safety, 2022)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9340426/",
+          "kind": "review"
+        }
+      ]
+    },
+    {
+      "slug": "morphine",
+      "drugName": "Morphine",
+      "drugClass": "opioid",
+      "cannabisInteraction": {
+        "severity": "moderate",
+        "mechanism": "Morphine and THC both depress the central nervous system. Studies of cancer and chronic-pain patients report opioid-sparing effects but also amplified sedation and rare excess somnolence; respiratory depression risk scales with opioid dose.",
+        "commonGuidance": "Start with a low-THC product, avoid driving, and watch for slow or shallow breathing. Never change your morphine dose without your prescriber.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis and opioids: pharmacologic parallels and interactions (Journal of Clinical Pharmacology, 2021)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/33779659/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Drug interactions with cannabis and cannabinoids (Therapeutic Advances in Drug Safety, 2022)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9340426/",
+          "kind": "review"
+        }
+      ]
+    },
+    {
+      "slug": "warfarin",
+      "drugName": "Warfarin",
+      "drugClass": "anticoagulant",
+      "cannabisInteraction": {
+        "severity": "high",
+        "mechanism": "Case reports describe international normalized ratio (INR) increases and bleeding events when cannabis is started or dose-escalated in patients on warfarin, consistent with CYP2C9 inhibition by cannabinoids. The interaction is clinically meaningful and requires INR monitoring.",
+        "commonGuidance": "If you start, stop, or change cannabis, tell the clinician managing your warfarin and have your INR checked. Watch for unusual bruising or bleeding.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis pharmacokinetics and interactions (British Journal of Clinical Pharmacology, 2018)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6232352/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Medical cannabis and drug interactions: a review of clinical and preclinical evidence (Advances in Therapy, 2022)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/35029948/",
+          "kind": "pubmed"
+        }
+      ]
+    },
+    {
+      "slug": "apixaban",
+      "drugName": "Apixaban",
+      "drugClass": "anticoagulant",
+      "cannabisInteraction": {
+        "severity": "theoretical",
+        "mechanism": "Apixaban is a P-glycoprotein and CYP3A4 substrate; cannabinoids can modulate these pathways. Clinical reports are limited, but the theoretical risk of altered anticoagulant exposure warrants caution, especially in older adults or patients on strong inhibitors.",
+        "commonGuidance": "Tell the clinician managing your apixaban before starting cannabis, and report any unusual bleeding or bruising. Routine INR is not used with apixaban, so monitoring is clinical.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis pharmacokinetics and interactions (British Journal of Clinical Pharmacology, 2018)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6232352/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Medical cannabis and drug interactions: a review of clinical and preclinical evidence (Advances in Therapy, 2022)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/35638490/",
+          "kind": "pubmed"
+        }
+      ]
+    },
+    {
+      "slug": "diphenhydramine",
+      "drugName": "Diphenhydramine",
+      "drugClass": "antihistamine",
+      "cannabisInteraction": {
+        "severity": "low",
+        "mechanism": "Both diphenhydramine and cannabis produce sedation; additive drowsiness, dry mouth, and impaired coordination are reported. The interaction is usually mild and short-lived but worsens with THC dose and age.",
+        "commonGuidance": "Expect more drowsiness and dry mouth. Avoid driving, and keep THC low. Tell your prescriber if you rely on diphenhydramine for sleep or allergies.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Anticholinergic and CNS depressant burden of cannabis-drug combinations (Drugs & Aging, 2017)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/28801644/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Drug interactions with cannabis and cannabinoids (Therapeutic Advances in Drug Safety, 2022)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9340426/",
+          "kind": "review"
+        }
+      ]
+    },
+    {
+      "slug": "mixed-amphetamine-salts",
+      "drugName": "Mixed Amphetamine Salts (Adderall)",
+      "drugClass": "stimulant",
+      "cannabisInteraction": {
+        "severity": "low",
+        "mechanism": "Stimulants and cannabis have opposing effects on alertness and heart rate; surveys describe variable combinations of amplified anxiety, palpitations, or perceived reduced stimulant effect. No consistent serum-level change is documented.",
+        "commonGuidance": "Watch for racing heart, anxiety, or a rebound tiredness when the cannabis wears off. Keep THC low and steady, and tell your prescriber about any new mood or heart symptoms.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis and ADHD: a review of evidence (Journal of Attention Disorders, 2022)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/34369417/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Cannabis pharmacokinetics and interactions (British Journal of Clinical Pharmacology, 2018)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6232352/",
+          "kind": "pubmed"
+        }
+      ]
+    },
+    {
+      "slug": "modafinil",
+      "drugName": "Modafinil",
+      "drugClass": "stimulant",
+      "cannabisInteraction": {
+        "severity": "low",
+        "mechanism": "Modafinil and cannabis have opposing effects on alertness and sleep. CYP3A4 interactions are theoretically possible; reports of amplified anxiety or perceived reduced stimulant effect are infrequent and mild.",
+        "commonGuidance": "Watch for new anxiety, palpitations, or trouble sleeping, particularly with high-THC products. Keep the THC dose stable and tell your prescriber about any change in mood or sleep.",
+        "discussWithPrescriber": true
+      },
+      "sources": [
+        {
+          "label": "Cannabis pharmacokinetics and interactions (British Journal of Clinical Pharmacology, 2018)",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6232352/",
+          "kind": "pubmed"
+        },
+        {
+          "label": "Medical cannabis and drug interactions: a review of clinical and preclinical evidence (Advances in Therapy, 2022)",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/35638490/",
+          "kind": "pubmed"
+        }
+      ]
+    }
+  ]
+}

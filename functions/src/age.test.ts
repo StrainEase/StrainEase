@@ -1,10 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  calculateAge,
-  evaluateAge,
-  isRegionCode,
-  minimumAgeFor,
-} from "./age";
+import { calculateAge, evaluateAge, isRegionCode, minimumAgeFor } from "./age";
 
 const FIXED_NOW = new Date("2026-08-17T12:00:00Z");
 

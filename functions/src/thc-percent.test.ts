@@ -89,7 +89,9 @@ describe("averagePercent", () => {
     const out = averagePercent(values);
     expect(out?.mid).toBe(21);
     // raw unparseable source still preserved for the attribution
-    expect(out?.sources.find((s) => s.source === "leafly")?.raw).toBe("unknown");
+    expect(out?.sources.find((s) => s.source === "leafly")?.raw).toBe(
+      "unknown",
+    );
   });
 
   test("returns null when every source is unparseable", () => {

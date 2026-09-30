@@ -63,7 +63,9 @@ describe("cachedFetchImage", () => {
   });
 
   test("caches the bytes after the first fetch and reports source", async () => {
-    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const png = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
     const getCalls = stubNetwork(png.buffer, "image/png");
     const url = "https://example.com/test.png";
 
@@ -79,7 +81,9 @@ describe("cachedFetchImage", () => {
   });
 
   test("coalesces concurrent fetches for the same URL", async () => {
-    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const png = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
     const getCalls = stubNetwork(png.buffer, "image/png");
     const url = "https://example.com/coalesce.png";
 

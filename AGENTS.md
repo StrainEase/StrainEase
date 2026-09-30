@@ -12,24 +12,41 @@ conventions. This file is for machines.
 - **Stack:** Vite + React 19 + Tailwind v4 + shadcn/ui (frontend) +
   **Firebase end-to-end** (Auth + Firestore + Cloud Functions). There is
   no Convex, no other backend — don't add one without a real reason.
-- **Package manager:** bun for the app, npm for `functions/`.
+- **Package manager:** bun for the app, npm for `functions/` and `functions-report/`.
 - **Local dev:** `bun run dev` from the repo root.
-- **Deploy backend:** `cd functions && npm run build && firebase deploy --only functions,firestore:rules --force`
+- **Deploy backend:** build both codebases, then deploy:
+  ```
+  (cd functions && npm run build)
+  (cd functions-report && npm run build)
+  firebase deploy --only functions,firestore:rules --force
+  ```
   (`--force` is required once to set the Artifact Registry cleanup
   policy; subsequent deploys don't need it). Frontend deploys through
-  Cloudflare Pages (`.github/workflows/cloudflare-pages.yml`).
+  Cloudflare Pages via Cloudflare's GitHub integration (the deploy is
+  triggered by pushes to `main`; no GitHub Actions workflow is needed
+  for the frontend).
+- **Callable IAM is pinned.** `npm run deploy` (and the CI workflow)
+  end with `node scripts/ensure-invoker.mjs`, which re-applies the
+  `allUsers` `roles/run.invoker` binding on every callable in the
+  project. `firebase deploy` defaults to `--allow-unauthenticated`,
+  but a stray `gcloud run services update --no-allow-unauthenticated`
+  call (or a Console IAM change) can drop the binding without
+  redeploying; when that happens, OPTIONS preflight fails with 403 at
+  the Cloud Run layer and the SDK's POST never lands. The script is
+  idempotent and filters out scheduled functions, which use the
+  compute SA as their invoker.
 - Don't write innovative code, write reliable code.
 
 ## Architecture map
 
-| Concern              | Lives in                              | Auth              |
-| -------------------- | ------------------------------------- | ----------------- |
-| UI / routing         | `src/pages/`, `src/components/`       | Firebase Auth via `useAuth` |
-| User profile / saved strains / notes | Firebase Firestore (see `firestore.rules`) | Firebase UID |
-| Strain data (read)   | `functions/src/leafly.ts`, `weedmaps.ts`, `allbud.ts` (scrapes) | None (public) |
-| Per-source cache     | `functions/src/source-cache.ts` (Firestore `sourceCache/{slug}`) | Admin only |
-| Strain consolidator  | `functions/src/consolidate.ts` (averages + source attribution) | None |
-| AI compare / recommend | `functions/src/index.ts`            | Firebase ID token |
+| Concern                              | Lives in                                                         | Auth                        |
+| ------------------------------------ | ---------------------------------------------------------------- | --------------------------- |
+| UI / routing                         | `src/pages/`, `src/components/`                                  | Firebase Auth via `useAuth` |
+| User profile / saved strains / notes | Firebase Firestore (see `firestore.rules`)                       | Firebase UID                |
+| Strain data (read)                   | `functions/src/leafly.ts`, `weedmaps.ts`, `allbud.ts` (scrapes)  | None (public)               |
+| Per-source cache                     | `functions/src/source-cache.ts` (Firestore `sourceCache/{slug}`) | Admin only                  |
+| Strain consolidator                  | `functions/src/consolidate.ts` (averages + source attribution)   | None                        |
+| AI compare / recommend               | `functions/src/index.ts`                                         | Firebase ID token           |
 
 The frontend talks to Firebase through three surfaces:
 
@@ -53,6 +70,28 @@ See `README.md` for the full list. The bits AI agents most often miss:
 - Animate with `framer-motion`. No CSS transitions for entrance/exit.
 - **No shadows.** Borders only. **No nested cards.** **No skeletons** —
   use `<Loader2 />` for loading states.
+
+## Lint, format, and error detection
+
+- **Prettier 3 defaults** are pinned in `.prettierrc` (80 cols, 2-space,
+  double quotes, semicolons, `trailingComma: "all"`, `arrowParens: "always"`,
+  LF endings). `.prettierignore` excludes `ios/`, `android/`, `functions/lib/`,
+  `bun.lock`, `package-lock.json`, generated vendor dirs.
+- **ESLint 9 flat config** lives in `eslint.config.js` with three scoped
+  blocks: `src/` + root config files (browser + react-hooks + react-refresh),
+  `functions/src/**` (node, no react), `scripts/**` (node). `ios/`, `android/`,
+  `.ai/`, `.firebase/` are in the global `ignores`. Run `bun run lint` for the
+  full repo, `bun run lint:fix` to autofix.
+- **lint-staged** (`lint-staged.config.js`) runs `eslint --fix` + `prettier
+--write` on staged JS/TS, `prettier --write` on staged JSON/MD/CSS/YAML.
+  Wired into `.githooks/pre-commit`. Skip with `AI_SKIP_HOOKS=1` when needed.
+- **Pre-push hook** runs `tsc -b --noEmit` + `prettier --check` on the full
+  repo. Full-repo ESLint happens via `bun run lint`, not on push.
+- **React ErrorBoundary** at `src/components/ErrorBoundary.tsx` wraps the
+  entire app in `src/main.tsx`. It renders a friendly fallback (no shadows,
+  no skeletons), logs to `console.error`, and ships no third-party
+  telemetry. The existing `InstrumentationProvider` boundary inside still
+  catches first in practice; the new boundary is the outermost safety net.
 
 ## Firebase Auth conventions
 
@@ -89,12 +128,18 @@ first:
 cd functions
 npm install        # one-time per machine / whenever deps change
 npm run build      # tsc → lib/
+npm run deploy     # firebase deploy --only functions, then ensure-invoker.mjs
 cd ..
-firebase deploy --only functions,firestore:rules --force
+firebase deploy --only firestore:rules,storage --force
 ```
 
+`npm run deploy` always ends with `node scripts/ensure-invoker.mjs`
+to re-pin the `allUsers` invoker on every callable. See the
+**Callable IAM is pinned** rule above for why.
+
 The CI workflow at `.github/workflows/firebase-functions-deploy.yml`
-does the same `npm ci && npm run build` before deploy. Mirror it locally.
+does the same `npm ci && npm run build` before deploy, then runs the
+invoker step after the firebase-action deploys. Mirror it locally.
 
 If you skip the build, you'll see:
 
@@ -107,10 +152,11 @@ That's the error this section exists to prevent. **Build first, deploy second.**
 
 ### Secrets
 
-`GROQ_API_KEY` is a Firebase Secret (not an env var). It is set with:
+`OPENROUTER_API_KEY` is the only AI-provider Firebase Secret (not an env var).
+It is set with:
 
 ```bash
-firebase functions:secrets:set GROQ_API_KEY
+firebase functions:secrets:set OPENROUTER_API_KEY
 ```
 
 Then redeploy. `functions/src/index.ts` declares it via `defineSecret`
@@ -131,58 +177,95 @@ functions/
                      # sourceAttribution for Dr. Kaya's prompts
     thc-percent.ts   # THC/CBD percent parser + averager
     strain-info-cache.ts # legacy merged cache (strainCache/{slug})
-    groq.ts          # Groq client + JSON extraction helpers
+    ai-cache.ts      # generic SHA-256-keyed Firestore cache used by
+                     # every AI callable so repeat strain-page views
+                     # stay cheap (descriptionCache, compareCache)
+    ai-json.ts       # JSON extraction + em-dash sanitization for
+                     # provider-neutral AI responses
+    openrouter.ts    # OpenRouter Chat Completions client (Llama 3.3
+                     # 70B routed through whichever upstream has the
+                     # shortest queue; replaced the Together.ai primary
+                     # so the same model id can sit on Together.ai,
+                     # Fireworks, or DeepInfra depending on capacity)
+    enrich.ts        # consolidator + Reddit quote merge + AI fill-in
+                     # for strains missing fields across all sources
     types.ts         # shared response types
   lib/               # compiled output, gitignored, DO NOT edit
   package.json       # main: "lib/index.js", engines.node: "22"
   tsconfig.json
 ```
 
+The Cloud Functions source is split into **two codebases** (declared in
+`firebase.json` as `default` and `report`):
+
+```
+functions/             # public scraper + AI (Firebase "default")
+  src/index.ts         # callable function exports
+
+functions-report/     # PDF generation (Firebase "report")
+  src/index.ts         # clinicianReportSummary + generateClinicianReportPdf
+  src/clinician-report-html.ts
+  src/clinician-report-pdf.ts # @sparticuz/chromium + puppeteer-core
+  src/clinician-report-data.ts
+  src/groq.ts          # duplicate Groq client — functions-report/ is
+                       # self-contained for Firebase deploy and still
+                       # uses Groq for the Kaya summary. Move it to
+                       # OpenRouter in a separate PR if you need it.
+  lib/                 # compiled output, gitignored
+  package.json
+  tsconfig.json
+```
+
+The split exists so the Puppeteer/Chromium cold-start cost never hits the
+public scrapers. See `functions-report/README.md`. A new function that touches
+the PDF pipeline goes in `functions-report/`; everything else goes in
+`functions/`.
+
 ## Strain data pipeline (Leafly + Weedmaps + Allbud → Dr. Kaya)
 
 The enrichment pipeline that feeds the AI callables is now a
 three-source cache + consolidator, not a per-request scrape:
 
-  1. `consolidateStrain(name)` (in `consolidate.ts`) is the only
-     entry point. It reads the per-source Firestore cache
-     (`sourceCache/{slug}`, one document per strain with leafly /
-     weedmaps / allbud slots) and falls through to the scrapers
-     for any missing source, then writes the fresh profile back
-     to the cache.
+1. `consolidateStrain(name)` (in `consolidate.ts`) is the only
+   entry point. It reads the per-source Firestore cache
+   (`sourceCache/{slug}`, one document per strain with leafly /
+   weedmaps / allbud slots) and falls through to the scrapers
+   for any missing source, then writes the fresh profile back
+   to the cache.
 
-  2. Hard numbers (THC%, CBD%, ratings) are averaged across
-     sources. The midpoint of each source's range is computed,
-     the midpoints are averaged, and the result is re-formatted
-     as a single percent string. Sources with unparseable
-     percent values are dropped from the average; if every
-     source is unparseable the field stays empty.
+2. Hard numbers (THC%, CBD%, ratings) are averaged across
+   sources. The midpoint of each source's range is computed,
+   the midpoints are averaged, and the result is re-formatted
+   as a single percent string. Sources with unparseable
+   percent values are dropped from the average; if every
+   source is unparseable the field stays empty.
 
-  3. The consolidated StrainProfile carries a `sourceAttribution`
-     block that is only populated for fields where the sources
-     actually disagreed or where averaging changed the value.
-     Dr. Kaya's prompts mention this block — she can audit any
-     number she second-guesses without re-fetching anything.
+3. The consolidated StrainProfile carries a `sourceAttribution`
+   block that is only populated for fields where the sources
+   actually disagreed or where averaging changed the value.
+   Dr. Kaya's prompts mention this block — she can audit any
+   number she second-guesses without re-fetching anything.
 
-  4. The output is plain JSON: only string / number / boolean /
-     null / array / object values, no Date / Map / NaN / Infinity.
-     The iOS Codable decoder ignores unknown fields, so the
-     cross-platform contract is preserved.
+4. The output is plain JSON: only string / number / boolean /
+   null / array / object values, no Date / Map / NaN / Infinity.
+   The iOS Codable decoder ignores unknown fields, so the
+   cross-platform contract is preserved.
 
 When adding a new scraper:
 
-  - Add the export in the new `source.ts` (e.g. `fetchXProfile`).
-  - Add the new source id to `SourceId` in `source-cache.ts` and
-    `SOURCE_ORDER` in `consolidate.ts`.
-  - Add the scraper to the `fetchOne` switch in `consolidate.ts`.
-  - Wire `putSourceCache(slug, source, profile)` in the
-    consolidator's missing-source fan-out (the consolidator does
-    this automatically via `fetchOne`).
-  - Update the AI callables' system prompts in `index.ts` so
-    Dr. Kaya knows the new source contributes to attribution.
+- Add the export in the new `source.ts` (e.g. `fetchXProfile`).
+- Add the new source id to `SourceId` in `source-cache.ts` and
+  `SOURCE_ORDER` in `consolidate.ts`.
+- Add the scraper to the `fetchOne` switch in `consolidate.ts`.
+- Wire `putSourceCache(slug, source, profile)` in the
+  consolidator's missing-source fan-out (the consolidator does
+  this automatically via `fetchOne`).
+- Update the AI callables' system prompts in `index.ts` so
+  Dr. Kaya knows the new source contributes to attribution.
 
-Node 20 is the runtime. It's deprecated on GCP (see deprecation warning
-in deploy output) — when you upgrade, bump both `engines.node` here and
-the `Setup Node.js` step in `firebase-functions-deploy.yml`.
+Node 22 is the runtime in both `functions/` and `functions-report/`.
+If you bump the runtime, update `engines.node` in **both** `package.json`
+files plus the `Setup Node.js` step in `firebase-functions-deploy.yml`.
 
 ### Adding a new callable
 
@@ -193,6 +276,49 @@ the `Setup Node.js` step in `firebase-functions-deploy.yml`.
    `callFn` helper for consistency).
 3. Re-export from the same file. Don't import `firebase/functions` from
    a component.
+
+### Caching AI results (OpenRouter per-token savings)
+
+OpenRouter charges per token, so the AI callables
+(`describeStrainForUser`, `compareStrains`) read through a SHA-256-keyed
+Firestore cache (`functions/src/ai-cache.ts`) so repeat strain-page views
+with the same ailments / meds / prefs / language return the stored
+response without spending more tokens on the same answer.
+
+- Key inputs are sorted before hashing so `{ailments:["a","b"]}` and
+  `{ailments:["b","a"]}` collide; order-sensitive lists (strain names)
+  keep their original order, callers must pre-sort.
+- Cache TTL: 14 days. Strain data changes on the order of weeks, so
+  a user re-opening a page after a day still gets a fresh-enough
+  answer; a 14-day-old cache miss just re-fetches from OpenRouter.
+- Reads are memory-first, then Firestore. Writes are best-effort — a
+  Firestore outage does not fail the request, it just means the next
+  cold start re-fetches.
+- `descriptionCache` and `compareCache` are admin-SDK-only (no client
+  rule); the callable is the only writer.
+
+### AI provider (OpenRouter only)
+
+Every AI callable in `functions/` talks to a single provider: OpenRouter.
+There is no fallback. The model is
+`meta-llama/llama-3.3-70b-instruct:nitro` with a `provider.order` pin of
+`["together", "fireworks"]` and `allow_fallbacks: true` on the request
+body. The `:nitro` tag tells OpenRouter to use its fastest tier
+regardless of price; the provider pin keeps the call off DeepInfra's
+on-demand tier (15-25s warm, 40s+ spikes). We previously saw 70-110s
+latency when OpenRouter auto-routed the plain 70B model id to whichever
+provider happened to have capacity — Together.ai and Fireworks run the
+70B on inference-optimised engines (5-15s warm), so the pin gets us back
+to that range without giving up the 70B's prose quality.
+
+Cost: OpenRouter charges per token for Llama 3.3 70B. Set a hard
+monthly usage limit in the OpenRouter console so a worst case is
+bounded. `OPENROUTER_API_KEY` is a Firebase Secret declared in
+`functions/src/index.ts`. The Firestore cache in `ai-cache.ts` absorbs
+most repeat traffic so the bill stays low. If a transient OpenRouter
+failure (429, 5xx, network) lands, the callable returns 500 — there is
+no second provider to fall through to. Set the OpenRouter usage limit
+high enough that an outage doesn't also mean a billing surprise.
 
 ## Firestore conventions
 
@@ -214,16 +340,19 @@ gate is the **client-side popup** (localStorage + DOB attestation) — there
 is no server-side custom claim or callable gate anymore (see PR #134).
 
 - The age gate is `<AgeGate>` (`src/components/compliance/AgeGate.tsx`) on the
-  web and `AgeGateView` (`ios/StrainWise/App/AgeGateView.swift`) on iOS.
+  web and `AgeGateView` (`ios/StrainEase/App/AgeGateView.swift`) on iOS.
   Both wrap the entire `<Routes>` / `RootView` so every page is gated.
-- Region list + minimum ages live in `src/lib/age-policy.ts` (web) and
-  `functions/src/age.ts` (server, kept for shared constants only).
-  Tests live in `src/lib/age-policy.test.ts` and
-  `functions/src/age.test.ts`.
+- Region list + minimum ages live in `src/lib/age-policy.ts` (web),
+  `functions/src/age.ts` (public codebase, kept for `age.test.ts` only),
+  and `functions-report/src/age.ts` (report codebase, canonical for the
+  Cloud Functions runtime). Tests live in `src/lib/age-policy.test.ts`,
+  `functions/src/age.test.ts`, and `functions-report/src/age.test.ts`
+  (none for the report codebase yet — copy the public test if you need
+  one). Keep all three tables in sync.
 - Verification is purely local: the client writes a record to localStorage
   (`src/lib/age-storage.ts` on web, `AgeVerificationStore` on iOS) holding
-  region + birth date. No Firebase custom claim, no Firestore mirror, no
-  `setAgeVerified` callable.
+  region + birth date. There is no Firebase custom claim, no Firestore
+  mirror, no server-side age callable.
 - AI callables (`compareStrains`, `recommendStrainsForConditions`,
   `describeStrainForUser`, `findDoctors`, `elaborateSection`) trust the
   client gate implicitly — the page is gated before any callable fires,
@@ -245,8 +374,9 @@ is no server-side custom claim or callable gate anymore (see PR #134).
 - Do not run `npm run build` from the repo root expecting it to build
   functions — the root `package.json` only builds the frontend.
 - Do not add new env vars without documenting them in `README.md` and
-  adding them to the Cloudflare Pages deploy workflow
-  (`.github/workflows/cloudflare-pages.yml`).
+  adding them to the Cloudflare Pages project (env vars are configured
+  in the Cloudflare dashboard for the `strainease` Pages project, not
+  in a GitHub Actions workflow).
 
 ## Working style for this codebase
 
@@ -263,28 +393,28 @@ is no server-side custom claim or callable gate anymore (see PR #134).
 
 ## Android port (`android/`)
 
-Native Jetpack Compose companion to the iOS app (`ios/StrainWise`).
+Native Jetpack Compose companion to the iOS app (`ios/StrainEase`).
 Same Firebase project (`strainfinder-84a9b`), same accounts, same AI
 callables — three surfaces, one backend. The port is broken into
 **13 sequential PRs** so each slice is reviewable on its own.
 
-| PR | Branch | Scope |
-| -- | ------ | ----- |
-| 1  | `feat/android/scaffold`   | Gradle, AGP, Kotlin, Compose, Firebase deps; brand `Palette`; `StrainWiseTheme`; `RootPlaceholder` |
-| 2  | `feat/android/theme`      | Full `Palette` + `TypeStyle` + `MeshBackground` + reusable `Components` (cards, eyebrow, buttons) |
-| 3  | `feat/android/models`     | All `StrainProfile` / `Recommendation` / `Doctor` Kotlin data classes; `LiveStrainAPI`; `strain-directory.json` resource; `PreviewData` |
-| 4  | `feat/android/auth`       | `FirebaseBootstrap`; `AuthSession` (email, Google); `AgeVerificationStore`; `AgeGateView`; `SignInView` |
-| 5  | `feat/android/shell`      | `StrainWiseApp` (Compose entry) + `RootView` + `MainTabView` + `AppNavigation` |
-| 6  | `feat/android/home`       | `HomeView`, `HomeModel`, `HomeHeadline`, `AilmentCarousel`, `StrainPoster`, `StrainGridView`, `RecentlyViewedStore` |
-| 7  | `feat/android/find`       | `FindView`, `FindModel`, `ResearchPrefs`, `SavedAilmentsStore`, `SavedMedicationsStore`, `ReliefLogStore` |
-| 8  | `feat/android/browse`     | `DirectoryView`, `DirectoryModel`, `DirectoryFilter` |
-| 9  | `feat/android/strain`     | `StrainDetailView` + `TerpeneProfile`/`Detail`, `ShopLinksView`, `NoteBadge`, `TriedNotesView`, `SharedNotesView`, `ReliefLogForm`, `StrainMeaning`, `StrainHydration` |
-| 10 | `feat/android/compare`    | `CompareResultsView`, `CompareSelectionStore`, `CompareToggleButton`, `CompareTrayBar`, `RedditThreadsView` |
-| 11 | `feat/android/account`    | `AccountView`, `SavedStrainsView`, `SavedAilmentsCard`, `SavedMedicationsCard`, `ReliefHistoryView`, `ResearchHistoryView`, `SavedStrainsStore`, `PublicNotesStore` |
-| 12 | `feat/android/doctors`    | `DoctorsView`, `DoctorsModel`, `DoctorModels`, `LocationProvider` |
-| 13 | `feat/android/polish`     | App icon set, splash polish, README, AGENTS.md update, test setup |
+| PR  | Branch                  | Scope                                                                                                                                                                  |
+| --- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `feat/android/scaffold` | Gradle, AGP, Kotlin, Compose, Firebase deps; brand `Palette`; `StrainEaseTheme`; `RootPlaceholder`                                                                     |
+| 2   | `feat/android/theme`    | Full `Palette` + `TypeStyle` + `MeshBackground` + reusable `Components` (cards, eyebrow, buttons)                                                                      |
+| 3   | `feat/android/models`   | All `StrainProfile` / `Recommendation` / `Doctor` Kotlin data classes; `LiveStrainAPI`; `strain-directory.json` resource; `PreviewData`                                |
+| 4   | `feat/android/auth`     | `FirebaseBootstrap`; `AuthSession` (email, Google); `AgeVerificationStore`; `AgeGateView`; `SignInView`                                                                |
+| 5   | `feat/android/shell`    | `StrainEaseApp` (Compose entry) + `RootView` + `MainTabView` + `AppNavigation`                                                                                         |
+| 6   | `feat/android/home`     | `HomeView`, `HomeModel`, `HomeHeadline`, `AilmentCarousel`, `StrainPoster`, `StrainGridView`, `RecentlyViewedStore`                                                    |
+| 7   | `feat/android/find`     | `FindView`, `FindModel`, `ResearchPrefs`, `SavedAilmentsStore`, `SavedMedicationsStore`, `ReliefLogStore`                                                              |
+| 8   | `feat/android/browse`   | `DirectoryView`, `DirectoryModel`, `DirectoryFilter`                                                                                                                   |
+| 9   | `feat/android/strain`   | `StrainDetailView` + `TerpeneProfile`/`Detail`, `ShopLinksView`, `NoteBadge`, `TriedNotesView`, `SharedNotesView`, `ReliefLogForm`, `StrainMeaning`, `StrainHydration` |
+| 10  | `feat/android/compare`  | `CompareResultsView`, `CompareSelectionStore`, `CompareToggleButton`, `CompareTrayBar`, `RedditThreadsView`                                                            |
+| 11  | `feat/android/account`  | `AccountView`, `SavedStrainsView`, `SavedAilmentsCard`, `SavedMedicationsCard`, `ReliefHistoryView`, `ResearchHistoryView`, `SavedStrainsStore`, `PublicNotesStore`    |
+| 12  | `feat/android/doctors`  | `DoctorsView`, `DoctorsModel`, `DoctorModels`, `LocationProvider`                                                                                                      |
+| 13  | `feat/android/polish`   | App icon set, splash polish, README, AGENTS.md update, test setup                                                                                                      |
 
-Conventions for the Android port (mirrors the iOS `StrainWise` style
+Conventions for the Android port (mirrors the iOS `StrainEase` style
 as much as Compose allows):
 
 - **Stack:** Kotlin 1.9 + AGP 8.5 + Jetpack Compose + Material 3,
@@ -292,12 +422,14 @@ as much as Compose allows):
   for image loading, DataStore for local preferences, kotlinx-serialization
   for `strain-directory.json`. No Hilt — manual DI keeps the surface
   small and matches the iOS pattern of `@State` + `@Environment`.
-- **Bundle id:** `com.strainwise.app` — same identifier iOS uses,
-  so Firebase Auth + Firestore user records are shared.
+- **Bundle id:** `ai.strainease.app` — the Android and web clients
+  share this identifier so Firebase Auth + Firestore user records are
+  shared. (The iOS app uses `ai.strainease.ios` — registered separately
+  in the Firebase project — so it does not need to be listed there.)
 - **minSdk 26, target/compile SDK 34** — same effective coverage as
   the iOS app's iOS 17 floor.
-- **Package layout:** `com.strainwise.app.{services,ui.theme,ui.components,ui.home,ui.find,ui.browse,ui.compare,ui.account,ui.doctors,ui.strain,auth,compliance,data,models}`
-  mirrors the iOS folder structure under `ios/StrainWise/`.
+- **Package layout:** `ai.strainease.app.{services,ui.theme,ui.components,ui.home,ui.find,ui.browse,ui.compare,ui.account,ui.doctors,ui.strain,auth,compliance,data,models}`
+  mirrors the iOS folder structure under `ios/StrainEase/`.
 - **Theming:** brand colors live in `ui/theme/Color.kt` as a
   `Palette` object (token-by-token port of iOS `Palette.swift`).
   Always go through `MaterialTheme.colorScheme.*`; never reach into
@@ -313,6 +445,32 @@ as much as Compose allows):
 - **Test setup:** basic JUnit unit tests + Compose UI tests live in
   `app/src/test/` and `app/src/androidTest/`. PR-A13 wires up the
   initial suite.
+
+### Future parity work (iOS / web shipped, Android not yet)
+
+The 13-PR plan above ships feature parity with iOS as of the
+`StrainWise` → `StrainEase` rename. The iOS + web `feat/ios-rating-average`
+PR landed several changes that the Android port will need to mirror
+in a follow-up PR:
+
+- **Per-source rating cards** — the strain detail shows 1-3
+  `SourceRatingCard`s (one per source that published a rating —
+  Leafly, Weedmaps, Allbud) instead of the legacy blended
+  "Leafly & Allbud" average. `StrainProfile` gains
+  `weedmapsRating` / `weedmapsReviewCount`. The backend
+  `consolidate.ts` and `weedmaps.ts` already emit the new fields.
+- **5-per-source community-note cap** — `unionNotes` in the
+  consolidator caps each source at 5 notes; the iOS / web
+  `CommunityVoices` apply the same cap client-side so a future
+  wire push can't quietly dump the whole list.
+- **Curated Reddit threads on strain detail** — new public
+  callable `redditThreadsForStrain(name, conditions)` returns up
+  to 5 vetted threads (no LLM in the loop). Strain detail pages
+  render them in a `RedditThreads` block under community voices.
+
+These are iOS + web parity; an Android follow-up PR (A14 or
+later) should land all three together so the Android strain
+detail matches what iOS / web ship today.
 
 # Remember:
 

@@ -4,7 +4,9 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  limit,
   onSnapshot,
+  orderBy,
   query,
   setDoc,
   where,
@@ -19,10 +21,17 @@ export { slugify };
 export type SavedNote = {
   id: string;
   text: string;
+  /** Notes are public reviews on the strain page; isPublic is always true. */
   isPublic: boolean;
   createdAt: number;
-  /** id of the doc in the publicNotes collection when this note is public. */
+  /** id of the doc in the publicNotes collection for this review. */
   publicId?: string;
+  /** When true the public review hides the author (shows "A patient"). */
+  anonymous?: boolean;
+  /** 1–5 star rating left with the note (matches Android ReliefLogForm). */
+  rating?: number;
+  /** 1–5 intensity (how strong it felt); mirrors Android ReliefLogForm dots. */
+  intensity?: number;
 };
 
 export type SavedStrain = {
@@ -51,7 +60,8 @@ export function clipPublicNote(text: string): string {
   return text.trim().slice(0, PUBLIC_NOTE_MAX);
 }
 
-const savedColl = (uid: string) => collection(db!, "users", uid, "savedStrains");
+const savedColl = (uid: string) =>
+  collection(db!, "users", uid, "savedStrains");
 const publicNotesColl = () => collection(db!, "publicNotes");
 
 export function listenToSavedStrains(
@@ -59,7 +69,7 @@ export function listenToSavedStrains(
   cb: (list: SavedStrain[]) => void,
 ): Unsubscribe {
   return onSnapshot(
-    query(savedColl(uid)),
+    query(savedColl(uid), orderBy("savedAt", "desc"), limit(100)),
     (snap) => {
       const list: SavedStrain[] = [];
       snap.forEach((d) => {
@@ -81,7 +91,7 @@ export function listenToSavedStrains(
           notes: Array.isArray(data.notes) ? data.notes : [],
         });
       });
-      cb(list.sort((a, b) => b.savedAt - a.savedAt));
+      cb(list);
     },
     () => {
       // Rules not set up yet / offline — stay silent.
@@ -118,7 +128,10 @@ export async function removeSavedStrain(uid: string, slug: string) {
   await deleteDoc(doc(savedColl(uid), slug));
 }
 
-export async function isStrainSaved(uid: string, slug: string): Promise<boolean> {
+export async function isStrainSaved(
+  uid: string,
+  slug: string,
+): Promise<boolean> {
   const snap = await getDoc(doc(savedColl(uid), slug));
   return snap.exists();
 }
@@ -133,13 +146,20 @@ async function writeNotes(uid: string, slug: string, notes: SavedNote[]) {
   await setDoc(doc(savedColl(uid), slug), { notes }, { merge: true });
 }
 
+/**
+ * Add a review. Reviews are always public on the strain's page; the
+ * `anonymous` flag decides whether the author's name is shown (false)
+ * or the review appears from "A patient" (true).
+ */
 export async function addNote(
   uid: string,
   slug: string,
   text: string,
-  isPublic: boolean,
+  anonymous: boolean,
   authorName: string,
   strainName: string,
+  rating = 0,
+  intensity = 0,
 ): Promise<SavedNote> {
   const trimmed = clipPublicNote(text);
   if (trimmed === "") throw new Error("Note can't be empty.");
@@ -147,25 +167,33 @@ export async function addNote(
   const note: SavedNote = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     text: trimmed,
-    isPublic: false,
+    isPublic: true,
     createdAt: Date.now(),
+    anonymous,
+    rating: Math.min(5, Math.max(0, Math.round(rating))),
+    intensity: Math.min(5, Math.max(0, Math.round(intensity))),
   };
-
-  if (isPublic) {
-    note.isPublic = true;
-    note.publicId = await publishNote(uid, note, authorName, strainName);
-  }
+  note.publicId = await publishNote(
+    uid,
+    note,
+    anonymous ? "A patient" : authorName,
+    strainName,
+  );
 
   const notes = await readNotes(uid, slug);
   await writeNotes(uid, slug, [...notes, note]);
   return note;
 }
 
-export async function setNotePublic(
+/**
+ * Toggle whether a public review shows the author's name. The review
+ * stays public either way — only the displayed name changes.
+ */
+export async function setNoteAnonymous(
   uid: string,
   slug: string,
   noteId: string,
-  isPublic: boolean,
+  anonymous: boolean,
   authorName: string,
   strainName: string,
 ) {
@@ -173,25 +201,28 @@ export async function setNotePublic(
   const next = await Promise.all(
     notes.map(async (n) => {
       if (n.id !== noteId) return n;
-      if (isPublic && !n.publicId) {
-        const publicId = await publishNote(uid, n, authorName, strainName);
-        return { ...n, isPublic: true, publicId };
+      // Legacy private notes were never published; make them public now.
+      if (!n.publicId) {
+        const publicId = await publishNote(
+          uid,
+          n,
+          anonymous ? "A patient" : authorName,
+          strainName,
+        );
+        return { ...n, isPublic: true, publicId, anonymous };
       }
-      if (!isPublic && n.publicId) {
-        await deleteDoc(doc(publicNotesColl(), n.publicId)).catch(() => {});
-        return { ...n, isPublic: false, publicId: undefined };
-      }
-      return { ...n, isPublic };
+      await setDoc(
+        doc(publicNotesColl(), n.publicId),
+        { authorName: anonymous ? "A patient" : authorName },
+        { merge: true },
+      );
+      return { ...n, anonymous };
     }),
   );
   await writeNotes(uid, slug, next);
 }
 
-export async function removeNote(
-  uid: string,
-  slug: string,
-  noteId: string,
-) {
+export async function removeNote(uid: string, slug: string, noteId: string) {
   const notes = await readNotes(uid, slug);
   const target = notes.find((n) => n.id === noteId);
   if (target?.publicId) {
@@ -226,14 +257,19 @@ export function listenToPublicNotes(
   cb: (notes: PublicNote[]) => void,
 ): Unsubscribe {
   return onSnapshot(
-    query(publicNotesColl(), where("strainKey", "==", strainKey)),
+    query(
+      publicNotesColl(),
+      where("strainKey", "==", strainKey),
+      orderBy("createdAt", "desc"),
+      limit(20),
+    ),
     (snap) => {
       const notes: PublicNote[] = [];
       snap.forEach((d) => {
         const data = d.data() as Omit<PublicNote, "id">;
         notes.push({ id: d.id, ...data });
       });
-      cb(notes.sort((a, b) => b.createdAt - a.createdAt));
+      cb(notes);
     },
     () => {
       // Rules not set up yet / offline — stay silent.

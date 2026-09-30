@@ -1,5 +1,5 @@
-import { StrainPoster } from "@/components/home/StrainPoster";
 import { StrainSectionHeader } from "@/components/home/StrainSectionHeader";
+import { ComparableStrainPoster } from "@/components/strain/ComparableStrainPoster";
 import { profileSlug } from "@/lib/strain-catalog";
 import type { StrainProfile } from "@/lib/strain-profile";
 import { cn } from "@/lib/utils";
@@ -58,18 +58,24 @@ export function AilmentCarousel({
   return (
     <section className="space-y-3">
       <StrainSectionHeader title="For your symptoms" />
-      {/* No card wrapper — the posters sit straight on the page like the
-          iOS carousel. The scroller bleeds through the page padding so
-          pages slide under the edges while the mask fades them out. */}
+      {/* The scroller stays inside the page content area so the cards
+          line up with the section header above. No right-edge mask
+          here — the page dots at the bottom already hint at the next
+          page, and a fade was clipping the "See more" link in the
+          page header. */}
       <div
         ref={scrollerRef}
         className="-mx-6 flex snap-x snap-mandatory gap-0 overflow-x-auto px-6 [scrollbar-width:none] [scroll-padding-inline:24px] [mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_94%,transparent_100%)] [&::-webkit-scrollbar]:hidden"
+        role="region"
+        aria-roledescription="carousel"
         aria-label="Symptom pages"
       >
-        {ailments.map((name) => (
+        {ailments.map((name, index) => (
           <AilmentPage
             key={name}
             name={name}
+            position={index + 1}
+            total={ailments.length}
             strains={preview(name).slice(0, AILMENT_PREVIEW)}
             seeMoreHref={seeMoreHref(name)}
           />
@@ -86,10 +92,14 @@ export function AilmentCarousel({
 
 function AilmentPage({
   name,
+  position,
+  total,
   strains,
   seeMoreHref,
 }: {
   name: string;
+  position: number;
+  total: number;
   strains: StrainProfile[];
   seeMoreHref: string;
 }) {
@@ -103,6 +113,9 @@ function AilmentPage({
       // The right-side padding is the gutter between adjacent pages; the
       // scroller's px-6 keeps page edges flush with the section header.
       className="flex w-full shrink-0 snap-start snap-always flex-col gap-3 pr-4"
+      role="group"
+      aria-roledescription="slide"
+      aria-label={`Page ${position} of ${total}: ${name}`}
       data-ailment={name}
     >
       <header className="flex items-baseline justify-between gap-3">
@@ -136,7 +149,7 @@ function PosterRow({ strains }: { strains: StrainProfile[] }) {
   return (
     <div className="grid grid-cols-3 gap-3">
       {strains.map((profile) => (
-        <StrainPoster
+        <ComparableStrainPoster
           key={profileSlug(profile)}
           profile={profile}
           compact
@@ -186,10 +199,7 @@ function PageDots({
   );
 }
 
-function scrollToPage(
-  ref: RefObject<HTMLDivElement | null>,
-  index: number,
-) {
+function scrollToPage(ref: RefObject<HTMLDivElement | null>, index: number) {
   const root = ref.current;
   if (!root) return;
   const width = root.clientWidth;

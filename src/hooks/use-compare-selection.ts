@@ -23,8 +23,8 @@ import { useSearchParams } from "react-router";
 export const CAP = 3;
 
 const STRAINS_PARAM = "strains";
-export const COMPARE_STORAGE_KEY = "strainwise:compare.v1";
-const COMPARE_EVENT = "strainwise:compare-change";
+export const COMPARE_STORAGE_KEY = "strainease:compare.v1";
+const COMPARE_EVENT = "strainease:compare-change";
 
 export function readStoredStrains(): string[] {
   if (typeof sessionStorage === "undefined") return [];
@@ -59,10 +59,15 @@ export function writeStoredStrains(names: readonly string[]): string[] {
  */
 export function parseStrains(raw: string | null | undefined): string[] {
   if (!raw) return [];
-  const parts = raw.split(",").map((s) => s.trim()).filter((s) => s !== "");
+  const parts = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s !== "");
   const deduped: string[] = [];
   for (const part of parts) {
-    if (!deduped.some((existing) => existing.toLowerCase() === part.toLowerCase())) {
+    if (
+      !deduped.some((existing) => existing.toLowerCase() === part.toLowerCase())
+    ) {
       deduped.push(part);
     }
     if (deduped.length >= CAP) break;
@@ -85,7 +90,9 @@ export function dedupeAndCap(names: readonly string[]): string[] {
   for (const name of names) {
     const trimmed = name.trim();
     if (trimmed === "") continue;
-    if (out.some((existing) => existing.toLowerCase() === trimmed.toLowerCase())) {
+    if (
+      out.some((existing) => existing.toLowerCase() === trimmed.toLowerCase())
+    ) {
       continue;
     }
     out.push(trimmed);
@@ -219,8 +226,7 @@ export function useCompareSelection(): CompareSelection {
   }, [writeNames]);
 
   const isIn = useCallback(
-    (name: string) =>
-      names.some((n) => n.toLowerCase() === name.toLowerCase()),
+    (name: string) => names.some((n) => n.toLowerCase() === name.toLowerCase()),
     [names],
   );
 

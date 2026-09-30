@@ -1,0 +1,436 @@
+import FirebaseAuth
+import FirebaseFirestore
+import Foundation
+
+struct SavedNote: Identifiable, Hashable, Sendable {
+    var id: String
+    var text: String
+    var isPublic: Bool
+    var createdAt: Int
+    var publicId: String?
+    /// 1–5 star rating left with the note; 0 means unrated.
+    /// Matches Android `ReliefLogForm`'s star picker.
+    var rating: Int = 0
+    /// 1–5 intensity (how strong it felt); 0 means unset.
+    /// Mirrors the Android `ReliefLogForm` intensity dots.
+    var intensity: Int = 0
+    /// Notes are public reviews on the strain page. When true the
+    /// review hides the author (shown as "A patient").
+    var anonymous: Bool = false
+
+    static func parse(_ raw: Any?) -> [SavedNote] {
+        guard let rows = raw as? [[String: Any]] else { return [] }
+        return rows.compactMap { row in
+            guard let id = row["id"] as? String,
+                  let text = row["text"] as? String
+            else { return nil }
+            return SavedNote(
+                id: id,
+                text: text,
+                isPublic: row["isPublic"] as? Bool ?? false,
+                createdAt: row["createdAt"] as? Int ?? 0,
+                publicId: row["publicId"] as? String,
+                rating: row["rating"] as? Int ?? 0,
+                intensity: Self.intValue(row["intensity"]) ?? 0,
+                anonymous: row["anonymous"] as? Bool ?? false
+            )
+        }
+    }
+
+    private static func intValue(_ value: Any?) -> Int? {
+        if let n = value as? Int { return n }
+        if let n = value as? Double { return Int(n) }
+        if let n = value as? NSNumber { return n.intValue }
+        return nil
+    }
+}
+
+struct SavedStrainItem: Identifiable, Hashable, Sendable {
+    var slug: String
+    var name: String
+    var type: StrainType?
+    var thcRange: String?
+    var imageUrl: String?
+    var savedAt: Int
+    var notes: [SavedNote]
+
+    var id: String { slug }
+
+    var hasNotes: Bool { !notes.isEmpty }
+
+    var profile: StrainProfile {
+        StrainProfile(
+            name: name,
+            inKnowledgeBase: true,
+            type: type,
+            thcRange: thcRange,
+            imageUrl: imageUrl
+        )
+    }
+
+    init(
+        slug: String,
+        name: String,
+        type: StrainType?,
+        thcRange: String?,
+        imageUrl: String?,
+        savedAt: Int,
+        notes: [SavedNote] = []
+    ) {
+        self.slug = slug
+        self.name = name
+        self.type = type
+        self.thcRange = thcRange
+        self.imageUrl = imageUrl
+        self.savedAt = savedAt
+        self.notes = notes
+    }
+
+    init(profile: StrainProfile, savedAt: Int = 0, notes: [SavedNote] = []) {
+        slug = profile.slug
+        name = profile.name
+        type = profile.type
+        thcRange = profile.thcRange
+        imageUrl = profile.imageUrl
+        self.savedAt = savedAt
+        self.notes = notes
+    }
+}
+
+/// Liked / saved strains — same `users/{uid}/savedStrains/{slug}` docs as the web app.
+@Observable
+@MainActor
+final class SavedStrainsStore {
+    private(set) var items: [SavedStrainItem] = []
+    private(set) var isBusy = false
+    var errorMessage: String?
+
+    @ObservationIgnored private var listener: ListenerRegistration?
+    @ObservationIgnored private let previewOnly: Bool
+
+    var slugs: Set<String> { Set(items.map(\.slug)) }
+
+    init() {
+        previewOnly = false
+    }
+
+    /// In-memory store for SwiftUI previews and tests. Never talks to Firestore.
+    static func preview(_ slugs: Set<String> = []) -> SavedStrainsStore {
+        let items = slugs.map { slug -> SavedStrainItem in
+            let profile = StrainCatalog.all.first { $0.slug == slug }
+                ?? StrainProfile(name: slug, inKnowledgeBase: true)
+            return SavedStrainItem(profile: profile)
+        }
+        return SavedStrainsStore(previewItems: items)
+    }
+
+    private init(previewItems: [SavedStrainItem]) {
+        previewOnly = true
+        items = previewItems
+    }
+
+    func isSaved(_ slug: String) -> Bool {
+        items.contains { $0.slug == slug }
+    }
+
+    func listen(uid: String) {
+        guard !previewOnly else { return }
+        listener?.remove()
+        listener = Firestore.firestore()
+            .collection("users")
+            .document(uid)
+            .collection("savedStrains")
+            .addSnapshotListener { [weak self] snap, error in
+                Task { @MainActor in
+                    guard let self else { return }
+                    if let error {
+                        self.errorMessage = error.localizedDescription
+                        return
+                    }
+                    self.items = (snap?.documents ?? []).map { doc in
+                        let data = doc.data()
+                        let typeRaw = data["type"] as? String
+                        return SavedStrainItem(
+                            slug: doc.documentID,
+                            name: data["name"] as? String ?? doc.documentID,
+                            type: typeRaw.flatMap(StrainType.init(rawValue:)),
+                            thcRange: data["thcRange"] as? String,
+                            imageUrl: data["imageUrl"] as? String,
+                            savedAt: data["savedAt"] as? Int ?? 0,
+                            notes: SavedNote.parse(data["notes"])
+                        )
+                    }
+                    .sorted { $0.savedAt > $1.savedAt }
+                }
+            }
+    }
+
+    func reset() {
+        listener?.remove()
+        listener = nil
+        items = []
+        errorMessage = nil
+        isBusy = false
+    }
+
+    func toggle(_ profile: StrainProfile) async {
+        let slug = profile.slug
+        guard !slug.isEmpty, !isBusy else { return }
+        let wasSaved = isSaved(slug)
+        if wasSaved {
+            items.removeAll { $0.slug == slug }
+        } else {
+            items.insert(SavedStrainItem(profile: profile, savedAt: Int(Date().timeIntervalSince1970 * 1000)), at: 0)
+        }
+        errorMessage = nil
+        guard !previewOnly else { return }
+
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let ref = Firestore.firestore()
+                .collection("users")
+                .document(try currentUID())
+                .collection("savedStrains")
+                .document(slug)
+            if wasSaved {
+                try await ref.delete()
+            } else {
+                try await ref.setData(Self.document(for: profile), merge: true)
+            }
+        } catch {
+            if wasSaved {
+                items.insert(SavedStrainItem(profile: profile), at: 0)
+            } else {
+                items.removeAll { $0.slug == slug }
+            }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func currentUID() throws -> String {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw StrainAPIError.message("Sign in to save strains.")
+        }
+        return uid
+    }
+
+    func notes(for slug: String) -> [SavedNote] {
+        items.first { $0.slug == slug }?.notes ?? []
+    }
+
+    /// Saves the strain if needed, then appends a note — same shape as web `addNote`.
+    ///
+    /// Implementation note: we merge the strain fields and the appended notes
+    /// into a single `setData(_:merge:true)` call. Two sequential writes used
+    /// to race with the snapshot listener — the listener fired after the
+    /// profile write but before the notes write, and reset `items[index].notes`
+    /// to its old value (the freshly-appended note was never on the server
+    /// yet), so the second write persisted only the old list and the new
+    /// note silently disappeared. One atomic write avoids the window.
+    func addNote(
+        to profile: StrainProfile,
+        text: String,
+        anonymous: Bool = true,
+        authorName: String = "A patient",
+        rating: Int = 0,
+        intensity: Int = 0
+    ) async {
+        let trimmed = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1999))
+        guard !trimmed.isEmpty, !profile.slug.isEmpty, !isBusy else { return }
+        var note = SavedNote(
+            id: "\(Int(Date().timeIntervalSince1970 * 1000))-\(UUID().uuidString.prefix(6).lowercased())",
+            text: trimmed,
+            isPublic: true,
+            createdAt: Int(Date().timeIntervalSince1970 * 1000),
+            rating: rating,
+            intensity: min(5, max(0, intensity)),
+            anonymous: anonymous
+        )
+        if let index = items.firstIndex(where: { $0.slug == profile.slug }) {
+            items[index].notes.append(note)
+        } else {
+            items.insert(SavedStrainItem(profile: profile, savedAt: note.createdAt, notes: [note]), at: 0)
+        }
+        errorMessage = nil
+        guard !previewOnly else { return }
+
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let uid = try currentUID()
+            let ref = Firestore.firestore()
+                .collection("users")
+                .document(uid)
+                .collection("savedStrains")
+                .document(profile.slug)
+            // Reviews are always public — publish immediately with the
+            // display name resolved ("A patient" when anonymous).
+            note.publicId = try await publishNote(
+                note,
+                uid: uid,
+                authorName: anonymous ? "A patient" : authorName,
+                strainName: profile.name
+            )
+            if let index = items.firstIndex(where: { $0.slug == profile.slug }),
+               let noteIndex = items[index].notes.firstIndex(where: { $0.id == note.id }) {
+                items[index].notes[noteIndex] = note
+            }
+            let next = items.first { $0.slug == profile.slug }?.notes ?? [note]
+            // Single atomic write — strain fields + the notes array together.
+            // This closes the listener-vs-write race described above.
+            try await ref.setData(Self.addNotePayload(for: profile, notes: next), merge: true)
+        } catch {
+            if let index = items.firstIndex(where: { $0.slug == profile.slug }) {
+                items[index].notes.removeAll { $0.id == note.id }
+            }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func setNoteAnonymous(
+        slug: String,
+        noteId: String,
+        anonymous: Bool,
+        authorName: String,
+        strainName: String
+    ) async {
+        guard let itemIndex = items.firstIndex(where: { $0.slug == slug }),
+              let noteIndex = items[itemIndex].notes.firstIndex(where: { $0.id == noteId })
+        else { return }
+        let previous = items[itemIndex].notes[noteIndex]
+        errorMessage = nil
+        guard !previewOnly else {
+            items[itemIndex].notes[noteIndex].anonymous = anonymous
+            return
+        }
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let uid = try currentUID()
+            var note = previous
+            if note.publicId == nil {
+                // Legacy private note — publish it now that reviews are public.
+                note.publicId = try await publishNote(
+                    note,
+                    uid: uid,
+                    authorName: anonymous ? "A patient" : authorName,
+                    strainName: strainName
+                )
+                note.isPublic = true
+            } else if let publicId = note.publicId {
+                // Review stays public — only the displayed name changes.
+                try? await Firestore.firestore()
+                    .collection("publicNotes")
+                    .document(publicId)
+                    .setData(
+                        ["authorName": anonymous ? "A patient" : authorName],
+                        merge: true
+                    )
+            }
+            note.anonymous = anonymous
+            items[itemIndex].notes[noteIndex] = note
+            try await Firestore.firestore()
+                .collection("users")
+                .document(uid)
+                .collection("savedStrains")
+                .document(slug)
+                .setData(
+                    ["notes": items[itemIndex].notes.map(Self.noteDocument)],
+                    merge: true
+                )
+        } catch {
+            items[itemIndex].notes[noteIndex] = previous
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func removeNote(slug: String, noteId: String) async {
+        guard let index = items.firstIndex(where: { $0.slug == slug }) else { return }
+        let previous = items[index].notes
+        let removed = previous.first { $0.id == noteId }
+        items[index].notes.removeAll { $0.id == noteId }
+        errorMessage = nil
+        guard !previewOnly else { return }
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            if let publicId = removed?.publicId {
+                try? await Firestore.firestore().collection("publicNotes").document(publicId).delete()
+            }
+            try await Firestore.firestore()
+                .collection("users")
+                .document(try currentUID())
+                .collection("savedStrains")
+                .document(slug)
+                .setData(
+                    ["notes": items[index].notes.map(Self.noteDocument)],
+                    merge: true
+                )
+        } catch {
+            items[index].notes = previous
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func publishNote(
+        _ note: SavedNote,
+        uid: String,
+        authorName: String,
+        strainName: String
+    ) async throws -> String {
+        let ref = try await Firestore.firestore().collection("publicNotes").addDocument(data: [
+            "strainKey": StrainProfile(name: strainName, inKnowledgeBase: true).slug,
+            "strainName": strainName,
+            "note": String(note.text.prefix(1999)),
+            "authorName": authorName.isEmpty ? "A patient" : authorName,
+            "uid": uid,
+            "createdAt": note.createdAt,
+        ])
+        return ref.documentID
+    }
+
+    /// Matches the web `saveStrain` payload. Notes are omitted so a re-save cannot wipe them.
+    static func document(for profile: StrainProfile) -> [String: Any] {
+        [
+            "name": profile.name,
+            "type": profile.type?.rawValue ?? NSNull(),
+            "thcRange": profile.thcRange ?? NSNull(),
+            "imageUrl": profile.imageUrl ?? NSNull(),
+            "savedAt": Int(Date().timeIntervalSince1970 * 1000),
+        ]
+    }
+
+    static func noteDocument(_ note: SavedNote) -> [String: Any] {
+        var data: [String: Any] = [
+            "id": note.id,
+            "text": note.text,
+            "isPublic": note.isPublic,
+            "createdAt": note.createdAt,
+            "rating": note.rating,
+            "intensity": note.intensity,
+            "anonymous": note.anonymous,
+        ]
+        if let publicId = note.publicId {
+            data["publicId"] = publicId
+        }
+        return data
+    }
+
+    /// Single `setData(_:merge:true)` payload that carries the strain fields
+    /// and the appended notes together. Tests pin this so the
+    /// profile-write / notes-write race can't return: two sequential writes
+    /// leave a window where the snapshot listener resets `items[index].notes`
+    /// to the pre-write list and the second write persists only the old
+    /// notes. One atomic write avoids it.
+    static func addNotePayload(
+        for profile: StrainProfile,
+        notes: [SavedNote],
+        savedAt: Int = Int(Date().timeIntervalSince1970 * 1000)
+    ) -> [String: Any] {
+        var payload = document(for: profile)
+        payload["savedAt"] = savedAt
+        payload["notes"] = notes.map(noteDocument)
+        return payload
+    }
+}

@@ -74,9 +74,7 @@ describe("CommunityVoices", () => {
         />
       </MemoryRouter>,
     );
-    const labels = screen
-      .getAllByRole("tab")
-      .map((t) => t.textContent ?? "");
+    const labels = screen.getAllByRole("tab").map((t) => t.textContent ?? "");
     expect(labels.some((l) => l.includes("App Reviews"))).toBe(false);
   });
 
@@ -89,9 +87,7 @@ describe("CommunityVoices", () => {
         />
       </MemoryRouter>,
     );
-    const labels = screen
-      .getAllByRole("tab")
-      .map((t) => t.textContent ?? "");
+    const labels = screen.getAllByRole("tab").map((t) => t.textContent ?? "");
     // No "All" tab because only one source is present.
     expect(labels.some((l) => l.includes("All"))).toBe(false);
     expect(labels.some((l) => l.includes("App Reviews"))).toBe(true);
@@ -107,9 +103,7 @@ describe("CommunityVoices", () => {
         />
       </MemoryRouter>,
     );
-    const labels = screen
-      .getAllByRole("tab")
-      .map((t) => t.textContent ?? "");
+    const labels = screen.getAllByRole("tab").map((t) => t.textContent ?? "");
     // Two sources (cannabis + app) — All tab should show.
     expect(labels.some((l) => l.includes("All"))).toBe(true);
   });
@@ -141,7 +135,7 @@ describe("CommunityVoices", () => {
     expect(panel!.textContent).toMatch(/Eased my back pain/);
   });
 
-  test("averages Leafly and Allbud ratings into one card when both exist", () => {
+  test("renders a combined Leafly/Allbud card when both have ratings", () => {
     render(
       <MemoryRouter>
         <CommunityVoices
@@ -149,20 +143,26 @@ describe("CommunityVoices", () => {
           strainName="Granddaddy Purple"
           leaflyRating={4.5}
           leaflyReviewCount={13240}
+          weedmapsRating={4.3}
+          weedmapsReviewCount={612}
           allbudRating={4.6}
           allbudReviewCount={84}
         />
       </MemoryRouter>,
     );
-    // (4.5 + 4.6) / 2 = 4.55 → 4.6, shown as one blended card.
     const body = document.body.textContent ?? "";
+    // Per-column source labels above the stars.
+    expect(body).toContain("Leafly");
+    expect(body).toContain("Allbud");
+    // Weedmaps keeps its own card.
+    expect(body).toContain("Weedmaps");
+    // All ratings + counts are rendered.
+    expect(body).toContain("4.5");
+    expect(body).toContain("4.3");
     expect(body).toContain("4.6");
-    expect(body).toContain("Average Leafly & Allbud rating");
-    // The blended card carries no per-source count label (the summary
-    // prose may still mention Leafly's 13,240 separately — that's the
-    // sentiment blurb, not the rating card).
-    expect(body).not.toContain("13,240 Leafly reviews");
-    expect(body).not.toContain("84 Allbud reviews");
+    expect(body).toContain("13,240 reviews");
+    expect(body).toContain("612 reviews");
+    expect(body).toContain("84 reviews");
   });
 
   test("shows a single source's rating verbatim when only Leafly exists", () => {
@@ -178,6 +178,6 @@ describe("CommunityVoices", () => {
     );
     const body = document.body.textContent ?? "";
     expect(body).toContain("4.5");
-    expect(body).toContain("13,240 Leafly reviews");
+    expect(body).toContain("13,240 reviews");
   });
 });

@@ -1,0 +1,154 @@
+// Groq Chat Completions client + JSON extraction helpers.
+//
+// We use the OpenAI-compatible endpoint at api.groq.com/openai/v1.
+// The default model is Groq's GPT-OSS-120B (openai/gpt-oss-120b), which supports
+// the `response_format: json_object` mode we lean on for clean output. The
+// initial single-strain description uses GPT-OSS-20B; see the model constants
+// below for the deliberate routing split.
+//
+// All callers in this codebase demand strict JSON, so we always send
+// `response_format: { type: "json_object" }`. The system prompts already
+// instruct the model to "Respond with ONLY a single JSON object", which
+// is a prerequisite for that mode.
+
+import { HttpsError } from "firebase-functions/v2/https";
+
+export const GROQ_MODEL = "openai/gpt-oss-120b";
+export const GROQ_DESCRIPTION_MODEL = "openai/gpt-oss-20b";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+export type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+/**
+ * Build the stable portion of a chat completion request. Groq prompt caching
+ * is automatic, so the important part is keeping the reusable system prefix
+ * before the variable user content in `messages`.
+ */
+export function groqRequestBody(
+  model: string,
+  messages: ChatMessage[],
+): Record<string, unknown> {
+  return {
+    model,
+    messages,
+    temperature: 0.4,
+    max_tokens: 2200,
+    response_format: { type: "json_object" },
+  };
+}
+
+export async function callGroq(
+  apiKey: string,
+  messages: ChatMessage[],
+  model: string = GROQ_MODEL,
+): Promise<string> {
+  if (!apiKey) {
+    throw new HttpsError(
+      "failed-precondition",
+      "The Groq API key is missing. Run `firebase functions:secrets:set GROQ_API_KEY` and redeploy.",
+    );
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(groqRequestBody(model, messages)),
+    });
+  } catch {
+    throw new HttpsError(
+      "unavailable",
+      "Could not reach our research service. Please try again in a moment.",
+    );
+  }
+
+  const data = (await res.json().catch(() => null)) as {
+    error?: { message?: string };
+    message?: string;
+    choices?: { message?: { content?: string } }[];
+  } | null;
+
+  if (!res.ok) {
+    const detail =
+      data?.error?.message ?? data?.message ?? `status ${res.status}`;
+    throw new HttpsError(
+      "internal",
+      `Our research service returned an error: ${detail}`,
+    );
+  }
+
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || content.trim() === "") {
+    throw new HttpsError(
+      "internal",
+      "Our research service returned an empty response. Please try again.",
+    );
+  }
+  return content;
+}
+
+/**
+ * Sanitize a string by replacing em dashes with en dashes to ensure
+ * consistent rendering across all platforms. AI models sometimes generate
+ * em dashes in their responses.
+ */
+function sanitizeString(str: string): string {
+  return str.replace(/\u2014/g, "\u2013"); // em dash → en dash
+}
+
+/**
+ * Recursively sanitize all string values in a JSON object.
+ * Applied after parsing to catch em dashes that slip through in any field.
+ */
+function sanitizeObject(obj: unknown): unknown {
+  if (typeof obj === "string") {
+    return sanitizeString(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeObject);
+  }
+  if (obj !== null && typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = sanitizeObject(value);
+    }
+    return result;
+  }
+  return obj;
+}
+
+/**
+ * Extract a JSON object from a model response, tolerating stray text,
+ * markdown fences, and `<think>` tags. Even though we request JSON
+ * mode from Groq, the helper stays defensive in case a future model
+ * slips a preamble or reasoning block in. All string values are
+ * sanitized to replace em dashes with en dashes.
+ */
+export function extractJsonObject(content: string): unknown | null {
+  const stripped = content
+    .replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, "")
+    .trim();
+  try {
+    const parsed = JSON.parse(stripped);
+    return sanitizeObject(parsed);
+  } catch {
+    const start = stripped.indexOf("{");
+    const end = stripped.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      try {
+        const parsed = JSON.parse(stripped.slice(start, end + 1));
+        return sanitizeObject(parsed);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}

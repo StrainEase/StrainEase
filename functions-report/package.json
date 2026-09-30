@@ -1,0 +1,28 @@
+{
+  "name": "functions-report",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StrainEase report/PDF backend — clinician report PDF generation. Split out of the public functions codebase so the Puppeteer/Chromium cold-start cost does not hit every public scraper callable.",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^131.0.0",
+    "firebase-admin": "^14.2.0",
+    "firebase-functions": "^7.3.2",
+    "puppeteer-core": "^23.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,9 +1,11 @@
 import { AppHeader, AppTabBar } from "@/components/home/AppHeader";
 import { StrainNoteIndicator } from "@/components/saved/StrainNoteIndicator";
 import { Seo } from "@/components/Seo";
+import { StrainImage } from "@/components/strain/StrainImage";
+import { getPhotoURL } from "@/lib/strain-catalog";
+import { TerpeneDetailSkeleton } from "@/components/strain/TerpeneDetailSkeleton";
 import { MeshBackground } from "@/components/theme/MeshBackground";
 import { Badge } from "@/components/ui/badge";
-import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { usePopularStrains } from "@/hooks/use-popular-strains";
 import { applyCatalogPhotos } from "@/lib/strain-catalog";
 import { terpeneDescription, terpeneJsonLd } from "@/lib/seo";
@@ -14,13 +16,14 @@ import {
   terpeneProfile,
   strainsWithTerpene,
 } from "@/lib/terpenes";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeft, ChevronRight } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link, useParams } from "react-router";
 import { slugify } from "@/lib/saved-strains";
 import type { StrainProfile } from "@/lib/strain-profile";
 
 export default function Terpene() {
+  const reduce = useReducedMotion();
   const { slug = "" } = useParams();
   const { popular, isLoading } = usePopularStrains();
 
@@ -51,17 +54,26 @@ export default function Terpene() {
             Home
           </Link>
           <p className="rounded-2xl border border-border/70 bg-card p-6 text-sm text-muted-foreground">
-            We don't have a profile for that terpene yet. Try one of the
-            curated ones like{" "}
-            <Link to="/terpene/myrcene" className="text-primary hover:underline">
+            We don't have a profile for that terpene yet. Try one of the curated
+            ones like{" "}
+            <Link
+              to="/terpene/myrcene"
+              className="text-primary hover:underline"
+            >
               myrcene
             </Link>
             ,{" "}
-            <Link to="/terpene/limonene" className="text-primary hover:underline">
+            <Link
+              to="/terpene/limonene"
+              className="text-primary hover:underline"
+            >
               limonene
             </Link>
             , or{" "}
-            <Link to="/terpene/linalool" className="text-primary hover:underline">
+            <Link
+              to="/terpene/linalool"
+              className="text-primary hover:underline"
+            >
               linalool
             </Link>
             .
@@ -158,7 +170,7 @@ export default function Terpene() {
           </div>
           {isLoading && matches.length === 0 ? (
             <div className="mt-4">
-              <SkeletonLines variant="strain-card" />
+              <TerpeneDetailSkeleton />
             </div>
           ) : matches.length === 0 ? (
             <p className="mt-4 rounded-2xl border border-dashed border-border/70 bg-card p-6 text-sm text-muted-foreground">
@@ -171,9 +183,13 @@ export default function Terpene() {
               {matches.map((strain, index) => (
                 <motion.li
                   key={strain.name}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={reduce ? false : { opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.04, 0.4) }}
+                  transition={
+                    reduce
+                      ? { duration: 0 }
+                      : { delay: Math.min(index * 0.04, 0.4) }
+                  }
                 >
                   <TerpeneStrainRow strain={strain} />
                 </motion.li>
@@ -191,10 +207,17 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
   return (
     <Link
       to={`/strain/${slugify(strain.name)}`}
-      className="flex items-start gap-3 rounded-2xl border border-border/70 bg-card p-4 transition-colors hover:border-primary/40"
+      className="group flex items-start gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:border-primary/40"
     >
-      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        <Sparkles className="size-5" />
+      <div className="size-12 shrink-0 overflow-hidden rounded-xl bg-primary/10">
+        <StrainImage
+          src={strain.imageUrl}
+          fallbackSrc={getPhotoURL(strain.name)}
+          alt={strain.name}
+          type={strain.type}
+          className="size-12 rounded-xl"
+          iconClassName="size-5"
+        />
       </div>
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 truncate text-sm font-semibold tracking-tight">
@@ -211,7 +234,7 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
             {strain.effects.slice(0, 3).map((effect) => (
               <span
                 key={effect.name}
-                className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground"
+                className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium capitalize text-secondary-foreground"
               >
                 {effect.name}
               </span>
@@ -219,6 +242,7 @@ function TerpeneStrainRow({ strain }: { strain: StrainProfile }) {
           </div>
         )}
       </div>
+      <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }

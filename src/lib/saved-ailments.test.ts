@@ -3,9 +3,10 @@ import { AILMENTS_MAX, normalizeAilments } from "./saved-ailments";
 
 describe("normalizeAilments", () => {
   test("trims whitespace and drops empty entries", () => {
-    expect(
-      normalizeAilments(["  Anxiety ", "", "   ", "Insomnia"]),
-    ).toEqual(["Anxiety", "Insomnia"]);
+    expect(normalizeAilments(["  Anxiety ", "", "   ", "Insomnia"])).toEqual([
+      "Anxiety",
+      "Insomnia",
+    ]);
   });
 
   test("dedupes case-insensitively, keeping the first spelling", () => {
