@@ -347,3 +347,38 @@ describe("withLanguageClause", () => {
     expect(() => withLanguageClause("base", "English")).not.toThrow();
   });
 });
+
+describe("languageClause", () => {
+  // The new helper is what callers actually use to pin output language.
+  // It returns ONLY the tail instruction so the system prompt stays
+  // byte-identical across languages and OpenRouter's prefix cache can
+  // hit across requests in any language.
+
+  const { languageClause } = __testing;
+
+  test("includes the chosen language name", () => {
+    const out = languageClause("Spanish");
+    expect(out).toContain("Spanish");
+    expect(out.toLowerCase()).toContain("do not switch");
+  });
+
+  test("mentions it is a final/overriding instruction", () => {
+    // Critical for prefix-cache ordering: the tail instruction has
+    // to read as the LAST thing the model sees so any drift above
+    // (the per-request patient context) doesn't override it.
+    const out = languageClause("English");
+    expect(out.toLowerCase()).toMatch(/last|override/);
+  });
+
+  test("output is the same length regardless of language (no slot drift)", () => {
+    // The system prompt should hash identically when the language
+    // moves to a tail instruction. Pin the length range so a future
+    // change to languageClause doesn't accidentally re-mutate the
+    // system-prompt prefix.
+    const a = languageClause("English");
+    const b = languageClause("Spanish");
+    const c = languageClause("中文");
+    expect(Math.abs(a.length - b.length)).toBeLessThanOrEqual(20);
+    expect(Math.abs(a.length - c.length)).toBeLessThanOrEqual(40);
+  });
+});

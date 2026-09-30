@@ -1364,6 +1364,11 @@ async function comparePrompt(
     strains.map((s) => s.name),
     redditFallback,
   );
+  // Ordering: instruction header + condition focus + strain data +
+  // reddit seeds FIRST (mostly stable per request, the bulk of the
+  // tokens), then patient context LAST so the upstream prefix cache
+  // can hit across patients on the same (strain set, condition)
+  // tuple. The language clause is appended by the caller.
   return [
     "Compare the following cannabis strains for a patient deciding which one to try.",
     `Condition focus: ${
@@ -1371,13 +1376,15 @@ async function comparePrompt(
         ? conditions.join(", ")
         : "none — give a general comparison focused on patient symptom relief"
     }`,
-    prefsBlock(prefs),
     "",
     "Strain data (Leafly + WeedMaps, with Reddit quotes when found):",
     compactJson(payload),
     "",
     "Vetted Reddit threads (pick from this list only — copy url / subreddit / title verbatim). If citing one, use id `reddit-<thread-id>` and the exact thread URL:",
     compactJson(redditSeeds),
+    "",
+    "Patient context (per-request, last in this prompt so the strain-data + reddit-seeds prefix can cache across patients):",
+    prefsBlock(prefs),
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
@@ -1386,7 +1393,6 @@ async function comparePrompt(
 function recommendPrompt(
   strains: StrainProfile[],
   conditions: string[],
-  potency: string | undefined,
   prefs?: ResearchPrefs,
 ): string {
   const payload = strains.map((s) =>
@@ -1407,19 +1413,28 @@ function recommendPrompt(
     strainNames: strains.map((s) => s.name),
     limit: 8,
   });
+  // Ordering: instruction header + conditions + strain data + reddit
+  // seeds FIRST (the bulk of tokens, stable per request), then patient
+  // context LAST so the upstream prefix cache can hit across patients
+  // on the same (conditions, strain set) tuple. The language clause
+  // is appended by the caller.
+  //
+  // THC band preference is intentionally absent here — it lives on
+  // `prefs.thcSensitivity` (handled in the patient context block)
+  // so we don't double-print the same signal at the head and tail
+  // of the prompt.
   return [
     "Recommend the best cannabis strains for a patient treating these symptoms:",
     conditions.join(", "),
-    potency
-      ? `Potency preference: ${POTENCY_LABELS[potency]}.`
-      : "Potency preference: none — pick whatever potency fits the symptoms best.",
-    prefsBlock(prefs),
     "",
     "Strain data (full Leafly profiles — type, potency, medical uses, effects, reviews):",
     compactJson(payload),
     "",
     "Vetted Reddit threads (pick from this list only — copy url / subreddit / title verbatim):",
     compactJson(redditSeeds),
+    "",
+    "Patient context (per-request, last in this prompt so the strain-data + reddit-seeds prefix can cache across patients):",
+    prefsBlock(prefs),
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
@@ -1713,11 +1728,13 @@ export const compareStrains = onCall(
       [
         {
           role: "system",
-          content: withLanguageClause(COMPARE_SYSTEM_PROMPT, language),
+          content: COMPARE_SYSTEM_PROMPT,
         },
         {
           role: "user",
-          content: await comparePrompt(strains, condition, prefs),
+          content: `${await comparePrompt(strains, condition, prefs)}
+
+${languageClause(language)}`,
         },
       ],
       OPENROUTER_MODEL,
@@ -1787,11 +1804,13 @@ export const recommendStrainsForConditions = onCall(
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
       {
         role: "system",
-        content: withLanguageClause(RECOMMEND_SYSTEM_PROMPT, language),
+        content: RECOMMEND_SYSTEM_PROMPT,
       },
       {
         role: "user",
-        content: recommendPrompt(detailed, conditions, potency, prefs),
+        content: `${recommendPrompt(detailed, conditions, prefs)}
+
+${languageClause(language)}`,
       },
     ];
 
@@ -2131,6 +2150,10 @@ export function describePrompt(
   thcSensitivity?: string,
 ): string {
   const payload = describeStrainPayload(strain);
+  // Ordering: instruction header + strain data FIRST (the bulk of
+  // tokens, stable per strain), then the per-patient context LAST
+  // so the upstream prefix cache can hit across patients on the
+  // same strain name. The language clause is appended by the caller.
   const contextLines: string[] = [];
   contextLines.push(
     ailments.length > 0
@@ -2158,12 +2181,14 @@ export function describePrompt(
   }
   return [
     "Write a patient-facing description for this cannabis strain.",
-    ...contextLines,
     "",
     "Strain data:",
     compactJson(payload),
     "",
     'Strains marked "noCuratedProfile": true were not found on Leafly or Weedmaps. Research them from your knowledge of how they are commonly described on Leafly, Weedmaps, Reddit, Google, and dispensary menus, and be explicit in the "Overview" when a detail is a commonly-reported figure rather than a verified lab result.',
+    "",
+    "Patient context (per-request, last in this prompt so the strain-data prefix can cache across patients):",
+    ...contextLines,
     "",
     "Return only the JSON object described in your instructions.",
   ].join("\n");
@@ -2380,12 +2405,37 @@ function parseOutputLanguage(value: unknown): string {
  * not switch into any other language (we have seen random Chinese and
  * Korean show up for strains with international names).
  */
-function withLanguageClause(base: string, language: string): string {
+/**
+ * Pin a request to a single output language. Returns the *tail*
+ * instruction that callers append to the END of the user prompt so
+ * that the system-prompt prefix is identical across every language
+ * and OpenRouter's prefix cache can hit across requests in any
+ * language.
+ *
+ * Kept as a tail instruction (rather than appended to the system
+ * prompt) because the upstream cache uses strict prefix matching in
+ * the order tool list → system prompts → user messages — any change
+ * to the system prompt invalidates the cache for every conversation
+ * that shares it. By moving the language pin to the tail of the
+ * user message we keep `COMPARE_SYSTEM_PROMPT`,
+ * `RECOMMEND_SYSTEM_PROMPT`, etc. byte-identical for every call and
+ * only the tail of the (already dynamic) user message changes.
+ */
+export function languageClause(language: string): string {
   return (
-    `${base}\n\n` +
-    `Language pinning:\n` +
+    `Language pinning (last instruction — overrides anything above):\n` +
     `- Write the entire response in ${language}. Do not switch into any other language, even briefly — including proper nouns, examples, or strain names; transliterate or translate foreign-language text instead of copying it verbatim.`
   );
+}
+
+/**
+ * @deprecated Use `languageClause(language)` and append it to the
+ * tail of the user prompt instead. Kept exported because older call
+ * sites still reference it; new code should NOT mutate the system
+ * prompt with language.
+ */
+export function withLanguageClause(base: string, language: string): string {
+  return `${base}\n\n${languageClause(language)}`;
 }
 
 /** Exposed for tests. */
@@ -2489,17 +2539,19 @@ export const describeStrainForUser = onCall(
       [
         {
           role: "system",
-          content: withLanguageClause(DESCRIBE_SYSTEM_PROMPT, language),
+          content: DESCRIBE_SYSTEM_PROMPT,
         },
         {
           role: "user",
-          content: describePrompt(
+          content: `${describePrompt(
             safeStrain,
             ailments,
             medications,
             reliefHistory,
             thcSensitivity,
-          ),
+          )}
+
+${languageClause(language)}`,
         },
       ],
       OPENROUTER_MODEL,
@@ -2675,18 +2727,20 @@ export const elaborateSection = onCall(
       [
         {
           role: "system",
-          content: withLanguageClause(ELABORATE_SECTION_SYSTEM_PROMPT, language),
+          content: ELABORATE_SECTION_SYSTEM_PROMPT,
         },
         {
           role: "user",
-          content: elaborateSectionPrompt(
+          content: `${elaborateSectionPrompt(
             safeStrain,
             heading,
             body,
             ailments,
             medications,
             reliefHistory,
-          ),
+          )}
+
+${languageClause(language)}`,
         },
       ],
       OPENROUTER_MODEL,
@@ -2715,4 +2769,5 @@ export const __testing = {
   parseOutputLanguage,
   parseElaboration,
   withLanguageClause,
+  languageClause,
 };
