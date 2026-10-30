@@ -66,16 +66,18 @@ import {
 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { db } from "@/lib/firebase";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useStrainImage } from "@/hooks/use-strain-image";
+import { readNavigatedProfile } from "@/lib/navigated-profile";
 import { cn } from "@/lib/utils";
 
 export default function Strain() {
   const reduce = useReducedMotion();
   const { slug = "" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, user } = useAuth();
   const compare = useCompareSelection();
   const { logs } = useReliefSummary();
@@ -94,6 +96,13 @@ export default function Strain() {
 
   const catalogHit = CATALOG.find((item) => slugify(item.name) === slug);
   const featuredProfile = getFeaturedStrainProfile(slug);
+  // The profile the user clicked on the home screen, carried through
+  // the router state. Its photo is the one the home screen already
+  // fetched and cached on device, so the strain page paints that same
+  // photo straight away instead of resolving a second URL and paying
+  // for the image again.
+  const navigatedProfile = readNavigatedProfile(location.state, slug);
+  const homeImageUrl = navigatedProfile?.imageUrl;
 
   useEffect(() => {
     let cancelled = false;
@@ -285,8 +294,10 @@ export default function Strain() {
               aria-label="View full-size photo"
             >
               <StrainImage
-                src={profile?.imageUrl}
-                fallbackSrc={getPhotoURL(profile?.name ?? "")}
+                src={homeImageUrl ?? profile?.imageUrl}
+                fallbackSrc={
+                  profile?.imageUrl ?? getPhotoURL(profile?.name ?? "")
+                }
                 alt={`${displayName} flower`}
                 type={profile?.type}
                 className="h-full w-full"
@@ -299,7 +310,7 @@ export default function Strain() {
               </span>
             </button>
             <PhotoZoomDialog
-              src={profile?.imageUrl}
+              src={homeImageUrl ?? profile?.imageUrl}
               alt={`${displayName} flower`}
               open={photoZoomOpen}
               onOpenChange={setPhotoZoomOpen}
