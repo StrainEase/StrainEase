@@ -1786,7 +1786,22 @@ export const recommendStrainsForConditions = onCall(
       import("./types").RecommendationResult
     >("recommendCache", cacheHash);
     if (cached) {
-      return { ...cached.result, resultId: undefined };
+      // The answer comes from the cache, but the patient still ran the
+      // search, so the run belongs in their research journal. Persisting
+      // is best-effort and costs one document write; the cached answer
+      // itself is never re-fetched from the model.
+      let cachedResultId: string | undefined;
+      try {
+        cachedResultId = await persistResult({
+          kind: "find",
+          args: { conditions, potency, prefs },
+          result: cached.result,
+          uid: request.auth?.uid ?? null,
+        });
+      } catch {
+        // Persistence is best-effort — the recommendation still returns.
+      }
+      return { ...cached.result, resultId: cachedResultId };
     }
 
     // Wall-clock budget for the whole pipeline. The callable timeout
