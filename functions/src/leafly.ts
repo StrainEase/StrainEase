@@ -617,11 +617,6 @@ export async function fetchAllStrains(): Promise<StrainProfile[]> {
 }
 
 /**
- * Internal: scrape Leafly's strain directory only. Exposed so callers that
- * want a single-source view (or want to test the merge in isolation) can
- * reach it directly.
- */
-/**
  * One page of the Leafly strain directory, parsed into profiles.
  *
  * Page 1 carries the dozen strains the Discover tab ranks against, so
@@ -652,6 +647,11 @@ export async function fetchLeaflyDirectoryPage(
   return out;
 }
 
+/**
+ * Internal: scrape Leafly's strain directory only. Exposed so callers that
+ * want a single-source view (or want to test the merge in isolation) can
+ * reach it directly.
+ */
 async function fetchAllLeaflyDirectoryStrains(): Promise<StrainProfile[]> {
   const seen = new Set<string>();
   const out: StrainProfile[] = [];
