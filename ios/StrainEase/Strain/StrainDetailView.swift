@@ -367,15 +367,22 @@ struct StrainDetailView: View {
         defer { isHydrating = false }
         do {
             guard var full = try await api.search(name: profile.name, conditions: ailments.ailments) else { return }
-            // Backend often omits imageUrl. Keep the local nug shot, then
-            // fill from the catalog so every Home rail (not just recents)
-            // still shows a photo after hydrate.
-            if (full.imageUrl?.isEmpty ?? true),
-               let local = profile.imageUrl,
-               !local.isEmpty {
-                full.imageUrl = local
-            }
+            // Keep the photo the user is already looking at. The Home
+            // tab fetched it and it sits in the shared `URLCache`, so
+            // holding on to that URL means the detail page paints the
+            // same nug shot instantly instead of pulling a second copy
+            // of the same flower after the search returns.
+            //
+            // `applyingCatalogPhoto` still runs first: it fills in the
+            // medical uses and, for strains with no image at all, the
+            // curated photo. Our own URL then wins so the page keeps
+            // the picture the Home tab already loaded. `StrainPhoto`
+            // falls back to the catalog photo if that URL is dead.
+            let localImageUrl = profile.imageUrl
             full = StrainCatalog.applyingCatalogPhoto(full)
+            if let localImageUrl, !localImageUrl.isEmpty {
+                full.imageUrl = localImageUrl
+            }
             profile = full
             recents.record(full)
         } catch {
