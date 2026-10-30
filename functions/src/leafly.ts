@@ -617,6 +617,37 @@ export async function fetchAllStrains(): Promise<StrainProfile[]> {
 }
 
 /**
+ * One page of the Leafly strain directory, parsed into profiles.
+ *
+ * Page 1 carries the dozen strains the Discover tab ranks against, so
+ * a caller that only needs "the popular strains" can pay for a single
+ * HTTP request instead of the 50-page crawl the full directory warm
+ * does. Returns an empty list when Leafly is unreachable or the page
+ * shape changed — callers treat that as "no candidates" rather than
+ * as an error.
+ */
+export async function fetchLeaflyDirectoryPage(
+  page = 1,
+): Promise<StrainProfile[]> {
+  const path = page <= 1 ? "/strains" : `/strains?page=${page}`;
+  let html: string;
+  try {
+    html = await fetchLeaflyHtml(path);
+  } catch {
+    return [];
+  }
+  const data = extractNextData(html);
+  const list = (data as RawRecord)?.props?.pageProps?.data?.strains;
+  if (!Array.isArray(list)) return [];
+  const out: StrainProfile[] = [];
+  for (const raw of list) {
+    const p = popularToProfile(raw);
+    if (p.name) out.push(p);
+  }
+  return out;
+}
+
+/**
  * Internal: scrape Leafly's strain directory only. Exposed so callers that
  * want a single-source view (or want to test the merge in isolation) can
  * reach it directly.
@@ -630,22 +661,11 @@ async function fetchAllLeaflyDirectoryStrains(): Promise<StrainProfile[]> {
     // 200ms pause between requests — polite to Leafly's servers
     if (page > 0) await delay(200);
 
-    const path = page === 0 ? "/strains" : `/strains?page=${page + 1}`;
-    let html: string;
-    try {
-      html = await fetchLeaflyHtml(path);
-    } catch {
-      break; // No more pages available
-    }
-
-    const data = extractNextData(html);
-    const list = (data as RawRecord)?.props?.pageProps?.data?.strains;
-    if (!Array.isArray(list) || list.length === 0) break;
+    const entries = await fetchLeaflyDirectoryPage(page + 1);
+    if (entries.length === 0) break;
 
     let newCount = 0;
-    for (const raw of list) {
-      const p = popularToProfile(raw);
-      if (!p.name) continue;
+    for (const p of entries) {
       const key = p.name.toLowerCase().trim();
       if (!seen.has(key)) {
         seen.add(key);
