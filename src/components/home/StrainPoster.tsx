@@ -30,6 +30,12 @@ export function StrainPoster({
   return (
     <Link
       to={href}
+      // Carry the profile through the navigation so the strain page
+      // can paint the exact photo this card just loaded instead of
+      // resolving a different URL and fetching the image again. The
+      // photo is keyed by URL in the on-device blob cache, so the same
+      // URL renders instantly on the strain page.
+      state={{ profile }}
       onClick={() => recordRecentlyViewed(profile)}
       className={cn("group flex min-w-0 flex-col gap-2 text-left", className)}
     >
