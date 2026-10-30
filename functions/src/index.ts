@@ -41,7 +41,7 @@ import {
 } from "./doctors";
 import {
   fetchAllStrains,
-  fetchPopular,
+  fetchLeaflyDirectoryPage,
   fetchProfiles,
   toPreview,
   type StrainPreview,
@@ -49,6 +49,15 @@ import {
 import { cachedFetchImage, imageCacheKey } from "./image-cache";
 import { extractJsonObject } from "./ai-json";
 import { callOpenRouter, OPENROUTER_MODEL } from "./openrouter";
+import {
+  clampBudget,
+  normalizeReasoning,
+  normalizeRecommendations,
+  recommendCacheKey,
+  RECOMMEND_BUDGET_MS,
+  RECOMMEND_ENRICH_RESERVE_MS,
+  RECOMMEND_TOPUP_RESERVE_MS,
+} from "./recommend-core";
 import { matchRedditSeeds } from "./reddit-seed";
 import {
   buildVettedWrite,
@@ -74,11 +83,9 @@ import type {
   Citation,
   RecommendationResult,
   RedditSource,
-  ReasoningEvidenceItem,
   StrainAnalysis,
   StrainComparison,
   StrainProfile,
-  StrainRecommendation,
 } from "./types";
 
 export const OPENROUTER_API_KEY = defineSecret("OPENROUTER_API_KEY");
@@ -86,6 +93,20 @@ export const OPENROUTER_API_KEY = defineSecret("OPENROUTER_API_KEY");
 const AI_OPTIONS: CallableOptions = {
   secrets: [OPENROUTER_API_KEY],
   timeoutSeconds: 120,
+  memory: "512MiB",
+};
+
+/**
+ * The Discover (recommend) callable runs the longest pipeline of any
+ * AI call: candidate fetch, a ranking call, a possible top-up call,
+ * then the per-strain enrichment pass. Two OpenRouter calls plus the
+ * enrichment do not fit in the shared 120-second budget, so this
+ * callable gets its own, longer deadline and an internal wall-clock
+ * budget (`RECOMMEND_BUDGET_MS`) that keeps the pipeline inside it.
+ */
+const RECOMMEND_OPTIONS: CallableOptions = {
+  secrets: [OPENROUTER_API_KEY],
+  timeoutSeconds: 240,
   memory: "512MiB",
 };
 
@@ -153,11 +174,46 @@ async function writePopularListCache(previews: StrainPreview[]): Promise<void> {
     // silently dropped at the Firestore serializer, so this catch should
     // be near-dead — anything that does land here is a real bug worth
     // knowing about.
-    console.error(
-      "[warmStrainDirectory] Firestore write failed:",
-      err,
-    );
+    console.error("[warmStrainDirectory] Firestore write failed:", err);
   }
+}
+
+/**
+ * Candidate strain names for the Discover ranking pass.
+ *
+ * The old code called `fetchPopular()`, which crawls the ENTIRE Leafly
+ * directory (up to 50 pages, 200 ms apart) plus the whole Allbud
+ * catalogue — minutes of scraping — and then threw all of it away
+ * except the first dozen names. On a cold cache that blew straight
+ * past the callable's deadline and the Discover tab died with a
+ * "took too long" error.
+ *
+ * Two cheaper sources, in order:
+ *   1. The Firestore popular-list cache the daily `warmStrainDirectory`
+ *      job writes. One read, no network.
+ *   2. One page of the Leafly directory. One HTTP request.
+ *
+ * The full crawl still runs on the schedule, where it belongs.
+ */
+async function popularCandidateNames(): Promise<string[]> {
+  const cache = await readPopularListCache();
+  if (cache && cache.previews.length > 0) {
+    // Register the catalog names while we are here so the canonical
+    // name lookup below answers with the spelling Leafly uses
+    // ("Blue Dream", "GG4") instead of a re-cased guess.
+    seedCatalogFromPreviews(cache.previews);
+    return cache.previews
+      .slice(0, 12)
+      .map((p) => p.name)
+      .filter(
+        (name): name is string => typeof name === "string" && name !== "",
+      );
+  }
+  const firstPage = await fetchLeaflyDirectoryPage(1);
+  return firstPage
+    .slice(0, 12)
+    .map((p) => p.name)
+    .filter((name): name is string => typeof name === "string" && name !== "");
 }
 
 /**
@@ -1062,12 +1118,6 @@ function asStringArray(value: unknown): string[] {
     : [];
 }
 
-const POTENCY_LABELS: Record<string, string> = {
-  mild: "mild (THC under roughly 15%)",
-  balanced: "balanced (THC roughly 15-22%)",
-  strong: "strong (THC above roughly 22%)",
-};
-
 type ResearchPrefs = {
   timeOfDay?: string;
   consumeForm?: string;
@@ -1573,96 +1623,13 @@ function parseAnalysis(content: string): StrainAnalysis {
   };
 }
 
-function normalizeRecommendations(value: unknown): StrainRecommendation[] {
-  if (!Array.isArray(value)) return [];
-  const seen = new Set<string>();
-  const out: StrainRecommendation[] = [];
-  for (const item of value) {
-    const r = (item ?? {}) as Record<string, unknown>;
-    const name = typeof r.strainName === "string" ? r.strainName.trim() : "";
-    if (name === "") continue;
-    const key = name.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push({
-      strainName: name,
-      reason: typeof r.reason === "string" ? r.reason.trim() : "",
-      bestFor: typeof r.bestFor === "string" ? r.bestFor.trim() : "",
-      caution: typeof r.caution === "string" ? r.caution.trim() : "",
-      reasoning: normalizeReasoning(r.reasoning),
-    });
-  }
-  return out.slice(0, 6);
-}
-
-/**
- * Parse the model's `reasoning` block. The model emits it for every
- * recommendation in the new prompt; older model versions and a few edge
- * cases (e.g. JSON truncation) won't have it, in which case we return
- * undefined and the UI hides the trace.
- */
-function normalizeReasoning(value: unknown): StrainRecommendation["reasoning"] {
-  if (!value || typeof value !== "object") return undefined;
-  const r = value as Record<string, unknown>;
-  const evidenceRaw = Array.isArray(r.evidence) ? r.evidence : [];
-  const evidence: { source: ReasoningEvidenceItem["source"]; quote: string }[] =
-    [];
-  for (const item of evidenceRaw) {
-    if (!item || typeof item !== "object") continue;
-    const i = item as Record<string, unknown>;
-    const source = i.source;
-    const quote = typeof i.quote === "string" ? i.quote.trim() : "";
-    if (quote === "") continue;
-    if (
-      source !== "Leafly" &&
-      source !== "Weedmaps" &&
-      source !== "Allbud" &&
-      source !== "Reddit" &&
-      source !== "Aggregated" &&
-      source !== "Patient history"
-    ) {
-      // Unknown source — keep the quote but tag as Aggregated so the
-      // client can still show it without inventing a label.
-      evidence.push({ source: "Aggregated", quote });
-      continue;
-    }
-    evidence.push({ source, quote });
-    if (evidence.length >= 6) break;
-  }
-  if (evidence.length === 0) return undefined;
-  return {
-    matchedConditions: clampStringList(r.matchedConditions, 8, 80),
-    preferencesApplied: clampStringList(r.preferencesApplied, 8, 120),
-    evidence,
-    considerations: clampStringList(r.considerations, 4, 200),
-  };
-}
-
-function clampStringList(
-  value: unknown,
-  maxItems: number,
-  maxLen: number,
-): string[] {
-  if (!Array.isArray(value)) return [];
-  const out: string[] = [];
-  for (const item of value) {
-    if (typeof item !== "string") continue;
-    const trimmed = item.trim().slice(0, maxLen);
-    if (trimmed === "") continue;
-    out.push(trimmed);
-    if (out.length >= maxItems) break;
-  }
-  return out;
-}
-
 /**
  * Compare 2-3 strains side by side. Auth required: the caller must be signed
  * in (request.auth is populated by Firebase from the client's ID token).
  * Guest callers (no auth) go through the IP rate limit instead. The client
  * already gates everything behind the local age gate, so the AI callable
  * trusts the caller's auth and doesn't re-check the custom claim.
- */
-export const compareStrains = onCall(
+ */ export const compareStrains = onCall(
   AI_OPTIONS,
   async (request): Promise<StrainComparison & { resultId?: string }> => {
     if (!request.auth) {
@@ -1742,7 +1709,12 @@ ${languageClause(language)}`,
 
     const analysis = parseAnalysis(content);
     const payload = { strains, analysis };
-    await putCachedAiResult("compareCache", cacheHash, payload, OPENROUTER_MODEL);
+    await putCachedAiResult(
+      "compareCache",
+      cacheHash,
+      payload,
+      OPENROUTER_MODEL,
+    );
     let resultId: string | undefined;
     try {
       resultId = await persistResult({
@@ -1760,7 +1732,7 @@ ${languageClause(language)}`,
 
 /** Find the best strains for a patient's symptoms. */
 export const recommendStrainsForConditions = onCall(
-  AI_OPTIONS,
+  RECOMMEND_OPTIONS,
   async (request): Promise<RecommendationResult & { resultId?: string }> => {
     if (!request.auth) {
       try {
@@ -1796,12 +1768,48 @@ export const recommendStrainsForConditions = onCall(
     const prefs = parsePrefs(data.prefs);
     const language = parseOutputLanguage(data.language);
 
-    // Rank against full Leafly detail profiles (not the popular-list
-    // summaries) so medical uses, CBD, lineage and side effects are present.
-    const popular = await fetchPopular();
-    const detailed = await fetchProfiles(popular.map((p) => p.name));
+    // Cache key: the conditions (sorted, so "pain, insomnia" and
+    // "insomnia, pain" share an entry), the potency, the full prefs
+    // object, and the pinned output language. Same inputs always
+    // produce the same recommendations, so the cache is global. The
+    // strain data the answer was produced against is not part of the
+    // key — the cached response carries the profiles it was built
+    // from, and a 14-day TTL means a stale profile is refreshed long
+    // before a patient notices.
+    const cacheHash = recommendCacheKey({
+      conditions,
+      potency,
+      prefs,
+      language,
+    });
+    const cached = await getCachedAiResult<
+      import("./types").RecommendationResult
+    >("recommendCache", cacheHash);
+    if (cached) {
+      return { ...cached.result, resultId: undefined };
+    }
 
-    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+    // Wall-clock budget for the whole pipeline. The callable timeout
+    // is 240 s; this leaves room for the response to serialise and for
+    // the platform to close the connection cleanly instead of killing
+    // the instance mid-write. Everything below checks the remaining
+    // budget before starting a slow step, so a slow model call
+    // degrades the answer instead of failing the request.
+    const startedAt = Date.now();
+    const remainingMs = () => RECOMMEND_BUDGET_MS - (Date.now() - startedAt);
+
+    // Rank against full Leafly detail profiles (not the popular-list
+    // summaries) so medical uses, CBD, lineage and side effects are
+    // present. The candidate names come from the cached popular list
+    // (one Firestore read) or a single Leafly directory page — never
+    // the full 50-page crawl, which used to blow the deadline.
+    const candidateNames = await popularCandidateNames();
+    const detailed = await fetchProfiles(candidateNames);
+
+    const messages: Array<{
+      role: "system" | "user" | "assistant";
+      content: string;
+    }> = [
       {
         role: "system",
         content: RECOMMEND_SYSTEM_PROMPT,
@@ -1814,14 +1822,25 @@ ${languageClause(language)}`,
       },
     ];
 
-    let content = await callOpenRouter(
+    // Give the model only the slice of the budget we can still afford,
+    // minus the time we want to keep for the top-up and the enrich
+    // pass. Without this the model call could sit on its own 90 s
+    // timeout and leave nothing for the rest of the pipeline.
+    const mainCallTimeout = clampBudget(
+      remainingMs() - RECOMMEND_TOPUP_RESERVE_MS,
+      15_000,
+      90_000,
+    );
+
+    const content = await callOpenRouter(
       OPENROUTER_API_KEY.value(),
       messages,
       OPENROUTER_MODEL,
+      mainCallTimeout,
     );
-    let parsed = extractJsonObject(content);
+    const parsed = extractJsonObject(content);
     let p = (parsed ?? {}) as Record<string, unknown>;
-    let recommendations = normalizeRecommendations(p.recommendations);
+    const recommendations = normalizeRecommendations(p.recommendations);
     if (recommendations.length === 0) {
       throw new HttpsError(
         "internal",
@@ -1835,13 +1854,20 @@ ${languageClause(language)}`,
     // rather than ship a half-empty page. We ask once, then fail
     // loudly if the model still won't cooperate — silently padding
     // the array with garbage would be worse than retrying.
-    if (recommendations.length < RECOMMEND_TARGET_COUNT) {
+    //
+    // The top-up is skipped when the budget is nearly spent. Skipping
+    // it is strictly better than the deadline killing the request:
+    // the patient gets the picks we have instead of an error, and the
+    // cached entry keeps the next run of the same search instant.
+    const skippedTopup = remainingMs() < RECOMMEND_TOPUP_RESERVE_MS;
+    if (recommendations.length < RECOMMEND_TARGET_COUNT && !skippedTopup) {
       messages.push({ role: "assistant", content });
       messages.push({ role: "user", content: RECOMMEND_TOPUP_PROMPT });
       const topup = await callOpenRouter(
         OPENROUTER_API_KEY.value(),
         messages,
         OPENROUTER_MODEL,
+        clampBudget(remainingMs() - 10_000, 15_000, 60_000),
       );
       const topupParsed = extractJsonObject(topup);
       const tp = (topupParsed ?? {}) as Record<string, unknown>;
@@ -1873,19 +1899,22 @@ ${languageClause(language)}`,
       }
     }
 
-    if (recommendations.length < RECOMMEND_TARGET_COUNT) {
+    if (recommendations.length < RECOMMEND_TARGET_COUNT && !skippedTopup) {
       throw new HttpsError(
         "internal",
         "The research service returned fewer than the recommended strains. Please try again.",
       );
     }
 
+    // Enrichment (per-source consolidation + Reddit quotes + AI
+    // fill-in) is the last slow step. When the budget is spent we
+    // skip it and ship the recommendations without the profile
+    // details — the cards still render, they just carry less detail.
     const names = [...new Set(recommendations.map((r) => r.strainName))];
-    const strains = await enrichProfiles(
-      names,
-      conditions,
-      OPENROUTER_API_KEY.value(),
-    );
+    const strains =
+      remainingMs() > RECOMMEND_ENRICH_RESERVE_MS
+        ? await enrichProfiles(names, conditions, OPENROUTER_API_KEY.value())
+        : [];
 
     const payload: import("./types").RecommendationResult = {
       headline:
@@ -1907,6 +1936,15 @@ ${languageClause(language)}`,
     if (citations.length > 0) {
       payload.citations = citations;
     }
+    // Cache the payload so the next run of the same search skips the
+    // model call entirely. The write is best-effort — a Firestore
+    // outage just means the next cold start re-runs the pipeline.
+    await putCachedAiResult(
+      "recommendCache",
+      cacheHash,
+      payload,
+      OPENROUTER_MODEL,
+    );
     let resultId: string | undefined;
     try {
       resultId = await persistResult({
@@ -2760,6 +2798,11 @@ export const __testing = {
   normalizeDescriptionSections,
   normalizeReasoning,
   normalizeRecommendations,
+  recommendCacheKey,
+  clampBudget,
+  RECOMMEND_BUDGET_MS,
+  RECOMMEND_TOPUP_RESERVE_MS,
+  RECOMMEND_ENRICH_RESERVE_MS,
   COMPARE_SYSTEM_PROMPT,
   RECOMMEND_SYSTEM_PROMPT,
   RECOMMEND_TARGET_COUNT,

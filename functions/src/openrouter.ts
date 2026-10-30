@@ -81,8 +81,11 @@ export function openRouterRequestBody(
   };
 }
 
-/** Timeout in milliseconds for the OpenRouter fetch call. 90 seconds
- *  gives us headroom under Firebase's 120-second function timeout. */
+/** Default timeout in milliseconds for the OpenRouter fetch call. 90
+ *  seconds gives us headroom under Firebase's 120-second function
+ *  timeout. Callers that run inside a longer pipeline (the Discover
+ *  recommend call) pass a smaller budget so one slow model call cannot
+ *  eat the whole request. */
 const FETCH_TIMEOUT_MS = 90_000;
 
 /**
@@ -90,11 +93,17 @@ const FETCH_TIMEOUT_MS = 90_000;
  * raw string content (already JSON-shaped because we set
  * `response_format: json_object`). Throws `HttpsError` on transport
  * failure, non-2xx, timeout, or empty content.
+ *
+ * `timeoutMs` caps how long this single call may take. It exists so a
+ * caller with a wall-clock budget of its own can hand the model only
+ * the slice of that budget it can afford, instead of discovering the
+ * overrun when the function deadline kills the whole request.
  */
 export async function callOpenRouter(
   apiKey: string,
   messages: ChatMessage[],
   model: string = OPENROUTER_MODEL,
+  timeoutMs: number = FETCH_TIMEOUT_MS,
 ): Promise<string> {
   if (!apiKey) {
     throw new HttpsError(
@@ -104,7 +113,7 @@ export async function callOpenRouter(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   let res: Response;
   try {

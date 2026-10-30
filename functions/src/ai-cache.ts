@@ -22,8 +22,13 @@
 // response. Two signed-in users with the same inputs share the same
 // cache entry.
 
-import { createHash } from "node:crypto";
 import { getFirestore } from "firebase-admin/firestore";
+import { computeAiCacheKey } from "./ai-cache-key";
+
+// The hash helper lives in its own module so callers that only need a
+// key can import it without booting the admin SDK. Re-exported here
+// so the existing import sites keep working.
+export { computeAiCacheKey };
 
 /** How long an entry is considered fresh. Strain data and ailment
  *  prompts change on the order of weeks; 14 days is the upper bound on
@@ -53,35 +58,6 @@ export type CachedAiResult<T> = {
   createdAt: number;
   source: AiCacheSource;
 };
-
-/**
- * Deterministic SHA-256 hash of any JSON-serializable input, returned
- * as lowercase hex (64 chars). Keys are sorted at every level so
- * `{a:1,b:2}` and `{b:2,a:1}` produce the same hash. Arrays keep
- * their order — `{ailments:["a","b"]}` and `{ailments:["b","a"]}` are
- * intentionally different cache entries (callers must pre-sort
- * order-sensitive lists like strain names).
- */
-export function computeAiCacheKey(input: unknown): string {
-  return createHash("sha256").update(canonicalize(input)).digest("hex");
-}
-
-function canonicalize(value: unknown): string {
-  if (value === null || typeof value !== "object") {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return "[" + value.map((v) => canonicalize(v)).join(",") + "]";
-  }
-  // Plain object: sort keys for a stable serialization.
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  const parts: string[] = [];
-  for (const k of keys) {
-    parts.push(JSON.stringify(k) + ":" + canonicalize(obj[k]));
-  }
-  return "{" + parts.join(",") + "}";
-}
 
 /** Stats for tests / monitoring. Does not touch Firestore. */
 export function aiCacheStats(): {
