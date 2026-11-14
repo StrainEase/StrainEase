@@ -1,0 +1,22 @@
+name: Firebase / GCP Auth Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  auth-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Check Active Service Account
+        run: gcloud auth list
