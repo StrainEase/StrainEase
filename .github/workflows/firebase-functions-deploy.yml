@@ -104,6 +104,11 @@ jobs:
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
 
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
       # firebase deploy --only functions defaults to --allow-unauthenticated
       # for callables, but a stray `gcloud run services update --no-allow-
       # unauthenticated` call (or a Console IAM change) can drop the
