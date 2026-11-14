@@ -22,12 +22,13 @@ afterEach(() => {
 });
 
 describe("openRouterRequestBody", () => {
-  test("targets the Llama 3.3 70B model on OpenRouter", () => {
+  test("targets the gpt-oss-120b model on OpenRouter", () => {
     const body = openRouterRequestBody(OPENROUTER_MODEL, [
       { role: "system", content: "stable instructions" },
       { role: "user", content: "dynamic strain data" },
     ]);
     expect(body.model).toBe(OPENROUTER_MODEL);
+    expect(OPENROUTER_MODEL).toBe("openai/gpt-oss-120b:nitro");
   });
 
   test("uses the :nitro tier for fastest routing", () => {
@@ -41,7 +42,7 @@ describe("openRouterRequestBody", () => {
     expect(body.response_format).toEqual({ type: "json_object" });
   });
 
-  test("pins provider order to fast upstreams (together + fireworks)", () => {
+  test("pins provider order to fast upstreams (groq + cerebras)", () => {
     const body = openRouterRequestBody(OPENROUTER_MODEL, [
       { role: "user", content: "x" },
     ]);
@@ -49,7 +50,21 @@ describe("openRouterRequestBody", () => {
       order: OPENROUTER_PROVIDER_ORDER,
       allow_fallbacks: true,
     });
-    expect(OPENROUTER_PROVIDER_ORDER).toEqual(["together", "fireworks"]);
+    expect(OPENROUTER_PROVIDER_ORDER).toEqual(["groq", "cerebras"]);
+  });
+
+  test("caps reasoning at low effort and excludes it from the reply", () => {
+    const body = openRouterRequestBody(OPENROUTER_MODEL, [
+      { role: "user", content: "x" },
+    ]);
+    expect(body.reasoning).toEqual({ effort: "low", exclude: true });
+  });
+
+  test("leaves room in max_tokens for reasoning plus the JSON reply", () => {
+    const body = openRouterRequestBody(OPENROUTER_MODEL, [
+      { role: "user", content: "x" },
+    ]);
+    expect(body.max_tokens).toBe(3000);
   });
 });
 

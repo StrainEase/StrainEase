@@ -11,7 +11,7 @@ This project uses the following tech stack:
 - Lucide Icons (for icons)
 - Firebase Auth (for authentication)
 - Cloud Firestore (for saved strains, notes, user data)
-- Firebase Cloud Functions v2 (for Groq AI calls + Leafly scrape; uses Llama 3.3 70B)
+- Firebase Cloud Functions v2 (for OpenRouter AI calls + Leafly scrape; uses gpt-oss-120b)
   - Two Firebase codebases: `functions/` (public scraper + AI) and `functions-report/` (PDF report generation). Split so the Puppeteer/Chromium cold start never hits the public scrapers.
 - Framer Motion (for animations)
 - Three js (for 3d models)
@@ -301,10 +301,10 @@ Source lives in `functions/src/`. Four callables are exported:
 
 - `popularStrains()` — public, no auth, returns Leafly's popular list.
 - `searchStrain({ name })` — public, no auth, returns one Leafly profile.
-- `compareStrains({ strainNames, condition })` — auth required, calls Groq GPT-OSS 120B for synthesis.
-- `recommendStrainsForConditions({ conditions, potency })` — auth required, calls Groq GPT-OSS 120B for synthesis.
-- `describeStrainForUser({ strain, ailments, medications, reliefHistory })` — auth required, calls Groq GPT-OSS 20B with the full strain evidence payload.
-- `elaborateSection({ strain, sectionHeading, sectionBody, ... })` — auth required, calls Groq GPT-OSS 120B for deeper follow-up.
+- `compareStrains({ strainNames, condition })` — auth required, calls OpenRouter gpt-oss-120b for synthesis.
+- `recommendStrainsForConditions({ conditions, potency })` — auth required, calls OpenRouter gpt-oss-120b for synthesis.
+- `describeStrainForUser({ strain, ailments, medications, reliefHistory })` — auth required, calls OpenRouter gpt-oss-120b with the full strain evidence payload.
+- `elaborateSection({ strain, sectionHeading, sectionBody, ... })` — auth required, calls OpenRouter gpt-oss-120b for deeper follow-up.
 
 To add a new callable:
 

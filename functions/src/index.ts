@@ -2,7 +2,7 @@
 //
 // - popularStrains / searchStrain: public Leafly data lookups (no AI).
 // - compareStrains / recommendStrainsForConditions / describeStrainForUser /
-//   elaborateSection: OpenRouter AI synthesis (Llama 3.3 70B via the
+//   elaborateSection: OpenRouter AI synthesis (gpt-oss-120b via the
 //   `:nitro` tier), auth-gated — Firebase callable functions automatically
 //   attach the caller's ID token, and we reject calls without `request.auth`.
 import {
