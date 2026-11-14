@@ -182,11 +182,10 @@ functions/
                      # stay cheap (descriptionCache, compareCache)
     ai-json.ts       # JSON extraction + em-dash sanitization for
                      # provider-neutral AI responses
-    openrouter.ts    # OpenRouter Chat Completions client (Llama 3.3
-                     # 70B routed through whichever upstream has the
-                     # shortest queue; replaced the Together.ai primary
-                     # so the same model id can sit on Together.ai,
-                     # Fireworks, or DeepInfra depending on capacity)
+    openrouter.ts    # OpenRouter Chat Completions client (gpt-oss-120b
+                     # on the :nitro tier, pinned to Groq + Cerebras;
+                     # replaced Llama 3.3 70B in Nov 2026 after the
+                     # Llama route timed out Discover on cold starts)
     enrich.ts        # consolidator + Reddit quote merge + AI fill-in
                      # for strains missing fields across all sources
     types.ts         # shared response types
@@ -301,17 +300,21 @@ response without spending more tokens on the same answer.
 
 Every AI callable in `functions/` talks to a single provider: OpenRouter.
 There is no fallback. The model is
-`meta-llama/llama-3.3-70b-instruct:nitro` with a `provider.order` pin of
-`["together", "fireworks"]` and `allow_fallbacks: true` on the request
+`openai/gpt-oss-120b:nitro` with a `provider.order` pin of
+`["groq", "cerebras"]` and `allow_fallbacks: true` on the request
 body. The `:nitro` tag tells OpenRouter to use its fastest tier
-regardless of price; the provider pin keeps the call off DeepInfra's
-on-demand tier (15-25s warm, 40s+ spikes). We previously saw 70-110s
-latency when OpenRouter auto-routed the plain 70B model id to whichever
-provider happened to have capacity — Together.ai and Fireworks run the
-70B on inference-optimised engines (5-15s warm), so the pin gets us back
-to that range without giving up the 70B's prose quality.
+regardless of price; the provider pin keeps the call on Groq
+($0.15 / $0.60 per 1M in / out, ~310 tok/s) and Cerebras
+($0.35 / $0.75, ~746 tok/s) and off the cheapest hosts for this
+model, which run at ~30 tok/s. gpt-oss-120b is a reasoning model,
+so the request also sends `reasoning: { effort: "low", exclude: true }`
+and `max_tokens: 3000`: reasoning shares the token budget on Chat
+Completions, and the larger cap leaves room for low-effort reasoning
+plus the full JSON reply. This replaced Llama 3.3 70B in Nov 2026
+after the Llama route measured ~17 tok/s p50 on OpenRouter and timed
+out the Discover pipeline on cold starts.
 
-Cost: OpenRouter charges per token for Llama 3.3 70B. Set a hard
+Cost: OpenRouter charges per token for gpt-oss-120b. Set a hard
 monthly usage limit in the OpenRouter console so a worst case is
 bounded. `OPENROUTER_API_KEY` is a Firebase Secret declared in
 `functions/src/index.ts`. The Firestore cache in `ai-cache.ts` absorbs

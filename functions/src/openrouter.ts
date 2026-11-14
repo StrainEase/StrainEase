@@ -1,31 +1,39 @@
 // OpenRouter Chat Completions client.
 //
-// Used as the primary backend for describeStrainForUser and
-// compareStrains. OpenRouter exposes an OpenAI-compatible
-// `/api/v1/chat/completions` endpoint at openrouter.ai, so the
-// request/response shape mirrors `groq.ts` exactly.
+// Used as the primary backend for describeStrainForUser,
+// compareStrains, and the Discover recommend pipeline. OpenRouter
+// exposes an OpenAI-compatible `/api/v1/chat/completions` endpoint
+// at openrouter.ai.
 //
-// Model: meta-llama/llama-3.3-70b-instruct:nitro. The `:nitro`
-// suffix tells OpenRouter to route this request to its fastest
-// tier regardless of price. Belt-and-suspenders: we also pin the
-// `provider.order` field to prefer `together` and `fireworks`
-// (the two inference engines we already know are fast on these
-// prompts), with `allow_fallbacks: true` so we still get an
+// Model: openai/gpt-oss-120b:nitro. The `:nitro` suffix tells
+// OpenRouter to route this request to its fastest tier regardless
+// of price. Belt-and-suspenders: we also pin the `provider.order`
+// field to prefer `groq` and `cerebras` (the two fastest hosts
+// for this model), with `allow_fallbacks: true` so we still get an
 // answer if those two are down.
 //
-// We previously tried OpenRouter's default routing on the plain
-// `meta-llama/llama-3.3-70b-instruct` model id and watched latency
-// climb into the 70-110s range as OpenRouter routed to the
-// on-demand tier of whichever provider had the model available.
-// Same model id, same prose, but the routing decision was the
-// problem. Together.ai and Fireworks run Llama 3.3 70B on
-// inference-optimised engines (5-15s warm); DeepInfra's
-// on-demand tier is 15-25s with 40s+ spikes. The `:nitro` tag +
-// provider pinning keeps us off DeepInfra.
+// This replaced meta-llama/llama-3.3-70b-instruct:nitro (pinned to
+// Together and Fireworks) in Nov 2026. The Llama route measured
+// ~17 tok/s p50 on OpenRouter, so a 1,500-token JSON reply took
+// 75-90s of generation alone and the Discover pipeline, which can
+// run up to three sequential model calls inside a 180s budget,
+// timed out on cold starts. gpt-oss-120b on Groq / Cerebras runs
+// ~310 / ~746 tok/s via OpenRouter at $0.15 / $0.60 and
+// $0.35 / $0.75 per 1M in / out, so the same reply takes seconds.
+//
+// gpt-oss-120b is a reasoning model: its reasoning tokens share
+// the `max_tokens` budget on Chat Completions, so a 1,500-token
+// cap would let reasoning eat the visible JSON and return an
+// empty answer. `max_tokens: 3000` leaves room for low-effort
+// reasoning plus the full JSON reply, and
+// `reasoning: { effort: "low", exclude: true }` caps reasoning
+// at roughly 20% of the budget and keeps it out of the response,
+// so `choices[0].message.content` stays clean JSON.
 //
 // OpenRouter charges per token. Set a hard monthly usage limit in the
 // OpenRouter console so a worst case is bounded. `OPENROUTER_API_KEY`
-// is a Firebase Secret registered next to `GROQ_API_KEY`. The Firestore
+// is a Firebase Secret registered via
+// `firebase functions:secrets:set OPENROUTER_API_KEY`. The Firestore
 // cache in ai-cache.ts absorbs most repeat traffic so the bill stays
 // low.
 //
@@ -34,28 +42,21 @@
 // call to succeed, so we omit them for now. Add them later if the
 // console surfaces rate-limit or priority differences for attributed
 // traffic.
-//
-// `OPENROUTER_API_KEY` is a Firebase Secret registered via
-// `firebase functions:secrets:set OPENROUTER_API_KEY`. The Firestore
-// cache in ai-cache.ts absorbs most repeat traffic so the bill stays
-// low.
-//
-// `max_tokens: 1500` mirrors the prior default and is enough for the
-// 3-section description and the comparison summary.
 
 import { HttpsError } from "firebase-functions/v2/https";
 
-/** Model id routed through OpenRouter. Llama 3.3 70B chat-tuned on
+/** Model id routed through OpenRouter. gpt-oss-120b on
  *  OpenRouter's `:nitro` (fastest) tier. The provider order on the
- *  request body further pins routing to Together and Fireworks. */
-export const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:nitro";
+ *  request body further pins routing to Groq and Cerebras. */
+export const OPENROUTER_MODEL = "openai/gpt-oss-120b:nitro";
 
-/** Provider preference for the OpenRouter request body. Together and
- *  Fireworks run the 70B on inference-optimised engines; DeepInfra
- *  on-demand has 15-25s warm latency with 40s+ spikes, so we do not
- *  list it. `allow_fallbacks: true` keeps the call going if both
- *  preferred providers are temporarily unavailable. */
-export const OPENROUTER_PROVIDER_ORDER = ["together", "fireworks"];
+/** Provider preference for the OpenRouter request body. Groq and
+ *  Cerebras are the fastest hosts for gpt-oss-120b; the cheapest
+ *  hosts for this model run at ~30 tok/s, so we do not let
+ *  OpenRouter fall back to them by price. `allow_fallbacks: true`
+ *  keeps the call going if both preferred providers are
+ *  temporarily unavailable. */
+export const OPENROUTER_PROVIDER_ORDER = ["groq", "cerebras"];
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -72,7 +73,8 @@ export function openRouterRequestBody(
     model,
     messages,
     temperature: 0.5,
-    max_tokens: 1500,
+    max_tokens: 3000,
+    reasoning: { effort: "low", exclude: true },
     response_format: { type: "json_object" },
     provider: {
       order: OPENROUTER_PROVIDER_ORDER,
