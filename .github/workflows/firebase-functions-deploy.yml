@@ -1,118 +1,3 @@
-# Validates Firebase backend changes on pull requests, then deploys the
-# StrainEase backend (Firebase Cloud Functions + Firestore rules) whenever
-# those changes land on `main`, or on demand via the Actions tab.
-#
-# A PR never deploys production directly. Merging the PR creates a push to
-# `main`, which runs the deploy job automatically.
-#
-# Required GitHub secrets:
-#   FIREBASE_SERVICE_ACCOUNT_KEY — JSON key for a Firebase deploy service
-#     account (Project owner, or: Cloud Functions Admin + Service Account
-#     User + Secret Manager Secret Accessor). Generate it in Firebase console
-#     → Project settings → Service accounts → Generate new private key.
-#   FIREBASE_PROJECT_ID — your Firebase project id.
-#
-# One-time setup (run once locally so the secret exists before deploy):
-#   firebase login
-#   firebase use YOUR-FIREBASE-PROJECT-ID   # also update .firebaserc
-#   firebase functions:secrets:set OPENROUTER_API_KEY
-
-name: Deploy Firebase Functions
-
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - "functions/**"
-      - "functions-report/**"
-      - "firebase.json"
-      - ".firebaserc"
-      - "firestore.rules"
-      - "firestore.indexes.json"
-      - "storage.rules"
-      - ".github/workflows/firebase-functions-deploy.yml"
-  pull_request:
-    paths:
-      - "functions/**"
-      - "functions-report/**"
-      - "firebase.json"
-      - ".firebaserc"
-      - "firestore.rules"
-      - "firestore.indexes.json"
-      - "storage.rules"
-      - ".github/workflows/firebase-functions-deploy.yml"
-  workflow_dispatch:
-
-concurrency:
-  group: firebase-functions-deploy-${{ github.workflow }}
-  cancel-in-progress: false
-
-permissions:
-  contents: read
-
-jobs:
-  validate:
-    name: Validate Firebase Functions
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            functions/package-lock.json
-            functions-report/package-lock.json
-
-      - name: Install & Build Functions
-        working-directory: functions
-        run: |
-          npm ci
-          npm run build
-
-      - name: Install & Build Report Functions
-        working-directory: functions-report
-        run: |
-          npm ci
-          npm run build
-
-  deploy:
-    name: Deploy Firebase Functions and Rules
-    if: >
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            functions/package-lock.json
-            functions-report/package-lock.json
-
-      - name: Install & Build Functions
-        working-directory: functions
-        run: |
-          npm ci
-          npm run build
-
-      - name: Install & Build Report Functions
-        working-directory: functions-report
-        run: |
-          npm ci
-          npm run build
-
       - name: Deploy to Firebase
         # Pin a release tag - never @master (supply-chain + reproducibility).
         uses: w9jds/firebase-action@v15.23.0
@@ -122,6 +7,14 @@ jobs:
           args: deploy --only functions,firestore,storage --project "${{ secrets.FIREBASE_PROJECT_ID }}" --force
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
       # firebase deploy --only functions defaults to --allow-unauthenticated
       # for callables, but a stray `gcloud run services update --no-allow-
