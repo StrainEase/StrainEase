@@ -11,7 +11,7 @@ export default function Privacy() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Seo
-        title="Privacy Policy — StrainEase"
+        title="Privacy Policy. StrainEase"
         description="StrainEase's privacy policy: what we collect, what we don't, third-party services, and your rights."
         path="/legal/privacy"
       />
@@ -127,18 +127,17 @@ export default function Privacy() {
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                <strong>Firebase Authentication & Cloud Functions</strong> —
-                sign-in, hosting of server logic, and storage of your Firestore
+                <strong>Firebase Authentication & Cloud Functions</strong>, sign-in, hosting of server logic, and storage of your Firestore
                 records.
               </li>
               <li>
-                <strong>MiniMax</strong> — used only for AI synthesis of strain
+                <strong>MiniMax</strong>, used only for AI synthesis of strain
                 rankings from your submitted ailments. The model receives the
                 ailment list and selected strains; it does not receive your UID,
                 email, or notes.
               </li>
               <li>
-                <strong>Leafly / Weedmaps / Reddit / Google</strong> — public
+                <strong>Leafly / Weedmaps / Reddit / Google</strong>, public
                 sources that StrainEase scrapes on the server side. They receive
                 no information from you.
               </li>
@@ -214,7 +213,7 @@ export default function Privacy() {
           <Section title="8. Security">
             <p>
               All traffic is encrypted in transit (HTTPS). Firestore access is
-              gated by security rules — see{" "}
+              gated by security rules, see{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                 firestore.rules
               </code>{" "}

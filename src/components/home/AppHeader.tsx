@@ -193,7 +193,7 @@ export function AppHeader({
               </DialogTitle>
               <DialogDescription>
                 Your relief patterns and full session journal. Logged privately
-                on your account — no one else sees this.
+                on your account, no one else sees this.
               </DialogDescription>
             </DialogHeader>
             <JournalPanel />

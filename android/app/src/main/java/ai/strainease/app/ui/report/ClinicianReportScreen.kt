@@ -148,7 +148,7 @@ private fun headerCopy() {
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "A one-page PDF with your saved conditions, medications, daily check-ins, and relief logs — plus Dr. Kaya's clinical summary in plain language. Built on our servers, identical to the web app.",
+            text = "A one-page PDF with your saved conditions, medications, daily check-ins, and relief logs, plus Dr. Kaya's clinical summary in plain language. Built on our servers, identical to the web app.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

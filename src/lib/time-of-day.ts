@@ -37,7 +37,7 @@ const HEADLINES: Record<DayPart, string[]> = {
   evening: [
     "Find a strain that fits tonight",
     "Wind down with the right strain",
-    "Settle in — pick a strain for the evening",
+    "Settle in. Pick a strain for the evening",
   ],
   night: [
     "Find a strain that fits the late hour",
@@ -62,4 +62,4 @@ export function timeOfDayHeadline(date: Date = new Date()): string {
 }
 
 export const TIME_OF_DAY_SUBTITLE =
-  "Popular picks, symptoms, and phenotypes — tap See more for the full grid.";
+  "Popular picks, symptoms, and phenotypes: tap See more for the full grid.";

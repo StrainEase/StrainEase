@@ -42,7 +42,7 @@ fun ShopLinksView(
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionLabel(title = "Where to look", index = 4)
             Text(
-                text = "StrainEase doesn't sell product — these are read-first research sources.",
+                text = "StrainEase doesn't sell product. These are read-first research sources.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

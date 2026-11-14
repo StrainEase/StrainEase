@@ -75,7 +75,7 @@ function RedditThreadsBlock({ sources }: { sources: RedditSource[] }) {
         <RedditThreads
           sources={sources}
           title="Reddit threads for these strains"
-          description="Pointed to from public discussion — surfaced from a curated list, not live-scraped."
+          description="Pointed to from public discussion, surfaced from a curated list, not live-scraped."
         />
       </div>
     </div>

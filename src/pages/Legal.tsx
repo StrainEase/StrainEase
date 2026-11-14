@@ -18,7 +18,7 @@ export default function Legal() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Seo
-        title="Legal & Age Policy — StrainEase"
+        title="Legal & Age Policy. StrainEase"
         description="StrainEase's age-verification policy, medical disclaimer, terms of service, and privacy policy."
         path="/legal"
       />

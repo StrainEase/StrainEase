@@ -651,8 +651,8 @@ export function StrainBrowse({
               Find best strains
             </CardTitle>
             <CardDescription>
-              Tell us what you&apos;re treating — we&apos;ll research the
-              strains patients report work best for it.
+              Tell us what you&apos;re treating and we&apos;ll research the
+              strains people report work best for it.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -717,7 +717,7 @@ export function StrainBrowse({
                       addCustomAilment();
                     }
                   }}
-                  placeholder="Any other symptom — e.g. sciatica…"
+                  placeholder="Any other symptom, e.g. sciatica…"
                   className="h-9"
                 />
                 <Button
@@ -868,7 +868,7 @@ export function StrainBrowse({
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Ranking full strain profiles against your symptoms and attaching
-              Reddit quotes when we find them — usually 8–20 seconds.
+              Reddit quotes when we find them, usually 8–20 seconds.
             </p>
           </div>
         ) : result ? (
@@ -963,7 +963,7 @@ export function StrainBrowse({
               </div>
               {topNames.length < 2 ? (
                 <p className="text-xs text-muted-foreground">
-                  Add at least two recommendations to compare — or use the compare
+                  Add at least two recommendations to compare, or use the compare
                   tab to pick your own strains.
                 </p>
               ) : (
@@ -996,9 +996,9 @@ export function StrainBrowse({
                 Start with your symptoms
               </h1>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                Pick what you&apos;re treating on the left — or jump in with a
+                Pick what you&apos;re treating on the left, or jump in with a
                 common starting point below. The AI ranks Leafly&apos;s strains
-                by what patients report works best.
+                by what people report works best.
               </p>
             </div>
 

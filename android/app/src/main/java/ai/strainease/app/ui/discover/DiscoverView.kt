@@ -506,7 +506,7 @@ private fun prefsBlock(
         // Medications with autocomplete
         SectionLabel(title = "Other medications", index = 7)
         Text(
-            text = "We never tell you to stop a prescription — only to check with your clinician.",
+            text = "We never tell you to stop a prescription, only to check with your clinician.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -626,7 +626,7 @@ private fun resultBlock(
             )
             if (result.recommendations.size < 2) {
                 Text(
-                    text = "Add at least two recommendations to compare — or use the compare tab to pick your own strains.",
+                    text = "Add at least two recommendations to compare, or use the compare tab to pick your own strains.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

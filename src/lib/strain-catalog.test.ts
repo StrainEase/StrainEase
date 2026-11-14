@@ -109,7 +109,7 @@ describe("applyCatalogPhotos", () => {
     expect(filled?.imageUrl).not.toBe("https://example.com/broken-live.jpg");
   });
 
-  test("fills photos on popular, type, and ailment rails — not only recents", () => {
+  test("fills photos on popular, type, and ailment rails, not only recents", () => {
     const live = [
       { name: "Blue Dream", inKnowledgeBase: true, type: "hybrid" as const },
       { name: "Sour Diesel", inKnowledgeBase: true, type: "sativa" as const },

@@ -72,7 +72,7 @@ export function ReasoningTrace({
         onClick={() => setOpen((v) => !v)}
         className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 text-left"
         aria-expanded={open}
-        aria-label="Why this strain — show evidence"
+        aria-label="Why this strain: show evidence"
       >
         <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           <Sparkles className="size-3.5 text-primary" />

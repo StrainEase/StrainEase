@@ -85,7 +85,7 @@ struct StrainDetailView: View {
                     RedditThreadsView(
                         sources: redditThreads,
                         title: "Reddit threads for this strain",
-                        description: "Public threads mentioning this strain — pulled from a curated list, not live-scraped."
+                        description: "Public threads mentioning this strain, pulled from a curated list, not live-scraped."
                     )
                     if !profile.inKnowledgeBase && !isHydrating {
                         missing
@@ -668,7 +668,7 @@ struct StrainDetailView: View {
                 Text("Not in the knowledge base")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Palette.foreground)
-                Text("Leafly and Weedmaps didn’t return a full profile. The AI still researched this name from public sources — treat numbers as commonly reported, not lab-verified.")
+                Text("Leafly and Weedmaps didn’t return a full profile. The AI still researched this name from public sources, treat numbers as commonly reported, not lab-verified.")
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)

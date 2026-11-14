@@ -76,7 +76,7 @@ function call<TArgs, TResult>(name: string, args: TArgs): Promise<TResult> {
   if (!functions) {
     return Promise.reject(
       new Error(
-        "Firebase isn't configured yet — add your VITE_FIREBASE_* keys in the Keys tab, then deploy the functions.",
+        "Firebase isn't configured yet, add your VITE_FIREBASE_* keys in the Keys tab, then deploy the functions.",
       ),
     );
   }

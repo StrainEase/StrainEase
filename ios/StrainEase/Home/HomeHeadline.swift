@@ -11,7 +11,7 @@ enum DayPart: String, CaseIterable, Sendable {
 
 enum HomeHeadline {
     static let subtitle =
-        "Popular picks, symptoms, and phenotypes — tap See more for the full grid."
+        "Popular picks, symptoms, and phenotypes, tap See more for the full grid."
 
     static let pools: [DayPart: [String]] = [
         .morning: [
@@ -27,7 +27,7 @@ enum HomeHeadline {
         .evening: [
             "Find a strain that fits tonight",
             "Wind down with the right strain",
-            "Settle in — pick a strain for the evening",
+            "Settle in, pick a strain for the evening",
         ],
         .night: [
             "Find a strain that fits the late hour",

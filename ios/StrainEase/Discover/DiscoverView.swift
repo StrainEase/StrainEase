@@ -265,7 +265,7 @@ struct DiscoverView: View {
             VStack(alignment: .leading, spacing: 8) {
                 SectionLabel("Other medications", index: 7)
                 MedicationAutocomplete(items: $medicationsList, suggestions: savedMedications.names)
-                Text("We never tell you to stop a prescription — only to check with your clinician.")
+                Text("We never tell you to stop a prescription, only to check with your clinician.")
                     .font(.system(size: 12))
                     .foregroundStyle(Palette.mutedForeground)
             }
@@ -587,7 +587,7 @@ struct DiscoverView: View {
                     .foregroundStyle(Palette.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 if result.recommendations.count < 2 {
-                    Text("Add at least two recommendations to compare — or use the compare tab to pick your own strains.")
+                    Text("Add at least two recommendations to compare, or use the compare tab to pick your own strains.")
                         .font(.system(size: 12))
                         .foregroundStyle(Palette.mutedForeground)
                 } else {
@@ -664,7 +664,7 @@ struct DiscoverView: View {
         .disabled(disabled)
         .opacity(disabled ? 0.45 : 1)
         .accessibilityLabel(added ? "Remove from compare selection" : "Add to compare selection")
-        .accessibilityHint(disabled ? "Compare is full (3 strains)" : "Researching only — pick strains here, run the comparison when you're ready")
+        .accessibilityHint(disabled ? "Compare is full (3 strains)" : "Researching only, pick strains here, run the comparison when you're ready")
     }
 
     private func labeled(_ title: String, _ body: String) -> some View {

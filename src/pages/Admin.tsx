@@ -85,7 +85,7 @@ export function AdminPage() {
   if (!isAdminOperator(user.uid)) {
     return (
       <NotAuthorized
-        reason={`Signed in as ${user.email ?? user.uid} — this account is not on the operator allow-list.`}
+        reason={`Signed in as ${user.email ?? user.uid}, this account is not on the operator allow-list.`}
       />
     );
   }
@@ -202,7 +202,7 @@ function LibrarySection() {
       await refresh();
     } catch (err) {
       setError(humanError(err));
-      toast.error("Seed failed — see banner for details.");
+      toast.error("Seed failed, see banner for details.");
     } finally {
       setSeeding(false);
     }
@@ -314,7 +314,7 @@ function InteractionsSection() {
       await refresh();
     } catch (err) {
       setError(humanError(err));
-      toast.error("Seed failed — see banner for details.");
+      toast.error("Seed failed, see banner for details.");
     } finally {
       setSeeding(false);
     }
@@ -354,7 +354,7 @@ function InteractionsSection() {
                   Interaction records ({filtered.length} of {records.length})
                 </CardTitle>
                 <CardDescription>
-                  Every record has `discussWithPrescriber: true` — the UI must
+                  Every record has `discussWithPrescriber: true`: the UI must
                   surface that line.
                 </CardDescription>
               </div>
@@ -470,7 +470,7 @@ function RedditSection() {
       await refresh();
     } catch (err) {
       setError(humanError(err));
-      toast.error("Vet failed — see banner for details.");
+      toast.error("Vet failed, see banner for details.");
     } finally {
       setBusyId(null);
     }
@@ -502,7 +502,7 @@ function RedditSection() {
           <CardContent className="space-y-2">
             {pending.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                The pool is empty — nothing to review right now.
+                The pool is empty, nothing to review right now.
               </p>
             ) : (
               pending.map((t) => (

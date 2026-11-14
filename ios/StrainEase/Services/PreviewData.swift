@@ -71,7 +71,7 @@ extension RecommendationResult {
                 strainName: "Granddaddy Purple",
                 reason: "Patients consistently report body heaviness and easier sleep onset.",
                 bestFor: "Evening wind-down when pain is also in the mix",
-                caution: "Start low — it can be stronger than it smells."
+                caution: "Start low, it can be stronger than it smells."
             ),
             StrainRecommendation(
                 strainName: "Blue Dream",

@@ -59,7 +59,7 @@ struct ClinicianReportView: View {
             Text("Clinician report")
                 .font(.system(.largeTitle, design: .serif).weight(.regular))
                 .foregroundStyle(Palette.foreground)
-            Text("A one-page PDF with your saved conditions, medications, daily check-ins, and relief logs — plus Dr. Kaya's clinical summary in plain language. Built on our servers, identical to the web app.")
+            Text("A one-page PDF with your saved conditions, medications, daily check-ins, and relief logs, plus Dr. Kaya's clinical summary in plain language. Built on our servers, identical to the web app.")
                 .font(.system(size: 15))
                 .foregroundStyle(Palette.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)

@@ -284,7 +284,10 @@ Rules:
 - communityNotes must be paraphrases of commonly reported patient comments, not fabricated first-person quotes. Prefer notes tied to the patient's conditions when those are given.
 - medicalUses should be short symptom/condition names.
 - effects intensity is 1-5.
-- Keep descriptions under 2 sentences.
+- Write a full description, not a label: 4-6 sentences, roughly 70-110 words, in one paragraph. Cover what the strain is (type, lineage if known), the effects people commonly report, its usual potency profile, and what someone trying it for the first time should expect. A one-line blurb is not usable on its own, so do not write one.
+- Write to the reader as "you" when the sentence is about them ("this tends to settle people down, so you can plan for an evening").
+- Never use an em dash. Use commas, periods, colons, or semicolons.
+- No filler ("it's important to note that", "delve into", "moreover") and no marketing adjectives ("seamless", "game-changer", "holistic").
 
 Patient conditions: ${conditions.length ? conditions.join(", ") : "(none given)"}
 

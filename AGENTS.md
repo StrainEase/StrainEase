@@ -180,6 +180,9 @@ functions/
     ai-cache.ts      # generic SHA-256-keyed Firestore cache used by
                      # every AI callable so repeat strain-page views
                      # stay cheap (descriptionCache, compareCache)
+    anti-slop.ts     # the anti-slop pass every AI response runs
+                      # through: em dashes into punctuation, stock AI
+                      # filler out, "the patient" into "you"
     ai-json.ts       # JSON extraction + em-dash sanitization for
                      # provider-neutral AI responses
     openrouter.ts    # OpenRouter Chat Completions client (gpt-oss-120b

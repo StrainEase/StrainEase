@@ -121,7 +121,7 @@ export function AccountMenu({
             </p>
           ) : list.length === 0 ? (
             <p className="text-xs leading-5 text-muted-foreground">
-              Add anything you take — prescriptions, OTC, supplements.
+              Add anything you take: prescriptions, OTC, supplements.
               We&apos;ll keep this in mind every time you research strains.
             </p>
           ) : (
@@ -177,7 +177,7 @@ export function AccountMenu({
             </Button>
           </div>
           <p className="text-[11px] leading-5 text-muted-foreground">
-            We never tell you to stop a prescription — only to check with your
+            We never tell you to stop a prescription, only to check with your
             clinician.
           </p>
         </div>

@@ -740,7 +740,7 @@ private fun triedNotesSection(notes: List<ai.strainease.app.data.ReliefLog>) {
         SectionLabel(title = "Your tried notes")
         if (notes.isEmpty()) {
             Text(
-                text = "Log how this strain worked for you below — only you see these notes.",
+                text = "Log how this strain worked for you below. Only you see these notes.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

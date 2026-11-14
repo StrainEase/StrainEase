@@ -35,7 +35,7 @@ export function ReliefInsightsPanel({ logs }: { logs: ReliefLog[] }) {
             Your relief patterns
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Deterministic patterns from your existing logs — no AI
+            Deterministic patterns from your existing logs. No AI
             interpretation.
           </p>
         </div>

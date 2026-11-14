@@ -133,7 +133,7 @@ export function SavedStrainNotes({
 
       {notes.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          Nothing here yet — write your review below. It's public on this
+          Nothing here yet. Write your review below. It's public on this
           strain's page and shows your name unless you stay anonymous.
         </p>
       ) : (
@@ -200,7 +200,7 @@ export function SavedStrainNotes({
                   }
                   title={
                     note.anonymous
-                      ? "Anonymous — name hidden from other patients"
+                      ? "Anonymous: name hidden from other people"
                       : "Shown as " + (user.name || "A patient")
                   }
                   className={cn(
@@ -313,7 +313,7 @@ export function SavedStrainNotes({
           }
           title={
             anonymous
-              ? "Anonymous — name hidden from other patients"
+              ? "Anonymous: name hidden from other people"
               : "Shown as " + (user.name || "A patient")
           }
           className={cn(

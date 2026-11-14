@@ -167,7 +167,7 @@ function FamilyStrainsSection({
       ) : strains.length === 0 ? (
         <p className="mt-4 rounded-2xl border border-dashed border-border/70 bg-card p-6 text-sm text-muted-foreground">
           No popular strains on Leafly currently list {terpeneName}. Try opening
-          a strain and checking its profile — the full terpene breakdown is
+          a strain and checking its profile: the full terpene breakdown is
           inside.
         </p>
       ) : (

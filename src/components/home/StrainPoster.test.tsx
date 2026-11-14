@@ -57,7 +57,7 @@ describe("StrainPoster", () => {
     expect(screen.queryByText("Insomnia")).toBeNull();
   });
 
-  test("is not wrapped in a card — bare column, no chrome", () => {
+  test("is not wrapped in a card, bare column, no chrome", () => {
     const { container } = renderPoster();
     const link = container.querySelector("a")!;
     expect(link.className).not.toContain("bg-card");

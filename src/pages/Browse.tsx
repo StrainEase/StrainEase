@@ -54,7 +54,7 @@ export default function Browse() {
     <main className="relative isolate min-h-[100dvh] bg-background pb-24 text-foreground sm:pb-10">
       <Seo
         title={documentTitle(title)}
-        description={`Browse ${title.toLowerCase()} on StrainEase — strains patients commonly report for medical relief.`}
+        description={`Browse ${title.toLowerCase()} on StrainEase: the strains people commonly report for medical relief.`}
         path={`/browse/${section}${ailment ? `/${ailment}` : ""}`}
         noindex
       />

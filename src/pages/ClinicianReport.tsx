@@ -108,7 +108,7 @@ export default function ClinicianReportPage() {
         );
       setError(
         looksUndeployed
-          ? `${detail} — the generateClinicianReportPdf Cloud Function isn't deployed yet. Run \`cd functions && npm install && npm run build && firebase deploy --only functions --force\` from the repo root, then retry.`
+          ? `${detail}: the generateClinicianReportPdf Cloud Function isn't deployed yet. Run \`cd functions && npm install && npm run build && firebase deploy --only functions --force\` from the repo root, then retry.`
           : detail ||
               "We couldn't generate the report. Please try again in a moment.",
       );
@@ -135,7 +135,7 @@ export default function ClinicianReportPage() {
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             The report pulls from your saved conditions, medications, and logged
-            outcomes. It's never uploaded — it renders on our servers and
+            outcomes. It's never uploaded: it renders on our servers and
             downloads as a PDF to your device.
           </p>
           <Button
@@ -200,7 +200,7 @@ export default function ClinicianReportPage() {
                 : "Your report"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              One-tap PDF — built on our servers, identical to what your
+              One-tap PDF, built on our servers, identical to what your
               clinician would get on iOS or Android.
             </p>
           </div>
@@ -247,7 +247,7 @@ export default function ClinicianReportPage() {
             <Stethoscope className="size-4 text-primary" />
             <AlertTitle>Nothing to report yet</AlertTitle>
             <AlertDescription>
-              Add some conditions, medications, or relief logs first — the
+              Add some conditions, medications, or relief logs first: the
               report is only useful once there's a snapshot to summarize.
             </AlertDescription>
           </Alert>
@@ -258,8 +258,8 @@ export default function ClinicianReportPage() {
             <Loader2 className="size-4 animate-spin text-primary" />
             <AlertTitle>Asking Dr. Kaya for a clinical summary…</AlertTitle>
             <AlertDescription>
-              This usually takes 5–10 seconds — we're fetching your snapshot,
-              calling the model, and rendering the PDF.
+              This usually takes 5–10 seconds while we fetch your snapshot,
+              call the model, and render the PDF.
             </AlertDescription>
           </Alert>
         )}

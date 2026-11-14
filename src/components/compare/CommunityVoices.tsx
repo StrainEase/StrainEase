@@ -662,7 +662,7 @@ export function CommunityVoices({
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           <MessageCircle className="size-3.5 shrink-0 text-primary" />
-          What patients and Reddit say
+          What people and Reddit say
         </div>
         {conditions.length > 0 ? (
           <p className="text-[11px] text-muted-foreground">

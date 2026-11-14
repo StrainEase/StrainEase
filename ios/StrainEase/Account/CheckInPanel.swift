@@ -64,7 +64,7 @@ struct CheckInPanel: View {
                 }
             }
             if trend.loggedDays == 0 {
-                Text("No check-ins yet — your trend will appear here after your first log.")
+                Text("No check-ins yet. Your trend will appear here after your first log.")
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.mutedForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)

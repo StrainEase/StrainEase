@@ -18,7 +18,7 @@ import java.util.Calendar
  */
 object HomeHeadline {
 
-    const val SUBTITLE = "Popular picks, symptoms, and phenotypes — tap See more for the full grid."
+    const val SUBTITLE = "Popular picks, symptoms, and phenotypes: tap See more for the full grid."
 
     private val HEADLINES = mapOf(
         DayPart.MORNING to listOf(
@@ -34,7 +34,7 @@ object HomeHeadline {
         DayPart.EVENING to listOf(
             "Find a strain that fits tonight",
             "Wind down with the right strain",
-            "Settle in — pick a strain for the evening",
+            "Settle in. Pick a strain for the evening",
         ),
         DayPart.NIGHT to listOf(
             "Find a strain that fits the late hour",

@@ -163,9 +163,9 @@ export function StrainDetailCard({
           <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
             <Search className="mt-0.5 size-4 shrink-0 text-primary" />
             <p className="text-xs leading-5 text-muted-foreground">
-              Not listed on Leafly or Weedmaps — this profile is researched by
+              Not listed on Leafly or Weedmaps. This profile is researched by
               the AI from public sources. Reddit quotes appear below when
-              patients mention your symptoms.
+              people mention your symptoms.
             </p>
           </div>
         )}

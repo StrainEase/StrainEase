@@ -47,7 +47,7 @@ struct ReasoningTraceView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Why this strain — show evidence")
+                .accessibilityLabel("Why this strain: show evidence")
                 if isOpen {
                     VStack(alignment: .leading, spacing: 12) {
                         if !reasoning.matchedConditions.isEmpty {

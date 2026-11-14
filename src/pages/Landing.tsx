@@ -54,13 +54,13 @@ const STEPS = [
     icon: Search,
     step: "01",
     title: "Tell us your symptoms",
-    body: "Pick from common conditions or type any symptom — sciatica, fibromyalgia, anything that's on your mind.",
+    body: "Pick from common conditions or type any symptom: sciatica, fibromyalgia, anything that's on your mind.",
   },
   {
     icon: Pill,
     step: "02",
     title: "Get the best-fit strains",
-    body: "Dr. Kaya, our AI cannabis care assistant, ranks the strains patients report work best for your symptoms, with reasons, best-for notes, and cautions.",
+    body: "Dr. Kaya, our AI cannabis care assistant, ranks the strains that people report work best for the symptoms you saved, with the reasons, the best-fit notes, and the cautions.",
   },
   {
     icon: Brain,
@@ -101,7 +101,7 @@ const SAMPLE_HITS = [
   },
   {
     label: "02  Northern Lights",
-    value: "Smooth, heavy relaxation — a dependable sleep aid",
+    value: "Smooth, heavy relaxation: a dependable sleep aid",
     icon: Sparkles,
   },
   {
@@ -213,24 +213,24 @@ function timeOfDayCopy(date: Date = new Date()) {
   if (hour >= 5 && hour < 11) {
     return {
       tail: "this morning",
-      sub: "Start your day with a strain patients report keeps them level — focus, mood, or a soft body lift.",
+      sub: "Start your day with a strain people report keeps you level, focused, and in a good mood.",
     };
   }
   if (hour >= 11 && hour < 17) {
     return {
       tail: "this afternoon",
-      sub: "Midday calls for something steady — strain picks that won't tip you over by 3pm.",
+      sub: "Midday calls for something steady: picks that will not tip you over by 3pm.",
     };
   }
   if (hour >= 17 && hour < 22) {
     return {
       tail: "tonight",
-      sub: "Wind down with strains patients lean on for evenings — relaxation, mood, or sleep prep.",
+      sub: "Wind down with the strains people lean on in the evening, for relaxation, mood, or sleep prep.",
     };
   }
   return {
     tail: "right now",
-    sub: "It's late — find a gentle strain to ease into sleep or quiet a racing mind.",
+    sub: "It is late. Find a gentle strain to ease you into sleep or quiet a racing mind.",
   };
 }
 
@@ -310,7 +310,7 @@ function StrainCard({
           <div className="mt-auto pt-4">
             {strain.terpenes && (
               <p className="border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">
-                <span className="font-medium text-foreground">Terpenes</span> —{" "}
+                <span className="font-medium text-foreground">Terpenes</span>: {" "}
                 {strain.terpenes}
               </p>
             )}
@@ -542,9 +542,9 @@ export default function Landing() {
               you need
             </h1>
             <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
-              Tell StrainEase what you&apos;re treating — it researches Leafly,
+              Tell StrainEase what you&apos;re treating. It researches Leafly,
               Weedmaps, Reddit, Google and dispensary menus, then uses AI to
-              rank the strains patients report work best for your symptoms.
+              rank the strains people report work best for your symptoms.
             </p>
             <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <Button
@@ -625,8 +625,8 @@ export default function Landing() {
               ))}
             </div>
             <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-              Pick your symptoms and StrainEase researches the strains patients
-              report work best for them — then ranks the top matches so you can
+              Pick your symptoms and StrainEase researches the strains people
+              report work best for them, then ranks the top matches so you can
               compare the finalists side by side.
             </p>
           </motion.div>
@@ -687,9 +687,9 @@ export default function Landing() {
               </h2>
             </div>
             <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-              These are the strains patients are looking at most on Leafly today
-              — pulled live, ee add the medical expertise. Compare any of them
-              in the app.
+              These are the strains people are looking at most on Leafly today,
+              pulled live. StrainEase adds the medical expertise on top. Compare
+              any of them in the app.
             </p>
           </motion.div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -764,7 +764,7 @@ export default function Landing() {
             <div className="rounded-3xl border border-border/70 bg-card p-8">
               <div className="flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 <Activity className="size-3.5 text-primary" />
-                Sample search — insomnia
+                Sample search: insomnia
               </div>
               <h3 className="mt-4 text-2xl font-semibold tracking-tight">
                 Best strains for insomnia
@@ -829,7 +829,7 @@ export default function Landing() {
               StrainEase is an information and comparison tool. Nothing here is
               a diagnosis, prescription, or treatment recommendation. Always
               consult a qualified healthcare provider before using cannabis for
-              medical purposes — especially if you take other medication.
+              medical purposes, especially if you take other medication.
             </p>
           </div>
         </div>
@@ -858,7 +858,7 @@ export default function Landing() {
               <Link to={appHref}>
                 {isAuthenticated
                   ? "Back to dashboard"
-                  : "Find my strains — it's free"}
+                  : "Find my strains. Free to start."}
                 <CtaIcon />
               </Link>
             </Button>

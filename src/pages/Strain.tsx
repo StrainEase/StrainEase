@@ -444,7 +444,7 @@ export default function Strain() {
             sources={reddit}
             loading={redditLoading}
             title="Reddit threads for this strain"
-            description="Public threads mentioning this strain — pulled from a curated list, not live-scraped."
+            description="Public threads mentioning this strain, pulled from a curated list, not live-scraped."
           />
 
           {/* AI-researched missing-state callout. Only shown once the
@@ -453,9 +453,9 @@ export default function Strain() {
             <div className="flex items-start gap-2.5 rounded-2xl border border-primary/25 bg-primary/5 p-5">
               <Search className="mt-0.5 size-4 shrink-0 text-primary" />
               <p className="text-xs leading-5 text-muted-foreground">
-                Not listed on Leafly or Weedmaps — this profile is researched by
+                Not listed on Leafly or Weedmaps. This profile is researched by
                 the AI from public sources. Reddit quotes appear below when
-                patients mention your symptoms.
+                people mention your symptoms.
               </p>
             </div>
           ) : null}

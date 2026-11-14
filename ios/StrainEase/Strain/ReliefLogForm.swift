@@ -41,7 +41,7 @@ struct ReliefLogForm: View {
                         .foregroundStyle(Palette.mutedForeground)
                     SegmentedIntensityPicker(value: $relief, label: "Relief")
                 }
-                TextField("Optional note — e.g. slept 6 hours", text: $note)
+                TextField("Optional note, e.g. slept 6 hours", text: $note)
                         .textInputAutocapitalization(.sentences)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)

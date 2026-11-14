@@ -204,7 +204,7 @@ export function CheckInForm({
           id="checkin-note"
           value={note}
           onChange={(e) => setNote(e.target.value.slice(0, CHECKIN_NOTE_MAX))}
-          placeholder="Anything that shaped today — a bad night, a busy day, a new med…"
+          placeholder="Anything that shaped today: a bad night, a busy day, a new med…"
           className="mt-1.5 min-h-[72px] resize-none"
         />
         <p className="mt-1 text-[11px] text-muted-foreground">

@@ -29,14 +29,14 @@ const REJECTION_COPY: Record<string, { title: string; body: string }> = {
   },
   future: {
     title: "That date is in the future",
-    body: "Please re-enter your date of birth — we can't accept a date that's still ahead of us.",
+    body: "Please re-enter your date of birth. We can't accept a date that's still ahead of us.",
   },
   tooOld: {
     title: "That date is too far back",
     body: "Please re-enter a realistic date of birth.",
   },
   underage: {
-    title: "Sorry — StrainEase is for adults only",
+    title: "Sorry. StrainEase is for adults only",
     body: "StrainEase provides cannabis information intended for adults of legal age in their jurisdiction. If you are under the legal age for your region, please don't continue.",
   },
   storage: {
@@ -338,7 +338,7 @@ function Gate({
               ) : (
                 <>
                   <Leaf className="size-4" />
-                  I'm {minimumAge} or older — enter StrainEase
+                  I'm {minimumAge} or older. Enter StrainEase
                 </>
               )}
             </Button>
