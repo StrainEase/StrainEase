@@ -93,7 +93,7 @@ describe("StrainFind populated state", () => {
     expect(grid.className).toContain("lg:grid-cols-3");
   });
 
-  test("the entire card is a single Link — no separate View button", async () => {
+  test("the entire card is a single Link, no separate View button", async () => {
     render(
       <MemoryRouter>
         <StrainFind />

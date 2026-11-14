@@ -11,7 +11,7 @@ export default function MedicalDisclaimer() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Seo
-        title="Medical Disclaimer — StrainEase"
+        title="Medical Disclaimer. StrainEase"
         description="StrainEase is a research tool. Information on the app is not medical advice and is not a substitute for consultation with a licensed clinician."
         path="/legal/medical"
       />
@@ -62,7 +62,7 @@ export default function MedicalDisclaimer() {
           </span>
           <div>
             <p className="text-base font-semibold tracking-tight text-amber-800 dark:text-amber-200">
-              Warning — read before using StrainEase for any health decision
+              Warning: read before using StrainEase for any health decision
             </p>
             <p className="mt-1.5 text-sm leading-relaxed text-amber-900/90 dark:text-amber-100/90">
               StrainEase is a research tool, not a clinician. Nothing on this

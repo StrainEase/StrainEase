@@ -5,7 +5,7 @@ import SwiftUI
 struct RedditThreadsView: View {
     let sources: [RedditSource]
     var title = "Reddit threads for these strains"
-    var description = "Real public threads — surfaced from a curated list, not live-scraped."
+    var description = "Real public threads, surfaced from a curated list, not live-scraped."
 
     var body: some View {
         if !sources.isEmpty {

@@ -19,13 +19,13 @@ struct TriedNotesView: View {
             SectionLabel("Review")
             SWCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Write a review of how this strain felt — it's public on this strain's page. Toggle the lock to stay anonymous (shown as \"A patient\").")
+                    Text("Write a review of how this strain felt, it's public on this strain's page. Toggle the lock to stay anonymous (shown as \"A patient\").")
                         .font(.system(size: 13))
                         .foregroundStyle(Palette.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if notes.isEmpty {
-                        Text("Nothing here yet — one sentence is enough to start a review.")
+                        Text("Nothing here yet, one sentence is enough to start a review.")
                             .font(.system(size: 14))
                             .foregroundStyle(Palette.mutedForeground)
                     } else {

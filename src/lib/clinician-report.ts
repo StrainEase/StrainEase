@@ -136,5 +136,5 @@ function formatDate(ts: number): string {
 export function reportHeadline(report: ClinicianReport): string {
   const trimmed = report.patient.displayName.trim();
   const name = trimmed === "" ? "Patient" : trimmed;
-  return `Patient summary — ${name} · ${report.patient.generatedOn}`;
+  return `Patient summary: ${name} · ${report.patient.generatedOn}`;
 }

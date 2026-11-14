@@ -74,11 +74,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       const code = (err as { code?: string })?.code ?? "";
       setError(
         code === "auth/email-already-in-use"
-          ? "An account already exists for that email — sign in instead."
+          ? "An account already exists for that email, sign in instead."
           : code === "auth/wrong-password" || code === "auth/invalid-credential"
             ? "Incorrect email or password."
             : code === "auth/user-not-found"
-              ? "No account found for that email — create one instead."
+              ? "No account found for that email, create one instead."
               : err instanceof Error
                 ? err.message
                 : "Something went wrong. Please try again.",
@@ -185,7 +185,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               </div>
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
                 You can still browse popular strains and run comparisons in the
-                meantime — only saving and notes need Firebase.
+                meantime, only saving and notes need Firebase.
               </p>
             </CardContent>
             <CardFooter>

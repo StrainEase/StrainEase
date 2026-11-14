@@ -107,7 +107,7 @@ fun AgeGateView(
             )
             Spacer(Modifier.height(4.dp))
             SWPrimaryButton(
-                title = "I'm ${region.minimumAge} or older — enter StrainEase",
+                title = "I'm ${region.minimumAge} or older. Enter StrainEase",
                 onClick = {
                     if (!canSubmit) return@SWPrimaryButton
                     failure = null
@@ -360,8 +360,8 @@ private fun ErrorBannerFor(failure: AgeFailure) {
         AgeFailure.Invalid -> "Let's try that again" to
             "Please re-enter a valid date of birth."
         AgeFailure.Future -> "That date is in the future" to
-            "Please re-enter your date of birth — that one is still ahead of us."
-        AgeFailure.Underage -> "Sorry — StrainEase is for adults only" to
+            "Please re-enter your date of birth. That one is still ahead of us."
+        AgeFailure.Underage -> "Sorry. StrainEase is for adults only" to
             "If you are under the legal age for your region, please don't continue."
     }
     SWErrorBanner(message = "$title · $body")

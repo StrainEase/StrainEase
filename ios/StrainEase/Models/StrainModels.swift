@@ -539,7 +539,7 @@ struct StrainDescription: Codable, Hashable, Sendable {
         ),
         StrainDescriptionSection(
             heading: "What it might do for you",
-            body: "Reported by patients for chronic pain, stress, and depression — useful when symptoms are dragging you down and you still need to stay functional."
+            body: "Reported by patients for chronic pain, stress, and depression, useful when symptoms are dragging you down and you still need to stay functional."
         ),
         StrainDescriptionSection(
             heading: "What to expect",

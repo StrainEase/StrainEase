@@ -216,7 +216,7 @@ export function ReliefLogButton({
           <Input
             value={note}
             onChange={(e) => setNote(e.target.value.slice(0, RELIEF_NOTE_MAX))}
-            placeholder="Optional note — e.g. slept 6 hours"
+            placeholder="Optional note, e.g. slept 6 hours"
             className="h-8"
             maxLength={RELIEF_NOTE_MAX}
           />

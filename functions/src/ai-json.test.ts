@@ -17,11 +17,19 @@ describe("extractJsonObject", () => {
     expect(extractJsonObject('{"ok":true}')).toEqual({ ok: true });
   });
 
-  test("rewrites em dashes to en dashes in nested string fields", () => {
+  test("rewrites em dashes to real punctuation in nested string fields", () => {
     const content = '{"title":"a\u2014b","child":["c\u2014d"]}';
     expect(extractJsonObject(content)).toEqual({
-      title: "a\u2013b",
-      child: ["c\u2013d"],
+      title: "a, b",
+      child: ["c, d"],
+    });
+  });
+
+  test("cleans stock AI filler and addresses the reader", () => {
+    const content =
+      '{"summary":"It\'s important to note that this helps the patient\'s sleep."}';
+    expect(extractJsonObject(content)).toEqual({
+      summary: "This helps your sleep.",
     });
   });
 });

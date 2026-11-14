@@ -8,7 +8,7 @@ struct SavedMedicationsCard: View {
         SWCard {
             VStack(alignment: .leading, spacing: 12) {
                 SectionLabel("Medications")
-                Text("Add anything you take — prescriptions, OTC, supplements. We’ll keep this in mind every time you research strains, and never tell you to stop a prescription.")
+                Text("Add anything you take: prescriptions, OTC, supplements. We’ll keep this in mind every time you research strains, and never tell you to stop a prescription.")
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)

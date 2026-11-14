@@ -7,7 +7,7 @@ import { SWCard } from "@/components/ui/sw-card";
  * so the pulse animation is consistent with every other loading state. */
 function RedditThreadsSkeleton({
   title = "Reddit threads for these strains",
-  description = "Real public threads — surfaced from a curated list, not live-scraped.",
+  description = "Real public threads, surfaced from a curated list, not live-scraped.",
   count = 3,
 }: {
   title?: string;
@@ -52,7 +52,7 @@ export function RedditThreads({
   sources,
   loading = false,
   title = "Reddit threads for these strains",
-  description = "Real public threads — surfaced from a curated list, not live-scraped.",
+  description = "Real public threads, surfaced from a curated list, not live-scraped.",
 }: {
   sources: RedditSource[];
   loading?: boolean;

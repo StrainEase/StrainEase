@@ -111,7 +111,7 @@ export function PatientPrefsFields({
           placeholder="Add a medication…"
         />
         <p className="mt-1.5 text-xs text-muted-foreground">
-          We never tell you to stop a prescription — only to check with your
+          We never tell you to stop a prescription, only to check with your
           clinician.
         </p>
       </div>

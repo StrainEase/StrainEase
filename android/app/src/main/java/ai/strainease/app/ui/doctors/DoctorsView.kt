@@ -205,7 +205,7 @@ private fun hero() {
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
-            text = "StrainEase lists medical-marijuana doctors from Leafly's public directory. We don't refer or endorse — pick one that fits your needs.",
+            text = "StrainEase lists medical-marijuana doctors from Leafly's public directory. We don't refer or endorse. Pick one that fits your needs.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

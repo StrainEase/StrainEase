@@ -35,17 +35,17 @@ export const SITE_FAQS: FaqItem[] = [
   {
     question: "What is StrainEase?",
     answer:
-      "StrainEase is a free research tool for medical cannabis patients. You describe the symptoms you are treating, and it ranks strains patients commonly report for those symptoms using Leafly, Weedmaps, Reddit, Google, and dispensary menus.",
+      "StrainEase is a free research tool for medical cannabis. You describe the symptoms you are treating, and it ranks the strains people commonly report for those symptoms using Leafly, Weedmaps, Reddit, Google, and dispensary menus.",
   },
   {
     question: "How does StrainEase choose strains?",
     answer:
-      "It gathers commonly reported medical uses, effects, terpenes, and patient notes from public sources, then an AI model ranks the closest matches and can compare a few finalists side by side. Rankings reflect reported patient experience, not a prescription.",
+      "It gathers commonly reported medical uses, effects, terpenes, and notes from public sources, then an AI model ranks the closest matches and compares the finalists side by side. The rankings reflect what people have reported, not a prescription.",
   },
   {
     question: "Which sources does StrainEase use?",
     answer:
-      "Strain profiles pull from Leafly reviews, Weedmaps listings, Reddit discussions in communities such as r/medicalmarijuana, Google, and dispensary menus. Each comparison cites the voices it used.",
+      "Strain profiles pull from Leafly reviews, Weedmaps listings, Reddit discussions in communities such as r/medicalmarijuana, Google, and dispensary menus. Every comparison cites the voices it used.",
   },
   {
     question: "Is StrainEase medical advice?",
@@ -117,11 +117,11 @@ export function strainDescription(
   const bits = [type, thc].filter(Boolean).join(", ");
   if (uses.length > 0) {
     return clipMeta(
-      `${name} is a ${bits || "cannabis"} strain patients commonly report for ${joinAnd(uses)}. Compare medical uses, terpenes, and patient notes on StrainEase.`,
+      `${name} is a ${bits || "cannabis"} strain people commonly report for ${joinAnd(uses)}. Compare medical uses, terpenes, and notes from other people on StrainEase.`,
     );
   }
   return clipMeta(
-    `${name} cannabis strain profile on StrainEase — medical uses, terpenes, and patient-reported notes aggregated from public sources.`,
+    `${name} cannabis strain profile on StrainEase: medical uses, terpenes, and notes people report, aggregated from public sources.`,
   );
 }
 
@@ -391,7 +391,7 @@ export function llmsTxt(origin = SITE_ORIGIN): string {
 
 > ${SITE_DESCRIPTION}
 
-${SITE_NAME} is a medical-cannabis research product for patients. It is not a dispensary, not a doctor, and not medical advice. Content summarizes commonly reported patient experience from public sources.
+${SITE_NAME} is a medical-cannabis research product for people who use cannabis for relief. It is not a dispensary, not a doctor, and not medical advice. The content summarizes what people have reported, gathered from public sources.
 
 ## Site
 
@@ -446,7 +446,7 @@ export function llmsFullTxt(origin = SITE_ORIGIN): string {
     (item) => `Q: ${item.question}\nA: ${item.answer}`,
   ).join("\n\n");
 
-  return `# ${SITE_NAME} — full notes for language models
+  return `# ${SITE_NAME}: full notes for language models
 
 ${SITE_DESCRIPTION}
 
@@ -574,14 +574,14 @@ function catalogLine(strain: StrainProfile): string {
 function homeNoscript(): string {
   const strains = CATALOG.map(
     (strain) =>
-      `      <li><a href="/strain/${slugify(strain.name)}">${escapeHtml(strain.name)}</a> — ${escapeHtml(catalogLine(strain))}</li>`,
+      `      <li><a href="/strain/${slugify(strain.name)}">${escapeHtml(strain.name)}</a>, ${escapeHtml(catalogLine(strain))}</li>`,
   ).join("\n");
   const faqs = SITE_FAQS.map(
     (item) =>
       `      <dt>${escapeHtml(item.question)}</dt>\n      <dd>${escapeHtml(item.answer)}</dd>`,
   ).join("\n");
   return `<article>
-    <h1>${escapeHtml(SITE_NAME)} — ${escapeHtml(SITE_TAGLINE)}</h1>
+    <h1>${escapeHtml(SITE_NAME)}, ${escapeHtml(SITE_TAGLINE)}</h1>
     <p>${escapeHtml(SITE_DESCRIPTION)}</p>
     <h2>Strain catalog</h2>
     <ul>

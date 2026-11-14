@@ -67,9 +67,11 @@ function DescriptionSection({
   reliefHistory?: string;
   isAuthenticated?: boolean;
 }) {
-  // Each section body is exactly 3 paragraphs separated by blank lines
-  // ("\n\n") — enforced server-side in `normalizeDescriptionSections` /
-  // `coerceBodyToThreeParagraphs` (functions/src/index.ts). Render
+  // Each section body is a run of paragraphs separated by blank lines
+  // ("\n\n"), enforced server-side in `normalizeDescriptionSections` /
+  // `coerceBodyToParagraphs` (functions/src/index.ts). The server keeps
+  // the 4-6 paragraphs the model writes and only splits a body that
+  // comes back with fewer than three. Render
   // them as their own <p> so the description breathes on a phone
   // instead of running together as one wall of text. If the model
   // somehow skipped the breaks, the fallback renders the whole body

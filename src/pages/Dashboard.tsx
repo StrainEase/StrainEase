@@ -388,7 +388,7 @@ export default function Dashboard() {
                   New comparison
                 </CardTitle>
                 <CardDescription>
-                  Pick 2–3 strains. Search pulls live data from Leafly — no
+                  Pick 2–3 strains. Search pulls live data from Leafly, no
                   database to maintain. Type any strain name and press Enter.
                 </CardDescription>
               </CardHeader>
@@ -412,7 +412,7 @@ export default function Dashboard() {
                           void runSearch(query);
                         }
                       }}
-                      placeholder="Search Leafly — e.g. Blue Dream…"
+                      placeholder="Search Leafly, e.g. Blue Dream…"
                       className="pl-9"
                     />
                     {isSearching && (
@@ -485,7 +485,7 @@ export default function Dashboard() {
                             Use “{searchOutcome.name}”
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
-                            Not found on Leafly — the AI will research it during
+                            Not found on Leafly: the AI will research it during
                             the comparison
                           </p>
                         </div>
@@ -580,7 +580,7 @@ export default function Dashboard() {
                 {/* Condition focus */}
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    2 · Commonly used for (optional — pick several)
+                    2 · Commonly used for (optional, pick several)
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {/* My Ailments chip with gold gradient - always first */}
@@ -708,7 +708,7 @@ export default function Dashboard() {
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Full profiles from Leafly and Weedmaps, plus Reddit quotes
-                  when patients mention your symptoms — usually 8–20 seconds.
+                  when patients mention your symptoms, usually 8–20 seconds.
                 </p>
               </div>
             ) : result ? (
@@ -792,9 +792,9 @@ export default function Dashboard() {
                     Pick two or three strains to begin
                   </h1>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                    Search any strain by name — profiles are pulled live from
+                    Search any strain by name. Profiles are pulled live from
                     Leafly. Save your favorites and keep private notes, or share
-                    them with other patients.
+                    them with other people.
                   </p>
                 </div>
 

@@ -78,7 +78,7 @@ fun CheckInPanel(
                 }
                 if (trend.loggedDays == 0) {
                     Text(
-                        "No check-ins yet — your trend will appear here after your first log.",
+                        "No check-ins yet. Your trend will appear here after your first log.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

@@ -215,7 +215,7 @@ export function AccountSettingsDialog({
             Account settings
           </SheetTitle>
           <SheetDescription>
-            Update how your name appears on notes you share with other patients.
+            Update how your name appears on notes you share with other people.
           </SheetDescription>
         </SheetHeader>
 

@@ -46,7 +46,7 @@ fun RedditThreadsView(
     sources: List<RedditSource>,
     modifier: Modifier = Modifier,
     title: String = "Reddit threads for this strain",
-    description: String = "Public threads mentioning this strain — pulled from a curated list, not live-scraped.",
+    description: String = "Public threads mentioning this strain, pulled from a curated list, not live-scraped.",
 ) {
     if (sources.isEmpty()) return
     val context = LocalContext.current

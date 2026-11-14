@@ -95,13 +95,13 @@ fun TriedNotesView(
         SWCard {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Write a review of how this strain felt — it's public on this strain's page. Toggle the lock to stay anonymous (shown as \"A patient\").",
+                    text = "Write a review of how this strain felt. It's public on this strain's page. Toggle the lock to stay anonymous (shown as \"A patient\").",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (notes.isEmpty()) {
                     Text(
-                        text = "Nothing here yet — one sentence is enough to start a review.",
+                        text = "Nothing here yet. One sentence is enough to start a review.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

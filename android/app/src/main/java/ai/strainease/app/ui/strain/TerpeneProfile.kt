@@ -273,7 +273,7 @@ private fun FamilyStrainsBlock(
         when {
             loading -> FamilyStrainsSkeleton()
             strains.isEmpty() -> Text(
-                text = "No popular strains on Leafly currently list $name. Try opening a strain and checking its profile — the full terpene breakdown is inside.",
+                text = "No popular strains on Leafly currently list $name. Try opening a strain and checking its profile: the full terpene breakdown is inside.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

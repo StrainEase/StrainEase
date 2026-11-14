@@ -176,12 +176,12 @@ class AuthSession(
         if (error is FirebaseAuthException) {
             return when (error.errorCode) {
                 "ERROR_EMAIL_ALREADY_IN_USE" ->
-                    "An account already exists for that email — sign in instead."
+                    "An account already exists for that email. Sign in instead."
                 "ERROR_WRONG_PASSWORD",
                 "ERROR_INVALID_CREDENTIAL" ->
                     "Incorrect email or password."
                 "ERROR_USER_NOT_FOUND" ->
-                    "No account found for that email — create one instead."
+                    "No account found for that email. Create one instead."
                 "ERROR_INVALID_EMAIL" ->
                     "That doesn't look like a valid email."
                 "ERROR_WEAK_PASSWORD" ->

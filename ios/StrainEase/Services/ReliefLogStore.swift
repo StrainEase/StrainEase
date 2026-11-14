@@ -142,7 +142,7 @@ final class ReliefLogStore {
             return "Last time \(good.strainName) helped your sleep. Consider it again tonight."
         }
         if let harsh = nights.first(where: { $0.fit == .tooStrong }) {
-            return "\(harsh.strainName) was too strong at night — look for a gentler option."
+            return "\(harsh.strainName) was too strong at night. Look for a gentler option."
         }
         return nil
     }

@@ -17,8 +17,8 @@ export function absoluteUrl(path = "/"): string {
 }
 
 export function documentTitle(page?: string): string {
-  if (!page) return `${SITE_NAME} — ${SITE_TAGLINE}`;
-  return `${page} — ${SITE_NAME}`;
+  if (!page) return `${SITE_NAME}: ${SITE_TAGLINE}`;
+  return `${page} | ${SITE_NAME}`;
 }
 
 export function ogImageUrl(path = SITE_OG_IMAGE_PATH): string {

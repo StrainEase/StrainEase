@@ -376,7 +376,7 @@ export function StrainFind() {
               : filtersActive
                 ? "Try removing a filter or two to widen the search."
                 : loadingMore
-                  ? "Still loading the catalog — give it a second."
+                  ? "Still loading the catalog, give it a second."
                   : "The catalog is empty."}
           </p>
           {filtersActive && (

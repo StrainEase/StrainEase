@@ -126,7 +126,7 @@ export function quoteConfidence(
   if (conditions.length === 0) return null;
   const label = conditions[0]?.toLowerCase() ?? "this symptom";
   if (matched.length === 0) {
-    return `No direct patient quotes for ${label} yet — this is commonly reported, not a lab result.`;
+    return `No direct patient quotes for ${label} yet, this is commonly reported, not a lab result.`;
   }
   if (matched.length === 1) {
     return `1 patient comment mentions ${label}.`;
@@ -422,7 +422,7 @@ export function summarizeChannel(
         ? ` across ${rating.reviewCount.toLocaleString("en-US")} reviews`
         : "";
     parts.push(
-      `Leafly patients rate ${name} ${rating.stars.toFixed(1)}★${count}.`,
+      `Leafly reviewers rate ${name} ${rating.stars.toFixed(1)}★${count}.`,
     );
   }
 
@@ -461,7 +461,7 @@ export function summarizeChannel(
   }
 
   if (uses.length > 0) {
-    parts.push(`Weedmaps patients most often tag it for ${joinList(uses)}.`);
+    parts.push(`Weedmaps users most often tag it for ${joinList(uses)}.`);
   }
 
   if (caveats.length > 0 && tone !== "insufficient") {

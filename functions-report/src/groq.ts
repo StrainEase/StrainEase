@@ -12,6 +12,7 @@
 // is a prerequisite for that mode.
 
 import { HttpsError } from "firebase-functions/v2/https";
+import { cleanSlopObject } from "./anti-slop";
 
 export const GROQ_MODEL = "openai/gpt-oss-120b";
 export const GROQ_DESCRIPTION_MODEL = "openai/gpt-oss-20b";
@@ -95,41 +96,21 @@ export async function callGroq(
 }
 
 /**
- * Sanitize a string by replacing em dashes with en dashes to ensure
- * consistent rendering across all platforms. AI models sometimes generate
- * em dashes in their responses.
- */
-function sanitizeString(str: string): string {
-  return str.replace(/\u2014/g, "\u2013"); // em dash → en dash
-}
-
-/**
- * Recursively sanitize all string values in a JSON object.
- * Applied after parsing to catch em dashes that slip through in any field.
+ * Recursively clean all string values in a JSON object. Applied after
+ * parsing so the anti-slop pass catches em dashes and filler in any
+ * field, not only in the ones we know about.
  */
 function sanitizeObject(obj: unknown): unknown {
-  if (typeof obj === "string") {
-    return sanitizeString(obj);
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeObject);
-  }
-  if (obj !== null && typeof obj === "object") {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      result[key] = sanitizeObject(value);
-    }
-    return result;
-  }
-  return obj;
+  return cleanSlopObject(obj);
 }
 
 /**
  * Extract a JSON object from a model response, tolerating stray text,
  * markdown fences, and `<think>` tags. Even though we request JSON
  * mode from Groq, the helper stays defensive in case a future model
- * slips a preamble or reasoning block in. All string values are
- * sanitized to replace em dashes with en dashes.
+ * slips a preamble or reasoning block in. All string values run
+ * through the anti-slop pass (`./anti-slop.ts`), which rewrites em
+ * dashes into real punctuation and drops stock AI filler.
  */
 export function extractJsonObject(content: string): unknown | null {
   const stripped = content

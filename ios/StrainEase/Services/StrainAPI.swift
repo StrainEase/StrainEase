@@ -478,7 +478,7 @@ struct PreviewStrainAPI: StrainServicing {
         reliefHistory: String,
         language: String
     ) async throws -> String {
-        "Kaya's take on \(sectionHeading): \(strain.name) shines for the symptoms you flagged — start low, give it time to settle, and check in with how you feel before layering more on top."
+        "Kaya's take on \(sectionHeading): \(strain.name) shines for the symptoms you flagged, start low, give it time to settle, and check in with how you feel before layering more on top."
     }
 
     func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {
@@ -557,7 +557,7 @@ struct DelayedPreviewAPI: StrainServicing {
         language: String
     ) async throws -> String {
         try await Task.sleep(for: .seconds(60))
-        return "Kaya's take never resolves in this preview — but the production path returns a 2-4 paragraph expansion tailored to the strain and the user's saved ailments."
+        return "Kaya's take never resolves in this preview, but the production path returns a 2-4 paragraph expansion tailored to the strain and the user's saved ailments."
     }
 
     func redditThreads(name: String, conditions: [String]) async throws -> [RedditSource] {

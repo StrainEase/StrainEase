@@ -74,7 +74,7 @@ class PreviewStrainAPI(
         medications: List<String>,
         reliefHistory: String,
         language: String,
-    ): String = "Kaya's take on $sectionHeading: ${strain.name} shines for the symptoms you flagged — start low, give it time to settle, and check in with how you feel before layering more on top."
+    ): String = "Kaya's take on $sectionHeading: ${strain.name} shines for the symptoms you flagged. Start low, give it time to settle, and check in with how you feel before layering more on top."
 
     override suspend fun redditThreads(
         name: String,
@@ -109,7 +109,7 @@ private val SampleDescription = StrainDescription(
         ),
         StrainDescriptionSection(
             heading = "What it might do for you",
-            body = "Reported by patients for chronic pain, stress, and depression — useful when symptoms are dragging you down and you still need to stay functional.",
+            body = "Reported by people for chronic pain, stress, and depression. Useful when symptoms are dragging you down and you still need to stay functional.",
         ),
         StrainDescriptionSection(
             heading = "What to expect",

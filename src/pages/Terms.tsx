@@ -11,7 +11,7 @@ export default function Terms() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Seo
-        title="Terms of Service — StrainEase"
+        title="Terms of Service. StrainEase"
         description="StrainEase's terms of service, including the age policy, medical disclaimer, and limitation of liability."
         path="/legal/terms"
       />
@@ -83,8 +83,7 @@ export default function Terms() {
               education only. It is not medical advice and is not a substitute
               for consultation with a licensed clinician. Always seek the advice
               of a qualified healthcare provider with any questions you may have
-              regarding a medical condition, treatment, or medication —
-              including medical cannabis.
+              regarding a medical condition, treatment, or medication, including medical cannabis.
             </p>
             <p>
               Do not disregard professional medical advice or delay seeking it

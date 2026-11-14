@@ -85,12 +85,12 @@ export function useCompareLongPress(
     const countAfter = selection.count + 1;
     if (countAfter >= selection.cap) {
       toast.success(
-        `${display} added — compare tray is full (${countAfter}/${selection.cap})`,
+        `${display} added: compare tray is full (${countAfter}/${selection.cap})`,
         { description: "Long-press a chip's × in the tray to swap it out." },
       );
     } else {
       toast.success(`${display} added to compare`, {
-        description: `${countAfter} of ${selection.cap} — long-press another strain to add it.`,
+        description: `${countAfter} of ${selection.cap}, long-press another strain to add it.`,
       });
     }
   }, [clearAddedTimer, name, selection, showAddedFlash]);

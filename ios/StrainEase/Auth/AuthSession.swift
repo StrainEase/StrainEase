@@ -137,11 +137,11 @@ final class AuthSession {
         let code = (error as NSError).code
         switch AuthErrorCode(rawValue: code) {
         case .emailAlreadyInUse:
-            return "An account already exists for that email — sign in instead."
+            return "An account already exists for that email, sign in instead."
         case .wrongPassword, .invalidCredential:
             return "Incorrect email or password."
         case .userNotFound:
-            return "No account found for that email — create one instead."
+            return "No account found for that email, create one instead."
         case .invalidEmail:
             return "That doesn’t look like a valid email."
         case .weakPassword:

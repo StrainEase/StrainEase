@@ -131,7 +131,7 @@ struct AgeGateView: View {
     }
 
     private var actions: some View {
-        SWPrimaryButton(title: "I'm \(region.minimumAge) or older — enter StrainEase", systemImage: "leaf.fill") {
+        SWPrimaryButton(title: "I'm \(region.minimumAge) or older. Enter StrainEase", systemImage: "leaf.fill") {
             submit()
         }
         .disabled(!canSubmit)
@@ -172,9 +172,9 @@ struct AgeGateView: View {
             body = "Please re-enter a valid date of birth."
         case .future:
             title = "That date is in the future"
-            body = "Please re-enter your date of birth — that one is still ahead of us."
+            body = "Please re-enter your date of birth. That one is still ahead of us."
         case .underage:
-            title = "Sorry — StrainEase is for adults only"
+            title = "Sorry. StrainEase is for adults only"
             body = "If you are under the legal age for your region, please don't continue."
         }
         return SWErrorBanner(message: "\(title) · \(body)")
