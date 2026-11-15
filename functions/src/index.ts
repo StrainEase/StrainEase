@@ -385,7 +385,16 @@ export const searchStrain = onCall(
       typeof request.data?.name === "string" ? request.data.name : "";
     if (name.trim() === "") return null;
     const conditions = asStringArray(request.data?.conditions);
-    return await lookupProfile(name, conditions);
+    // The AI key lets the strain page write a full description for
+    // strains whose catalog entry is only a one-line blurb. It is
+    // optional: without it the scraped description is returned as is.
+    let aiKey: string | undefined;
+    try {
+      aiKey = OPENROUTER_API_KEY.value();
+    } catch {
+      aiKey = undefined;
+    }
+    return await lookupProfile(name, conditions, aiKey);
   },
 );
 

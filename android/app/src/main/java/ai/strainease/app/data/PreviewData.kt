@@ -34,7 +34,7 @@ val SampleGranddaddyPurple = StrainProfile(
         StrainEffect(name = "Happy", intensity = 3),
     ),
     sideEffects = listOf("Dry mouth", "Dry eyes"),
-    description = "A classic indica known for grape-scented body calm that helps patients ease into sleep.",
+    description = "Granddaddy Purple is a flagship California indica, and the name still carries weight on any dispensary shelf. The buds are deep purple, the nose is grape and berry, and the lineage runs back to Purple Urkle and Big Bud. The body stone is heavy and earned, which is why it earns its reputation as a nighttime strain rather than a daytime one. People reach for it when the day is done, when sleep is the goal, or when tension has been building all day. Expect a strong, long-lasting relaxation, a heavy appetite, and a slow fade into sleep.",
     communityNotes = listOf(
         CommunityNote(source = "Leafly review · sleepseeker", text = "Two hits and my back finally quieted down enough to sleep."),
         CommunityNote(source = "Reddit · r/trees", text = "GDP knocks me out in the best way after a long pain day."),
@@ -65,7 +65,7 @@ val SampleBlueDream = StrainProfile(
         StrainEffect(name = "Creative", intensity = 3),
     ),
     sideEffects = listOf("Dry mouth"),
-    description = "A balanced hybrid patients often reach for when they need relief without being glued to the couch.",
+    description = "Blue Dream is a sativa-leaning hybrid from California and the most searched strain on the market for good reason. It pairs a sweet berry aroma with a light herbal finish on the exhale, which makes it easy to pick out of a jar from across the room. The high is gentle and cerebral, with a soft body ease that settles in without pinning you to the couch. Most people reach for it during the day because the effects stay functional, and it is often the first flower people try when stronger weed leaves them anxious or sleepy. Expect a steady mood lift, a mild body buzz, and dry mouth as the most common complaint.",
     communityNotes = listOf(
         CommunityNote(source = "Leafly review · daytime", text = "Keeps me functional for chronic pain without gluing me to the couch."),
     ),
