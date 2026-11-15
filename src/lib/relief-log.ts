@@ -299,7 +299,7 @@ export function tonightHint(logs: ReliefLog[]): string | null {
   }
   const harsh = nights.find((l) => l.fit === "too-strong");
   if (harsh) {
-    return `${harsh.strainName} was too strong at night, look for a gentler option.`;
+    return `${harsh.strainName} was too strong at night. Look for a gentler option.`;
   }
   return null;
 }

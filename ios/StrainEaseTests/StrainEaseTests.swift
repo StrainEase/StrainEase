@@ -219,7 +219,7 @@ final class StrainEaseTests: XCTestCase {
         )
         XCTAssertEqual(
             ReliefLogStore.preview([harsh]).tonightHint,
-            "Gorilla Glue was too strong at night, look for a gentler option."
+            "Gorilla Glue was too strong at night. Look for a gentler option."
         )
     }
 
