@@ -5,6 +5,9 @@
 // caching, the numeric averaging, and the source attribution in
 // one pass; this file adds Reddit quotes and the AI fill-in on top.
 import { extractJsonObject } from "./ai-json";
+import { getCachedAiResult, putCachedAiResult } from "./ai-cache";
+import { computeAiCacheKey } from "./ai-cache-key";
+import { isRichDescription } from "./description-quality";
 import { callOpenRouter, OPENROUTER_MODEL } from "./openrouter";
 import { fetchRedditQuotes, fetchRedditQuotesFor } from "./reddit";
 import type { CommunityNote, CommunityNoteKind, StrainProfile } from "./types";
@@ -217,7 +220,7 @@ export function mergeProfiles(
 
 function needsResearch(p: StrainProfile): boolean {
   return (
-    !p.description ||
+    !isRichDescription(p.description) ||
     !p.medicalUses ||
     p.medicalUses.length === 0 ||
     !p.effects ||
@@ -284,6 +287,7 @@ Rules:
 - communityNotes must be paraphrases of commonly reported patient comments, not fabricated first-person quotes. Prefer notes tied to the patient's conditions when those are given.
 - medicalUses should be short symptom/condition names.
 - effects intensity is 1-5.
+- Only fill fields that are missing or empty, with one exception: a thin description. When "descriptionIsThin" is true, the strain arrived with a catalog blurb instead of a real description, so write the full description described below even though something is already there.
 - Write a full description, not a label: 4-6 sentences, roughly 70-110 words, in one paragraph. Cover what the strain is (type, lineage if known), the effects people commonly report, its usual potency profile, and what someone trying it for the first time should expect. A one-line blurb is not usable on its own, so do not write one.
 - Write to the reader as "you" when the sentence is about them ("this tends to settle people down, so you can plan for an evening").
 - Never use an em dash. Use commas, periods, colons, or semicolons.
@@ -302,6 +306,7 @@ ${JSON.stringify(
     medicalUses: p.medicalUses,
     effects: p.effects,
     description: p.description,
+    descriptionIsThin: !isRichDescription(p.description),
     communityNotes: p.communityNotes,
   })),
   null,
@@ -354,7 +359,11 @@ function applyResearch(
   if (!researched) return base;
   return {
     ...base,
-    description: base.description ?? researched.description,
+    // A researched description replaces a catalog blurb, but a rich
+    // scraped description is already better than anything we write.
+    description: isRichDescription(base.description)
+      ? base.description
+      : (researched.description ?? base.description),
     medicalUses: base.medicalUses ?? researched.medicalUses,
     effects: base.effects ?? researched.effects,
     lineage: base.lineage ?? researched.lineage,
@@ -438,9 +447,63 @@ export function redditNotesFor(
 }
 
 /** Single-name lookup for search: per-source cache + Reddit, no AI. */
+/**
+ * Firestore collection the researched description is cached under.
+ */
+const ENRICH_CACHE_COLLECTION = "enrichCache";
+
+/**
+ * Write a full description for a strain whose catalog description is
+ * only a blurb.
+ *
+ * The strain page renders the profile description under "Full
+ * Description", and for most strains the catalog carries a single
+ * short paragraph. This fills that in with the same 4-6 sentence
+ * description the enrich prompt asks for, and caches it per strain so
+ * the model is only asked once.
+ */
+async function researchDescription(
+  profile: StrainProfile,
+  conditions: string[],
+  openRouterApiKey: string,
+): Promise<string | undefined> {
+  const cacheKey = computeAiCacheKey({
+    strain: profile.name.trim().toLowerCase(),
+  });
+  const cached = await getCachedAiResult<{ description?: string }>(
+    ENRICH_CACHE_COLLECTION,
+    cacheKey,
+  );
+  const cachedDescription = cached?.result?.description;
+  if (cachedDescription && isRichDescription(cachedDescription)) {
+    return cachedDescription;
+  }
+  try {
+    const researched = await researchMissing(
+      [profile],
+      conditions,
+      openRouterApiKey,
+    );
+    const description =
+      researched.get(profile.name.trim().toLowerCase())?.description;
+    if (!description || !isRichDescription(description)) return undefined;
+    await putCachedAiResult(
+      ENRICH_CACHE_COLLECTION,
+      cacheKey,
+      { description },
+      OPENROUTER_MODEL,
+    );
+    return description;
+  } catch {
+    // The scraped blurb is still better than an error page.
+    return undefined;
+  }
+}
+
 export async function lookupProfile(
   name: string,
   conditions: string[] = [],
+  openRouterApiKey?: string,
 ): Promise<StrainProfile | null> {
   const trimmed = name.trim();
   if (!trimmed) return null;
@@ -453,11 +516,18 @@ export async function lookupProfile(
     fetchRedditQuotes(trimmed, focus),
   ]);
   if (!consolidated) return null;
-  return {
+  const profile: StrainProfile = {
     ...(consolidated as StrainProfile),
     communityNotes: preferAilmentNotes(
       reTag(uniqueNotes([...(consolidated.communityNotes ?? []), ...reddit])),
       focus,
     ),
   };
+  // Every strain gets a full description, not just the ones the
+  // catalog already had a good one for.
+  if (openRouterApiKey && !isRichDescription(profile.description)) {
+    const richer = await researchDescription(profile, focus, openRouterApiKey);
+    if (richer) profile.description = richer;
+  }
+  return profile;
 }
